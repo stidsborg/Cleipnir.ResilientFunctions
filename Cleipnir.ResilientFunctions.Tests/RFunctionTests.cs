@@ -16,8 +16,10 @@ namespace Cleipnir.ResilientFunctions.Tests
     {
         private readonly FunctionTypeId _functionTypeId = "functionId".ToFunctionTypeId();
 
-        [TestMethod]
-        public async Task SunshineScenario()
+        [DataRow(null)]
+        [DataRow("id")]
+        [DataTestMethod]
+        public async Task SunshineScenario(string? functionInstanceId)
         {
             var store = new InMemoryFunctionStore();
 
@@ -35,21 +37,27 @@ namespace Cleipnir.ResilientFunctions.Tests
                 ToUpper
             );
             
-            var result = await rFunc("hello");
+            var result = await rFunc("hello", functionInstanceId?.ToFunctionInstanceId());
             result.ShouldBe("HELLO");
 
-            var instanceId = HashHelper.SHA256Hash("hello".ToJson()).ToFunctionInstanceId();
-            var storeResult = await store.GetFunctionResult(new FunctionId(_functionTypeId, instanceId));
+            var instanceIfWhenNoneProvided = HashHelper.SHA256Hash("hello".ToJson()).ToFunctionInstanceId();
+            var storeResult = await store.GetFunctionResult(
+                new FunctionId(
+                    _functionTypeId, 
+                    functionInstanceId?.ToFunctionInstanceId() ?? instanceIfWhenNoneProvided
+                )
+            );
             storeResult.ShouldNotBeNull();
             storeResult.Deserialize().ShouldBe("HELLO");
         }
         
-        [TestMethod]
-        public async Task NonCompletedFunctionIsCompletedByWatchDog()
+        [DataRow(null)]
+        [DataRow("id")]
+        [DataTestMethod]
+        public async Task NonCompletedFunctionIsCompletedByWatchDog(string? functionInstanceId)
         {
             var store = new InMemoryFunctionStore();
-            var param = "test";
-            var instanceId = GenerateInstanceIdFrom(param).ToFunctionInstanceId();
+            const string param = "test";
 
             var throwingFunctionWrapper = new FunctionWrapper(true);
             var nonCompletingRFunctions = RFunctions
@@ -60,7 +68,7 @@ namespace Cleipnir.ResilientFunctions.Tests
                     throwingFunctionWrapper.Method
                 );
 
-            SafeTry(() => _ = nonCompletingRFunctions(param));
+            SafeTry(() => _ = nonCompletingRFunctions(param, functionInstanceId?.ToFunctionInstanceId()));
 
             var nonThrowingFunctionWrapper = new FunctionWrapper(false);
             using var rFunctions = RFunctions.Create(
@@ -74,10 +82,11 @@ namespace Cleipnir.ResilientFunctions.Tests
                 nonThrowingFunctionWrapper.Method
             );
 
-            await BusyWait.Until(
-                async () => await store.GetFunctionResult(new FunctionId(_functionTypeId, instanceId)) != null
+            var functionId = new FunctionId(
+                _functionTypeId,
+                functionInstanceId?.ToFunctionInstanceId() ?? GenerateFunctionInstanceIdFrom(param)
             );
-
+            await BusyWait.Until(async () => await store.GetFunctionResult(functionId) != null);
             (await rFunc(param)).ShouldBe("TEST");
         }
 

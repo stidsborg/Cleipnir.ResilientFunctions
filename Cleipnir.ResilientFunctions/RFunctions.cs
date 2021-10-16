@@ -31,7 +31,7 @@ namespace Cleipnir.ResilientFunctions
             _unhandledWatchDogCheckFrequency = unhandledWatchDogCheckFrequency;
         }
 
-        public Func<TParam, Task<TReturn>> Register<TParam, TReturn>(
+        public RFunction<TParam, TReturn> Register<TParam, TReturn>(
             FunctionTypeId functionTypeId, 
             TParam? paramExample, 
             Func<TParam, Task<TReturn>> func
@@ -42,21 +42,25 @@ namespace Cleipnir.ResilientFunctions
             lock (_sync)
             {
                 if (_functions.ContainsKey(functionTypeId))
-                    return (Func<TParam, Task<TReturn>>) _functions[functionTypeId];
+                    return (RFunction<TParam, TReturn>) _functions[functionTypeId];
 
-                Task<TReturn> RFunc(TParam param)
+                Task<TReturn> RFunc(TParam param, FunctionInstanceId? id = null)
                 {
-                    var paramJson = JsonSerializer.Serialize(param);
-                    var paramHash = HashHelper.SHA256Hash(paramJson);
-                    var functionId = new FunctionId(functionTypeId, paramHash.ToFunctionInstanceId());
+                    if (id == null)
+                    {
+                        var paramJson = JsonSerializer.Serialize(param);
+                        var paramHash = HashHelper.SHA256Hash(paramJson);
+                        id = paramHash.ToFunctionInstanceId();    
+                    }
                     
                     var runner = new RFunctionRunner<TParam, TReturn>(
-                        functionId,
+                        new FunctionId(functionTypeId, id),
                         _functionStore,
                         func,
                         param,
                         _signOfLifeUpdaterFactory
                     );
+                    
                     return runner.InvokeMethodAndStoreResult();
                 }
 
@@ -71,12 +75,12 @@ namespace Cleipnir.ResilientFunctions
 
                 _unhandledWatchDogs.Add(watchdog);
 
-                _functions[functionTypeId] = new Func<TParam, Task<TReturn>>(RFunc);
+                _functions[functionTypeId] = new RFunction<TParam, TReturn>(RFunc);
                 
                 return RFunc;
             }
         }
-
+        
         public void Dispose()
         {
             lock (_sync)

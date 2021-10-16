@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Utils
 {
     public static class Helpers
     {
-        public static string GenerateInstanceIdFrom<T>(T param)
-            => HashHelper.SHA256Hash(JsonSerializer.Serialize(param));
+        public static FunctionInstanceId GenerateFunctionInstanceIdFrom<T>(T param)
+            => HashHelper.SHA256Hash(JsonSerializer.Serialize(param)).ToFunctionInstanceId();
         
         public static long GenerateRandomLong()
         {
