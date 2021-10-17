@@ -11,18 +11,19 @@ using static Cleipnir.ResilientFunctions.Utils.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Tests
 {
-    [TestClass]
-    public class RFunctionTests
+    public abstract class RFunctionTests
     {
         private readonly FunctionTypeId _functionTypeId = "functionId".ToFunctionTypeId();
-
-        [DataRow(null)]
-        [DataRow("id")]
-        [DataTestMethod]
-        public async Task SunshineScenario(string? functionInstanceId)
+        
+        public abstract Task SunshineScenario();
+        public async Task SunshineScenario(IFunctionStore store)
         {
-            var store = new InMemoryFunctionStore();
-
+            await SunshineScenario(store, null);
+            await SunshineScenario(store, "id");
+        }
+        
+        private async Task SunshineScenario(IFunctionStore store, string? functionInstanceId)
+        {
             async Task<string> ToUpper(string s)
             {
                 await Task.Delay(10);
@@ -50,13 +51,16 @@ namespace Cleipnir.ResilientFunctions.Tests
             storeResult.ShouldNotBeNull();
             storeResult.Deserialize().ShouldBe("HELLO");
         }
-        
-        [DataRow(null)]
-        [DataRow("id")]
-        [DataTestMethod]
-        public async Task NonCompletedFunctionIsCompletedByWatchDog(string? functionInstanceId)
+
+        public abstract Task NonCompletedFunctionIsCompletedByWatchDog();
+        public async Task NonCompletedFunctionIsCompletedByWatchDog(IFunctionStore store)
         {
-            var store = new InMemoryFunctionStore();
+            await NonCompletedFunctionIsCompletedByWatchDog(store, null);
+            await NonCompletedFunctionIsCompletedByWatchDog(store, "id");
+        }
+        
+        private async Task NonCompletedFunctionIsCompletedByWatchDog(IFunctionStore store, string? functionInstanceId)
+        {
             const string param = "test";
 
             var throwingFunctionWrapper = new FunctionWrapper(true);

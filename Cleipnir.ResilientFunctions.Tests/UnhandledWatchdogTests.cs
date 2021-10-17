@@ -9,17 +9,16 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests
 {
-    [TestClass]
-    public class UnhandledWatchdogTests
+    public abstract class UnhandledWatchdogTests
     {
         private readonly FunctionTypeId _functionTypeId = "functionId".ToFunctionTypeId();
         private readonly FunctionInstanceId _instanceId = "instanceId".ToFunctionInstanceId();
         private FunctionId FunctionId => new FunctionId(_functionTypeId, _instanceId);
 
-        [TestMethod]
-        public async Task UnhandledFunctionInvocationIsCompletedByWatchDog()
+        public abstract Task UnhandledFunctionInvocationIsCompletedByWatchDog();
+        
+        public async Task UnhandledFunctionInvocationIsCompletedByWatchDog(IFunctionStore store)
         {
-            var store = new InMemoryFunctionStore();
             using var watchDog = new UnhandledWatchdog<string, string>(
                 _functionTypeId,
                 s => Task.FromResult(s.ToUpper()),

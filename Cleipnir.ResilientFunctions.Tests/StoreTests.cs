@@ -5,25 +5,21 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests
 {
-    [TestClass]
-    public class InMemoryStoreTests
+    public abstract class StoreTests
     {
         private FunctionId FunctionId { get; } = new FunctionId("functionId", "instanceId");
         
-        private const string Param = "param";
-        
-        [TestMethod]
-        public async Task SunshineScenarioTest()
+        private const string PARAM = "param";
+
+        public abstract Task SunshineScenarioTest();
+        public async Task SunshineScenarioTest(IFunctionStore store)
         {
-            var store = new InMemoryFunctionStore();
-            
-            var paramJson = Param.ToJson();
-            var paramType = Param.GetType().SimpleQualifiedName();
+            var paramJson = PARAM.ToJson();
+            var paramType = PARAM.GetType().SimpleQualifiedName();
             var initialTimeOfLife = DateTime.UtcNow.Ticks;
 
             await store.StoreFunction(
@@ -56,13 +52,11 @@ namespace Cleipnir.ResilientFunctions.Tests
             storeResult.Deserialize().ShouldBe("world");
         }
 
-        [TestMethod]
-        public async Task SignOfLifeIsUpdatedWhenAsExpected()
+        public abstract Task SignOfLifeIsUpdatedWhenAsExpected();
+        public async Task SignOfLifeIsUpdatedWhenAsExpected(IFunctionStore store)
         {
-            var store = new InMemoryFunctionStore();
-            
-            var paramJson = Param.ToJson();
-            var paramType = Param.GetType().SimpleQualifiedName();
+            var paramJson = PARAM.ToJson();
+            var paramType = PARAM.GetType().SimpleQualifiedName();
             var initialTimeOfLife = DateTime.UtcNow.Ticks;
 
             await store.StoreFunction(
@@ -85,14 +79,12 @@ namespace Cleipnir.ResilientFunctions.Tests
             nonCompletedFunctions = await store.GetNonCompletedFunctions(FunctionId.TypeId, initialTimeOfLife + 3);
             nonCompletedFunctions.Single().SignOfLife.ShouldBe(initialTimeOfLife + 2);
         }
-        
-        [TestMethod]
-        public async Task SignOfLifeIsNotUpdatedWhenNotAsExpected()
+
+        public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
+        public async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(IFunctionStore store)
         {
-            var store = new InMemoryFunctionStore();
-            
-            var paramJson = Param.ToJson();
-            var paramType = Param.GetType().SimpleQualifiedName();
+            var paramJson = PARAM.ToJson();
+            var paramType = PARAM.GetType().SimpleQualifiedName();
             var initialTimeOfLife = DateTime.UtcNow.Ticks;
 
             await store.StoreFunction(
