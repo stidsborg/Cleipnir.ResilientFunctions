@@ -17,6 +17,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    env:
+      Cleipnir.RFunctions.SqlServer.Tests.ConnectionString: Server=localhost;Database=master;User Id=sa;Password=Pa55word!
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
