@@ -28,8 +28,7 @@ namespace Cleipnir.ResilientFunctions
 
         public async Task Start()
         {
-            if (_updateFrequency == TimeSpan.Zero)
-                return;
+            if (_updateFrequency == TimeSpan.Zero) return;
 
             await Task.Yield();
             
@@ -39,6 +38,8 @@ namespace Cleipnir.ResilientFunctions
             {
                 await Task.Delay(_updateFrequency);
 
+                if (_disposed) return;
+                
                 var success = await _functionStore.UpdateSignOfLife(
                     _functionId,  
                     signOfLife, 
