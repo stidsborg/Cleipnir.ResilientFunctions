@@ -80,7 +80,7 @@ namespace Cleipnir.ResilientFunctions.Tests
         }
         
         [TestMethod]
-        public async Task WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
+        public void WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
         {
             const long expectedSignOfLife = 100;
 
