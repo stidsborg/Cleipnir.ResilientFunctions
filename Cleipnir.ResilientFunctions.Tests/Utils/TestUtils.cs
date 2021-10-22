@@ -1,9 +1,11 @@
 using System;
 using System.Text.Json;
+using Cleipnir.ResilientFunctions.Storage;
+using Moq;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils
 {
-    public static class TestUtils
+    internal static class TestUtils
     {
         public static string ToJson<T>(this T t) => JsonSerializer.Serialize(t);
 
@@ -18,7 +20,12 @@ namespace Cleipnir.ResilientFunctions.Tests.Utils
                 // ignored
             }
         }
-        
-        
+
+        public static SignOfLifeUpdaterFactory CreateNeverExecutionSignOfLifeUpdaterFactory()
+            => new SignOfLifeUpdaterFactory(
+                new Mock<IFunctionStore>().Object,
+                _ => { },
+                TimeSpan.Zero
+            );
     }
 }

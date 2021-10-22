@@ -17,18 +17,20 @@ namespace Cleipnir.ResilientFunctions
         private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
 
         private readonly TimeSpan _unhandledWatchDogCheckFrequency;
+        private readonly Action<RFunctionException> _unhandledExceptionHandler;
 
         private readonly object _sync = new();
 
-        public RFunctions(
+        private RFunctions(
             IFunctionStore functionStore, 
             SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-            TimeSpan unhandledWatchDogCheckFrequency 
-        )
+            TimeSpan unhandledWatchDogCheckFrequency, 
+            Action<RFunctionException> unhandledExceptionHandler)
         {
             _functionStore = functionStore;
             _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
             _unhandledWatchDogCheckFrequency = unhandledWatchDogCheckFrequency;
+            _unhandledExceptionHandler = unhandledExceptionHandler;
         }
 
         public RFunction<TParam, TReturn> Register<TParam, TReturn>(
@@ -64,12 +66,13 @@ namespace Cleipnir.ResilientFunctions
                     return runner.InvokeMethodAndStoreResult();
                 }
 
-                var watchdog = new UnhandledWatchdog<TParam, TReturn>(
+                var watchdog = new UnhandledRFunctionWatchdog<TParam, TReturn>(
                     functionTypeId,
                     func,
                     _functionStore,
                     _signOfLifeUpdaterFactory,
-                    _unhandledWatchDogCheckFrequency
+                    _unhandledWatchDogCheckFrequency,
+                    _unhandledExceptionHandler
                 );
                 _ = watchdog.Start();
 
@@ -92,14 +95,19 @@ namespace Cleipnir.ResilientFunctions
             }
         }
 
-        public static RFunctions Create(IFunctionStore store, TimeSpan? unhandledFunctionsCheckFrequency = null) 
+        public static RFunctions Create(
+            IFunctionStore store,
+            Action<RFunctionException>? unhandledExceptionHandler = null,
+            TimeSpan? unhandledFunctionsCheckFrequency = null) 
             => new RFunctions(
                 store,
                 new SignOfLifeUpdaterFactory(
                     store,
+                    unhandledExceptionHandler ?? (_ => {}),
                     unhandledFunctionsCheckFrequency ?? TimeSpan.FromSeconds(10)
                 ),
-                unhandledFunctionsCheckFrequency ?? TimeSpan.FromSeconds(10)
+                unhandledFunctionsCheckFrequency ?? TimeSpan.FromSeconds(10),
+                unhandledExceptionHandler ?? (_ => {})
             );
     }
 }

@@ -4,8 +4,8 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
+using static Cleipnir.ResilientFunctions.Tests.Utils.TestUtils;
 
 namespace Cleipnir.ResilientFunctions.Tests
 {
@@ -16,15 +16,18 @@ namespace Cleipnir.ResilientFunctions.Tests
         private FunctionId FunctionId => new FunctionId(_functionTypeId, _instanceId);
 
         public abstract Task UnhandledFunctionInvocationIsCompletedByWatchDog();
-        
-        public async Task UnhandledFunctionInvocationIsCompletedByWatchDog(IFunctionStore store)
+
+        protected async Task UnhandledFunctionInvocationIsCompletedByWatchDog(IFunctionStore store)
         {
-            using var watchDog = new UnhandledWatchdog<string, string>(
+            var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+            
+            using var watchDog = new UnhandledRFunctionWatchdog<string, string>(
                 _functionTypeId,
-                s => Task.FromResult(s.ToUpper()),
+                RFunc.ToUpper,
                 store,
-                new SignOfLifeUpdaterFactory(store, TimeSpan.Zero),
-                TimeSpan.FromMilliseconds(1)
+                CreateNeverExecutionSignOfLifeUpdaterFactory(),
+                TimeSpan.FromMilliseconds(1),
+                unhandledExceptionCatcher.Catch
             );
 
             await store.StoreFunction(
@@ -42,6 +45,7 @@ namespace Cleipnir.ResilientFunctions.Tests
             );
             
             functionResult!.Deserialize().ShouldBe("HELLO");
+            unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
         }
     }
 }

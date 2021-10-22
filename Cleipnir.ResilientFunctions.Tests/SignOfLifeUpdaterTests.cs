@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
@@ -15,27 +15,29 @@ namespace Cleipnir.ResilientFunctions.Tests
     public class SignOfLifeUpdaterTests
     {
         private readonly FunctionId _functionId = new FunctionId("functionId", "instanceId");
+        private UnhandledExceptionCatcher _unhandledExceptionCatcher = new();
         
+        [TestInitialize]
+        public void SetUp() => _unhandledExceptionCatcher = new();
+
         [TestMethod]
         public async Task AfterSignOfLifeIsStartedStoreIsInvokedContinuouslyWithExpectedDelay()
         {
             const long expectedSignOfLife = 100;
-            
+
             var mock = new Mock<IFunctionStore>();
-            var sync = new object();
-            var invocations = new List<Parameters>();
+            var invocations = new SyncedList<Parameters>();
 
             mock.Setup(s => s.UpdateSignOfLife(It.IsAny<FunctionId>(), It.IsAny<long>(), It.IsAny<long>()))
                 .Callback<FunctionId, long, long>(
-                    (functionId, expectedSignOfLife, newSignOfLife) =>
-                    {
-                        lock (sync)
-                            invocations.Add(new Parameters(functionId, expectedSignOfLife, newSignOfLife));
-                    })
+                    (functionId, expectedSignOfLife, newSignOfLife)
+                        => invocations.Add(new Parameters(functionId, expectedSignOfLife, newSignOfLife))
+                )
                 .Returns(true.ToTask());
-            
+
             var updaterFactory = new SignOfLifeUpdaterFactory(
-                mock.Object, 
+                mock.Object,
+                _unhandledExceptionCatcher.Catch,
                 TimeSpan.FromMilliseconds(10)
             );
             using var updater = updaterFactory.CreateAndStart(_functionId, expectedSignOfLife);
@@ -43,18 +45,15 @@ namespace Cleipnir.ResilientFunctions.Tests
             await Task.Delay(100);
             updater.Dispose();
 
-            lock (sync)
-            {
-                invocations.Count.ShouldBeGreaterThan(2);
-                invocations.All(p => p.FunctionId == _functionId).ShouldBeTrue();
+            invocations.Count.ShouldBeGreaterThan(2);
+            invocations.All(p => p.FunctionId == _functionId).ShouldBeTrue();
 
-                _ = invocations.Aggregate(expectedSignOfLife, (prevSignOfLife, parameters) =>
-                {
-                    parameters.ExpectedSignOfLife.ShouldBe(prevSignOfLife);
-                    prevSignOfLife.ShouldBeLessThan(parameters.NewSignOfLife);
-                    return parameters.NewSignOfLife;
-                });
-            }
+            _ = invocations.Aggregate(expectedSignOfLife, (prevSignOfLife, parameters) =>
+            {
+                parameters.ExpectedSignOfLife.ShouldBe(prevSignOfLife);
+                prevSignOfLife.ShouldBeLessThan(parameters.NewSignOfLife);
+                return parameters.NewSignOfLife;
+            });
         }
 
         [TestMethod]
@@ -68,6 +67,7 @@ namespace Cleipnir.ResilientFunctions.Tests
             
             var updaterFactory = new SignOfLifeUpdaterFactory(
                 mock.Object, 
+                _unhandledExceptionCatcher.Catch,
                 TimeSpan.FromMilliseconds(10)
             );
             using var updater = updaterFactory.CreateAndStart(_functionId, expectedSignOfLife);
@@ -75,6 +75,31 @@ namespace Cleipnir.ResilientFunctions.Tests
             await Task.Delay(100);
             updater.Dispose();
 
+            mock.Invocations.Count.ShouldBe(1);
+            _unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        }
+        
+        [TestMethod]
+        public async Task WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
+        {
+            const long expectedSignOfLife = 100;
+
+            var mock = new Mock<IFunctionStore>();
+            mock.Setup(s => s.UpdateSignOfLife(It.IsAny<FunctionId>(), It.IsAny<long>(), It.IsAny<long>()))
+                .Throws<FrameworkException>();
+            
+            var updaterFactory = new SignOfLifeUpdaterFactory(
+                mock.Object, 
+                _unhandledExceptionCatcher.Catch,
+                TimeSpan.FromMilliseconds(1)
+            );
+
+            updaterFactory.CreateAndStart(_functionId, expectedSignOfLife);
+            BusyWait.Until(() => _unhandledExceptionCatcher.ThrownExceptions.Any());
+            
+            _unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
+            var thrownException = _unhandledExceptionCatcher.ThrownExceptions[0];
+            (thrownException is FrameworkException).ShouldBeTrue();
             mock.Invocations.Count.ShouldBe(1);
         }
 

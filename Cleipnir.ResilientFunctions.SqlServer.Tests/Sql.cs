@@ -10,9 +10,9 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 
         static Sql()
         {
-            var connectionString = Environment.GetEnvironmentVariable("Cleipnir.RFunctions.SqlServer.Tests.ConnectionString");
-            if (connectionString == null)
-                throw new NullReferenceException("Environment variable 'Cleipnir.RFunctions.SqlServer.Tests.ConnectionString' was not set");
+            var connectionString = 
+                Environment.GetEnvironmentVariable("Cleipnir.RFunctions.SqlServer.Tests.ConnectionString")
+                ?? "Server=localhost;Database=master;User Id=sa;Password=Pa55word!";
 
             ConnFunc = async () =>
             {

@@ -4,23 +4,26 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions
 {
-    public class SignOfLifeUpdaterFactory
+    internal class SignOfLifeUpdaterFactory 
     {
         private readonly IFunctionStore _functionStore;
+        private readonly Action<RFunctionException> _unhandledExceptionHandler;
         private readonly TimeSpan? _updateFrequency;
 
-        public SignOfLifeUpdaterFactory(IFunctionStore functionStore, TimeSpan unhandledFunctionsCheckFrequency)
+        public SignOfLifeUpdaterFactory(IFunctionStore functionStore, Action<RFunctionException> unhandledExceptionHandler, TimeSpan unhandledFunctionsCheckFrequency)
         {
             _functionStore = functionStore;
+            _unhandledExceptionHandler = unhandledExceptionHandler;
             _updateFrequency = unhandledFunctionsCheckFrequency / 2;
         }
 
-        public SignOfLifeUpdater CreateAndStart(FunctionId functionId, long expectedSignOfLife)
+        public IDisposable CreateAndStart(FunctionId functionId, long expectedSignOfLife)
         {
             var signOfLifeUpdater = new SignOfLifeUpdater(
                 functionId,
                 expectedSignOfLife, 
-                _functionStore, 
+                _functionStore,
+                _unhandledExceptionHandler,
                 _updateFrequency
             );
             

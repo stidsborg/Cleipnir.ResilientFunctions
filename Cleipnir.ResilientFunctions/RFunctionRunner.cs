@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions
 {
-    public class RFunctionRunner<TParam, TReturn> where TParam : notnull where TReturn : notnull
+    internal class RFunctionRunner<TParam, TReturn> where TParam : notnull where TReturn : notnull
     {
         private readonly FunctionId _functionId;
         private readonly Func<TParam, Task<TReturn>> _func;
