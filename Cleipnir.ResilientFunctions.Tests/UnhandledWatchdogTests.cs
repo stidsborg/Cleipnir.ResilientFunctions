@@ -21,9 +21,9 @@ namespace Cleipnir.ResilientFunctions.Tests
         {
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             
-            using var watchDog = new UnhandledRFunctionWatchdog<string, string>(
+            using var watchDog = new UnhandledRFunctionWatchdog<string>(
                 _functionTypeId,
-                RFunc.ToUpper,
+                (param1, _, _) => RFunc.ToUpper(param1.ToString()!),
                 store,
                 CreateNeverExecutionSignOfLifeUpdaterFactory(),
                 TimeSpan.FromMilliseconds(1),
@@ -32,14 +32,15 @@ namespace Cleipnir.ResilientFunctions.Tests
 
             await store.StoreFunction(
                 FunctionId,
-                "hello".ToJson(),
-                typeof(string).SimpleQualifiedName(),
-                DateTime.UtcNow.AddMinutes(-1).Ticks
+                param1: new Parameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param2: null,
+                scrapbookType: null,
+                initialSignOfLife: DateTime.UtcNow.AddMinutes(-1).Ticks
             );
 
             _ = watchDog.Start();
 
-            FunctionResult? functionResult = null;
+            Result? functionResult = null;
             await BusyWait.Until(
                 async () => (functionResult = await store.GetFunctionResult(FunctionId)) != null
             );

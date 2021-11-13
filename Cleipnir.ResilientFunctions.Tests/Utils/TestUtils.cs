@@ -5,9 +5,10 @@ using Moq;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils
 {
-    internal static class TestUtils
+    public static class TestUtils
     {
         public static string ToJson<T>(this T t) => JsonSerializer.Serialize(t);
+        public static T? FromJsonTo<T>(this string json) => JsonSerializer.Deserialize<T>(json);
 
         public static void SafeTry(Action a)
         {
@@ -21,7 +22,7 @@ namespace Cleipnir.ResilientFunctions.Tests.Utils
             }
         }
 
-        public static SignOfLifeUpdaterFactory CreateNeverExecutionSignOfLifeUpdaterFactory()
+        internal static SignOfLifeUpdaterFactory CreateNeverExecutionSignOfLifeUpdaterFactory()
             => new SignOfLifeUpdaterFactory(
                 new Mock<IFunctionStore>().Object,
                 _ => { },

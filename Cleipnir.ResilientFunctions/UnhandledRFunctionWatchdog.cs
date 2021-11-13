@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -7,10 +8,12 @@ using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions
 {
-    internal class UnhandledRFunctionWatchdog<TParam, TReturn> : IDisposable 
+    internal class UnhandledRFunctionWatchdog<TReturn> : IDisposable where TReturn : notnull
     {
+        public delegate Task<TReturn> RFunc(object param1, object? param2, RScrapbook? scrapbook);
+        
         private readonly FunctionTypeId _functionTypeId;
-        private readonly Func<TParam, Task<TReturn>> _func;
+        private readonly RFunc _func;
         
         private readonly IFunctionStore _functionStore;
         private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
@@ -22,7 +25,7 @@ namespace Cleipnir.ResilientFunctions
 
         public UnhandledRFunctionWatchdog(
             FunctionTypeId functionTypeId, 
-            Func<TParam, Task<TReturn>> func, 
+            RFunc func, 
             IFunctionStore functionStore, 
             SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
             TimeSpan checkFrequency, 
@@ -39,45 +42,61 @@ namespace Cleipnir.ResilientFunctions
         public async Task Start()
         {
             if (_checkFrequency == TimeSpan.Zero) return;
-            await Task.Yield();
 
-            while (!_disposed)
+            await Task.Run(async () =>
+            {
                 try
                 {
-                    await Task.Delay(_checkFrequency / 2);
+                    var prevHangingFunctions = await _functionStore
+                        .GetNonCompletedFunctions(_functionTypeId)
+                        .ToTaskList();
 
-                    if (_disposed) return;
+                    while (!_disposed)
+                    {
 
-                    var hangingFunctions = await _functionStore
-                        .GetNonCompletedFunctions(_functionTypeId, DateTime.UtcNow.Ticks)
-                        .RandomlyPermutate();
+                        await Task.Delay(_checkFrequency);
 
-                    await Task.Delay(_checkFrequency / 2);
+                        if (_disposed) return;
 
-                    if (_disposed) return;
+                        var currHangingFunctions = await _functionStore
+                            .GetNonCompletedFunctions(_functionTypeId)
+                            .ToTaskList();
 
-                    foreach (var function in hangingFunctions)
-                        await RetryMethodInvocation(function);
+                        var hangingFunctions =
+                            from prev in prevHangingFunctions
+                            join curr in currHangingFunctions on prev equals curr
+                            select prev;
+
+                        foreach (var function in hangingFunctions.RandomlyPermutate())
+                            await RetryMethodInvocation(function);
+
+                        prevHangingFunctions = currHangingFunctions;
+                    }
                 }
                 catch (Exception e)
                 {
                     _unhandledExceptionHandler(new FrameworkException(
-                        $"UnhandledRFunctionWatchdog failed while executing: '{_functionTypeId}'", 
+                        $"UnhandledRFunctionWatchdog failed while executing: '{_functionTypeId}'",
                         e)
                     );
-                    return;
                 }
+            });
         }
 
-        private async Task RetryMethodInvocation(StoredFunction storedFunction)
+        private async Task RetryMethodInvocation(NonCompletedFunction nonCompletedFunction)
         {
+            var functionId = new FunctionId(_functionTypeId, nonCompletedFunction.InstanceId);
+            var storedFunction = await _functionStore.GetFunction(functionId);
+            if (storedFunction == null)
+                throw new FrameworkException($"Function '{functionId}' not found on retry");
+            
             var success = await _functionStore.UpdateSignOfLife(
                 storedFunction.FunctionId, 
-                storedFunction.SignOfLife, 
+                nonCompletedFunction.LastSignOfLife, 
                 DateTime.UtcNow.Ticks
             );
             
-            if (!success)
+            if (!success || storedFunction.Result != null)
                 return;
 
             using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(
@@ -88,10 +107,27 @@ namespace Cleipnir.ResilientFunctions
             bool functionExecutionCompletedSuccessfully = false, functionExecutionStarted = false;
             try
             {
-                var paramType = Type.GetType(storedFunction.ParamType, true)!;
-                var param = (TParam) JsonSerializer.Deserialize(storedFunction.ParamJson, paramType)!;
+                var parameter1 = JsonSerializer.Deserialize(
+                    storedFunction.Parameter1.ParamJson,
+                    Type.GetType(storedFunction.Parameter1.ParamType, throwOnError: true)!
+                )!;
+
+                object? parameter2 = null;
+                if (storedFunction.Parameter2 != null)
+                    parameter2 = JsonSerializer.Deserialize(
+                        storedFunction.Parameter1.ParamJson,
+                        Type.GetType(storedFunction.Parameter1.ParamType, throwOnError: true)!
+                    )!;
+
+                RScrapbook? scrapbook = null;
+                if (storedFunction.Scrapbook != null)
+                    scrapbook = (RScrapbook) JsonSerializer.Deserialize(
+                        storedFunction.Scrapbook.ScrapbookJson!, //todo what if scrapbook json is null
+                        Type.GetType(storedFunction.Scrapbook.ScrapbookType, true)!
+                    )!;
+                
                 functionExecutionStarted = true;
-                var result = await _func(param);
+                var result = await _func(parameter1, parameter2, scrapbook);
                 var resultJson = JsonSerializer.Serialize(result);
                 var resultType = result!.GetType().SimpleQualifiedName();
                 functionExecutionCompletedSuccessfully = true;

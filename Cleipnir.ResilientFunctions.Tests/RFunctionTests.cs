@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Cleipnir.ResilientFunctions.Utils;
 using Shouldly;
 using static Cleipnir.ResilientFunctions.Tests.Utils.TestUtils;
-using static Cleipnir.ResilientFunctions.Utils.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Tests
 {
@@ -15,13 +13,8 @@ namespace Cleipnir.ResilientFunctions.Tests
         private readonly FunctionTypeId _functionTypeId = "functionId".ToFunctionTypeId();
         
         public abstract Task SunshineScenario();
+
         public async Task SunshineScenario(IFunctionStore store)
-        {
-            await SunshineScenario(store, null);
-            await SunshineScenario(store, "id");
-        }
-        
-        private async Task SunshineScenario(IFunctionStore store, string? functionInstanceId)
         {
             async Task<string> ToUpper(string s)
             {
@@ -33,20 +26,20 @@ namespace Cleipnir.ResilientFunctions.Tests
 
             var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
 
-            var rFunc = rFunctions.Register(
-                _functionTypeId, 
-                default(string), 
-                ToUpper
-            );
-            
-            var result = await rFunc("hello", functionInstanceId?.ToFunctionInstanceId());
-            result.ShouldBe("HELLO");
+            var rFunc = rFunctions
+                .Register(
+                    _functionTypeId,
+                    (string s) => ToUpper(s),
+                    _ => _
+                );
 
-            var instanceIfWhenNoneProvided = HashHelper.SHA256Hash("hello".ToJson()).ToFunctionInstanceId();
+            var result = await rFunc("hello");
+            result.ShouldBe("HELLO");
+            
             var storeResult = await store.GetFunctionResult(
                 new FunctionId(
                     _functionTypeId, 
-                    functionInstanceId?.ToFunctionInstanceId() ?? instanceIfWhenNoneProvided
+                    "hello".ToFunctionInstanceId()
                 )
             );
             storeResult.ShouldNotBeNull();
@@ -56,13 +49,8 @@ namespace Cleipnir.ResilientFunctions.Tests
         }
 
         public abstract Task NonCompletedFunctionIsCompletedByWatchDog();
-        public async Task NonCompletedFunctionIsCompletedByWatchDog(IFunctionStore store)
-        {
-            await NonCompletedFunctionIsCompletedByWatchDog(store, null);
-            await NonCompletedFunctionIsCompletedByWatchDog(store, "id");
-        }
-        
-        private async Task NonCompletedFunctionIsCompletedByWatchDog(IFunctionStore store, string? functionInstanceId)
+
+        protected async Task NonCompletedFunctionIsCompletedByWatchDog(IFunctionStore store)
         {
             const string param = "test";
             {
@@ -71,12 +59,11 @@ namespace Cleipnir.ResilientFunctions.Tests
                 var nonCompletingRFunctions = RFunctions
                     .Create(store, unhandledExceptionHandler.Catch, TimeSpan.Zero)
                     .Register(
-                        _functionTypeId, 
-                        default(string), 
-                        throwingFunctionWrapper.Method
-                    );
+                        _functionTypeId,
+                        (string s) => throwingFunctionWrapper.Method(s),
+                        _ => _);
 
-                SafeTry(() => _ = nonCompletingRFunctions(param, functionInstanceId?.ToFunctionInstanceId()));   
+                SafeTry(() => _ = nonCompletingRFunctions(param));   
                 unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
             }
             {
@@ -88,16 +75,14 @@ namespace Cleipnir.ResilientFunctions.Tests
                     TimeSpan.FromMilliseconds(2)
                 );
 
-                var rFunc = rFunctions.Register(
-                    _functionTypeId, 
-                    default(string), 
-                    nonThrowingFunctionWrapper.Method
-                );
+                var rFunc = rFunctions
+                    .Register(
+                        _functionTypeId,
+                        (string s) => nonThrowingFunctionWrapper.Method(s),
+                        _ => _
+                    );
 
-                var functionId = new FunctionId(
-                    _functionTypeId,
-                    functionInstanceId?.ToFunctionInstanceId() ?? GenerateFunctionInstanceIdFrom(param)
-                );
+                var functionId = new FunctionId(_functionTypeId, param.ToFunctionInstanceId());
                 await BusyWait.Until(async () => await store.GetFunctionResult(functionId) != null);
                 (await rFunc(param)).ShouldBe("TEST");                
                 unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);

@@ -12,5 +12,7 @@ namespace Cleipnir.ResilientFunctions.Utils
         
         public static Task<T> ToTask<T>(this T t) => Task.FromResult(t);
         public static List<T> ToList<T>(this T t) => new List<T> {t};
+        
+        public static T? ToNullable<T>(this T t) => (T?) t;
     }
 }

@@ -6,11 +6,29 @@ namespace Cleipnir.ResilientFunctions.Storage
 {
     public interface IFunctionStore
     {
-        Task<bool> StoreFunction(FunctionId functionId, string paramJson, string paramType, long initialSignOfLife);
-        Task<IEnumerable<StoredFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId, long olderThan);
+        Task<bool> StoreFunction(
+            FunctionId functionId, 
+            Parameter param1,
+            Parameter? param2,
+            string? scrapbookType, 
+            long initialSignOfLife
+        );
+        
+        Task<bool> UpdateScrapbook(
+            FunctionId functionId, 
+            string scrapbookJson,
+            int expectedVersionStamp, 
+            int newVersionStamp
+        );
+        
+        Task<IEnumerable<NonCompletedFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId);
+        
         Task<bool> UpdateSignOfLife(FunctionId functionId, long expectedSignOfLife, long newSignOfLife);
         
         Task StoreFunctionResult(FunctionId functionId, string resultJson, string resultType);
-        Task<FunctionResult?> GetFunctionResult(FunctionId functionId);
+        Task<Result?> GetFunctionResult(FunctionId functionId);
+        Task<StoredFunction?> GetFunction(FunctionId functionId);
     }
+
+    public record NonCompletedFunction(FunctionInstanceId InstanceId, long LastSignOfLife);
 }

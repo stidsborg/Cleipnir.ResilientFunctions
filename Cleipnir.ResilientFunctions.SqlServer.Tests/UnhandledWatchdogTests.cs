@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 {
     [TestClass]
-    public class UnhandledWatchdogTests : ResilientFunctions.Tests.UnhandledWatchdogTests
+    public class UnhandledWatchdogTests : Cleipnir.ResilientFunctions.Tests.UnhandledWatchdogTests
     {
         [TestMethod]
         public override Task UnhandledFunctionInvocationIsCompletedByWatchDog()

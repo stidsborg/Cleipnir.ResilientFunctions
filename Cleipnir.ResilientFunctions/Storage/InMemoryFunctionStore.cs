@@ -2,51 +2,90 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions.Storage
 {
     public class InMemoryFunctionStore : IFunctionStore
     {
-        private readonly Dictionary<FunctionId, Param> _params = new();
-        private readonly Dictionary<FunctionId, FunctionResult> _results = new();
-        private readonly Dictionary<FunctionId, long> _signOfLives = new();
-        private readonly HashSet<FunctionId> _nonCompleted = new();
+        private readonly Dictionary<FunctionId, State> _states = new();
         private readonly object _sync = new();
-        
-        public Task<bool> StoreFunction(FunctionId functionId, string paramJson, string paramType, long initialSignOfLife)
+
+        private class State
+        {
+            public Parameter Parameter1 { get; init; } = new("", "");
+            public Parameter? Parameter2 { get; set; }
+            public Result? Result { get; set; }
+            public long SignOfLife { get; set; }
+            public Scrapbook? Scrapbook { get; set; }
+        }
+
+        public Task<bool> StoreFunction(
+            FunctionId functionId, 
+            Parameter param1,
+            Parameter? param2,
+            string? scrapbookType, 
+            long initialSignOfLife)
         {
             lock (_sync)
             {
-                if (_params.ContainsKey(functionId))
+                if (_states.ContainsKey(functionId))
                     return Task.FromResult(false);
 
-                _params[functionId] = new Param(paramJson, paramType);
-                _signOfLives[functionId] = initialSignOfLife;
-                _nonCompleted.Add(functionId);
+                _states[functionId] = new State
+                {
+                    SignOfLife = initialSignOfLife,
+                    Parameter1 = param1,
+                    Parameter2 = param2,
+                    Scrapbook = scrapbookType != null
+                        ? new Scrapbook(null, scrapbookType, 0)
+                        : null,
+                    Result = null
+                };
+                
                 return Task.FromResult(true);
             }
         }
 
-        public Task<IEnumerable<StoredFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId, long olderThan)
+        public Task<bool> UpdateScrapbook(
+            FunctionId functionId, 
+            string scrapbookJson,
+            int expectedVersionStamp, 
+            int newVersionStamp
+        )
         {
             lock (_sync)
             {
-                var nonCompleted = _nonCompleted
-                    .Select(key =>
-                    {
-                        var (paramJson, paramType) = _params[key];
-                        var signOfLife = _signOfLives[key];
-                        return new StoredFunction(
-                            new FunctionId(functionTypeId, key.InstanceId),
-                            paramJson, paramType,
-                            signOfLife
-                        );
-                    })
-                    .Where(s => s.SignOfLife < olderThan)
-                    .ToList()
-                    .AsEnumerable();
+                var state = _states[functionId];
+                var prevScrapbook = state.Scrapbook!;
 
-                return Task.FromResult(nonCompleted);
+                if (prevScrapbook.VersionStamp != expectedVersionStamp)
+                    return false.ToTask();
+
+                state.Scrapbook = new Scrapbook(scrapbookJson, prevScrapbook.ScrapbookType, newVersionStamp);
+                return true.ToTask();
+            }
+        }
+
+        public Task<IEnumerable<NonCompletedFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId)
+        {
+            lock (_sync)
+            {
+                return _states
+                    .Where(kv =>
+                    {
+                        var functionId = kv.Key;
+                        var state = kv.Value;
+                        return state.Result == null && functionId.TypeId == functionTypeId;
+                    })
+                    .Select(kv =>
+                    {
+                        var (functionId, state) = kv;
+                        return new NonCompletedFunction(functionId.InstanceId, state.SignOfLife);
+                    })
+                    .ToList()
+                    .AsEnumerable()
+                    .ToTask();
             }
         }
 
@@ -54,36 +93,48 @@ namespace Cleipnir.ResilientFunctions.Storage
         {
             lock (_sync)
             {
-                if (!_signOfLives.ContainsKey(functionId))
-                    return Task.FromResult(false);
+                if (_states[functionId].SignOfLife != expectedSignOfLife)
+                    return false.ToTask();
 
-                var currentSigOfLife = _signOfLives[functionId];
-                if (currentSigOfLife != expectedSignOfLife)
-                    return Task.FromResult(false);
-
-                _signOfLives[functionId] = newSignOfLife;
-                return Task.FromResult(true);
+                _states[functionId].SignOfLife = newSignOfLife;
+                return true.ToTask();
             }
         }
 
         public Task StoreFunctionResult(FunctionId functionId, string resultJson, string resultType)
         {
             lock (_sync)
-            {
-                _results[functionId] = new FunctionResult(resultJson, resultType);
-                _nonCompleted.Remove(functionId);
-            }
+                _states[functionId].Result = new Result(resultJson, resultType);
 
             return Task.CompletedTask;
         }
 
-        public Task<FunctionResult?> GetFunctionResult(FunctionId functionId)
+        public Task<Result?> GetFunctionResult(FunctionId functionId)
         {
-            lock (_sync) 
-                return Task.FromResult(
-                    _results.ContainsKey(functionId) ? _results[functionId] : null
-                );
+            lock (_sync)
+                return _states.ContainsKey(functionId)
+                    ? _states[functionId].Result.ToTask()
+                    : default(Result?).ToTask();
         }
-        private record Param(string ParamJson, string ParamType);
+
+        public Task<StoredFunction?> GetFunction(FunctionId functionId)
+        {
+            lock (_sync)
+            {
+                if (!_states.ContainsKey(functionId))
+                    return default(StoredFunction?).ToTask();
+                
+                var state = _states[functionId];
+                var sf = new StoredFunction(
+                    functionId,
+                    state.Parameter1,
+                    state.Parameter2,
+                    state.Scrapbook,
+                    state.SignOfLife,
+                    state.Result
+                );
+                return sf.ToNullable().ToTask();
+            }
+        }
     }
 }

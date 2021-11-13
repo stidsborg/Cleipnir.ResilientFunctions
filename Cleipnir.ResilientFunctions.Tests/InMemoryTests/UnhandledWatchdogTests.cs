@@ -26,13 +26,13 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 
             var storeMock = new Mock<IFunctionStore>();
             storeMock
-                .Setup(s => s.GetNonCompletedFunctions(It.IsAny<FunctionTypeId>(), It.IsAny<long>()))
+                .Setup(s => s.GetNonCompletedFunctions(It.IsAny<FunctionTypeId>()))
                 .Throws<FrameworkException>();
             var store = storeMock.Object;
             
-            using var watchDog = new UnhandledRFunctionWatchdog<string, string>(
+            using var watchDog = new UnhandledRFunctionWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                RFunc.ToUpper,
+                (param1, _, _) => RFunc.ToUpper(param1.ToString()!),
                 store,
                 CreateNeverExecutionSignOfLifeUpdaterFactory(),
                 TimeSpan.FromMilliseconds(1),
@@ -54,14 +54,12 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 
             var storeMock = new Mock<IFunctionStore>();
             storeMock
-                .Setup(s => s.GetNonCompletedFunctions(It.IsAny<FunctionTypeId>(), It.IsAny<long>()))
-                .Returns(
-                    new StoredFunction(
-                        new FunctionId("ft", "it"),
-                        "".ToJson(),
-                        typeof(string).SimpleQualifiedName(),
-                        100
-                    ).ToList().AsEnumerable().ToTask()
+                .Setup(s => s.GetNonCompletedFunctions(It.IsAny<FunctionTypeId>()))
+                .Returns(() =>
+                    new NonCompletedFunction("it".ToFunctionInstanceId(), 100)
+                        .ToList()
+                        .AsEnumerable()
+                        .ToTask()
                 );
             storeMock
                 .Setup(s => s.UpdateSignOfLife(It.IsAny<FunctionId>(), It.IsAny<long>(), It.IsAny<long>()))
@@ -72,9 +70,9 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 
             var store = storeMock.Object;
             
-            using var watchDog = new UnhandledRFunctionWatchdog<string, string>(
+            using var watchDog = new UnhandledRFunctionWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                RFunc.ToUpper,
+                (param1, _, _) => RFunc.ToUpper(param1.ToString()!),
                 store,
                 CreateNeverExecutionSignOfLifeUpdaterFactory(),
                 TimeSpan.FromMilliseconds(1),
@@ -82,7 +80,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             );
 
             _ = watchDog.Start();
-
+            
             BusyWait.Until(() => unhandledExceptionCatcher.ThrownExceptions.Any());
             
             unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
@@ -96,24 +94,22 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 
             var storeMock = new Mock<IFunctionStore>();
             storeMock
-                .Setup(s => s.GetNonCompletedFunctions(It.IsAny<FunctionTypeId>(), It.IsAny<long>()))
+                .Setup(s => s.GetNonCompletedFunctions(It.IsAny<FunctionTypeId>()))
                 .Returns(
-                    new StoredFunction(
-                        new FunctionId("ft", "it"),
-                        "".ToJson(),
-                        typeof(string).SimpleQualifiedName(),
-                        100
-                    ).ToList().AsEnumerable().ToTask()
+                    new NonCompletedFunction("it".ToFunctionInstanceId(), 100)
+                        .ToList()
+                        .AsEnumerable()
+                        .ToTask()
                 );
             storeMock
                 .Setup(s => s.UpdateSignOfLife(It.IsAny<FunctionId>(), It.IsAny<long>(), It.IsAny<long>()))
                 .Returns(true.ToTask());
 
             var store = storeMock.Object;
-            
-            using var watchDog = new UnhandledRFunctionWatchdog<string, string>(
+
+            using var watchDog = new UnhandledRFunctionWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                RFunc.ThrowsException,
+                (param1, _, _) => RFunc.ThrowsException(param1.ToString()!),
                 store,
                 CreateNeverExecutionSignOfLifeUpdaterFactory(),
                 TimeSpan.FromMilliseconds(1),

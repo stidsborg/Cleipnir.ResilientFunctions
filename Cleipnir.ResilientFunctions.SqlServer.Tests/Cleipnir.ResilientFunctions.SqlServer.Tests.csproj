@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
 
         <IsPackable>false</IsPackable>
 
-        <RootNamespace>TestProject1Cleipnir.ResilientFunctions.SqlServer.Tests</RootNamespace>
+        <RootNamespace>Cleipnir.ResilientFunctions.SqlServer.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

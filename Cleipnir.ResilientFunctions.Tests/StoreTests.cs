@@ -24,21 +24,30 @@ namespace Cleipnir.ResilientFunctions.Tests
 
             await store.StoreFunction(
                 FunctionId,
-                paramJson,
-                paramType,
+                new Parameter(paramJson, paramType),
+                null,
+                null,
                 initialTimeOfLife    
             );
 
             var nonCompletes = await store
-                .GetNonCompletedFunctions(FunctionId.TypeId, initialTimeOfLife + 10)
+                .GetNonCompletedFunctions(FunctionId.TypeId)
                 .ToTaskList();
             
             nonCompletes.Count.ShouldBe(1);
             var nonCompleted = nonCompletes[0];
-            nonCompleted.FunctionId.ShouldBe(FunctionId);
-            nonCompleted.ParamJson.ShouldBe(paramJson);
-            nonCompleted.ParamType.ShouldBe(paramType);
-            nonCompleted.SignOfLife.ShouldBe(initialTimeOfLife);
+            
+            nonCompleted.InstanceId.ShouldBe(FunctionId.InstanceId);
+            nonCompleted.LastSignOfLife.ShouldBe(initialTimeOfLife);
+
+            var storedFunction = await store.GetFunction(FunctionId);
+            storedFunction!.FunctionId.ShouldBe(FunctionId);
+            storedFunction.Parameter1.ParamJson.ShouldBe(paramJson);
+            storedFunction.Parameter1.ParamType.ShouldBe(paramType);
+            storedFunction.Parameter2.ShouldBeNull();
+            storedFunction.Scrapbook.ShouldBeNull();
+            storedFunction.SignOfLife.ShouldBe(initialTimeOfLife);
+            //todo expand the assertions to cover all stored function properties
 
             store.GetFunctionResult(FunctionId).Result.ShouldBeNull();
             
@@ -61,8 +70,9 @@ namespace Cleipnir.ResilientFunctions.Tests
 
             await store.StoreFunction(
                 FunctionId,
-                paramJson,
-                paramType,
+                new Parameter(paramJson, paramType),
+                null,
+                null,
                 initialTimeOfLife    
             );
 
@@ -73,11 +83,9 @@ namespace Cleipnir.ResilientFunctions.Tests
             );
 
             success.ShouldBeTrue();
-            var nonCompletedFunctions = await store.GetNonCompletedFunctions(FunctionId.TypeId, initialTimeOfLife + 1);
-            nonCompletedFunctions.ShouldBeEmpty();
             
-            nonCompletedFunctions = await store.GetNonCompletedFunctions(FunctionId.TypeId, initialTimeOfLife + 3);
-            nonCompletedFunctions.Single().SignOfLife.ShouldBe(initialTimeOfLife + 2);
+            var nonCompletedFunctions = await store.GetNonCompletedFunctions(FunctionId.TypeId);
+            nonCompletedFunctions.Single().LastSignOfLife.ShouldBe(initialTimeOfLife + 2);
         }
 
         public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
@@ -89,8 +97,9 @@ namespace Cleipnir.ResilientFunctions.Tests
 
             await store.StoreFunction(
                 FunctionId,
-                paramJson,
-                paramType,
+                new Parameter(paramJson, paramType),
+                null,
+                null,
                 initialTimeOfLife    
             );
 
@@ -101,8 +110,8 @@ namespace Cleipnir.ResilientFunctions.Tests
             );
 
             success.ShouldBeFalse();
-            var nonCompletedFunctions = await store.GetNonCompletedFunctions(FunctionId.TypeId, initialTimeOfLife + 1);
-            nonCompletedFunctions.Single().SignOfLife.ShouldBe(initialTimeOfLife);
+            var nonCompletedFunctions = await store.GetNonCompletedFunctions(FunctionId.TypeId);
+            nonCompletedFunctions.Single().LastSignOfLife.ShouldBe(initialTimeOfLife);
         }
     }
 }

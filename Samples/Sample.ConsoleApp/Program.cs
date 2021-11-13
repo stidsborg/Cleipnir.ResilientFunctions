@@ -9,17 +9,17 @@ namespace ConsoleApp
 {
     internal static class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             var store = new SqlServerFunctionStore(CreateConnection);
-            store.Initialize();
-            store.Truncate();
+            await store.Initialize();
+            await store.Truncate();
             
-            _ = Service1();
-            _ = Service2();
-
-            Console.WriteLine("PRESS ENTER TO EXIT");
-            Console.ReadLine();
+            var service1Task = Service1();
+            var service2Task = Service2();
+            
+            await Task.WhenAll(service1Task, service2Task);
+            Console.WriteLine("AWAITED BOTH");
         }
 
         private static async Task Service1()
@@ -30,11 +30,12 @@ namespace ConsoleApp
                 unhandledFunctionsCheckFrequency: TimeSpan.Zero
             );
 
-            var callApi = functions.Register(
-                "call.api".ToFunctionTypeId(),
-                default(string),
-                new ApiCaller(true, 1).CallApi
-            );
+            var callApi = functions
+                .Register<string, string>(
+                    "call.api".ToFunctionTypeId(),
+                    new ApiCaller(true, 1).CallApi,
+                    _ => _
+                );
 
             _ = callApi("input"); //will fail
             await Task.Delay(2_000);
@@ -42,21 +43,22 @@ namespace ConsoleApp
             var output = await callApi("input");
             Console.WriteLine($"[SERVICE1] Function Return Value: '{output}'");
         }
-        
+
         private static async Task Service2()
         {
             var functions = RFunctions.Create(
                 new SqlServerFunctionStore(CreateConnection),
                 unhandledExceptionHandler: Console.WriteLine,
-                unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(4_000)
+                unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(1_000)
             );
 
-           var callApi = functions.Register(
-                "call.api".ToFunctionTypeId(),
-                default(string),
-                new ApiCaller(false,2).CallApi
-            );
-           
+           var callApi = functions
+               .Register<string, string>(
+                   "call.api".ToFunctionTypeId(),
+                   new ApiCaller(false,2).CallApi,
+                   _ => _
+               );
+
            await Task.Delay(2_000);
             
            var output = await callApi("input");

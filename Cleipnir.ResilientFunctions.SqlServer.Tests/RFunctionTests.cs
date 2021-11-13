@@ -4,14 +4,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 {
     [TestClass]
-    public class RFunctionTests : ResilientFunctions.Tests.RFunctionTests
+    public class RFunctionTests : Cleipnir.ResilientFunctions.Tests.RFunctionTests
     {
-        private SqlServerFunctionStore Store { get; set; } = new SqlServerFunctionStore(Sql.ConnFunc); //suppress compiler warning
+        private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
 
         [TestInitialize]
         public async Task SetUp()
         {
-            Store = new SqlServerFunctionStore(Sql.ConnFunc);
             await Store.Initialize();
             await Store.Truncate();
         }
