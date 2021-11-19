@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -47,9 +48,7 @@ namespace Cleipnir.ResilientFunctions
             {
                 try
                 {
-                    var prevHangingFunctions = await _functionStore
-                        .GetNonCompletedFunctions(_functionTypeId)
-                        .ToTaskList();
+                    var prevHangingFunctions = new List<NonCompletedFunction>();
 
                     while (!_disposed)
                     {
