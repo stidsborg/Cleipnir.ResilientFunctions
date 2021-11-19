@@ -29,40 +29,41 @@ namespace Cleipnir.ResilientFunctions
             _updateFrequency = updateFrequency ?? TimeSpan.FromSeconds(1);
         }
 
-        public async Task Start()
+        public Task Start()
         {
-            if (_updateFrequency == TimeSpan.Zero) return;
+            if (_updateFrequency == TimeSpan.Zero) return Task.CompletedTask;
 
-            await Task.Yield();
-            
-            var signOfLife = _expectedSignOfLife;
-
-            try
+            return Task.Run(async () =>
             {
-                while (!_disposed)
+                var signOfLife = _expectedSignOfLife;
+
+                try
                 {
-                    await Task.Delay(_updateFrequency);
+                    while (!_disposed)
+                    {
+                        await Task.Delay(_updateFrequency);
 
-                    if (_disposed) return;
+                        if (_disposed) return;
 
-                    var success = await _functionStore.UpdateSignOfLife(
-                        _functionId, 
-                        signOfLife,
-                        signOfLife = DateTime.UtcNow.Ticks
-                    );
+                        var success = await _functionStore.UpdateSignOfLife(
+                            _functionId, 
+                            signOfLife,
+                            signOfLife = DateTime.UtcNow.Ticks
+                        );
 
-                    if (!success) return;
+                        if (!success) return;
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                _unhandledExceptionHandler( 
-                    new FrameworkException(
-                        $"SignOfLifeUpdater failed while executing: '{_functionId}'", 
-                        e
-                    )
-                );
-            }
+                catch (Exception e)
+                {
+                    _unhandledExceptionHandler( 
+                        new FrameworkException(
+                            $"SignOfLifeUpdater failed while executing: '{_functionId}'", 
+                            e
+                        )
+                    );
+                }
+            });
         }
 
         public void Dispose() => _disposed = true;
