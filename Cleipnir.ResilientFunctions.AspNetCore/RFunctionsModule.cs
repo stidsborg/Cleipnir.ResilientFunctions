@@ -48,4 +48,25 @@ public static class RFunctionsModule
         services.AddHostedService<RFunctionsService>();
         return services;
     }
+    
+    public static IServiceCollection AddRFunctionsService(
+        this IServiceCollection services,
+        IFunctionStore store,
+        Func<IServiceProvider, Action<RFunctionException>> unhandledExceptionHandler,
+        TimeSpan? unhandledFunctionsCheckFrequency = null
+    ) 
+    {
+        services.AddSingleton(store);
+        services.AddSingleton(unhandledExceptionHandler);
+        services.AddSingleton(s => 
+            RFunctions.Create(
+                s.GetRequiredService<IFunctionStore>(),
+                s.GetRequiredService<Action<RFunctionException>>(),
+                unhandledFunctionsCheckFrequency
+            )
+        );
+
+        services.AddHostedService<RFunctionsService>();
+        return services;
+    }
 }
