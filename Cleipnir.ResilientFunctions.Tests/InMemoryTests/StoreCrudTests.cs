@@ -8,15 +8,15 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
     public class StoreCrudTests : Cleipnir.ResilientFunctions.Tests.StoreCrudTests
     {
         [TestMethod]
-        public override Task SingleParameterSunshineScenario()
-            => SingleParameterSunshineScenario(new InMemoryFunctionStore());
+        public override Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
+            => FunctionCanBeCreatedWithASingleParameterSuccessfully(new InMemoryFunctionStore());
 
         [TestMethod]
-        public override Task DoubleParameterSunshineScenario()
-            => DoubleParameterSunshineScenario(new InMemoryFunctionStore());
+        public override Task FunctionCanBeCreatedWithATwoParametersSuccessfully()
+            => FunctionCanBeCreatedWithATwoParametersSuccessfully(new InMemoryFunctionStore());
 
         [TestMethod]
-        public override Task DoubleParameterWithScrapbookSunshineScenario()
+        public override Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
             => DoubleParameterWithScrapbookSunshineScenario(new InMemoryFunctionStore());
 
         [TestMethod]
@@ -32,11 +32,11 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             => UpdateScrapbookSunshineScenario(new InMemoryFunctionStore());
 
         [TestMethod]
-        public override Task UpdateScrapbookFailsWhenTimestampIsNotAsExpected()
-            => UpdateScrapbookFailsWhenTimestampIsNotAsExpected(new InMemoryFunctionStore());
+        public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
+            => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore());
 
         [TestMethod]
-        public override Task OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked()
-            => OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked(new InMemoryFunctionStore());
+        public override Task GetFunctionsWithStatusOnlyReturnsSucceededFunction()
+            => GetFunctionsWithStatusOnlyReturnsSucceededFunction(new InMemoryFunctionStore());
     }
 }

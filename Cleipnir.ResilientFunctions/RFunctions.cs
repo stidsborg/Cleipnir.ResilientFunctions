@@ -2,114 +2,99 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
+using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Watchdogs;
+using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions
 {
     public class RFunctions : IDisposable
     {
         private readonly Dictionary<FunctionTypeId, Delegate> _functions = new();
-        private readonly List<IDisposable> _unhandledWatchDogs = new();
+        private readonly List<IDisposable> _watchDogs = new();
 
         private readonly IFunctionStore _functionStore;
         private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
-
-        private readonly TimeSpan _unhandledWatchDogCheckFrequency;
-        private readonly Action<RFunctionException> _unhandledExceptionHandler;
+        private readonly WatchDogsFactory _watchDogsFactory;
 
         private readonly object _sync = new();
 
         private RFunctions(
             IFunctionStore functionStore, 
-            SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-            TimeSpan unhandledWatchDogCheckFrequency, 
-            Action<RFunctionException> unhandledExceptionHandler)
+            SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
+            WatchDogsFactory watchDogsFactory
+        )
         {
             _functionStore = functionStore;
             _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-            _unhandledWatchDogCheckFrequency = unhandledWatchDogCheckFrequency;
-            _unhandledExceptionHandler = unhandledExceptionHandler;
+            _watchDogsFactory = watchDogsFactory;
         }
         
-        public Func<TParam, Task<TReturn>> Register<TParam, TReturn>(
+        public RFunc<TParam, TReturn> Register<TParam, TReturn>(
             FunctionTypeId functionTypeId,
-            Func<TParam, Task<TReturn>> func,
+            Func<TParam, Task<RResult<TReturn>>> func,
             Func<TParam, object> idFunc
         ) where TParam : notnull where TReturn : notnull
         {
             lock (_sync)
             {
+                //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (Func<TParam, Task<TReturn>>) _functions[functionTypeId];
+                    return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
-                var rFuncRunner = new RFunctionRunner<TParam, TReturn>(
+                var (crashedWatchdog, postponedWatchdog) = _watchDogsFactory.CreateAndStart(
                     functionTypeId,
-                    _functionStore,
-                    func,
-                    idFunc,
-                    _signOfLifeUpdaterFactory
+                    (param, _) => func((TParam) param)
                 );
 
-                var watchdog = new UnhandledRFunctionWatchdog<TReturn>(
-                    functionTypeId,
-                    (param1, _, _) => func((TParam) param1),
-                    _functionStore,
-                    _signOfLifeUpdaterFactory,
-                    _unhandledWatchDogCheckFrequency,
-                    _unhandledExceptionHandler
-                );
-                _ = watchdog.Start();
+                _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
 
-                _unhandledWatchDogs.Add(watchdog);
-                
-                _functions[functionTypeId] = rFuncRunner.InvokeRFunc;
-                return rFuncRunner.InvokeRFunc;
+                var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
+                );
+
+                var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
+                _functions[functionTypeId] = rFunc;
+                return rFunc;
             }
         }
-
-        public Func<TParam1, TParam2, Task<TReturn>> Register<TParam1, TParam2, TReturn>(
+        
+        public RAction<TParam> Register<TParam>(
             FunctionTypeId functionTypeId,
-            Func<TParam1, TParam2, Task<TReturn>> func,
-            Func<TParam1, object> idFunc)
-            where TParam1 : notnull where TParam2 : notnull where TReturn : notnull
+            Func<TParam, Task<RResult>> func,
+            Func<TParam, object> idFunc
+        ) where TParam : notnull 
         {
             lock (_sync)
             {
+                //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (Func<TParam1, TParam2, Task<TReturn>>) _functions[functionTypeId];
+                    return (RAction<TParam>) _functions[functionTypeId];
 
-
-                var rFuncRunner = new RFunctionRunner<TParam1, TParam2, TReturn>(
+                var (crashedWatchdog, postponedWatchdog) = _watchDogsFactory.CreateAndStart(
                     functionTypeId,
-                    _functionStore,
-                    func,
-                    idFunc,
-                    _signOfLifeUpdaterFactory
+                    (param, _) => func((TParam) param)
                 );
 
-                var watchdog = new UnhandledRFunctionWatchdog<TReturn>(
-                    functionTypeId,
-                    (param1, param2, _) => func((TParam1) param1, (TParam2) param2!),
-                    _functionStore,
-                    _signOfLifeUpdaterFactory,
-                    _unhandledWatchDogCheckFrequency,
-                    _unhandledExceptionHandler
+                _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
+
+                var rActionInvoker = new RActionInvoker<TParam>(
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
                 );
-                _ = watchdog.Start();
 
-                _unhandledWatchDogs.Add(watchdog);
-
-                _functions[functionTypeId] = rFuncRunner.InvokeRFunc;
-
-                return rFuncRunner.InvokeRFunc;
+                var rAction = new RAction<TParam>(rActionInvoker.Invoke);
+                _functions[functionTypeId] = rAction;
+                return rAction;
             }
         }
 
-        public Func<TParam, Task<TReturn>> RegisterWithScrapbook<TParam, TScrapbook, TReturn>(
+        public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
             FunctionTypeId functionTypeId,
-            Func<TParam, TScrapbook, Task<TReturn>> func,
-            Func<TParam, object> idFunc)
-            where TParam : notnull
+            Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
+            Func<TParam, object> idFunc) 
+            where TParam : notnull 
             where TScrapbook : RScrapbook, new()
             where TReturn : notnull
         {
@@ -117,32 +102,51 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (Func<TParam, Task<TReturn>>) _functions[functionTypeId];
+                    return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
-                var rFuncRunner = new RFunctionRunnerWithScrapbook<TParam, TScrapbook, TReturn>(
+                var (crashedWatchdog, postponedWatchdog) = _watchDogsFactory.CreateAndStart(
                     functionTypeId,
-                    _functionStore,
-                    func,
-                    idFunc,
-                    _signOfLifeUpdaterFactory
+                    (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
                 );
 
+                _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
 
-                var watchdog = new UnhandledRFunctionWatchdog<TReturn>(
-                    functionTypeId,
-                    (param1, _, scrapbook) => func((TParam) param1, (TScrapbook) scrapbook!),
-                    _functionStore,
-                    _signOfLifeUpdaterFactory,
-                    _unhandledWatchDogCheckFrequency,
-                    _unhandledExceptionHandler
+                var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
                 );
-                _ = watchdog.Start();
 
-                _unhandledWatchDogs.Add(watchdog);
+                var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
+                _functions[functionTypeId] = rFunc;
+                return rFunc;
+            }
+        }
+        
+        public RAction<TParam> Register<TParam, TScrapbook>(
+            FunctionTypeId functionTypeId,
+            Func<TParam, TScrapbook, Task<RResult>> func,
+            Func<TParam, object> idFunc
+        ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        {
+            lock (_sync)
+            {
+                //todo consider throwing exception if the method is not equal to the previously registered one...?!
+                if (_functions.ContainsKey(functionTypeId))
+                    return (RAction<TParam>) _functions[functionTypeId];
 
-                _functions[functionTypeId] = new Func<TParam, Task<TReturn>>(rFuncRunner.InvokeRFunc);
+                var (crashedWatchdog, postponedWatchdog) = _watchDogsFactory.CreateAndStart(
+                    functionTypeId,
+                    (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
+                );
 
-                return rFuncRunner.InvokeRFunc;
+                _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
+
+                var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
+                );
+
+                var rAction = new RAction<TParam>(rActionInvoker.Invoke);
+                _functions[functionTypeId] = rAction;
+                return rAction;
             }
         }
 
@@ -150,26 +154,46 @@ namespace Cleipnir.ResilientFunctions
         {
             lock (_sync)
             {
-                foreach (var unhandledWatchDog in _unhandledWatchDogs)
+                foreach (var unhandledWatchDog in _watchDogs)
                     unhandledWatchDog.Dispose();
 
-                _unhandledWatchDogs.Clear();
+                _watchDogs.Clear();
             }
         }
 
         public static RFunctions Create(
             IFunctionStore store,
             Action<RFunctionException>? unhandledExceptionHandler = null,
-            TimeSpan? unhandledFunctionsCheckFrequency = null) 
-            => new RFunctions(
+            TimeSpan? crashedCheckFrequency = null,
+            TimeSpan? postponedCheckFrequency = null
+        )
+        {
+            unhandledExceptionHandler ??= _ => { };
+            crashedCheckFrequency ??= TimeSpan.FromSeconds(10);
+            postponedCheckFrequency ??= TimeSpan.FromSeconds(10);
+            
+            var signOfLifeUpdaterFactory = new SignOfLifeUpdaterFactory(
                 store,
-                new SignOfLifeUpdaterFactory(
-                    store,
-                    unhandledExceptionHandler ?? (_ => {}),
-                    unhandledFunctionsCheckFrequency ?? TimeSpan.FromSeconds(10)
-                ),
-                unhandledFunctionsCheckFrequency ?? TimeSpan.FromSeconds(10),
-                unhandledExceptionHandler ?? (_ => {})
+                unhandledExceptionHandler,
+                crashedCheckFrequency.Value
             );
+            var functionRetryer = new RFuncInvoker(store, signOfLifeUpdaterFactory, unhandledExceptionHandler);
+
+            var watchdogsFactory = new WatchDogsFactory(
+                store,
+                functionRetryer,
+                crashedCheckFrequency.Value,
+                postponedCheckFrequency.Value,
+                unhandledExceptionHandler
+            );
+            
+            var rFunctions = new RFunctions(
+                store,
+                signOfLifeUpdaterFactory,
+                watchdogsFactory
+            );
+            
+            return rFunctions;
+        } 
     }
 }

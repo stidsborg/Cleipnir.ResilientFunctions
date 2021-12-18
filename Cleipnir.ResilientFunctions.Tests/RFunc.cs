@@ -6,8 +6,12 @@ namespace Cleipnir.ResilientFunctions.Tests
 {
     public static class RFunc
     {
-        public static Task<string> ToUpper(string s) => s.ToUpper().ToTask();
-        
-        public static Task<string> ThrowsException(string s) => Task.FromException<string>(new NullReferenceException());
+        public static Task<RResult<string>> ToUpper(string s) => Succeed.WithResult(s.ToUpper()).ToTask();
+
+        public async static Task<RResult<string>> ThrowsException(string _)
+        {
+            await Task.Delay(0);
+            return Fail.WithException(new NullReferenceException());
+        }
     }
 }

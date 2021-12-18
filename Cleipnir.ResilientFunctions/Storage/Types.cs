@@ -1,23 +1,52 @@
 using System;
-using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions.Storage
 {
     public record StoredFunction(
         FunctionId FunctionId,
-        Parameter Parameter1,
-        Parameter? Parameter2,
-        Scrapbook? Scrapbook,
-        long SignOfLife,
-        Result? Result
+        StoredParameter Parameter,
+        StoredScrapbook? Scrapbook,
+        Status Status,
+        StoredResult? Result,
+        StoredFailure? Failure,
+        long? PostponedUntil,
+        int Epoch,
+        int SignOfLife
     );
     
-    public record Parameter(string ParamJson, string ParamType);
-    public record Scrapbook(string? ScrapbookJson, string ScrapbookType, int VersionStamp);
+    public record StoredFunctionStatus(
+        FunctionInstanceId InstanceId, 
+        int Epoch,
+        int SignOfLife,
+        Status Status,
+        long? PostponedUntil
+    );
 
-    public record Result(string ResultJson, string ResultType)
+    public record StoredParameter(string ParamJson, string ParamType)
     {
-        public object Deserialize() => JsonSerializer.Deserialize(ResultJson, Type.GetType(ResultType)!)!;
+        public object Deserialize()
+            => Json.Deserialize(ParamJson, Type.GetType(ParamType, throwOnError: true)!)!;
+    }
+
+    public record StoredResult(string ResultJson, string ResultType)
+    {
+        public object Deserialize()
+            => ResultJson.DeserializeFromJsonTo(Type.GetType(ResultType, throwOnError: true)!);
+    }
+
+    public record StoredFailure(string FailedJson, string FailedType)
+    {
+        public Exception Deserialize()
+            => (Exception) FailedJson.DeserializeFromJsonTo(Type.GetType(FailedType, throwOnError: true)!);
+    }
+
+    public record StoredScrapbook(string? ScrapbookJson, string ScrapbookType)
+    {
+        public RScrapbook Deserialize() 
+            => ScrapbookJson == null
+                ? throw new NullReferenceException("Cannot deserialize null scrapbook")
+                : (RScrapbook) ScrapbookJson.DeserializeFromJsonTo(Type.GetType(ScrapbookType, throwOnError: true)!);
     }
 }

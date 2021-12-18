@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer
     {
         private readonly Func<Task<SqlConnection>> _connFunc;
         private readonly string _tablePrefix;
-        
+
         private const int UNIQUENESS_VIOLATION = 2627;
         private const int TABLE_ALREADY_EXISTS = 2714;
 
@@ -33,16 +33,18 @@ namespace Cleipnir.ResilientFunctions.SqlServer
                     CREATE TABLE {_tablePrefix}RFunctions (
                         {nameof(Row.FunctionTypeId)} NVARCHAR(200) NOT NULL,
                         {nameof(Row.FunctionInstanceId)} NVARCHAR(200) NOT NULL,
-                        {nameof(Row.Param1Json)} NVARCHAR(MAX) NULL,
-                        {nameof(Row.Param1Type)} NVARCHAR(255) NULL,
-                        {nameof(Row.Param2Json)} NVARCHAR(MAX) NULL,
-                        {nameof(Row.Param2Type)} NVARCHAR(255) NULL,
+                        {nameof(Row.ParamJson)} NVARCHAR(MAX) NULL,
+                        {nameof(Row.ParamType)} NVARCHAR(255) NULL,
                         {nameof(Row.ScrapbookJson)} NVARCHAR(MAX) NULL,
                         {nameof(Row.ScrapbookType)} NVARCHAR(255) NULL,
-                        {nameof(Row.ScrapbookVersionStamp)} INT NOT NULL DEFAULT 0,
+                        {nameof(Row.Status)} INT NOT NULL,
                         {nameof(Row.ResultJson)} NVARCHAR(MAX) NULL,
                         {nameof(Row.ResultType)} NVARCHAR(255) NULL,
-                        {nameof(Row.LastSignOfLife)} BIGINT NOT NULL DEFAULT 0,
+                        {nameof(Row.FailedJson)} NVARCHAR(255) NULL,
+                        {nameof(Row.FailedType)} NVARCHAR(255) NULL,
+                        {nameof(Row.PostponedUntil)} BIGINT NULL,
+                        {nameof(Row.Epoch)} INT NOT NULL,
+                        {nameof(Row.SignOfLife)} INT NOT NULL,
                         PRIMARY KEY ({nameof(Row.FunctionTypeId)}, {nameof(Row.FunctionInstanceId)})
                     );"
                 );
@@ -60,159 +62,171 @@ namespace Cleipnir.ResilientFunctions.SqlServer
             await conn.ExecuteAsync($"TRUNCATE TABLE {_tablePrefix}RFunctions");
         }
 
-        public async Task<bool> StoreFunction(
-            FunctionId functionId, 
-            Parameter param1, 
-            Parameter? param2, 
+        public async Task<bool> CreateFunction(
+            FunctionId functionId,
+            StoredParameter param,
             string? scrapbookType,
-            long initialSignOfLife
+            Status initialStatus,
+            int initialEpoch,
+            int initialSignOfLife
         )
         {
             await using var conn = await _connFunc();
-
             try
             {
                 await conn.ExecuteAsync(@$"
-                INSERT INTO {_tablePrefix}RFunctions
-                    (
-                        {nameof(Row.FunctionTypeId)}, {nameof(Row.FunctionInstanceId)}, 
-                        {nameof(Row.Param1Json)}, {nameof(Row.Param1Type)}, 
-                        {nameof(Row.Param2Json)}, {nameof(Row.Param2Type)},
-                        {nameof(Row.ScrapbookType)}, 
-                        {nameof(Row.LastSignOfLife)}
-                    )
-                VALUES
-                    (
-                        @FunctionTypeId, @FunctionInstanceId, 
-                        @Param1Json, @Param1Type, 
-                        @Param2Json, @Param2Type,
-                        @ScrapbookType, 
-                        @LastSignOfLife
-                    )",
+                INSERT INTO {_tablePrefix}RFunctions(
+                    FunctionTypeId, FunctionInstanceId, 
+                    ParamJson, ParamType, 
+                    ScrapbookType, 
+                    Status,
+                    Epoch, SignOfLife)
+                VALUES(
+                    @FunctionTypeId, @FunctionInstanceId, 
+                    @ParamJson, @ParamType,  
+                    @ScrapbookType,
+                    @Status,
+                    @Epoch, @SignOfLife)",
                     new
                     {
                         FunctionTypeId = functionId.TypeId.Value,
                         FunctionInstanceId = functionId.InstanceId.Value,
-                        Param1Json = param1.ParamJson,
-                        Param1Type = param1.ParamType,
-                        Param2Json = param2?.ParamJson,
-                        Param2Type = param2?.ParamType,
+                        ParamJson = param.ParamJson,
+                        ParamType = param.ParamType,
                         ScrapbookType = scrapbookType,
-                        LastSignOfLife = initialSignOfLife
-                    }
-                );
+                        Status = initialStatus,
+                        Epoch = initialEpoch,
+                        SignOfLife = initialSignOfLife
+                    });
             }
-            catch (SqlException e)
+            catch (SqlException sqlException)
             {
-                if (e.Number == UNIQUENESS_VIOLATION)
-                    return false;
+                if (sqlException.Number == UNIQUENESS_VIOLATION) return false;
             }
 
             return true;
         }
 
-        public async Task<bool> UpdateScrapbook(FunctionId functionId, string scrapbookJson, int expectedVersionStamp, int newVersionStamp)
+        public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch,
+            int newEpoch)
         {
             await using var conn = await _connFunc();
-
             var affectedRows = await conn.ExecuteAsync(@$"
                 UPDATE {_tablePrefix}RFunctions
-                SET {nameof(Row.ScrapbookJson)} = @ScrapbookJson, {nameof(Row.ScrapbookVersionStamp)} = @NewVersionStamp
-                WHERE {nameof(Row.FunctionTypeId)} = @FunctionTypeId AND 
-                      {nameof(Row.FunctionInstanceId)} = @FunctionInstanceId AND
-                      {nameof(Row.ScrapbookVersionStamp)} = @ExpectedVersionStamp",
+                SET Epoch = @NewEpoch
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch",
                 new
                 {
                     FunctionTypeId = functionId.TypeId.Value,
                     FunctionInstanceId = functionId.InstanceId.Value,
-                    ScrapbookJson = scrapbookJson,
-                    ExpectedVersionStamp = expectedVersionStamp,
-                    NewVersionStamp = newVersionStamp
+                    NewEpoch = newEpoch,
+                    ExpectedEpoch = expectedEpoch
                 }
             );
-            return affectedRows == 1;
+
+            return affectedRows > 0;
         }
 
-        public async Task<IEnumerable<NonCompletedFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId)
+        public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         {
             await using var conn = await _connFunc();
-            
-            var rows = await QueryAsync(@$"
-                SELECT {nameof(Row.FunctionInstanceId)}, {nameof(Row.LastSignOfLife)}
-                FROM {_tablePrefix}RFunctions
-                WHERE {nameof(Row.ResultType)} IS NULL AND {nameof(Row.FunctionTypeId)} = @FunctionTypeId;",
-                new { FunctionTypeId = functionTypeId.Value },
-                new { FunctionInstanceId = default(string), LastSignOfLife = default(long) }
+            var affectedRows = await conn.ExecuteAsync(@$"
+                UPDATE {_tablePrefix}RFunctions
+                SET SignOfLife = @SignOfLife
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @Epoch",
+                new
+                {
+                    FunctionTypeId = functionId.TypeId.Value,
+                    FunctionInstanceId = functionId.InstanceId.Value,
+                    Epoch = expectedEpoch,
+                    SignOfLife = newSignOfLife
+                }
             );
+
+            return affectedRows > 0;
+        }
+
+        private record StoredFunctionStatusRow(
+            string FunctionInstanceId,
+            int Epoch, int SignOfLife,
+            Status Status,
+            long? PostponedUntil
+        );
+
+        public async Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(FunctionTypeId functionTypeId,
+            Status status, long? expiresBefore = null)
+        {
+            await using var conn = await _connFunc();
+
+            var rows = expiresBefore == null
+                ? await conn.QueryAsync<StoredFunctionStatusRow>(@$"
+                    SELECT FunctionInstanceId, Epoch, SignOfLife, Status, PostponedUntil
+                    FROM {_tablePrefix}RFunctions
+                    WHERE FunctionTypeId = @FunctionTypeId AND Status = @Status",
+                    new
+                    {
+                        FunctionTypeId = functionTypeId.Value,
+                        Status = (int) status
+                    })
+                : await conn.QueryAsync<StoredFunctionStatusRow>(@$"
+                    SELECT FunctionInstanceId, Epoch, SignOfLife, Status, PostponedUntil
+                    FROM {_tablePrefix}RFunctions
+                    WHERE FunctionTypeId = @FunctionTypeId AND Status = @Status AND PostponedUntil <= @PostponedUntil",
+                    new
+                    {
+                        FunctionTypeId = functionTypeId.Value,
+                        Status = status,
+                        PostponedUntil = expiresBefore.Value
+                    });
 
             return rows
                 .Select(r =>
-                    new NonCompletedFunction(r.FunctionInstanceId!.ToFunctionInstanceId(), r.LastSignOfLife))
-                .ToList();
+                    new StoredFunctionStatus(
+                        r.FunctionInstanceId.ToFunctionInstanceId(),
+                        r.Epoch,
+                        r.SignOfLife,
+                        r.Status,
+                        r.PostponedUntil
+                    )
+                ).ToList().AsEnumerable();
         }
 
-        public async Task<bool> UpdateSignOfLife(FunctionId functionId, long expectedSignOfLife, long newSignOfLife)
+        public async Task<bool> SetFunctionState(
+            FunctionId functionId,
+            Status status,
+            string? scrapbookJson,
+            StoredResult? result,
+            StoredFailure? failed,
+            long? postponedUntil,
+            int expectedEpoch
+        )
         {
             await using var conn = await _connFunc();
-
             var affectedRows = await conn.ExecuteAsync(@$"
                 UPDATE {_tablePrefix}RFunctions
-                SET {nameof(Row.LastSignOfLife)} = @NewSignOfLife
-                WHERE {nameof(Row.FunctionTypeId)} = @FunctionTypeId 
-                    AND {nameof(Row.FunctionInstanceId)} = @FunctionInstanceId 
-                    AND {nameof(Row.LastSignOfLife)} = @ExpectedSignOfLife",
+                SET
+                    Status = @Status,
+                    ScrapbookJson = @ScrapbookJson,
+                    ResultJson = @ResultJson, ResultType = @ResultType,
+                    FailedJson = @FailedJson, FailedType = @FailedType,
+                    PostponedUntil = @PostponedUntil
+                WHERE FunctionTypeId = @FunctionTypeId
+                AND FunctionInstanceId = @FunctionInstanceId
+                AND Epoch = @ExpectedEpoch",
                 new
                 {
                     FunctionTypeId = functionId.TypeId.Value,
                     FunctionInstanceId = functionId.InstanceId.Value,
-                    ExpectedSignOfLife = expectedSignOfLife,
-                    NewSignOfLife = newSignOfLife
-                }
-            );
-
-            return affectedRows == 1;
-        }
-
-        public async Task StoreFunctionResult(FunctionId functionId, string resultJson, string resultType)
-        {
-            await using var conn = await _connFunc();
-
-            await conn.ExecuteAsync(@$"
-                UPDATE {_tablePrefix}RFunctions
-                SET {nameof(Row.ResultJson)} = @ResultJson, {nameof(Row.ResultType)} = @ResultType
-                WHERE {nameof(Row.FunctionTypeId)} = @FunctionTypeId AND {nameof(Row.FunctionInstanceId)} = @FunctionInstanceId",
-                new
-                {
-                    FunctionTypeId = functionId.TypeId.Value,
-                    FunctionInstanceId = functionId.InstanceId.Value,
-                    ResultJson = resultJson,
-                    ResultType = resultType
-                }
-            );
-        }
-
-        public async Task<Result?> GetFunctionResult(FunctionId functionId)
-        {
-            await using var conn = await _connFunc();
-
-            var rows = await QueryAsync(@$"
-                SELECT {nameof(Row.ResultJson)}, {nameof(Row.ResultType)}
-                FROM {_tablePrefix}RFunctions
-                WHERE {nameof(Row.FunctionTypeId)} = @FunctionTypeId 
-                    AND {nameof(Row.FunctionInstanceId)} = @FunctionInstanceId",
-                new {FunctionTypeId = functionId.TypeId.Value, FunctionInstanceId = functionId.InstanceId.Value},
-                new { ResultJson = default(string), ResultType = default(string) }
-            ).ToTaskList();
-
-            if (rows.Count == 0)
-                return null;
-            
-            var row = rows
-                .Where(r => r.ResultType != null)
-                .Select(r => new Result(r.ResultJson!, r.ResultType!))
-                .SingleOrDefault();
-
-            return row;
+                    ExpectedEpoch = expectedEpoch,
+                    Status = (int) status,
+                    ScrapbookJson = scrapbookJson,
+                    ResultJson = result?.ResultJson,
+                    ResultType = result?.ResultType,
+                    FailedJson = failed?.FailedJson,
+                    FailedType = failed?.FailedType,
+                    PostponedUntil = postponedUntil
+                });
+            return affectedRows > 0;
         }
 
         public async Task<StoredFunction?> GetFunction(FunctionId functionId)
@@ -221,51 +235,46 @@ namespace Cleipnir.ResilientFunctions.SqlServer
             var rows = await conn.QueryAsync<Row>(@$"
                 SELECT *
                 FROM {_tablePrefix}RFunctions
-                WHERE {nameof(Row.FunctionTypeId)} = @FunctionTypeId 
-                    AND {nameof(Row.FunctionInstanceId)} = @FunctionInstanceId",
-                new {FunctionTypeId = functionId.TypeId.Value, FunctionInstanceId = functionId.InstanceId.Value}
-            ).ToTaskList();
-
+                WHERE FunctionTypeId = @FunctionTypeId
+                AND FunctionInstanceId = @FunctionInstanceId",
+                new
+                {
+                    FunctionTypeId = functionId.TypeId.Value,
+                    FunctionInstanceId = functionId.InstanceId.Value
+                }).ToTaskList();
+            
             if (rows.Count == 0)
-                return null;
+                return default;
 
             var row = rows.Single();
             return new StoredFunction(
                 functionId,
-                new Parameter(row.Param1Json, row.Param1Type),
-                row.Param2Type == null 
-                    ? null 
-                    : new Parameter(row.Param2Json!, row.Param2Type),
-                row.ScrapbookType == null
-                    ? null
-                    : new Scrapbook(row.ScrapbookJson, row.ScrapbookType, row.ScrapbookVersionStamp),
-                row.LastSignOfLife,
-                row.ResultType == null ? null : new Result(row.ResultJson!, row.ResultType)
+                Parameter: new StoredParameter(row.ParamJson, row.ParamType),
+                Scrapbook: row.ScrapbookType != null ? new StoredScrapbook(row.ScrapbookJson!, row.ScrapbookType) : null,
+                Status: (Status) row.Status,
+                Result: row.ResultType != null ? new StoredResult(row.ResultJson!, row.ResultType) : null,
+                Failure: row.FailedType != null ? new StoredFailure(row.FailedJson!, row.FailedType) : null,
+                row.PostponedUntil,
+                row.Epoch,
+                row.SignOfLife
             );
-        }
-
-        private async Task<IEnumerable<TRow>> QueryAsync<TParam, TRow>(string sql, TParam param, TRow row)
-        {
-            _ = row;
-            await using var conn = await _connFunc();
-
-            var rows = await conn.QueryAsync<TRow>(sql, param);
-            return rows;
         }
 
         private record Row(
             string FunctionTypeId,
             string FunctionInstanceId,
-            string Param1Json,
-            string Param1Type,
-            string? Param2Json,
-            string? Param2Type,
+            string ParamJson,
+            string ParamType,
             string? ScrapbookJson,
             string? ScrapbookType,
-            int ScrapbookVersionStamp,
+            int Status,
             string? ResultJson,
             string? ResultType,
-            long LastSignOfLife
+            string? FailedJson,
+            string? FailedType,
+            long? PostponedUntil,
+            int Epoch,
+            int SignOfLife
         );
     }
 }

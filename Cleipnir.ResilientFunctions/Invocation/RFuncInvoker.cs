@@ -1,0 +1,305 @@
+﻿using System;
+using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.SignOfLife;
+using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Utils;
+
+namespace Cleipnir.ResilientFunctions.Invocation;
+
+public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult : notnull
+{
+    private readonly FunctionTypeId _functionTypeId;
+    private readonly Func<TParam, object> _idFunc;
+    private readonly Func<TParam, Task<RResult<TResult>>> _func;
+
+    private readonly IFunctionStore _functionStore;
+    private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
+
+    internal RFuncInvoker(
+        FunctionTypeId functionTypeId,
+        Func<TParam, object> idFunc,
+        Func<TParam, Task<RResult<TResult>>> func,
+        IFunctionStore functionStore,
+        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory
+    )
+    {
+        _functionTypeId = functionTypeId;
+        _idFunc = idFunc;
+        _func = func;
+        _functionStore = functionStore;
+        _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
+    }
+
+    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
+    {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param, onPersisted);
+        if (!created) return await WaitForFunctionResult(functionId);
+
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, 0);
+        RResult<TResult> result;
+        try
+        {
+            //USER FUNCTION INVOCATION! 
+            result = await _func(param);
+        }
+        catch (Exception exception)
+        {
+            result = new Fail(new FunctionInvocationException($"Function {functionId} threw unhandled exception", exception));
+        }
+
+        await ProcessResult(functionId, result);
+        return result;
+    }
+
+    private FunctionId CreateFunctionId(TParam param)
+        => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
+
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
+    {
+        var paramJson = param.ToJson();
+        var paramType = param.GetType().SimpleQualifiedName();
+        var created = await _functionStore.CreateFunction(
+            functionId,
+            param: new StoredParameter(paramJson, paramType),
+            scrapbookType: null,
+            initialEpoch: 0,
+            initialSignOfLife: 0,
+            initialStatus: Status.Executing
+        );
+        if (onPersisted != null)
+            _ = Task.Run(onPersisted);
+        return created;
+    }
+
+    private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
+    {
+        while (true)
+        {
+            var possibleResult = await _functionStore.GetFunction(functionId);
+            if (possibleResult == null)
+                throw new FrameworkException($"Function {functionId} does not exist");
+
+            switch (possibleResult.Status)
+            {
+                case Status.Executing:
+                    await Task.Delay(100);
+                    continue;
+                case Status.Succeeded:
+                    return new RResult<TResult>(
+                        ResultType.Succeeded, 
+                        successResult: (TResult) possibleResult.Result!.Deserialize(), 
+                        postponedUntil: null, 
+                        failedException: null
+                    );
+                case Status.Failed:
+                    return Fail.WithException(possibleResult.Failure!.Deserialize());
+                case Status.Postponed:
+                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
+                    return Postpone.Until(postponedUntil);
+                case Status.Barricaded:
+                    throw new FunctionInvocationException($"Function '{functionId}' has been barricaded");
+                default:
+                    throw new ArgumentOutOfRangeException(); //todo framework exception
+            }
+        }
+    }
+
+    private Task ProcessResult(FunctionId functionId, RResult<TResult> result)
+    {
+        var persistInStoreTask = result.ResultType switch
+        {
+            ResultType.Succeeded =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Succeeded,
+                    scrapbookJson: null,
+                    result: new StoredResult(result.ToJson(), result.GetType().SimpleQualifiedName()),
+                    failed: null,
+                    postponedUntil: null,
+                    expectedEpoch: 0
+                ),
+            ResultType.Postponed =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Postponed,
+                    scrapbookJson: null,
+                    result: null,
+                    failed: null,
+                    result.PostponedUntil!.Value.Ticks,
+                    expectedEpoch: 0
+                ),
+            ResultType.Failed =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Failed,
+                    scrapbookJson: null,
+                    result: null,
+                    failed: new StoredFailure(
+                        FailedJson: result.FailedException.ToJson(),
+                        FailedType: result.FailedException!.SimpleQualifiedTypeName()
+                    ),
+                    postponedUntil: null,
+                    expectedEpoch: 0
+                ),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        return persistInStoreTask;
+    }
+}
+
+public class RFuncInvoker<TParam, TScrapbook, TResult> 
+    where TParam : notnull 
+    where TScrapbook : RScrapbook, new()
+    where TResult : notnull
+{
+    private readonly FunctionTypeId _functionTypeId;
+    private readonly Func<TParam, object> _idFunc;
+    private readonly Func<TParam, TScrapbook, Task<RResult<TResult>>> _func;
+
+    private readonly IFunctionStore _functionStore;
+    private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
+
+    internal RFuncInvoker(
+        FunctionTypeId functionTypeId,
+        Func<TParam, object> idFunc,
+        Func<TParam, TScrapbook, Task<RResult<TResult>>> func,
+        IFunctionStore functionStore,
+        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory
+    )
+    {
+        _functionTypeId = functionTypeId;
+        _idFunc = idFunc;
+        _func = func;
+        _functionStore = functionStore;
+        _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
+    }
+
+    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
+    {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param, onPersisted);
+        if (!created) return await WaitForFunctionResult(functionId);
+
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, 0);
+        var scrapbook = CreateScrapbook(functionId);
+        RResult<TResult> result;
+        try
+        {
+            //USER FUNCTION INVOCATION! 
+            result = await _func(param, scrapbook);
+        }
+        catch (Exception exception)
+        {
+            result = new Fail(new FunctionInvocationException($"Function {functionId} threw unhandled exception", exception));
+        }
+
+        await ProcessResult(functionId, result, scrapbook);
+        return result;
+    }
+
+    private FunctionId CreateFunctionId(TParam param)
+        => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
+    
+    private TScrapbook CreateScrapbook(FunctionId functionId)
+    {
+        var scrapbook = new TScrapbook();
+        scrapbook.Initialize(functionId, _functionStore, epoch: 0);
+        return scrapbook;
+    }
+
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
+    {
+        var paramJson = param.ToJson();
+        var paramType = param.GetType().SimpleQualifiedName();
+        var created = await _functionStore.CreateFunction(
+            functionId,
+            param: new StoredParameter(paramJson, paramType),
+            scrapbookType: typeof(TScrapbook).SimpleQualifiedName(),
+            initialEpoch: 0,
+            initialSignOfLife: 0,
+            initialStatus: Status.Executing
+        );
+        if (onPersisted != null)
+            _ = Task.Run(onPersisted);
+        return created;
+    }
+
+    private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
+    {
+        while (true)
+        {
+            var possibleResult = await _functionStore.GetFunction(functionId);
+            if (possibleResult == null)
+                throw new FrameworkException($"Function {functionId} does not exist");
+
+            switch (possibleResult.Status)
+            {
+                case Status.Executing:
+                    await Task.Delay(100);
+                    continue;
+                case Status.Succeeded:
+                    return new RResult<TResult>(
+                        ResultType.Succeeded, 
+                        successResult: (TResult) possibleResult.Result!.Deserialize(), 
+                        postponedUntil: null, 
+                        failedException: null
+                    );
+                case Status.Failed:
+                    return Fail.WithException(possibleResult.Failure!.Deserialize());
+                case Status.Postponed:
+                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
+                    return Postpone.Until(postponedUntil);
+                case Status.Barricaded:
+                    throw new FunctionInvocationException($"Function '{functionId}' has been barricaded");
+                default:
+                    throw new ArgumentOutOfRangeException(); //todo framework exception
+            }
+        }
+    }
+
+    private Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
+    {
+        var persistInStoreTask = result.ResultType switch
+        {
+            ResultType.Succeeded =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Succeeded,
+                    scrapbookJson: scrapbook.ToJson(),
+                    result: new StoredResult(result.SuccessResult!.ToJson(), result.SuccessResult!.GetType().SimpleQualifiedName()),
+                    failed: null,
+                    postponedUntil: null,
+                    expectedEpoch: 0
+                ),
+            ResultType.Postponed =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Postponed,
+                    scrapbookJson: null,
+                    result: null,
+                    failed: null,
+                    result.PostponedUntil!.Value.Ticks,
+                    expectedEpoch: 0
+                ),
+            ResultType.Failed =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Failed,
+                    scrapbookJson: null,
+                    result: null,
+                    failed: new StoredFailure(
+                        FailedJson: result.FailedException.ToJson(),
+                        FailedType: result.FailedException!.SimpleQualifiedTypeName()
+                    ),
+                    postponedUntil: null,
+                    expectedEpoch: 0
+                ),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        return persistInStoreTask;
+    }
+}

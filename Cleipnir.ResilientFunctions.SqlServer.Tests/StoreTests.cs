@@ -24,5 +24,13 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 
         [TestMethod]
         public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected() => SignOfLifeIsNotUpdatedWhenNotAsExpected(Store);
+
+        [TestMethod]
+        public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected() 
+            => BecomeLeaderSucceedsWhenEpochIsAsExpected(Store);
+
+        [TestMethod]
+        public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
+            => BecomeLeaderFailsWhenEpochIsNotAsExpected(Store);
     }
 }

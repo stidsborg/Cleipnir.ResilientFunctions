@@ -6,76 +6,52 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
     [TestClass]
     public class StoreCrudTests : Cleipnir.ResilientFunctions.Tests.StoreCrudTests
     {
-        [TestMethod]
-        public override async Task SingleParameterSunshineScenario()
-            => await SingleParameterSunshineScenario(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(SingleParameterSunshineScenario)
-                )
+        public override async Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(FunctionCanBeCreatedWithASingleParameterSuccessfully)
             );
 
-        [TestMethod]
-        public override async Task DoubleParameterSunshineScenario()
-            => await DoubleParameterSunshineScenario(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(DoubleParameterSunshineScenario)
-                )
+        public override async Task FunctionCanBeCreatedWithATwoParametersSuccessfully()
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(FunctionCanBeCreatedWithATwoParametersSuccessfully)
             );
 
-        [TestMethod]
-        public override async Task DoubleParameterWithScrapbookSunshineScenario()
-            => await DoubleParameterWithScrapbookSunshineScenario(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(DoubleParameterWithScrapbookSunshineScenario)
-                )
+        public override async Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully)
             );
 
-        [TestMethod]
         public override async Task FetchingNonExistingFunctionReturnsNull()
-            => await FetchingNonExistingFunctionReturnsNull(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(FetchingNonExistingFunctionReturnsNull)
-                )
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(FetchingNonExistingFunctionReturnsNull)
             );
 
-        [TestMethod]
         public override async Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected()
-            => await SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(SignOfLifeIsNotUpdatedWhenItIsNotAsExpected)
-                )
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(SignOfLifeIsNotUpdatedWhenItIsNotAsExpected)
             );
 
-        [TestMethod]
         public override async Task UpdateScrapbookSunshineScenario()
-            => await UpdateScrapbookSunshineScenario(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(UpdateScrapbookSunshineScenario)
-                )
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(UpdateScrapbookSunshineScenario)
             );
 
-        [TestMethod]
-        public override async Task UpdateScrapbookFailsWhenTimestampIsNotAsExpected()
-            => await UpdateScrapbookFailsWhenTimestampIsNotAsExpected(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(UpdateScrapbookFailsWhenTimestampIsNotAsExpected)
-                )
+        public override async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(ScrapbookUpdateFailsWhenEpochIsNotAsExpected)
             );
 
-        [TestMethod]
-        public override async Task OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked()
-            => await OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked)
-                )
+        public override async Task GetFunctionsWithStatusOnlyReturnsSucceededFunction()
+            => await Sql.CreateAndInitializeStore(
+                nameof(StoreCrudTests),
+                nameof(GetFunctionsWithStatusOnlyReturnsSucceededFunction)
             );
     }
 }

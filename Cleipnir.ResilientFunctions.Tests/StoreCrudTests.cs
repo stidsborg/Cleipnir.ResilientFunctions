@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -10,246 +11,217 @@ namespace Cleipnir.ResilientFunctions.Tests
     public abstract class StoreCrudTests
     {
         private FunctionId FunctionId { get; } = new FunctionId("funcType1", "funcInstance1");
-        private TestParam TestParam1 { get; } = new TestParam("Peter", 32);
-        private Parameter Param1 => new(TestParam1.ToJson(), typeof(TestParam).SimpleQualifiedName());
-        private TestParam TestParam2 { get; } = new TestParam("Pia", 29);
-        private Parameter Param2 => new(TestParam2.ToJson(), typeof(TestParam).SimpleQualifiedName());
-        private record TestParam(string Name, int Age);
+        private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
+        private StoredParameter Param => new(TestParam.ToJson(), typeof(TestParameters).SimpleQualifiedName());
+        private record TestParameters(string Name, int Age);
 
         private class TestScrapbook : RScrapbook
         {
             public string? Note { get; set; }
         }
         
-        public abstract Task SingleParameterSunshineScenario();
-        public async Task SingleParameterSunshineScenario(IFunctionStore store)
+        public abstract Task FunctionCanBeCreatedWithASingleParameterSuccessfully();
+        public async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(IFunctionStore store)
         {
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                Param1,
-                null,
-                null,
-                0
-            );
+                Param,
+                scrapbookType: null,
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
 
             var stored = await store.GetFunction(FunctionId);
             stored!.FunctionId.ShouldBe(FunctionId);
-            stored.Parameter1.ParamJson.ShouldBe(Param1.ParamJson);
-            stored.Parameter1.ParamType.ShouldBe(Param1.ParamType);
-            stored.Result.ShouldBeNull();
+            stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
+            stored.Parameter.ParamType.ShouldBe(Param.ParamType);
             stored.Scrapbook.ShouldBeNull();
+            stored.Result.ShouldBeNull();
+            stored.Status.ShouldBe(Status.Executing);
+            stored.PostponedUntil.ShouldBeNull();
+            stored.Epoch.ShouldBe(0);
             stored.SignOfLife.ShouldBe(0);
-
-            (await store.GetFunctionResult(FunctionId)).ShouldBeNull();
-            
-            var success = await store.UpdateSignOfLife(FunctionId, 0, 1);
-            success.ShouldBeTrue();
-            
-            (await store.GetFunction(FunctionId))!.SignOfLife.ShouldBe(1);
-            
-            await store.StoreFunctionResult(
-                FunctionId,
-                "some result".ToJson(),
-                typeof(string).SimpleQualifiedName()
-            );
-
-            stored = await store.GetFunction(FunctionId);
-            stored!.Result.ShouldNotBeNull();
-            stored.Result.ResultJson.ShouldBe("some result".ToJson());
-            stored.Result.ResultType.ShouldBe(typeof(string).SimpleQualifiedName());
         }
 
-        public abstract Task DoubleParameterSunshineScenario();
-        public async Task DoubleParameterSunshineScenario(IFunctionStore store)
+        public abstract Task FunctionCanBeCreatedWithATwoParametersSuccessfully();
+        public async Task FunctionCanBeCreatedWithATwoParametersSuccessfully(IFunctionStore store)
         {
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                Param1,
-                Param2,
-                null,
-                0
-            );
+                Param,
+                scrapbookType: null,
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
 
             var stored = await store.GetFunction(FunctionId);
             stored!.FunctionId.ShouldBe(FunctionId);
-            stored.Parameter1.ParamJson.ShouldBe(Param1.ParamJson);
-            stored.Parameter1.ParamType.ShouldBe(Param1.ParamType);
-            stored.Parameter2!.ParamJson.ShouldBe(Param2.ParamJson);
-            stored.Parameter2.ParamType.ShouldBe(Param2.ParamType);
-            stored.Result.ShouldBeNull();
+            stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
+            stored.Parameter.ParamType.ShouldBe(Param.ParamType);
             stored.Scrapbook.ShouldBeNull();
+            stored.Result.ShouldBeNull();
+            stored.Status.ShouldBe(Status.Executing);
+            stored.PostponedUntil.ShouldBeNull();
+            stored.Epoch.ShouldBe(0);
             stored.SignOfLife.ShouldBe(0);
-
-            (await store.GetFunctionResult(FunctionId)).ShouldBeNull();
-            
-            var success = await store.UpdateSignOfLife(FunctionId, 0, 1);
-            success.ShouldBeTrue();
-            
-            (await store.GetFunction(FunctionId))!.SignOfLife.ShouldBe(1);
-            
-            await store.StoreFunctionResult(
-                FunctionId,
-                "some result".ToJson(),
-                typeof(string).SimpleQualifiedName()
-            );
-
-            stored = await store.GetFunction(FunctionId);
-            stored!.Result.ShouldNotBeNull();
-            stored.Result.ResultJson.ShouldBe("some result".ToJson());
-            stored.Result.ResultType.ShouldBe(typeof(string).SimpleQualifiedName());
         }
         
-        public abstract Task DoubleParameterWithScrapbookSunshineScenario();
+        public abstract Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully();
         public async Task DoubleParameterWithScrapbookSunshineScenario(IFunctionStore store)
         {
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                Param1,
-                Param2,
-                typeof(TestScrapbook).SimpleQualifiedName(),
-                0
-            );
+                Param,
+                scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
 
             var stored = await store.GetFunction(FunctionId);
             stored!.FunctionId.ShouldBe(FunctionId);
-            stored.Parameter1.ParamJson.ShouldBe(Param1.ParamJson);
-            stored.Parameter1.ParamType.ShouldBe(Param1.ParamType);
-            stored.Parameter2!.ParamJson.ShouldBe(Param2.ParamJson);
-            stored.Parameter2.ParamType.ShouldBe(Param2.ParamType);
-            stored.Result.ShouldBeNull();
+            stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
+            stored.Parameter.ParamType.ShouldBe(Param.ParamType);
             stored.Scrapbook.ShouldNotBeNull();
-            stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
             stored.Scrapbook.ScrapbookJson.ShouldBeNull();
-            stored.Scrapbook.VersionStamp.ShouldBe(0);
+            stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
+            stored.Result.ShouldBeNull();
+            stored.Status.ShouldBe(Status.Executing);
+            stored.PostponedUntil.ShouldBeNull();
+            stored.Epoch.ShouldBe(0);
             stored.SignOfLife.ShouldBe(0);
-
-            (await store.GetFunctionResult(FunctionId)).ShouldBeNull();
-            
-            var success = await store.UpdateSignOfLife(FunctionId, 0, 1);
-            success.ShouldBeTrue();
-            
-            (await store.GetFunction(FunctionId))!.SignOfLife.ShouldBe(1);
-            
-            await store.StoreFunctionResult(
-                FunctionId,
-                "some result".ToJson(),
-                typeof(string).SimpleQualifiedName()
-            );
-
-            stored = await store.GetFunction(FunctionId);
-            stored!.Result.ShouldNotBeNull();
-            stored.Result.ResultJson.ShouldBe("some result".ToJson());
-            stored.Result.ResultType.ShouldBe(typeof(string).SimpleQualifiedName());
         }
 
         public abstract Task FetchingNonExistingFunctionReturnsNull();
         public async Task FetchingNonExistingFunctionReturnsNull(IFunctionStore store)
-        {
-            (await store.GetFunction(FunctionId)).ShouldBeNull();
-        }
+            => await store.GetFunction(FunctionId).ShouldBeNullAsync(); 
         
         public abstract Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected();
         public async Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(IFunctionStore store)
         {
-            var param1 = new Parameter(
-                new TestParam("Peter", 32).ToJson(),
-                typeof(TestParam).SimpleQualifiedName()
-            );
-            
-            await store.StoreFunction(FunctionId, param1, null, null, 0);
+            await store.CreateFunction(
+                FunctionId,
+                Param,
+                scrapbookType: null,
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
 
-            var success = await store.UpdateSignOfLife(FunctionId, 1, 10);
-            success.ShouldBeFalse();
-            
-            (await store.GetFunction(FunctionId))!.SignOfLife.ShouldBe(0);
+            await store.UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1).ShouldBeTrueAsync();
+
+            var storedFunction = await store.GetFunction(FunctionId);
+            storedFunction!.Epoch.ShouldBe(0);
         }
 
         public abstract Task UpdateScrapbookSunshineScenario();
         public async Task UpdateScrapbookSunshineScenario(IFunctionStore store)
         {
-            var param1 = new Parameter(
-                new TestParam("Peter", 32).ToJson(),
-                typeof(TestParam).SimpleQualifiedName()
-            );
-
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                param1,
-                null,
-                typeof(TestScrapbook).SimpleQualifiedName(),
-                0
-            );
+                Param,
+                scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
+                initialStatus: Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
 
             var scrapbook = new TestScrapbook { Note = "something is still something" };
-            var success = await store.UpdateScrapbook(
+            await store.SetFunctionState(
                 FunctionId,
+                Status.Executing,
                 scrapbook.ToJson(),
-                0,
-                1
-            );
-            success.ShouldBeTrue();
+                result: null,
+                failed: null,
+                postponedUntil: null,
+                expectedEpoch: 0
+            ).ShouldBeTrueAsync();
 
-            var storedScrapbook = (await store.GetFunction(FunctionId))!.Scrapbook!;
-            storedScrapbook.VersionStamp.ShouldBe(1);
-            storedScrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-            storedScrapbook.ScrapbookJson.ShouldBe(scrapbook.ToJson());
+            var storedFunction = await store.GetFunction(FunctionId);
+            storedFunction!.Scrapbook.ShouldNotBeNull();
+            var (scrapbookJson, scrapbookType) = storedFunction.Scrapbook;
+            
+            scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
+            scrapbookJson.ShouldBe(scrapbook.ToJson());
         }
         
-        public abstract Task UpdateScrapbookFailsWhenTimestampIsNotAsExpected();
-        public async Task UpdateScrapbookFailsWhenTimestampIsNotAsExpected(IFunctionStore store)
+        public abstract Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected();
+        public async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected(IFunctionStore store)
         {
-            var param1 = new Parameter(
-                new TestParam("Peter", 32).ToJson(),
-                typeof(TestParam).SimpleQualifiedName()
-            );
-
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                param1,
-                null,
-                typeof(TestScrapbook).SimpleQualifiedName(),
-                0
-            );
+                Param,
+                scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
 
             var scrapbook = new TestScrapbook { Note = "something is still something" };
-            var success = await store.UpdateScrapbook(
+            await store.SetFunctionState(
                 FunctionId,
+                Status.Executing,
                 scrapbook.ToJson(),
-                1,
-                2
-            );
-            success.ShouldBeFalse();
-            
-            var storedScrapbook = (await store.GetFunction(FunctionId))!.Scrapbook!;
-            storedScrapbook.VersionStamp.ShouldBe(0);
-            storedScrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-            storedScrapbook.ScrapbookJson.ShouldBeNull();
+                result: null,
+                failed: null,
+                postponedUntil: null,
+                expectedEpoch: 1
+            ).ShouldBeFalseAsync();
+
+            var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook!;
+            scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
+            scrapbookJson.ShouldBeNull();
         }
 
-        public abstract Task OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked();
-        public async Task OnlyNonCompletedFunctionsAreReturnedWhenStoreMethodIsInvoked(IFunctionStore store)
+        public abstract Task GetFunctionsWithStatusOnlyReturnsSucceededFunction();
+        public async Task GetFunctionsWithStatusOnlyReturnsSucceededFunction(IFunctionStore store)
         {
-            await store.StoreFunction(FunctionId, Param1, null, null, 0);
-            await store.StoreFunctionResult(
-                FunctionId,
-                "some result".ToJson(),
-                typeof(string).SimpleQualifiedName()
+            const string functionType = "someFunctionType";
+            var function1Id = new FunctionId(functionType, "instance1");
+            await store.CreateFunction(
+                function1Id,
+                Param,
+                scrapbookType: null,
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
+            
+            await store.SetFunctionState(
+                function1Id,
+                Status.Succeeded,
+                scrapbookJson: null,
+                new StoredResult("some result".ToJson(), typeof(string).SimpleQualifiedName()),
+                failed: null,
+                postponedUntil: null,
+                expectedEpoch: 0
+            ).ShouldBeTrueAsync();
+
+            var function2Id = new FunctionId(functionType, "instance2");
+            await store.CreateFunction(
+                function2Id,
+                Param,
+                scrapbookType: null,
+                Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
             );
 
-            await store.StoreFunction(
-                new FunctionId(FunctionId.TypeId.Value, "someInstance"),
-                Param1,
-                null, null,
-                10
-            );
-
-            var nonCompletes = await store
-                .GetNonCompletedFunctions(FunctionId.TypeId)
-                .ToTaskList();
+            var nonCompletes = await store.GetFunctionsWithStatus(
+                    functionType.ToFunctionTypeId(),
+                    Status.Succeeded,
+                    expiresBefore: null
+            ).ToTaskList();
             
             nonCompletes.Count.ShouldBe(1);
-            nonCompletes[0].InstanceId.Value.ShouldBe("someInstance");
-            nonCompletes[0].LastSignOfLife.ShouldBe(10);
+            var nonCompleted = nonCompletes.Single();
+            nonCompleted.InstanceId.Value.ShouldBe("instance1");
+            nonCompleted.Status.ShouldBe(Status.Succeeded);
+            nonCompleted.SignOfLife.ShouldBe(0);
+            nonCompleted.Epoch.ShouldBe(0);
+            nonCompleted.PostponedUntil.ShouldBeNull();
         }
     }
 }

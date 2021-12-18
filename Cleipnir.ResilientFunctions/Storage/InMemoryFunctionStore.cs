@@ -1,140 +1,175 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Utils;
 
-namespace Cleipnir.ResilientFunctions.Storage
+namespace Cleipnir.ResilientFunctions.Storage;
+
+public class InMemoryFunctionStore : IFunctionStore
 {
-    public class InMemoryFunctionStore : IFunctionStore
+    private readonly Dictionary<FunctionId, State> _states = new();
+    private readonly object _sync = new();
+    
+    public Task<bool> CreateFunction(
+        FunctionId functionId, 
+        StoredParameter param,
+        string? scrapbookType,
+        Status initialStatus, 
+        int initialEpoch, 
+        int initialSignOfLife
+    )
     {
-        private readonly Dictionary<FunctionId, State> _states = new();
-        private readonly object _sync = new();
-
-        private class State
+        lock (_sync)
         {
-            public Parameter Parameter1 { get; init; } = new("", "");
-            public Parameter? Parameter2 { get; set; }
-            public Result? Result { get; set; }
-            public long SignOfLife { get; set; }
-            public Scrapbook? Scrapbook { get; set; }
-        }
+            if (_states.ContainsKey(functionId))
+                return false.ToTask();
 
-        public Task<bool> StoreFunction(
-            FunctionId functionId, 
-            Parameter param1,
-            Parameter? param2,
-            string? scrapbookType, 
-            long initialSignOfLife)
-        {
-            lock (_sync)
+            _states[functionId] = new State
             {
-                if (_states.ContainsKey(functionId))
-                    return Task.FromResult(false);
+                FunctionId = functionId,
+                Param = param,
+                Scrapbook = scrapbookType == null ? null : new StoredScrapbook(ScrapbookJson: null, scrapbookType),
+                Status = Status.Executing,
+                Epoch = initialEpoch,
+                SignOfLife = initialSignOfLife,
+                Failed = null,
+                Result = null,
+                PostponeUntil = null
+            };
 
-                _states[functionId] = new State
-                {
-                    SignOfLife = initialSignOfLife,
-                    Parameter1 = param1,
-                    Parameter2 = param2,
-                    Scrapbook = scrapbookType != null
-                        ? new Scrapbook(null, scrapbookType, 0)
-                        : null,
-                    Result = null
-                };
-                
-                return Task.FromResult(true);
-            }
+            return true.ToTask();
         }
+    }
 
-        public Task<bool> UpdateScrapbook(
-            FunctionId functionId, 
-            string scrapbookJson,
-            int expectedVersionStamp, 
-            int newVersionStamp
-        )
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
+    {
+        lock (_sync)
         {
-            lock (_sync)
-            {
-                var state = _states[functionId];
-                var prevScrapbook = state.Scrapbook!;
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
 
-                if (prevScrapbook.VersionStamp != expectedVersionStamp)
-                    return false.ToTask();
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
 
-                state.Scrapbook = new Scrapbook(scrapbookJson, prevScrapbook.ScrapbookType, newVersionStamp);
-                return true.ToTask();
-            }
+            state.Epoch = newEpoch;
+            return true.ToTask();
         }
+    }
 
-        public Task<IEnumerable<NonCompletedFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId)
+    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
+    {
+        lock (_sync)
         {
-            lock (_sync)
-            {
-                return _states
-                    .Where(kv =>
-                    {
-                        var functionId = kv.Key;
-                        var state = kv.Value;
-                        return state.Result == null && functionId.TypeId == functionTypeId;
-                    })
-                    .Select(kv =>
-                    {
-                        var (functionId, state) = kv;
-                        return new NonCompletedFunction(functionId.InstanceId, state.SignOfLife);
-                    })
-                    .ToList()
-                    .AsEnumerable()
-                    .ToTask();
-            }
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
+
+            state.SignOfLife = newSignOfLife;
+            return true.ToTask();
         }
+    }
 
-        public Task<bool> UpdateSignOfLife(FunctionId functionId, long expectedSignOfLife, long newSignOfLife)
+    public Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(
+        FunctionTypeId functionTypeId, 
+        Status status, 
+        long? expiresBefore = null
+    )
+    {
+        lock (_sync)
+            return _states
+                .Values
+                .Where(s => s.FunctionId.TypeId == functionTypeId)
+                .Where(s => s.Status == status)
+                .Where(s => 
+                    expiresBefore == null 
+                    || s.PostponeUntil != null && s.PostponeUntil.Value < expiresBefore.Value
+                )
+                .Select(s =>
+                    new StoredFunctionStatus(
+                        s.FunctionId.InstanceId,
+                        s.Epoch,
+                        s.SignOfLife,
+                        s.Status,
+                        PostponedUntil: null
+                    )
+                )
+                .ToList()
+                .AsEnumerable()
+                .ToTask();
+    }
+
+    public Task<bool> SetFunctionState(
+        FunctionId functionId, 
+        Status status, 
+        string? scrapbookJson, 
+        StoredResult? result, 
+        StoredFailure? failed,
+        long? postponedUntil, 
+        int expectedEpoch
+    )
+    {
+        lock (_sync)
         {
-            lock (_sync)
-            {
-                if (_states[functionId].SignOfLife != expectedSignOfLife)
-                    return false.ToTask();
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
 
-                _states[functionId].SignOfLife = newSignOfLife;
-                return true.ToTask();
-            }
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
+
+            state.Status = status;
+            state.Scrapbook = scrapbookJson == null
+                ? null
+                : new StoredScrapbook(scrapbookJson, state.Scrapbook!.ScrapbookType);
+
+            state.Result = result;
+            state.Failed = failed;
+            state.PostponeUntil = postponedUntil;
+
+            return true.ToTask();
         }
+    }
 
-        public Task StoreFunctionResult(FunctionId functionId, string resultJson, string resultType)
+    public Task<StoredFunction?> GetFunction(FunctionId functionId)
+    {
+        lock (_sync)
         {
-            lock (_sync)
-                _states[functionId].Result = new Result(resultJson, resultType);
+            if (!_states.ContainsKey(functionId))
+                return default(StoredFunction).ToTask();
 
-            return Task.CompletedTask;
-        }
+            var state = _states[functionId];
 
-        public Task<Result?> GetFunctionResult(FunctionId functionId)
-        {
-            lock (_sync)
-                return _states.ContainsKey(functionId)
-                    ? _states[functionId].Result.ToTask()
-                    : default(Result?).ToTask();
-        }
-
-        public Task<StoredFunction?> GetFunction(FunctionId functionId)
-        {
-            lock (_sync)
-            {
-                if (!_states.ContainsKey(functionId))
-                    return default(StoredFunction?).ToTask();
-                
-                var state = _states[functionId];
-                var sf = new StoredFunction(
+            return new StoredFunction(
                     functionId,
-                    state.Parameter1,
-                    state.Parameter2,
+                    state.Param,
                     state.Scrapbook,
-                    state.SignOfLife,
-                    state.Result
-                );
-                return sf.ToNullable().ToTask();
-            }
+                    state.Status,
+                    state.Result,
+                    state.Failed,
+                    state.PostponeUntil,
+                    state.Epoch,
+                    state.SignOfLife
+                )
+                .ToNullable()
+                .ToTask();
         }
+    }
+    
+    private class State
+    {
+        public FunctionId FunctionId { get; init; } = new FunctionId("", "");
+        public StoredParameter Param { get; init; } = new StoredParameter("", "");
+        public StoredScrapbook? Scrapbook { get; set; }
+        public Status Status { get; set; }
+        public StoredResult? Result { get; set; }
+        public StoredFailure? Failed { get; set; }
+        public long? PostponeUntil { get; set; }
+        public int Epoch { get; set; }
+        public int SignOfLife { get; set; }
     }
 }

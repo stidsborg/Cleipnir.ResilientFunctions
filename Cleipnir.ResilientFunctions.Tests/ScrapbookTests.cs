@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests
     public abstract class ScrapbookTests
     {
         private FunctionId FunctionId { get; } = new FunctionId("typeId", "instanceId");
-        private Parameter Param1 { get; } = new Parameter(
+        private StoredParameter Param { get; } = new StoredParameter(
             ParamJson: "HelloWorld".ToJson(),
             ParamType: typeof(string).SimpleQualifiedName()
         );
@@ -23,13 +23,14 @@ namespace Cleipnir.ResilientFunctions.Tests
         public abstract Task SunshineScenario();
         public async Task SunshineScenario(IFunctionStore store)
         {
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                Param1,
-                param2: null,
+                Param,
                 scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-                initialSignOfLife: 100
-            );
+                initialStatus: Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
             
             var scrapbook = new Scrapbook();
             scrapbook.Initialize(FunctionId, store, 0);
@@ -45,7 +46,7 @@ namespace Cleipnir.ResilientFunctions.Tests
             storedScrapbook.ShouldNotBeNull();
             storedScrapbook.ScrapbookType.ShouldBe(typeof(Scrapbook).SimpleQualifiedName());
             storedScrapbook.ScrapbookJson.ShouldNotBeNull();
-            storedScrapbook.ScrapbookJson!.FromJsonTo<Scrapbook>()!.Name.ShouldBeNull(); 
+            storedScrapbook.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>()!.Name.ShouldBeNull(); 
             
             scrapbook.Name = "Peter"; 
             await scrapbook.Save();
@@ -54,7 +55,7 @@ namespace Cleipnir.ResilientFunctions.Tests
             storedScrapbook.ShouldNotBeNull();
             storedScrapbook.ScrapbookType.ShouldBe(typeof(Scrapbook).SimpleQualifiedName());
             storedScrapbook.ScrapbookJson.ShouldNotBeNull();
-            storedScrapbook.ScrapbookJson!.FromJsonTo<Scrapbook>()!.Name.ShouldBe("Peter");
+            storedScrapbook.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>()!.Name.ShouldBe("Peter");
             
             scrapbook.Name = "Ole"; 
             await scrapbook.Save();
@@ -63,19 +64,20 @@ namespace Cleipnir.ResilientFunctions.Tests
             storedScrapbook.ShouldNotBeNull();
             storedScrapbook.ScrapbookType.ShouldBe(typeof(Scrapbook).SimpleQualifiedName());
             storedScrapbook.ScrapbookJson.ShouldNotBeNull();
-            storedScrapbook.ScrapbookJson!.FromJsonTo<Scrapbook>()!.Name.ShouldBe("Ole");
+            storedScrapbook.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>()!.Name.ShouldBe("Ole");
         }
 
         public abstract Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected();
         public async Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(IFunctionStore store)
         {
-            await store.StoreFunction(
+            await store.CreateFunction(
                 FunctionId,
-                Param1,
-                param2: null,
+                Param,
                 scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-                initialSignOfLife: 100
-            );
+                initialStatus: Status.Executing,
+                initialEpoch: 0,
+                initialSignOfLife: 0
+            ).ShouldBeTrueAsync();
             
             var scrapbook = new Scrapbook() {Name = "Peter"};
             scrapbook.Initialize(FunctionId, store, 0);
@@ -88,7 +90,7 @@ namespace Cleipnir.ResilientFunctions.Tests
             (await store.GetFunction(FunctionId))!
                 .Scrapbook!
                 .ScrapbookJson!
-                .FromJsonTo<Scrapbook>()!
+                .DeserializeFromJsonTo<Scrapbook>()!
                 .Name!
                 .ShouldBe("Peter");
         }

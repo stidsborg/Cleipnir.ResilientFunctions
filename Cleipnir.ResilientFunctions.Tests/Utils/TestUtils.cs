@@ -1,32 +1,32 @@
 using System;
-using System.Text.Json;
-using Cleipnir.ResilientFunctions.Storage;
-using Moq;
+using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils
 {
     public static class TestUtils
     {
-        public static string ToJson<T>(this T t) => JsonSerializer.Serialize(t);
-        public static T? FromJsonTo<T>(this string json) => JsonSerializer.Deserialize<T>(json);
-
-        public static void SafeTry(Action a)
+        public static void SafeTry(Action a, Action<Exception>? onException = null)
         {
             try
             {
                 a();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // ignored
+                onException?.Invoke(e);
             }
         }
-
-        internal static SignOfLifeUpdaterFactory CreateNeverExecutionSignOfLifeUpdaterFactory()
-            => new SignOfLifeUpdaterFactory(
-                new Mock<IFunctionStore>().Object,
-                _ => { },
-                TimeSpan.Zero
-            );
+        
+        public static async Task SafeTryAsync(Func<Task> f, Action<Exception>? onException = null)
+        {
+            try
+            {
+                await f();
+            }
+            catch (Exception e)
+            {
+                onException?.Invoke(e);
+            }
+        }
     }
 }

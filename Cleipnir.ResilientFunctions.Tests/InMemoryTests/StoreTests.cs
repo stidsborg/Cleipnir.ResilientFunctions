@@ -18,5 +18,13 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         [TestMethod]
         public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected()
             => SignOfLifeIsNotUpdatedWhenNotAsExpected(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected()
+            => BecomeLeaderSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
+            => BecomeLeaderFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore());
     }
 }

@@ -6,29 +6,38 @@ namespace Cleipnir.ResilientFunctions.Storage
 {
     public interface IFunctionStore
     {
-        Task<bool> StoreFunction(
+        // ** CREATION ** // 
+        Task<bool> CreateFunction(
             FunctionId functionId, 
-            Parameter param1,
-            Parameter? param2,
-            string? scrapbookType, 
-            long initialSignOfLife
+            StoredParameter param,
+            string? scrapbookType,
+            Status initialStatus,
+            int initialEpoch,
+            int initialSignOfLife
         );
+
+        // ** LEADERSHIP ** //
+        Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch);
+        Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
         
-        Task<bool> UpdateScrapbook(
-            FunctionId functionId, 
-            string scrapbookJson,
-            int expectedVersionStamp, 
-            int newVersionStamp
+        Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(
+            FunctionTypeId functionTypeId, 
+            Status status,
+            long? expiresBefore = null
+        ); //todo consider change this to async enumerable?
+        
+        // ** CHANGES ** //
+        Task<bool> SetFunctionState(
+            FunctionId functionId,
+            Status status,
+            string? scrapbookJson,
+            StoredResult? result,
+            StoredFailure? failed,
+            long? postponedUntil,
+            int expectedEpoch
         );
-        
-        Task<IEnumerable<NonCompletedFunction>> GetNonCompletedFunctions(FunctionTypeId functionTypeId);
-        
-        Task<bool> UpdateSignOfLife(FunctionId functionId, long expectedSignOfLife, long newSignOfLife);
-        
-        Task StoreFunctionResult(FunctionId functionId, string resultJson, string resultType);
-        Task<Result?> GetFunctionResult(FunctionId functionId);
+
+        // ** GETTER ** //
         Task<StoredFunction?> GetFunction(FunctionId functionId);
     }
-
-    public record NonCompletedFunction(FunctionInstanceId InstanceId, long LastSignOfLife);
 }

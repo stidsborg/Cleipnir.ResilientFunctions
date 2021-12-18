@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
-using Newtonsoft.Json;
+using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions.Domain
 {
@@ -10,28 +10,32 @@ namespace Cleipnir.ResilientFunctions.Domain
     {
         private IFunctionStore? FunctionStore { get; set; }
         private FunctionId? FunctionId { get; set; }
-        private int VersionStamp { get; set; }
+        private int? Epoch { get; set; }
 
-        public void Initialize(FunctionId functionId, IFunctionStore functionStore, int versionStamp)
+        public void Initialize(FunctionId functionId, IFunctionStore functionStore, int epoch)
         {
             FunctionId = functionId;
             FunctionStore = functionStore;
-            VersionStamp = versionStamp;
+            Epoch = epoch;
         }
         
         public async Task Save()
         {
-            var stateJson = JsonConvert.SerializeObject(this);
-            var success = await FunctionStore!.UpdateScrapbook(
-                FunctionId!, 
-                stateJson, 
-                VersionStamp, VersionStamp + 1
+            //todo if not initialized throw framework exception
+            
+            var scrapbookJson= this.ToJson();
+            var success = await FunctionStore!.SetFunctionState(
+                FunctionId!,
+                Status.Executing,
+                scrapbookJson,
+                failed: null,
+                result: null,
+                postponedUntil: null,
+                expectedEpoch: Epoch!.Value
             );
             
             if (!success)
                 throw new ScrapbookSaveFailedException("Unable to save Scrapbook due to unexpected version stamp");
-
-            VersionStamp++;
         }
     }
 

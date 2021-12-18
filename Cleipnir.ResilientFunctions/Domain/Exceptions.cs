@@ -14,15 +14,15 @@ namespace Cleipnir.ResilientFunctions.Domain
         public RFunctionException(string? message, Exception? innerException) : base(message, innerException) { }
     }
     
-    public sealed class RFunctionInvocationException : RFunctionException
+    public sealed class FunctionInvocationException : RFunctionException
     {
-        public RFunctionInvocationException() { }
+        public FunctionInvocationException() { }
 
-        public RFunctionInvocationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        public FunctionInvocationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 
-        public RFunctionInvocationException(string? message) : base(message) { }
+        public FunctionInvocationException(string? message) : base(message) { }
 
-        public RFunctionInvocationException(string? message, Exception? innerException) : base(message, innerException) { }
+        public FunctionInvocationException(string? message, Exception? innerException) : base(message, innerException) { }
     }
 
     public sealed class FrameworkException : RFunctionException

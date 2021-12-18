@@ -3,12 +3,12 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions
+namespace Cleipnir.ResilientFunctions.SignOfLife
 {
     public class SignOfLifeUpdater : IDisposable
     {
         private readonly FunctionId _functionId;
-        private readonly long _expectedSignOfLife;
+        private readonly int _leader;
 
         private readonly TimeSpan _updateFrequency; 
         
@@ -17,13 +17,15 @@ namespace Cleipnir.ResilientFunctions
         private volatile bool _disposed;
 
         public SignOfLifeUpdater(
-            FunctionId functionId, long expectedSignOfLife, 
+            FunctionId functionId, 
+            int leader, 
             IFunctionStore functionStore,
             Action<RFunctionException> unhandledExceptionHandler,
             TimeSpan? updateFrequency = null)
         {
             _functionId = functionId;
-            _expectedSignOfLife = expectedSignOfLife;
+            _leader = leader;
+            
             _functionStore = functionStore;
             _unhandledExceptionHandler = unhandledExceptionHandler;
             _updateFrequency = updateFrequency ?? TimeSpan.FromSeconds(1);
@@ -31,37 +33,41 @@ namespace Cleipnir.ResilientFunctions
 
         public Task Start()
         {
-            if (_updateFrequency == TimeSpan.Zero) return Task.CompletedTask;
+            if (_updateFrequency == TimeSpan.Zero)
+            {
+                _disposed = true;
+                return Task.CompletedTask;
+            }
 
             return Task.Run(async () =>
             {
-                var signOfLife = _expectedSignOfLife;
-
-                try
+                var heartBeat = 1;
+                while (!_disposed)
                 {
-                    while (!_disposed)
+                    try
                     {
                         await Task.Delay(_updateFrequency);
 
                         if (_disposed) return;
 
                         var success = await _functionStore.UpdateSignOfLife(
-                            _functionId, 
-                            signOfLife,
-                            signOfLife = DateTime.UtcNow.Ticks
+                            _functionId,
+                            _leader,
+                            heartBeat++
                         );
 
-                        if (!success) return;
+                        _disposed = !success;
                     }
-                }
-                catch (Exception e)
-                {
-                    _unhandledExceptionHandler( 
-                        new FrameworkException(
-                            $"SignOfLifeUpdater failed while executing: '{_functionId}'", 
-                            e
-                        )
-                    );
+                    catch (Exception e)
+                    {
+                        _disposed = true;
+                        _unhandledExceptionHandler(
+                            new FrameworkException(
+                                $"{nameof(SignOfLifeUpdater)} failed while executing: '{_functionId}'",
+                                e
+                            )
+                        );
+                    }
                 }
             });
         }

@@ -15,5 +15,8 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         public override Task NonCompletedFunctionIsCompletedByWatchDog() 
             => NonCompletedFunctionIsCompletedByWatchDog(new InMemoryFunctionStore());
 
+        [TestMethod]
+        public override Task PostponedFunctionIsCompletedByWatchDog()
+            => PostponedFunctionIsCompletedByWatchDog(new InMemoryFunctionStore());
     }
 }

@@ -22,5 +22,8 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         public override Task NonCompletedFunctionIsCompletedByWatchDog() 
             => NonCompletedFunctionIsCompletedByWatchDog(Store);
 
+        [TestMethod]
+        public override Task PostponedFunctionIsCompletedByWatchDog()
+            => NonCompletedFunctionIsCompletedByWatchDog(Store);
     }
 }
