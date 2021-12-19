@@ -247,7 +247,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         }
     }
 
-    private Task ProcessResult(FunctionId functionId, RResult result, TScrapbook scrapbook)
+    private async Task ProcessResult(FunctionId functionId, RResult result, TScrapbook scrapbook)
     {
         var persistInStoreTask = result.ResultType switch
         {
@@ -287,7 +287,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        return persistInStoreTask;
+        var success = await persistInStoreTask;
+        if (!success)
+            throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
     }
 }
 

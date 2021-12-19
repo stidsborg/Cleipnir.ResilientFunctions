@@ -260,7 +260,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         }
     }
 
-    private Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
+    private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
     {
         var persistInStoreTask = result.ResultType switch
         {
@@ -300,6 +300,8 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        return persistInStoreTask;
+        var success = await persistInStoreTask;
+        if (!success)
+            throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
     }
 }
