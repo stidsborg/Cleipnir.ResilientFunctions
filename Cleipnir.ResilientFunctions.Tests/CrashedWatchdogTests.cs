@@ -46,9 +46,8 @@ namespace Cleipnir.ResilientFunctions.Tests
 
             _ = watchDog.Start();
 
-            
             await BusyWait.Until(
-                async () => (await store.GetFunctionsWithStatus(_functionTypeId, Status.Succeeded)).Any()
+                async () => await store.GetFunctionsWithStatus(_functionTypeId, Status.Succeeded).Any()
             );
 
             var storedFunction = await store.GetFunction(FunctionId);

@@ -28,5 +28,7 @@ namespace Cleipnir.ResilientFunctions.Tests.Utils
                 onException?.Invoke(e);
             }
         }
+
+        public static T CastTo<T>(this object o) => (T) o;
     }
 }

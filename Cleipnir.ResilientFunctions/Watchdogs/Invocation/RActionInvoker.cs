@@ -129,8 +129,11 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
             
             RScrapbook? scrapbook = null;
             if (storedFunction.Scrapbook != null)
+            {
                 scrapbook = storedFunction.Scrapbook.Deserialize();
-            
+                scrapbook.Initialize(functionId, _functionStore, newEpoch);
+            }
+
             RResult result;
             try
             {
@@ -146,7 +149,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                 ResultType.Succeeded => _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook?.ToJson(),
                     result: null,
                     failed: null,
                     postponedUntil: null,
@@ -155,7 +158,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                 ResultType.Postponed => _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook?.ToJson(),
                     result: null,
                     failed: null,
                     postponedUntil: result.PostponedUntil!.Value.Ticks,
@@ -164,7 +167,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                 ResultType.Failed => _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook?.ToJson(),
                     result: null,
                     new StoredFailure(
                         FailedJson: result.FailedException!.ToJson(),

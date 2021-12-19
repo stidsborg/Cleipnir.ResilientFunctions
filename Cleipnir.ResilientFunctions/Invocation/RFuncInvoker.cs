@@ -115,7 +115,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
                     functionId,
                     Status.Succeeded,
                     scrapbookJson: null,
-                    result: new StoredResult(result.ToJson(), result.GetType().SimpleQualifiedName()),
+                    result: new StoredResult(result.SuccessResult.ToJson(), result.SuccessResult!.GetType().SimpleQualifiedName()),
                     failed: null,
                     postponedUntil: null,
                     expectedEpoch: 0
@@ -278,7 +278,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook.ToJson(),
                     result: null,
                     failed: null,
                     result.PostponedUntil!.Value.Ticks,
@@ -288,7 +288,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook.ToJson(),
                     result: null,
                     failed: new StoredFailure(
                         FailedJson: result.FailedException.ToJson(),

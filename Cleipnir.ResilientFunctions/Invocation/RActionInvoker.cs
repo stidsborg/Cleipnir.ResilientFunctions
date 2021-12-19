@@ -265,7 +265,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook.ToJson(),
                     result: null,
                     failed: null,
                     result.PostponedUntil!.Value.Ticks,
@@ -275,7 +275,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson: null,
+                    scrapbookJson: scrapbook.ToJson(),
                     result: null,
                     failed: new StoredFailure(
                         FailedJson: result.FailedException.ToJson(),

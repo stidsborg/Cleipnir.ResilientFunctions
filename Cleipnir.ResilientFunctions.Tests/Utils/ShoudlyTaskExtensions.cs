@@ -13,4 +13,7 @@ public static class ShoudlyTaskExtensions
     
     public static async Task ShouldNotBeNullAsync<T>(this Task<T> task) where T : class 
         => (await task).ShouldNotBeNull();
+
+    public static async Task ShouldBeAsync<T>(this Task<T> task, T expected) where T : class
+        => (await task).ShouldBe(expected);
 }

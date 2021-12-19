@@ -171,7 +171,7 @@ namespace Cleipnir.ResilientFunctions
             unhandledExceptionHandler ??= _ => { };
             crashedCheckFrequency ??= TimeSpan.FromSeconds(10);
             postponedCheckFrequency ??= TimeSpan.FromSeconds(10);
-            
+
             var signOfLifeUpdaterFactory = new SignOfLifeUpdaterFactory(
                 store,
                 unhandledExceptionHandler,
