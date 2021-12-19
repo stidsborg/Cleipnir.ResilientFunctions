@@ -26,7 +26,8 @@ public abstract class FailedTests
                     _ => _
                 );
 
-            SafeTry(() => _ = nonCompletingRFunctions(param));
+            var result = await nonCompletingRFunctions(param);
+            result.Failed.ShouldBeTrue();
         }
         {
             var throwingFunctionWrapper = new FailedFunctionWrapper(false);
@@ -68,7 +69,8 @@ public abstract class FailedTests
                     _ => _
                 );
 
-            SafeTry(() => _ = nonCompletingRFunctions(param));
+            var result = await nonCompletingRFunctions(param);
+            result.Failed.ShouldBeTrue();
         }
         {
             var throwingFunctionWrapper = new FailedFunctionWrapper(false);
@@ -115,7 +117,8 @@ public abstract class FailedTests
                     _ => _
                 );
 
-            SafeTry(() => _ = nonCompletingRFunctions(param));
+            var result = await nonCompletingRFunctions(param);
+            result.Failed.ShouldBe(true);
         }
         {
             var throwingFunctionWrapper = new FailedFunctionWrapper(false);
@@ -157,7 +160,8 @@ public abstract class FailedTests
                     _ => _
                 );
 
-            SafeTry(() => _ = nonCompletingRFunctions(param));
+            var result = await nonCompletingRFunctions(param);
+            result.Failed.ShouldBe(true);
         }
         {
             var throwingFunctionWrapper = new FailedFunctionWrapper(true);
