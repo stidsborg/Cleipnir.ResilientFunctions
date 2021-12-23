@@ -23,7 +23,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             
             using var watchDog = new PostponedWatchdog<string>(
                 _functionTypeId,
-                (param, _) => RFunc.ToUpper(param.ToString()!),
+                (param, _) => Funcs.ToUpper(param.ToString()!),
                 store,
                 new RFuncInvoker(
                     store, 

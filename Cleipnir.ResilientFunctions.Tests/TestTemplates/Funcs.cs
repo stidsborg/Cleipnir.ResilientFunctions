@@ -4,11 +4,11 @@ using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
-    public static class RFunc
+    public static class Funcs
     {
         public static Task<RResult<string>> ToUpper(string s) => Succeed.WithResult(s.ToUpper()).ToTask();
 
-        public async static Task<RResult<string>> ThrowsException(string _)
+        public static async Task<RResult<string>> ThrowsException(string _)
         {
             await Task.Delay(0);
             return Fail.WithException(new NullReferenceException());

@@ -31,7 +31,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
             
             using var crashedWatchdog = new CrashedWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => RFunc.ToUpper(param.ToString()!),
+                (param, _) => Funcs.ToUpper(param.ToString()!),
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
@@ -82,7 +82,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
             
             using var crashedWatchdog = new CrashedWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => RFunc.ToUpper(param.ToString()!),
+                (param, _) => Funcs.ToUpper(param.ToString()!),
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
@@ -132,7 +132,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
 
             using var crashedWatchdog = new CrashedWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => RFunc.ThrowsException(param.ToString()!),
+                (param, _) => Funcs.ThrowsException(param.ToString()!),
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
@@ -189,7 +189,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
             
             using var crashedWatchdog = new CrashedWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => RFunc.ThrowsException(param.ToString()!),
+                (param, _) => Funcs.ThrowsException(param.ToString()!),
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
