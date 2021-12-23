@@ -46,7 +46,7 @@ namespace Cleipnir.ResilientFunctions.Storage
     {
         public RScrapbook Deserialize() 
             => ScrapbookJson == null
-                ? throw new NullReferenceException("Cannot deserialize null scrapbook")
+                ? (RScrapbook) Activator.CreateInstance(Type.GetType(ScrapbookType, throwOnError: true)!)!
                 : (RScrapbook) ScrapbookJson.DeserializeFromJsonTo(Type.GetType(ScrapbookType, throwOnError: true)!);
     }
 }
