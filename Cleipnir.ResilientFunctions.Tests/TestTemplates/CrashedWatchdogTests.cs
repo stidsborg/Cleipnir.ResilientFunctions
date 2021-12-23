@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
@@ -28,10 +29,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
                 new RFuncInvoker(
                     store, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionCatcher.Catch
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionCatcher.Catch
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
             );
 
             await store.CreateFunction(

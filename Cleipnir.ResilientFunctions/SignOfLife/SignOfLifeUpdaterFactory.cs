@@ -1,5 +1,6 @@
 using System;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.SignOfLife
@@ -12,12 +13,12 @@ namespace Cleipnir.ResilientFunctions.SignOfLife
     internal class SignOfLifeUpdaterFactory : ISignOfLifeUpdaterFactory
     {
         private readonly IFunctionStore _functionStore;
-        private readonly Action<RFunctionException> _unhandledExceptionHandler;
+        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         private readonly TimeSpan? _updateFrequency;
 
         public SignOfLifeUpdaterFactory(
             IFunctionStore functionStore, 
-            Action<RFunctionException> unhandledExceptionHandler, 
+            UnhandledExceptionHandler unhandledExceptionHandler, 
             TimeSpan unhandledFunctionsCheckFrequency
         )
         {

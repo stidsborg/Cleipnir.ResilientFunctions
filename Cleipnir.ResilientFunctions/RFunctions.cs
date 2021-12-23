@@ -18,18 +18,20 @@ namespace Cleipnir.ResilientFunctions
         private readonly IFunctionStore _functionStore;
         private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
         private readonly WatchDogsFactory _watchDogsFactory;
+        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
         private readonly object _sync = new();
 
         private RFunctions(
             IFunctionStore functionStore, 
             SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
-            WatchDogsFactory watchDogsFactory
-        )
+            WatchDogsFactory watchDogsFactory, 
+            UnhandledExceptionHandler unhandledExceptionHandler)
         {
             _functionStore = functionStore;
             _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
             _watchDogsFactory = watchDogsFactory;
+            _unhandledExceptionHandler = unhandledExceptionHandler;
         }
         
         public RFunc<TParam, TReturn> Register<TParam, TReturn>(
@@ -167,30 +169,31 @@ namespace Cleipnir.ResilientFunctions
             TimeSpan? crashedCheckFrequency = null,
             TimeSpan? postponedCheckFrequency = null
         )
-        {
-            unhandledExceptionHandler ??= _ => { };
+        { 
             crashedCheckFrequency ??= TimeSpan.FromSeconds(10);
             postponedCheckFrequency ??= TimeSpan.FromSeconds(10);
+            var exceptionHandler = new UnhandledExceptionHandler(unhandledExceptionHandler ?? (_ => { }));
 
             var signOfLifeUpdaterFactory = new SignOfLifeUpdaterFactory(
                 store,
-                unhandledExceptionHandler,
+                exceptionHandler,
                 crashedCheckFrequency.Value
             );
-            var functionRetryer = new RFuncInvoker(store, signOfLifeUpdaterFactory, unhandledExceptionHandler);
+            var functionRetryer = new RFuncInvoker(store, signOfLifeUpdaterFactory, exceptionHandler);
 
             var watchdogsFactory = new WatchDogsFactory(
                 store,
                 functionRetryer,
                 crashedCheckFrequency.Value,
                 postponedCheckFrequency.Value,
-                unhandledExceptionHandler
+                exceptionHandler
             );
             
             var rFunctions = new RFunctions(
                 store,
                 signOfLifeUpdaterFactory,
-                watchdogsFactory
+                watchdogsFactory, 
+                exceptionHandler
             );
             
             return rFunctions;

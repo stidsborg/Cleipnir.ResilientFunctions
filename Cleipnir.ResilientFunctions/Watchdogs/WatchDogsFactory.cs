@@ -1,5 +1,6 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
@@ -11,14 +12,14 @@ internal class WatchDogsFactory
     private readonly RFuncInvoker _rFuncInvoker;
     private readonly TimeSpan _crashedCheckFrequency;
     private readonly TimeSpan _postponedCheckFrequency;
-    private readonly Action<RFunctionException> _unhandledExceptionHandler;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     public WatchDogsFactory(
         IFunctionStore functionStore, 
         RFuncInvoker rFuncInvoker, 
         TimeSpan crashedCheckFrequency, 
         TimeSpan postponedCheckFrequency,
-        Action<RFunctionException> unhandledExceptionHandler)
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionStore = functionStore;
         _rFuncInvoker = rFuncInvoker;

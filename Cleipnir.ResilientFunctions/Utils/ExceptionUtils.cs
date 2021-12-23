@@ -1,9 +1,9 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Tests.Utils
+namespace Cleipnir.ResilientFunctions.Utils
 {
-    public static class TestUtils
+    public static class ExceptionUtils
     {
         public static void SafeTry(Action a, Action<Exception>? onException = null)
         {

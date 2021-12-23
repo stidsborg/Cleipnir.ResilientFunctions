@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Utils;
@@ -11,12 +12,12 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
     {
         private readonly IFunctionStore _functionStore;
         private readonly ISignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
-        private readonly Action<RFunctionException> _unhandledExceptionHandler;
+        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
         public RFuncInvoker(
             IFunctionStore functionStore, 
             ISignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-            Action<RFunctionException> unhandledExceptionHandler
+            UnhandledExceptionHandler unhandledExceptionHandler
         )
         {
             _functionStore = functionStore;
@@ -103,7 +104,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
             await setFunctionStateTask;
 
             if (result.FailedException != null)
-                _unhandledExceptionHandler(new FunctionInvocationException(
+                _unhandledExceptionHandler.Invoke(new FunctionInvocationException(
                     $"Function {functionId} threw unhandled exception",
                     result.FailedException
                 ));
@@ -185,7 +186,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
             await setFunctionStateTask;
 
             if (result.FailedException != null)
-                _unhandledExceptionHandler(new FunctionInvocationException(
+                _unhandledExceptionHandler.Invoke(new FunctionInvocationException(
                     $"Function {functionId} threw unhandled exception",
                     result.FailedException
                 ));

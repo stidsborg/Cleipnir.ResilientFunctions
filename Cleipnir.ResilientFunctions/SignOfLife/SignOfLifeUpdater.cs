@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.SignOfLife
@@ -13,14 +14,14 @@ namespace Cleipnir.ResilientFunctions.SignOfLife
         private readonly TimeSpan _updateFrequency; 
         
         private readonly IFunctionStore _functionStore;
-        private readonly Action<RFunctionException> _unhandledExceptionHandler;
+        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         private volatile bool _disposed;
 
         public SignOfLifeUpdater(
             FunctionId functionId, 
             int leader, 
             IFunctionStore functionStore,
-            Action<RFunctionException> unhandledExceptionHandler,
+            UnhandledExceptionHandler unhandledExceptionHandler,
             TimeSpan? updateFrequency = null)
         {
             _functionId = functionId;
@@ -61,7 +62,7 @@ namespace Cleipnir.ResilientFunctions.SignOfLife
                     catch (Exception e)
                     {
                         _disposed = true;
-                        _unhandledExceptionHandler(
+                        _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
                                 $"{nameof(SignOfLifeUpdater)} failed while executing: '{_functionId}'",
                                 e

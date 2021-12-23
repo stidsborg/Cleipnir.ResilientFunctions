@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -36,8 +37,8 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
            
             var updaterFactory = new SignOfLifeUpdaterFactory(
                 storeMock,
-                _unhandledExceptionCatcher.Catch,
-                unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
+                new UnhandledExceptionHandler(_unhandledExceptionCatcher.Catch),
+            unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             var updater = updaterFactory.CreateAndStart(_functionId, expectedEpoch);
 
@@ -71,7 +72,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 
             var updaterFactory = new SignOfLifeUpdaterFactory(
                 storeMock,
-                _unhandledExceptionCatcher.Catch,
+                new UnhandledExceptionHandler(_unhandledExceptionCatcher.Catch),
                 unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             using var updater = updaterFactory.CreateAndStart(_functionId, epoch: 0);
@@ -98,7 +99,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             
             var updaterFactory = new SignOfLifeUpdaterFactory(
                 storeMock,
-                _unhandledExceptionCatcher.Catch,
+                new UnhandledExceptionHandler(_unhandledExceptionCatcher.Catch),
                 unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             using var updater = updaterFactory.CreateAndStart(_functionId, epoch: 0);

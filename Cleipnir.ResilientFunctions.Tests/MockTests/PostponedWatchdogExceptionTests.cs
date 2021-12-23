@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates;
@@ -36,10 +37,10 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionCatcher.Catch
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
                 ),
                 TimeSpan.FromMilliseconds(1),
-                unhandledExceptionCatcher.Catch
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
             );
 
             _ = crashedWatchdog.Start();
@@ -87,10 +88,10 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionCatcher.Catch
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionCatcher.Catch
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
             );
 
             _ = crashedWatchdog.Start();
@@ -137,10 +138,10 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionCatcher.Catch
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionCatcher.Catch
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
             );
 
             _ = crashedWatchdog.Start();
@@ -194,10 +195,10 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionCatcher.Catch
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionCatcher.Catch
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
             );
 
             _ = crashedWatchdog.Start();

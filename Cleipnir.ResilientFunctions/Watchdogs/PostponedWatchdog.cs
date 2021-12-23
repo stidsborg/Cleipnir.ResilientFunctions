@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
@@ -11,7 +12,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
     {
         private readonly IFunctionStore _functionStore;
         private readonly RFuncInvoker _rFuncInvoker;
-        private readonly Action<RFunctionException> _unhandledExceptionHandler;
+        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
         private readonly RFunc<TReturn> _func;
 
@@ -26,7 +27,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             IFunctionStore functionStore, 
             RFuncInvoker rFuncInvoker,
             TimeSpan checkFrequency,
-            Action<RFunctionException> unhandledExceptionHandler
+            UnhandledExceptionHandler unhandledExceptionHandler
         )
         {
             _functionTypeId = functionTypeId;
@@ -68,7 +69,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
                         }
                         catch (Exception innerException)
                         {
-                            _unhandledExceptionHandler(
+                            _unhandledExceptionHandler.Invoke(
                                 new FrameworkException(
                                     $"{nameof(PostponedWatchdog<TReturn>)} failed while executing: '{functionId}'",
                                     innerException
@@ -80,7 +81,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             }
             catch (Exception innerException)
             {
-                _unhandledExceptionHandler(
+                _unhandledExceptionHandler.Invoke(
                     new FrameworkException(
                         $"{nameof(PostponedWatchdog<TReturn>)} failed while executing: '{_functionTypeId}'",
                         innerException
@@ -104,7 +105,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
     {
         private readonly IFunctionStore _functionStore;
         private readonly RFuncInvoker _rFuncInvoker;
-        private readonly Action<RFunctionException> _unhandledExceptionHandler;
+        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
         private readonly RAction _action;
 
@@ -119,7 +120,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             IFunctionStore functionStore, 
             RFuncInvoker rFuncInvoker,
             TimeSpan checkFrequency,
-            Action<RFunctionException> unhandledExceptionHandler
+            UnhandledExceptionHandler unhandledExceptionHandler
         )
         {
             _functionTypeId = functionTypeId;
@@ -161,7 +162,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
                         }
                         catch (Exception innerException)
                         {
-                            _unhandledExceptionHandler(
+                            _unhandledExceptionHandler.Invoke(
                                 new FrameworkException(
                                     $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
                                     innerException
@@ -173,7 +174,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             }
             catch (Exception innerException)
             {
-                _unhandledExceptionHandler(
+                _unhandledExceptionHandler.Invoke(
                     new FrameworkException(
                         $"{nameof(PostponedWatchdog)} failed while executing: '{_functionTypeId}'",
                         innerException
