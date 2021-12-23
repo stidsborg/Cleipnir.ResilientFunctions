@@ -54,7 +54,7 @@ namespace Cleipnir.ResilientFunctions
                 _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
 
                 var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
-                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory, _unhandledExceptionHandler
                 );
 
                 var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
@@ -83,7 +83,7 @@ namespace Cleipnir.ResilientFunctions
                 _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
 
                 var rActionInvoker = new RActionInvoker<TParam>(
-                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory, _unhandledExceptionHandler
                 );
 
                 var rAction = new RAction<TParam>(rActionInvoker.Invoke);
@@ -114,7 +114,7 @@ namespace Cleipnir.ResilientFunctions
                 _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
 
                 var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
-                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory, _unhandledExceptionHandler
                 );
 
                 var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
@@ -143,7 +143,7 @@ namespace Cleipnir.ResilientFunctions
                 _watchDogs.AddRange(new IDisposable[] { crashedWatchdog, postponedWatchdog });
 
                 var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
-                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory
+                    functionTypeId, idFunc, func, _functionStore, _signOfLifeUpdaterFactory, _unhandledExceptionHandler
                 );
 
                 var rAction = new RAction<TParam>(rActionInvoker.Invoke);

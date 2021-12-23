@@ -15,13 +15,15 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
 
     private readonly IFunctionStore _functionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, object> idFunc,
         Func<TParam, Task<RResult<TResult>>> func,
         IFunctionStore functionStore,
-        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory
+        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
+        UnhandledExceptionHandler unhandledExceptionHandler
     )
     {
         _functionTypeId = functionTypeId;
@@ -29,6 +31,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         _func = func;
         _functionStore = functionStore;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
@@ -46,7 +49,8 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         }
         catch (Exception exception)
         {
-            result = new Fail(new FunctionInvocationException($"Function {functionId} threw unhandled exception", exception));
+            await  ProcessUnhandledException(functionId, exception);
+            result = new Fail(exception);
         }
 
         await ProcessResult(functionId, result);
@@ -105,6 +109,29 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
             }
         }
     }
+    
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException)
+    {
+        _unhandledExceptionHandler.Invoke(
+            new FunctionInvocationException(
+                $"Function {functionId} threw unhandled exception", 
+                unhandledException
+            )
+        );
+        
+        await _functionStore.SetFunctionState(
+            functionId,
+            Status.Failed,
+            scrapbookJson: null,
+            result: null,
+            failed: new StoredFailure(
+                FailedJson: unhandledException.ToJson(),
+                FailedType: unhandledException.SimpleQualifiedTypeName()
+            ),
+            postponedUntil: null,
+            expectedEpoch: 0
+        );
+    }
 
     private Task ProcessResult(FunctionId functionId, RResult<TResult> result)
     {
@@ -161,20 +188,22 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
 
     private readonly IFunctionStore _functionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, object> idFunc,
         Func<TParam, TScrapbook, Task<RResult<TResult>>> func,
         IFunctionStore functionStore,
-        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory
-    )
+        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
         _func = func;
         _functionStore = functionStore;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
@@ -193,7 +222,8 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         }
         catch (Exception exception)
         {
-            result = new Fail(new FunctionInvocationException($"Function {functionId} threw unhandled exception", exception));
+            await ProcessUnhandledException(functionId, exception, scrapbook);
+            return new Fail(exception);
         }
 
         await ProcessResult(functionId, result, scrapbook);
@@ -258,6 +288,27 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                     throw new ArgumentOutOfRangeException(); //todo framework exception
             }
         }
+    }
+    
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook)
+    {
+        _unhandledExceptionHandler.Invoke(new FunctionInvocationException(
+            $"Function {functionId} threw unhandled exception", 
+            unhandledException)
+        );
+        
+        await _functionStore.SetFunctionState(
+            functionId,
+            Status.Failed,
+            scrapbook.ToJson(),
+            result: null,
+            failed: new StoredFailure(
+                FailedJson: unhandledException.ToJson(),
+                FailedType: unhandledException.SimpleQualifiedTypeName()
+            ),
+            postponedUntil: null,
+            expectedEpoch: 0
+        );
     }
 
     private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
