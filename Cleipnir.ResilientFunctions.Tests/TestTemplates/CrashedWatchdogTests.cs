@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -9,7 +8,7 @@ using Cleipnir.ResilientFunctions.Watchdogs;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     public abstract class CrashedWatchdogTests
     {

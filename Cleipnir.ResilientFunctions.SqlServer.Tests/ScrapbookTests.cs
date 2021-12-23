@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 {
     [TestClass]
-    public class ScrapbookTests : Cleipnir.ResilientFunctions.Tests.ScrapbookTests
+    public class ScrapbookTests : ResilientFunctions.Tests.TestTemplates.ScrapbookTests
     {
         [TestMethod]
         public override async Task SunshineScenario()

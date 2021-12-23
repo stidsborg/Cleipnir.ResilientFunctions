@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Utils;
 
-namespace Cleipnir.ResilientFunctions.Tests
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     public static class RFunc
     {

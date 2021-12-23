@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 {
     [TestClass]
-    public class PostponedWatchdogTests : Tests.PostponedWatchdogTests
+    public class PostponedWatchdogTests : TestTemplates.PostponedWatchdogTests
     {
         [TestMethod]
         public override Task PostponedFunctionInvocationIsCompletedByWatchDog()

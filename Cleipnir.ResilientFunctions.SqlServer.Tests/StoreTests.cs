@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 {
     [TestClass]
-    public class StoreTests : Cleipnir.ResilientFunctions.Tests.StoreTests
+    public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     {
         private SqlServerFunctionStore Store { get; set; } = new SqlServerFunctionStore(Sql.ConnFunc); //suppress compiler warning
 

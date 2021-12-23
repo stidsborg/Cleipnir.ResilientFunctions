@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     public abstract class ScrapbookTests
     {

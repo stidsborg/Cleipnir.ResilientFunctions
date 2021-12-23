@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 {
     [TestClass]
-    public class ScrapbookTests : Cleipnir.ResilientFunctions.Tests.ScrapbookTests
+    public class ScrapbookTests : TestTemplates.ScrapbookTests
     {
         [TestMethod]
         public override Task SunshineScenario()

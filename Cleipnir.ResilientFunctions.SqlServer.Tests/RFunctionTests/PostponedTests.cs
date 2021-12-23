@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
 [TestClass]
-public class PostponedTests : ResilientFunctions.Tests.RFunctionTests.PostponedTests
+public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.PostponedTests
 {
     private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
 

@@ -3,10 +3,9 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using static Cleipnir.ResilientFunctions.Tests.Utils.TestUtils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class FailedTests
 {

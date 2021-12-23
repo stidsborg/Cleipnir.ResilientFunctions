@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 {
     [TestClass]
-    public class StoreCrudTests : Cleipnir.ResilientFunctions.Tests.StoreCrudTests
+    public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTests
     {
         public override async Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
             => await Sql.CreateAndInitializeStore(

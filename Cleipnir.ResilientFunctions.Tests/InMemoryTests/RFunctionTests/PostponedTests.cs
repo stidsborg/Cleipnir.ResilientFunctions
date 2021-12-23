@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class PostponedTests : ResilientFunctions.Tests.RFunctionTests.PostponedTests
+public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
 {
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()

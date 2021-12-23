@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class FailedTests : ResilientFunctions.Tests.RFunctionTests.FailedTests
+public class FailedTests : TestTemplates.RFunctionTests.FailedTests
 {
     [TestMethod]
     public override Task ExceptionThrowingFuncIsNotCompletedByWatchDog()

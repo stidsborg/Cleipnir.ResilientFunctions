@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 {
     [TestClass]
-    public class PostponedWatchdogTests : Cleipnir.ResilientFunctions.Tests.PostponedWatchdogTests
+    public class PostponedWatchdogTests : ResilientFunctions.Tests.TestTemplates.PostponedWatchdogTests
     {
         [TestMethod]
         public override async Task PostponedFunctionInvocationIsCompletedByWatchDog()

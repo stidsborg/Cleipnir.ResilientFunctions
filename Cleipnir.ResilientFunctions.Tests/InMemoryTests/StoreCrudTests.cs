@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 {
     [TestClass]
-    public class StoreCrudTests : Cleipnir.ResilientFunctions.Tests.StoreCrudTests
+    public class StoreCrudTests : TestTemplates.StoreCrudTests
     {
         [TestMethod]
         public override Task FunctionCanBeCreatedWithASingleParameterSuccessfully()

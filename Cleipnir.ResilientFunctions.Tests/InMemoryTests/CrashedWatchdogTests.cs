@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 {
     [TestClass]
-    public class CrashedWatchdogTests : Tests.CrashedWatchdogTests
+    public class CrashedWatchdogTests : TestTemplates.CrashedWatchdogTests
     {
         [TestMethod]
         public override Task CrashedFunctionInvocationIsCompletedByWatchDog()

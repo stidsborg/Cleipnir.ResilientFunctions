@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.RFunctionTests
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests
 {
     public abstract class SunshineTests
     {

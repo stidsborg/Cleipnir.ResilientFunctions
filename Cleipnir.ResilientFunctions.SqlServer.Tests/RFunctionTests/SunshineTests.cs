@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests
 {
     [TestClass]
-    public class SunshineTests : ResilientFunctions.Tests.RFunctionTests.SunshineTests
+    public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.SunshineTests
     {
         private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
 

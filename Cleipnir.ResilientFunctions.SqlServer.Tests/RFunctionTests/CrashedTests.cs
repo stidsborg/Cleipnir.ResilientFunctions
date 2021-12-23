@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
 [TestClass]
-public class CrashedTests : ResilientFunctions.Tests.RFunctionTests.CrashedTests
+public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedTests
 {
     private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
 

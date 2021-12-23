@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class CrashedTests
 {

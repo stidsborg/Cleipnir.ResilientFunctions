@@ -5,9 +5,8 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
 using Shouldly;
-using static Cleipnir.ResilientFunctions.Tests.Utils.TestUtils;
 
-namespace Cleipnir.ResilientFunctions.Tests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class PostponedTests
 {
