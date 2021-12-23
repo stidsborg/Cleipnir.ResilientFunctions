@@ -49,8 +49,8 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         }
         catch (Exception exception)
         {
-            await  ProcessUnhandledException(functionId, exception);
-            result = new Fail(exception);
+            await ProcessUnhandledException(functionId, exception);
+            return new Fail(exception);
         }
 
         await ProcessResult(functionId, result);
