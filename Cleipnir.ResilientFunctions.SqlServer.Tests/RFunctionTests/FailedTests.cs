@@ -20,14 +20,28 @@ public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests
         => ExceptionThrowingFuncIsNotCompletedByWatchDog(Store);
 
     [TestMethod]
+    public override Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(Store);
+
+    [TestMethod]
     public override Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Store);
+
+    public override Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Store);
 
     [TestMethod]
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
         => ExceptionThrowingActionIsNotCompletedByWatchDog(Store);
 
+    public override Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(Store);
+
     [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Store);
+
+    [TestMethod]
+    public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Store);
 }

@@ -12,14 +12,30 @@ public class FailedTests : TestTemplates.RFunctionTests.FailedTests
         => ExceptionThrowingFuncIsNotCompletedByWatchDog(new InMemoryFunctionStore());
 
     [TestMethod]
+    public override Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(new InMemoryFunctionStore());
+
+    [TestMethod]
     public override Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore());
+
+    [TestMethod]
+    public override Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore());
 
     [TestMethod]
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
         => ExceptionThrowingActionIsNotCompletedByWatchDog(new InMemoryFunctionStore());
 
     [TestMethod]
+    public override Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(new InMemoryFunctionStore());
+
+    [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore());
+
+    [TestMethod]
+    public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore());
 }

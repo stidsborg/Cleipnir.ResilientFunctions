@@ -218,3 +218,15 @@ public class RResult
         failedException: null
     );
 }
+
+public static class RResultExtensions
+{
+    public static RResult<T> ToFailedRResult<T>(this Exception exception)
+        => new(ResultType.Failed, successResult: default, postponedUntil: null, exception);
+    
+    public static RResult ToFailedRResult(this Exception exception)
+        => new(ResultType.Failed, postponedUntil: null, exception);
+    
+    public static RResult<T> ToSucceededRResult<T>(this T result)
+        => new(ResultType.Succeeded, successResult: result, postponedUntil: null, failedException: null);
+}
