@@ -40,7 +40,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer
                         {nameof(Row.Status)} INT NOT NULL,
                         {nameof(Row.ResultJson)} NVARCHAR(MAX) NULL,
                         {nameof(Row.ResultType)} NVARCHAR(255) NULL,
-                        {nameof(Row.FailedJson)} NVARCHAR(255) NULL,
+                        {nameof(Row.FailedJson)} NVARCHAR(MAX) NULL,
                         {nameof(Row.FailedType)} NVARCHAR(255) NULL,
                         {nameof(Row.PostponedUntil)} BIGINT NULL,
                         {nameof(Row.Epoch)} INT NOT NULL,
