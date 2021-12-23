@@ -227,6 +227,28 @@ public static class RResultExtensions
     public static RResult ToFailedRResult(this Exception exception)
         => new(ResultType.Failed, postponedUntil: null, exception);
     
+    public static RResult ToPostponedRResult(this TimeSpan @for)
+        => new(ResultType.Postponed, postponedUntil: DateTime.UtcNow.Add(@for), failedException: null);
+    
+    public static RResult<T> ToPostponedRResult<T>(this TimeSpan @for)
+        => new(
+            ResultType.Postponed, 
+            successResult: default, 
+            postponedUntil: DateTime.UtcNow.Add(@for), 
+            failedException: null
+        );
+    
+    public static RResult ToPostponedRResult(this DateTime until)
+        => new(ResultType.Postponed, postponedUntil: until.ToUniversalTime(), failedException: null);
+    
+    public static RResult<T> ToPostponedRResult<T>(this DateTime until)
+        => new(
+            ResultType.Postponed, 
+            successResult: default, 
+            postponedUntil: until.ToUniversalTime(), 
+            failedException: null
+        );
+    
     public static RResult<T> ToSucceededRResult<T>(this T result)
         => new(ResultType.Succeeded, successResult: result, postponedUntil: null, failedException: null);
 }

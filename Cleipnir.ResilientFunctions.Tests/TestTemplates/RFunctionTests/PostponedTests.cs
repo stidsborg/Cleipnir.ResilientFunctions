@@ -17,7 +17,6 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: true);
             var rFunc = RFunctions
                 .Create(
                     store,
@@ -27,7 +26,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string s) => function.Func(s),
+                    (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult<string>().ToTask(),
                     _ => _
                 );
 
@@ -36,7 +35,6 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -47,7 +45,7 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => function.Func(s),
+                    (string s) => s.ToUpper().ToSucceededRResult().ToTask(),
                     _ => _
                 );
 
@@ -65,7 +63,6 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: true);
             var rFunc = RFunctions
                 .Create(
                     store,
@@ -75,7 +72,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => function.Func(s, scrapbook),
+                    (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult<string>().ToTask(),
                     _ => _
                 );
 
@@ -84,7 +81,6 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -95,7 +91,12 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => function.Func(s, scrapbook),
+                    async (string s, Scrapbook scrapbook) =>
+                    {
+                        scrapbook.Value = 1;
+                        await scrapbook.Save();
+                        return s.ToUpper().ToSucceededRResult();
+                    },
                     _ => _
                 );
 
@@ -105,7 +106,7 @@ public abstract class PostponedTests
             storedFunction.ShouldNotBeNull();
 
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(2);
+            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             
             await rFunc(param).EnsureSuccess().ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -119,7 +120,6 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: true);
             var rFunc = RFunctions
                 .Create(
                     store,
@@ -129,7 +129,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string s) => function.Action(s),
+                    (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask(),
                     _ => _
                 );
 
@@ -138,7 +138,6 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -149,7 +148,7 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => function.Action(s),
+                    (string s) => s.ToUpper().ToSucceededRResult().ToTask(),
                     _ => _
                 );
 
@@ -168,7 +167,6 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: true);
             var rFunc = RFunctions
                 .Create(
                     store,
@@ -178,7 +176,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => function.Action(s, scrapbook),
+                    (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask(),
                     _ => _
                 );
 
@@ -187,7 +185,6 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            var function = new PostponedFunctionWrapper(shouldPostpone: false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -198,7 +195,12 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => function.Action(s, scrapbook),
+                    async (string _, Scrapbook scrapbook) =>
+                    {
+                        scrapbook.Value = 1;
+                        await scrapbook.Save();
+                        return RResult.Success;
+                    },
                     _ => _
                 );
 
@@ -208,65 +210,11 @@ public abstract class PostponedTests
             storedFunction.ShouldNotBeNull();
 
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(2);
+            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
 
             var result = await rFunc(param);
             result.Succeeded.ShouldBe(true);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
-        }
-    }
-
-    private class PostponedFunctionWrapper
-    {
-        private readonly bool _shouldPostpone;
-
-        public PostponedFunctionWrapper(bool shouldPostpone) => _shouldPostpone = shouldPostpone;
-
-        public async Task<RResult<string>> Func(string s)
-        {
-            await Task.Delay(0);
-
-            if (_shouldPostpone)
-                return Postpone.For(TimeSpan.FromMilliseconds(100));
-
-            return s.ToUpper();
-        }
-
-        public async Task<RResult<string>> Func(string s, Scrapbook scrapbook)
-        {
-            scrapbook.Value = 1;
-            await scrapbook.Save();
-
-            if (_shouldPostpone)
-                return Postpone.For(TimeSpan.FromMilliseconds(100));
-
-            scrapbook.Value = 2;
-            await scrapbook.Save();
-            return s.ToUpper();
-        }
-
-        public async Task<RResult> Action(string s)
-        {
-            await Task.Delay(0);
-
-            if (_shouldPostpone)
-                return Postpone.For(TimeSpan.FromMilliseconds(100));
-
-            return RResult.Success;
-        }
-
-        public async Task<RResult> Action(string s, Scrapbook scrapbook)
-        {
-            scrapbook.Value = 1;
-            await scrapbook.Save();
-
-            if (_shouldPostpone)
-                return Postpone.For(TimeSpan.FromMilliseconds(100));
-            
-            scrapbook.Value = 2;
-            await scrapbook.Save();
-            
-            return RResult.Success;
         }
     }
 
