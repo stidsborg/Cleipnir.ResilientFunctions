@@ -10,6 +10,8 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class CrashedTests
 {
+    private static Task<RResult<string>> NeverCompletingTask => new(() => default!);
+    
     public abstract Task NonCompletedFuncIsCompletedByWatchDog();
     protected async Task NonCompletedFuncIsCompletedByWatchDog(IFunctionStore store)
     {
@@ -17,19 +19,22 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var wrapper = new BlockingFunctionWrapper(true);
             var nonCompletingRFunctions = RFunctions
-                .Create(store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+                .Create(
+                    store, 
+                    unhandledExceptionHandler.Catch, 
+                    crashedCheckFrequency: TimeSpan.Zero, 
+                    postponedCheckFrequency: TimeSpan.Zero
+                )
                 .Register(
                     functionTypeId,
-                    (string s) => wrapper.Func(s),
+                    (string _) => NeverCompletingTask,
                     _ => _
                 );
 
             _ = nonCompletingRFunctions(param);
         }
         {
-            var wrapper = new BlockingFunctionWrapper(false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -39,7 +44,7 @@ public abstract class CrashedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => wrapper.Func(s),
+                    (string s) => Funcs.ToUpper(s),
                     _ => _
                 );
 
@@ -65,19 +70,22 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var wrapper = new BlockingFunctionWrapper(true);
             var nonCompletingRFunctions = RFunctions
-                .Create(store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+                .Create(
+                    store, 
+                    unhandledExceptionHandler.Catch, 
+                    crashedCheckFrequency: TimeSpan.Zero, 
+                    postponedCheckFrequency: TimeSpan.Zero
+                )
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => wrapper.Func(s, scrapbook),
+                    (string _, Scrapbook _) => NeverCompletingTask,
                     _ => _
                 );
 
             _ = nonCompletingRFunctions(param);
         }
         {
-            var wrapper = new BlockingFunctionWrapper(false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -87,7 +95,12 @@ public abstract class CrashedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => wrapper.Func(s, scrapbook),
+                    async (string s, Scrapbook scrapbook) =>
+                    {
+                        scrapbook.Value = 1;
+                        await scrapbook.Save();
+                        return Succeed.WithResult(s.ToUpper());
+                    },
                     _ => _
                 );
 
@@ -102,7 +115,7 @@ public abstract class CrashedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(2);
+            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             await rFunc(param).EnsureSuccess().ShouldBeAsync("TEST");
         }
 
@@ -116,19 +129,22 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var wrapper = new BlockingFunctionWrapper(true);
             var nonCompletingRFunctions = RFunctions
-                .Create(store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+                .Create(
+                    store, 
+                    unhandledExceptionHandler.Catch, 
+                    crashedCheckFrequency: TimeSpan.Zero,
+                    postponedCheckFrequency: TimeSpan.Zero
+                )
                 .Register(
                     functionTypeId,
-                    (string s) => wrapper.Action(s),
+                    (string _) => NeverCompletingTask,
                     _ => _
                 );
 
             _ = nonCompletingRFunctions(param);
         }
         {
-            var wrapper = new BlockingFunctionWrapper(false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -138,7 +154,7 @@ public abstract class CrashedTests
             var rAction = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => wrapper.Action(s),
+                    (string _) => Task.FromResult(Succeed.WithoutResult()),
                     _ => _
                 );
 
@@ -165,19 +181,22 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var wrapper = new BlockingFunctionWrapper(true);
             var nonCompletingRFunctions = RFunctions
-                .Create(store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+                .Create(
+                    store, 
+                    unhandledExceptionHandler.Catch, 
+                    crashedCheckFrequency: TimeSpan.Zero,
+                    postponedCheckFrequency: TimeSpan.Zero
+                )
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => wrapper.Action(s, scrapbook),
+                    (string _, Scrapbook _) => NeverCompletingTask,
                     _ => _
                 );
 
             _ = nonCompletingRFunctions(param);
         }
         {
-            var wrapper = new BlockingFunctionWrapper(false);
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
@@ -187,7 +206,12 @@ public abstract class CrashedTests
             var rAction = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => wrapper.Action(s, scrapbook),
+                    async (string _, Scrapbook scrapbook) =>
+                    {
+                        scrapbook.Value = 1;
+                        await scrapbook.Save();
+                        return RResult.Success;
+                    },
                     _ => _
                 );
 
@@ -202,63 +226,12 @@ public abstract class CrashedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(2);
+            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             var rResult = await rAction(param);
             rResult.EnsureSuccess();
         }
 
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
-    }
-    
-    private class BlockingFunctionWrapper
-    {
-        private readonly bool _shouldBlock;
-
-        public BlockingFunctionWrapper(bool shouldBlock) => _shouldBlock = shouldBlock;
-
-        public async Task<RResult<string>> Func(string s)
-        {
-            if (_shouldBlock)
-                await TaskUtils.NeverCompleting;
-
-            return s.ToUpper();
-        }
-
-        public async Task<RResult<string>> Func(string s, Scrapbook scrapbook)
-        {
-            scrapbook.Value = 1;
-            await scrapbook.Save();
-
-            if (_shouldBlock)
-                await TaskUtils.NeverCompleting;
-
-            scrapbook.Value = 2;
-            await scrapbook.Save();
-            
-            return s.ToUpper();
-        }
-
-        public async Task<RResult> Action(string s)
-        {
-            if (_shouldBlock)
-                await TaskUtils.NeverCompleting;
-
-            return RResult.Success;
-        }
-
-        public async Task<RResult> Action(string s, Scrapbook scrapbook)
-        {
-            scrapbook.Value = 1;
-            await scrapbook.Save();
-
-            if (_shouldBlock)
-                await TaskUtils.NeverCompleting;
-
-            scrapbook.Value = 2;
-            await scrapbook.Save();
-            
-            return RResult.Success;
-        }
     }
 
     private class Scrapbook : RScrapbook
