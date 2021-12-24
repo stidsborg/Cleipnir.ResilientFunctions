@@ -10,5 +10,17 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         [TestMethod]
         public override Task PostponedFunctionInvocationIsCompletedByWatchDog()
             => PostponedFunctionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
+            => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task PostponedActionInvocationIsCompletedByWatchDog()
+            => PostponedActionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
+            => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
     }
 }

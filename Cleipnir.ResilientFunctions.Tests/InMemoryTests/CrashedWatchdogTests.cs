@@ -10,5 +10,17 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         [TestMethod]
         public override Task CrashedFunctionInvocationIsCompletedByWatchDog()
             => CrashedFunctionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
+            => CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task CrashedActionInvocationIsCompletedByWatchDog()
+            => CrashedActionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog()
+            => CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
     }
 }

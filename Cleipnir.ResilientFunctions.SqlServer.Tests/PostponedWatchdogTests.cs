@@ -14,5 +14,32 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
                     nameof(PostponedFunctionInvocationIsCompletedByWatchDog)
                 )
             );
+
+        [TestMethod]
+        public override async Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
+            => await PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(
+                await Sql.CreateAndInitializeStore(
+                    nameof(StoreCrudTests),
+                    nameof(PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog)
+                )
+            );
+
+        [TestMethod]
+        public override async Task PostponedActionInvocationIsCompletedByWatchDog()
+            => await PostponedActionInvocationIsCompletedByWatchDog(
+                await Sql.CreateAndInitializeStore(
+                    nameof(StoreCrudTests),
+                    nameof(PostponedActionInvocationIsCompletedByWatchDog)
+                )
+            );
+
+        [TestMethod]
+        public override async Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
+            => await PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(
+                await Sql.CreateAndInitializeStore(
+                    nameof(StoreCrudTests),
+                    nameof(PostponedActionWithScrapbookInvocationIsCompletedByWatchDog)
+                )
+            );
     }
 }

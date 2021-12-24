@@ -10,8 +10,35 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         public override async Task CrashedFunctionInvocationIsCompletedByWatchDog()
             => await CrashedFunctionInvocationIsCompletedByWatchDog(
                 await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
+                    nameof(CrashedWatchdogTests),
                     nameof(CrashedFunctionInvocationIsCompletedByWatchDog)
+                )
+            );
+
+        [TestMethod]
+        public override async Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
+            => await CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(
+                await Sql.CreateAndInitializeStore(
+                    nameof(CrashedWatchdogTests),
+                    nameof(CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog)
+                )
+            );
+
+        [TestMethod]
+        public override async Task CrashedActionInvocationIsCompletedByWatchDog()
+            => await CrashedFunctionInvocationIsCompletedByWatchDog(
+                await Sql.CreateAndInitializeStore(
+                    nameof(CrashedWatchdogTests),
+                    nameof(CrashedActionInvocationIsCompletedByWatchDog)
+                )
+            );
+
+        [TestMethod]
+        public override async Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog()
+            => await CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(
+                await Sql.CreateAndInitializeStore(
+                    nameof(CrashedWatchdogTests),
+                    nameof(CrashedActionWithScrapbookInvocationIsCompletedByWatchDog)
                 )
             );
     }
