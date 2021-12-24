@@ -1,5 +1,6 @@
 using System;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 

@@ -2,7 +2,7 @@
 using Cleipnir.ResilientFunctions.Domain;
 using static Cleipnir.ResilientFunctions.Utils.ExceptionUtils;
 
-namespace Cleipnir.ResilientFunctions.Invocation;
+namespace Cleipnir.ResilientFunctions.ExceptionHandling;
 
 public class UnhandledExceptionHandler
 {
