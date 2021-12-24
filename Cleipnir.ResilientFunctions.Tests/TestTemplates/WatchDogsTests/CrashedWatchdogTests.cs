@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Watchdogs;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
 {
     public abstract class CrashedWatchdogTests
     {
