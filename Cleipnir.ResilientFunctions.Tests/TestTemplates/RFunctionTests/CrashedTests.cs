@@ -38,7 +38,7 @@ public abstract class CrashedTests
             using var rFunctions = RFunctions.Create(
                 store,
                 unhandledExceptionHandler.Catch,
-                TimeSpan.FromMilliseconds(2)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
             );
 
             var rFunc = rFunctions
