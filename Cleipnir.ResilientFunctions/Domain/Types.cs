@@ -7,7 +7,13 @@ namespace Cleipnir.ResilientFunctions.Domain
     {
         public FunctionId(string functionTypeId, string functionInstanceId) 
             : this(functionTypeId.ToFunctionTypeId(), functionInstanceId.ToFunctionInstanceId()) { }
+        
+        public FunctionId(FunctionTypeId functionTypeId, string functionInstanceId) 
+            : this(functionTypeId, functionInstanceId.ToFunctionInstanceId()) { }
 
+        public FunctionId(string functionTypeId, FunctionInstanceId functionInstanceId) 
+            : this(functionTypeId.ToFunctionTypeId(), functionInstanceId) { }
+        
         public override string ToString() 
             => $"{nameof(FunctionId)} {{ TypeId = { TypeId.Value }, InstanceId = { InstanceId.Value } }}";
     }
