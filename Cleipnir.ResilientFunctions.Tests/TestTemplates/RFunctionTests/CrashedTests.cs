@@ -10,8 +10,6 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class CrashedTests
 {
-    private static Task<RResult<string>> NeverCompletingTask => new(() => default!);
-    
     public abstract Task NonCompletedFuncIsCompletedByWatchDog();
     protected async Task NonCompletedFuncIsCompletedByWatchDog(IFunctionStore store)
     {
@@ -28,7 +26,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => NeverCompletingTask,
+                    (string _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
                 );
 
@@ -79,7 +77,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask,
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
                 );
 
@@ -138,7 +136,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => NeverCompletingTask,
+                    (string _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
                 );
 
@@ -190,7 +188,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask,
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
                 );
 

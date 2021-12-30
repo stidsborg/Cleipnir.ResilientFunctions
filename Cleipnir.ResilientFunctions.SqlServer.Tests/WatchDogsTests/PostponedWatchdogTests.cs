@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests
+namespace Cleipnir.ResilientFunctions.SqlServer.Tests.WatchDogsTests
 {
     [TestClass]
     public class PostponedWatchdogTests : ResilientFunctions.Tests.TestTemplates.WatchDogsTests.PostponedWatchdogTests

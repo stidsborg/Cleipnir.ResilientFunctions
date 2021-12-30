@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -12,17 +13,16 @@ public class CrashableFunctionStore : IFunctionStore
     private volatile bool _crashed;
 
     private readonly object _sync = new();
+    private readonly Subject<SetFunctionStateParams> _subject = new();
 
-    public Task AfterSetFunctionState
+    public IObservable<SetFunctionStateParams> AfterSetFunctionStateStream
     {
         get
         {
             lock (_sync)
-                return _afterSetFunctionState.Task;
+                return _subject;
         }
     }
-
-    private TaskCompletionSource _afterSetFunctionState = new();
 
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;
 
@@ -57,7 +57,17 @@ public class CrashableFunctionStore : IFunctionStore
         ? Task.FromException<IEnumerable<StoredFunctionStatus>>(new TimeoutException())
         : _inner.GetFunctionsWithStatus(functionTypeId, status, expiresBefore);
 
-    public Task<bool> SetFunctionState(
+    public record SetFunctionStateParams(
+        FunctionId FunctionId,
+        Status Status,
+        string? ScrapbookJson,
+        StoredResult? Result,
+        StoredFailure? Failed,
+        long? PostponedUntil,
+        int ExpectedEpoch
+    );
+    
+    public async Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
         string? scrapbookJson,
@@ -68,9 +78,10 @@ public class CrashableFunctionStore : IFunctionStore
     )
     {
         if (_crashed)
-            return Task.FromException<bool>(new TimeoutException());
-        
-        return _inner.SetFunctionState(
+            throw new TimeoutException();
+
+        var success = await _inner
+            .SetFunctionState(
                 functionId,
                 status,
                 scrapbookJson,
@@ -78,17 +89,14 @@ public class CrashableFunctionStore : IFunctionStore
                 failed,
                 postponedUntil,
                 expectedEpoch
-            ).ContinueWith(t =>
-        {
-            TaskCompletionSource afterSetFunctionState;
-            lock (_sync)
-            {
-                afterSetFunctionState = _afterSetFunctionState;
-                _afterSetFunctionState = new TaskCompletionSource();
-            }
-            Task.Run(afterSetFunctionState.SetResult);
-            return t.Result;
-        });  
+            );
+
+        lock (_sync)
+            _subject.OnNext(new SetFunctionStateParams(
+                functionId, status, scrapbookJson, result, failed, postponedUntil, expectedEpoch
+            ));
+
+        return success;
     } 
 
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
@@ -99,6 +107,5 @@ public class CrashableFunctionStore : IFunctionStore
 
 public static class CrashableFunctionStoreExtensions
 {
-    public static CrashableFunctionStore ToCrashableFunctionStore(this IFunctionStore store)
-        => new CrashableFunctionStore(store);
+    public static CrashableFunctionStore ToCrashableFunctionStore(this IFunctionStore store) => new(store);
 }
