@@ -50,7 +50,7 @@ public abstract class CrashedTests
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) != Status.Executing
+                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
             );
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
@@ -106,7 +106,7 @@ public abstract class CrashedTests
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) != Status.Executing
+                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
             );
 
             var storedFunction = await store.GetFunction(functionId);
@@ -160,7 +160,7 @@ public abstract class CrashedTests
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) != Status.Executing
+                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
             );
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
@@ -217,7 +217,7 @@ public abstract class CrashedTests
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) != Status.Executing
+                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
             );
 
             var storedFunction = await store.GetFunction(functionId);
