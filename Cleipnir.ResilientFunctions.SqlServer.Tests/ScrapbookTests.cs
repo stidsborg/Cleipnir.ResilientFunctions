@@ -7,17 +7,11 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
     public class ScrapbookTests : ResilientFunctions.Tests.TestTemplates.ScrapbookTests
     {
         [TestMethod]
-        public override async Task SunshineScenario()
-            => await SunshineScenario(
-                await Sql.CreateAndInitializeStore(nameof(ScrapbookTests), nameof(SunshineScenario))
-            );
+        public override Task SunshineScenario()
+            => SunshineScenario(Sql.AutoCreateAndInitializeStore());
 
+        [TestMethod]
         public override async Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected()
-            => await ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(
-                await Sql.CreateAndInitializeStore(
-                    nameof(ScrapbookTests), 
-                    nameof(ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected)
-                )
-            );
+            => await ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
     }
 }

@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Utils;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
 
 public delegate Task<bool> CreateFunction(
     FunctionId functionId, 

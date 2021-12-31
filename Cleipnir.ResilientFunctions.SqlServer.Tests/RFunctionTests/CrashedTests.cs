@@ -6,28 +6,19 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 [TestClass]
 public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedTests
 {
-    private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
-
-    [TestInitialize]
-    public async Task SetUp()
-    {
-        await Store.Initialize();
-        await Store.Truncate();
-    }
-
     [TestMethod]
     public override Task NonCompletedFuncIsCompletedByWatchDog()
-        => NonCompletedFuncIsCompletedByWatchDog(Store);
+        => NonCompletedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Store);
+        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonCompletedActionIsCompletedByWatchDog()
-        => NonCompletedActionIsCompletedByWatchDog(Store);
+        => NonCompletedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(Store);
+        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 }

@@ -6,42 +6,33 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 [TestClass]
 public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.FailedTests
 {
-    private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
-
-    [TestInitialize]
-    public async Task SetUp()
-    {
-        await Store.Initialize();
-        await Store.Truncate();
-    }
-
     [TestMethod]
     public override Task ExceptionThrowingFuncIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncIsNotCompletedByWatchDog(Store);
+        => ExceptionThrowingFuncIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(Store);
+        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Store);
+        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     public override Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Store);
+        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(Store);
+        => ExceptionThrowingActionIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     public override Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(Store);
+        => UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Store);
+        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Store);
+        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 }

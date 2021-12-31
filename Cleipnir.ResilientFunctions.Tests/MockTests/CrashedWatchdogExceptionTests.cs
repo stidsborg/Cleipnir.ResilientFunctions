@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
+using Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;

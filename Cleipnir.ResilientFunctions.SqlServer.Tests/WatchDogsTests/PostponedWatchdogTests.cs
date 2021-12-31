@@ -7,39 +7,19 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.WatchDogsTests
     public class PostponedWatchdogTests : ResilientFunctions.Tests.TestTemplates.WatchDogsTests.PostponedWatchdogTests
     {
         [TestMethod]
-        public override async Task PostponedFunctionInvocationIsCompletedByWatchDog()
-            => await PostponedFunctionInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(PostponedFunctionInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task PostponedFunctionInvocationIsCompletedByWatchDog()
+            => PostponedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
         [TestMethod]
-        public override async Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-            => await PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
+            => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
         [TestMethod]
-        public override async Task PostponedActionInvocationIsCompletedByWatchDog()
-            => await PostponedActionInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(PostponedActionInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task PostponedActionInvocationIsCompletedByWatchDog()
+            => PostponedActionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
         [TestMethod]
-        public override async Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
-            => await PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(StoreCrudTests),
-                    nameof(PostponedActionWithScrapbookInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
+            => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
     }
 }

@@ -9,20 +9,17 @@ public class PersistedCallbackTests : Cleipnir.ResilientFunctions.Tests.TestTemp
 {
     [TestMethod]
     public override Task PersistedCallbackIsInvokedAfterFuncStateHasBeenPersisted()
-        => PersistedCallbackIsInvokedAfterFuncStateHasBeenPersisted(CreateFunctionStore());
+        => PersistedCallbackIsInvokedAfterFuncStateHasBeenPersisted(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task PersistedCallbackIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted()
-        => PersistedCallbackIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(CreateFunctionStore());
+        => PersistedCallbackIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task PersistedCallbackIsInvokedAfterActionWithScrapbookStateHasBeenPersisted()
-        => PersistedCallbackIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(CreateFunctionStore());
+        => PersistedCallbackIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PersistedCallbackIsInvokedAfterActionStateHasBeenPersisted()
-        => PersistedCallbackIsInvokedAfterActionStateHasBeenPersisted(CreateFunctionStore());
-    
-    private IFunctionStore CreateFunctionStore([System.Runtime.CompilerServices.CallerMemberName] string callMemberName = "")
-        => Sql.CreateAndInitializeStore(nameof(PersistedCallbackTests), callMemberName).Result;
+        => PersistedCallbackIsInvokedAfterActionStateHasBeenPersisted(Sql.AutoCreateAndInitializeStore());
 }

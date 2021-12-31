@@ -51,5 +51,18 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
             await store.Initialize();
             return store;
         }
+
+        public static SqlServerFunctionStore AutoCreateAndInitializeStore(
+            [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = "",
+            [System.Runtime.CompilerServices.CallerMemberName] string callMemberName = ""
+        )
+        {
+            var sourceFileName = sourceFilePath
+                .Split(new[] {"\\", "/"}, StringSplitOptions.None)
+                .Last()
+                .Replace(".cs", "");
+
+            return CreateAndInitializeStore(sourceFileName, callMemberName).Result;
+        }
     }
 }

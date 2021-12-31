@@ -7,39 +7,19 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.WatchDogsTests
     public class CrashedWatchdogTests : ResilientFunctions.Tests.TestTemplates.WatchDogsTests.CrashedWatchdogTests
     {
         [TestMethod]
-        public override async Task CrashedFunctionInvocationIsCompletedByWatchDog()
-            => await CrashedFunctionInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(CrashedWatchdogTests),
-                    nameof(CrashedFunctionInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task CrashedFunctionInvocationIsCompletedByWatchDog()
+            => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
         [TestMethod]
-        public override async Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-            => await CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(CrashedWatchdogTests),
-                    nameof(CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
+            => CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
         [TestMethod]
-        public override async Task CrashedActionInvocationIsCompletedByWatchDog()
-            => await CrashedFunctionInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(CrashedWatchdogTests),
-                    nameof(CrashedActionInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task CrashedActionInvocationIsCompletedByWatchDog()
+            => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
         [TestMethod]
-        public override async Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog()
-            => await CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(
-                await Sql.CreateAndInitializeStore(
-                    nameof(CrashedWatchdogTests),
-                    nameof(CrashedActionWithScrapbookInvocationIsCompletedByWatchDog)
-                )
-            );
+        public override Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog()
+            => CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
     }
 }

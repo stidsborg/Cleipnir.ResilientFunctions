@@ -17,7 +17,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 
         [TestMethod]
         public override Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
-            => DoubleParameterWithScrapbookSunshineScenario(new InMemoryFunctionStore());
+            => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(new InMemoryFunctionStore());
 
         [TestMethod]
         public override Task FetchingNonExistingFunctionReturnsNull()

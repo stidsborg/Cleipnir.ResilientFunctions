@@ -3,15 +3,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.SignOfLife;
-using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests
 {
     [TestClass]
     public class SignOfLifeUpdaterTests

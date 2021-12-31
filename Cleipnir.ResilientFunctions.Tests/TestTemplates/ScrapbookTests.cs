@@ -75,12 +75,12 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
                 Param,
                 scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
                 initialStatus: Status.Executing,
-                initialEpoch: 0,
+                initialEpoch: 1,
                 initialSignOfLife: 0
             ).ShouldBeTrueAsync();
             
             var scrapbook = new Scrapbook() {Name = "Peter"};
-            scrapbook.Initialize(FunctionId, store, 0);
+            scrapbook.Initialize(FunctionId, store, 1);
             await scrapbook.Save();
             
             scrapbook = new Scrapbook() {Name = "Ole"};

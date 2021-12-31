@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
@@ -7,28 +6,19 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 [TestClass]
 public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.PostponedTests
 {
-    private SqlServerFunctionStore Store { get; } = new SqlServerFunctionStore(Sql.ConnFunc);
-
-    [TestInitialize]
-    public async Task SetUp()
-    {
-        await Store.Initialize();
-        await Store.Truncate();
-    }
-
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
-        => PostponedFuncIsCompletedByWatchDog(Store);
+        => PostponedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(Store);
+        => PostponedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
-        => PostponedActionIsCompletedByWatchDog(Store);
+        => PostponedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(Store);
+        => PostponedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 }

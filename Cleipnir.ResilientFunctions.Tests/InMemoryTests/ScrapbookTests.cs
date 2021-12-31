@@ -11,6 +11,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         public override Task SunshineScenario()
             => SunshineScenario(new InMemoryFunctionStore());
 
+        [TestMethod]
         public override Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected()
             => ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(new InMemoryFunctionStore());
     }

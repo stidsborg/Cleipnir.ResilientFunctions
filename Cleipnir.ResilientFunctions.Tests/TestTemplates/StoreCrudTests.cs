@@ -69,7 +69,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
         }
         
         public abstract Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully();
-        public async Task DoubleParameterWithScrapbookSunshineScenario(IFunctionStore store)
+        public async Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(IFunctionStore store)
         {
             await store.CreateFunction(
                 FunctionId,
