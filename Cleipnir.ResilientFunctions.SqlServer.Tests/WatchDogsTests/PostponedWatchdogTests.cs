@@ -21,5 +21,9 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.WatchDogsTests
         [TestMethod]
         public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
             => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+
+        [TestMethod]
+        public override Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime()
+            => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(Sql.AutoCreateAndInitializeStore());
     }
 }

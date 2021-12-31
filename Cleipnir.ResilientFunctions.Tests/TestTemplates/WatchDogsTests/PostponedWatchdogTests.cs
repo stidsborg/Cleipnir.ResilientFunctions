@@ -1,8 +1,8 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils;
@@ -252,6 +252,51 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             
             unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
             (syncedParam.Value is string).ShouldBeTrue();
+        }
+
+        public abstract Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime();
+        protected async Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(IFunctionStore store)
+        {
+            var functionType = nameof(MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime).ToFunctionTypeId();
+            var unhandledExceptionsCatcher = new UnhandledExceptionCatcher();
+            using var rFunctions = RFunctions.Create(
+                store, 
+                unhandledExceptionsCatcher.Catch,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+            );
+
+            var syncedList = new SyncedList<int>();
+
+            var rFunc = rFunctions.Register(
+                functionType,
+                async (int delay, Scrapbook scrapbook) =>
+                {
+                    if (scrapbook.Value == 1)
+                    {
+                        syncedList.Add(delay);
+                        return RResult.Success;
+                    }
+                    scrapbook.Value = 1;
+                    await scrapbook.Save();
+
+                    return Postpone.For(delay);
+                },
+                _ => _
+            );
+            
+            _ = rFunc(10);
+            _ = rFunc(110);
+            _ = rFunc(210);
+            _ = rFunc(310);
+            _ = rFunc(410);
+
+            await BusyWait.UntilAsync(() => syncedList.Count == 5, checkInterval: TimeSpan.FromMilliseconds(10));
+
+            syncedList.SequenceEqual(new[] { 10, 110, 210, 310, 410 }).ShouldBeTrue();
+            await store.GetFunctionsWithStatus(functionType, Status.Succeeded)
+                .Map(fs => fs.Select(s => int.Parse(s.InstanceId.Value)))
+                .Map(s => s.SequenceEqual(new[] { 10, 110, 210, 310, 410 }))
+                .ShouldBeTrueAsync();
         }
 
         private class Scrapbook : RScrapbook

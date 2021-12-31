@@ -22,5 +22,9 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.WatchDogsTests
         [TestMethod]
         public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
             => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime()
+            => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(new InMemoryFunctionStore());
     }
 }
