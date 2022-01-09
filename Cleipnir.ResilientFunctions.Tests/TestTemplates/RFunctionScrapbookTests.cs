@@ -1,8 +1,8 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Cleipnir.ResilientFunctions.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates

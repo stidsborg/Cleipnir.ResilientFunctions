@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
-namespace Cleipnir.ResilientFunctions.Utils;
+namespace Cleipnir.ResilientFunctions.Helpers;
 
 public static class Json
 {

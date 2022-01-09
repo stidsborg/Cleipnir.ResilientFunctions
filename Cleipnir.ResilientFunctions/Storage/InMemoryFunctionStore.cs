@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Utils;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 

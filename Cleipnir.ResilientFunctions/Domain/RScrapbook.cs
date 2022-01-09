@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions.Domain
 {

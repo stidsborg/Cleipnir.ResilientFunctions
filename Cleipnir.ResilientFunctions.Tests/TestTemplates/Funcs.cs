@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Utils;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {

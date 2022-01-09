@@ -2,9 +2,9 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs

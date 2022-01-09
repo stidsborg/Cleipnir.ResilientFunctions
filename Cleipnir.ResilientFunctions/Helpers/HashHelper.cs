@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Cleipnir.ResilientFunctions.Utils
+namespace Cleipnir.ResilientFunctions.Helpers
 {
     public static class HashHelper
     {

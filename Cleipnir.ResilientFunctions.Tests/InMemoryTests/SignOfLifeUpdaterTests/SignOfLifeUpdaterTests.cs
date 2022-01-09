@@ -3,9 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Cleipnir.ResilientFunctions.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 

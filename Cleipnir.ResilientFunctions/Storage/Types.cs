@@ -1,6 +1,6 @@
 using System;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Utils;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage
 {

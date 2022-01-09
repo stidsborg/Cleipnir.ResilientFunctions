@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace Cleipnir.ResilientFunctions.Utils
+namespace Cleipnir.ResilientFunctions.Helpers
 {
     public static class TypeHelper
     {
