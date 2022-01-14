@@ -15,9 +15,6 @@ namespace Cleipnir.ResilientFunctions.SqlServer
         private readonly Func<Task<SqlConnection>> _connFunc;
         private readonly string _tablePrefix;
 
-        private const int UNIQUENESS_VIOLATION = 2627;
-        private const int TABLE_ALREADY_EXISTS = 2714;
-
         public SqlServerFunctionStore(Func<Task<SqlConnection>> connFunc, string tablePrefix = "")
         {
             _connFunc = connFunc;
@@ -51,7 +48,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer
             }
             catch (SqlException e)
             {
-                if (e.Number != TABLE_ALREADY_EXISTS)
+                if (e.Number != SqlError.TABLE_ALREADY_EXISTS)
                     throw;
             }
         }
@@ -101,7 +98,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer
             }
             catch (SqlException sqlException)
             {
-                if (sqlException.Number == UNIQUENESS_VIOLATION) return false;
+                if (sqlException.Number == SqlError.UNIQUENESS_VIOLATION) return false;
             }
 
             return true;
