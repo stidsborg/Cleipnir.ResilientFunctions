@@ -34,6 +34,7 @@ public abstract class BarricadedTests
         );
 
         await Should.ThrowAsync<FunctionBarricadedException>(() => rFunc("hello world"));
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
 
     public abstract Task AnExecutingFunctionCannotBeBarricaded();
@@ -66,5 +67,6 @@ public abstract class BarricadedTests
         await BusyWait.UntilAsync(() => rFuncIsExecutingFlag.Position == Raised);
         
         await store.Barricade(new FunctionId(functionTypeId, functionInstanceId)).ShouldBeFalseAsync();
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
 }
