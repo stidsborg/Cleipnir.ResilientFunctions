@@ -135,6 +135,20 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
+    public Task<bool> Barricade(FunctionId functionId)
+    {
+        lock (_sync)
+        {
+            if (_states.ContainsKey(functionId)) return false.ToTask();
+            _states[functionId] = new State
+            {
+                FunctionId = functionId,
+                Status = Status.Barricaded
+            };
+            return true.ToTask();
+        }
+    }
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)

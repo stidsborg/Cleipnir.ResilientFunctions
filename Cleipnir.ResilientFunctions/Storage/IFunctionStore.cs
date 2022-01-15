@@ -37,6 +37,8 @@ namespace Cleipnir.ResilientFunctions.Storage
             int expectedEpoch
         );
 
+        Task<bool> Barricade(FunctionId functionId);
+
         // ** GETTER ** //
         Task<StoredFunction?> GetFunction(FunctionId functionId);
     }

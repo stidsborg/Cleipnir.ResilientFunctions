@@ -25,5 +25,13 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         [TestMethod]
         public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
             => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+
+        [TestMethod]
+        public override Task NonExistingFunctionCanBeBarricaded()
+            => NonExistingFunctionCanBeBarricaded(Sql.AutoCreateAndInitializeStore());
+
+        [TestMethod]
+        public override Task ExistingFunctionCannotBeBarricaded()
+            => ExistingFunctionCannotBeBarricaded(Sql.AutoCreateAndInitializeStore());
     }
 }

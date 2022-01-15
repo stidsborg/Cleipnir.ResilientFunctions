@@ -26,5 +26,13 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         [TestMethod]
         public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
             => BecomeLeaderFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task NonExistingFunctionCanBeBarricaded()
+            => NonExistingFunctionCanBeBarricaded(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task ExistingFunctionCannotBeBarricaded()
+            => ExistingFunctionCannotBeBarricaded(new InMemoryFunctionStore());
     }
 }
