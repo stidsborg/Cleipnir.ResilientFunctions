@@ -21,13 +21,16 @@ namespace Cleipnir.ResilientFunctions
         private readonly WatchDogsFactory _watchDogsFactory;
         private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
+        public delegate Type TypeResolver(Type parameterType, string storedType);
+
         private readonly object _sync = new();
 
         private RFunctions(
             IFunctionStore functionStore, 
             SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
             WatchDogsFactory watchDogsFactory, 
-            UnhandledExceptionHandler unhandledExceptionHandler)
+            UnhandledExceptionHandler unhandledExceptionHandler
+        )
         {
             _functionStore = functionStore;
             _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
@@ -96,10 +99,8 @@ namespace Cleipnir.ResilientFunctions
         public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
             FunctionTypeId functionTypeId,
             Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
-            Func<TParam, object> idFunc) 
-            where TParam : notnull 
-            where TScrapbook : RScrapbook, new()
-            where TReturn : notnull
+            Func<TParam, object> idFunc
+        ) where TParam : notnull where TScrapbook : RScrapbook, new() where TReturn : notnull
         {
             lock (_sync)
             {
