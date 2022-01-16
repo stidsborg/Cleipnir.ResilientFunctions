@@ -21,8 +21,6 @@ namespace Cleipnir.ResilientFunctions
         private readonly WatchDogsFactory _watchDogsFactory;
         private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
-        public delegate Type TypeResolver(Type parameterType, string storedType);
-
         private readonly object _sync = new();
 
         private RFunctions(
