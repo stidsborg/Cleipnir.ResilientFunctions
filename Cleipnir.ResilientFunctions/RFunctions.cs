@@ -21,6 +21,8 @@ namespace Cleipnir.ResilientFunctions
         private readonly WatchDogsFactory _watchDogsFactory;
         private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
+        private bool _disposed;
+        
         private readonly object _sync = new();
 
         private RFunctions(
@@ -44,6 +46,9 @@ namespace Cleipnir.ResilientFunctions
         {
             lock (_sync)
             {
+                if (_disposed)
+                    throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+                
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
                     return (RFunc<TParam, TReturn>) _functions[functionTypeId];
@@ -73,6 +78,9 @@ namespace Cleipnir.ResilientFunctions
         {
             lock (_sync)
             {
+                if (_disposed)
+                    throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+                
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
                     return (RAction<TParam>) _functions[functionTypeId];
@@ -102,6 +110,9 @@ namespace Cleipnir.ResilientFunctions
         {
             lock (_sync)
             {
+                if (_disposed)
+                    throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+                
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
                     return (RFunc<TParam, TReturn>) _functions[functionTypeId];
@@ -131,6 +142,9 @@ namespace Cleipnir.ResilientFunctions
         {
             lock (_sync)
             {
+                if (_disposed)
+                    throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+                
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
                     return (RAction<TParam>) _functions[functionTypeId];
@@ -156,6 +170,8 @@ namespace Cleipnir.ResilientFunctions
         {
             lock (_sync)
             {
+                _disposed = true;
+                
                 foreach (var unhandledWatchDog in _watchDogs)
                     unhandledWatchDog.Dispose();
 
