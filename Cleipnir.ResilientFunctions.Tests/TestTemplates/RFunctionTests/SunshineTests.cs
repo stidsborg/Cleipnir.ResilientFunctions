@@ -20,7 +20,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
+            using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
 
             var rFunc = rFunctions
                 .Register(
@@ -60,7 +60,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
+            using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
 
             var rFunc = rFunctions
                 .Register(
@@ -100,7 +100,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
+            using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
 
             var rFunc = rFunctions
                 .Register(
@@ -135,7 +135,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
+            using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
 
             var rFunc = rFunctions
                 .Register(

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Invocation;
+using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
@@ -28,7 +28,8 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             IFunctionStore functionStore, 
             RFuncInvoker rFuncInvoker,
             TimeSpan checkFrequency,
-            UnhandledExceptionHandler unhandledExceptionHandler
+            UnhandledExceptionHandler unhandledExceptionHandler,
+            ShutdownCoordinator shutdownCoordinator
         )
         {
             _functionTypeId = functionTypeId;
@@ -37,6 +38,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             _unhandledExceptionHandler = unhandledExceptionHandler;
             _func = func;
             _checkFrequency = checkFrequency;
+            _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
         }
 
         public async Task Start()
@@ -95,17 +97,19 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             }
         }
 
-        public void Dispose()
+        private Task DisposeAsync()
         {
             _disposed = true;
-            BusyWait.Until(() => !_executing);
+            return BusyWait.ForeverUntilAsync(() => !_executing);
         }
+
+        public void Dispose() => DisposeAsync().Wait();
     }
     
     internal class PostponedWatchdog : IDisposable
     {
         private readonly IFunctionStore _functionStore;
-        private readonly RFuncInvoker _rFuncInvoker;
+        private readonly RActionInvoker _rActionInvoker;
         private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
         private readonly RAction _action;
@@ -119,17 +123,19 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             FunctionTypeId functionTypeId, 
             RAction action,
             IFunctionStore functionStore, 
-            RFuncInvoker rFuncInvoker,
+            RActionInvoker rActionInvoker,
             TimeSpan checkFrequency,
-            UnhandledExceptionHandler unhandledExceptionHandler
+            UnhandledExceptionHandler unhandledExceptionHandler,
+            ShutdownCoordinator shutdownCoordinator
         )
         {
             _functionTypeId = functionTypeId;
             _functionStore = functionStore;
-            _rFuncInvoker = rFuncInvoker;
+            _rActionInvoker = rActionInvoker;
             _unhandledExceptionHandler = unhandledExceptionHandler;
             _action = action;
             _checkFrequency = checkFrequency;
+            _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
         }
 
         public async Task Start()
@@ -159,7 +165,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
 
                         try
                         {
-                            await _rFuncInvoker.ReInvoke(functionId, storedFunction, _action);
+                            await _rActionInvoker.ReInvoke(functionId, storedFunction, _action);
                         }
                         catch (Exception innerException)
                         {
@@ -188,10 +194,12 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             }
         }
 
-        public void Dispose()
+        private Task DisposeAsync()
         {
             _disposed = true;
-            BusyWait.Until(() => !_executing);
+            return BusyWait.ForeverUntilAsync(() => !_executing);
         }
+
+        public void Dispose() => DisposeAsync().Wait();
     }
 }

@@ -79,7 +79,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var rFunctions = RFunctions.Create(
+            using var rFunctions = RFunctions.Create(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)

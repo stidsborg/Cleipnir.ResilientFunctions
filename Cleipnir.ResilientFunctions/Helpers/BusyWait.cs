@@ -31,6 +31,13 @@ public static class BusyWait
         if (throwOnThresholdExceeded)
             throw new TimeoutException("Predicate was not meet within the threshold");
     }
+
+    public static async Task ForeverUntilAsync(Func<bool> predicate, TimeSpan? checkInterval = null)
+    {
+        checkInterval ??= TimeSpan.FromMilliseconds(10);
+        while (!predicate())
+            await Task.Delay(checkInterval.Value);
+    }
     
     public static async Task UntilAsync(
         Func<bool> predicate, 

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -17,6 +18,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
     private readonly IFunctionStore _functionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly ShutdownCoordinator _shutdownCoordinator;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
@@ -24,7 +26,8 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         Func<TParam, Task<RResult<TResult>>> func,
         IFunctionStore functionStore,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
-        UnhandledExceptionHandler unhandledExceptionHandler
+        UnhandledExceptionHandler unhandledExceptionHandler, 
+        ShutdownCoordinator shutdownCoordinator
     )
     {
         _functionTypeId = functionTypeId;
@@ -33,29 +36,34 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         _functionStore = functionStore;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _shutdownCoordinator = shutdownCoordinator;
     }
 
     public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
     {
-        var functionId = CreateFunctionId(param);
-        var created = await PersistFunctionInStore(functionId, param, onPersisted);
-        if (!created) return await WaitForFunctionResult(functionId);
-
-        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, 0);
-        RResult<TResult> result;
         try
         {
-            //USER FUNCTION INVOCATION! 
-            result = await _func(param);
-        }
-        catch (Exception exception)
-        {
-            await ProcessUnhandledException(functionId, exception);
-            return new Fail(exception);
-        }
+            _shutdownCoordinator.RegisterRunningRFunc();
+            var functionId = CreateFunctionId(param);
+            var created = await PersistFunctionInStore(functionId, param, onPersisted);
+            if (!created) return await WaitForFunctionResult(functionId);
 
-        await ProcessResult(functionId, result);
-        return result;
+            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, 0);
+            RResult<TResult> result;
+            try
+            {
+                //USER FUNCTION INVOCATION! 
+                result = await _func(param);
+            }
+            catch (Exception exception)
+            {
+                await ProcessUnhandledException(functionId, exception);
+                return new Fail(exception);
+            }
+
+            await ProcessResult(functionId, result);
+            return result;    
+        } finally{ _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
 
     private FunctionId CreateFunctionId(TParam param)
@@ -63,6 +71,9 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
 
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
     {
+        if (_shutdownCoordinator.ShutdownInitiated)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+        
         var paramJson = param.ToJson();
         var paramType = param.GetType().SimpleQualifiedName();
         var created = await _functionStore.CreateFunction(
@@ -190,6 +201,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
     private readonly IFunctionStore _functionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly ShutdownCoordinator _shutdownCoordinator;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
@@ -197,7 +209,8 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         Func<TParam, TScrapbook, Task<RResult<TResult>>> func,
         IFunctionStore functionStore,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-        UnhandledExceptionHandler unhandledExceptionHandler)
+        UnhandledExceptionHandler unhandledExceptionHandler, 
+        ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
@@ -205,30 +218,35 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         _functionStore = functionStore;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _shutdownCoordinator = shutdownCoordinator;
     }
 
     public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
     {
-        var functionId = CreateFunctionId(param);
-        var created = await PersistFunctionInStore(functionId, param, onPersisted);
-        if (!created) return await WaitForFunctionResult(functionId);
-
-        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, 0);
-        var scrapbook = CreateScrapbook(functionId);
-        RResult<TResult> result;
         try
         {
-            //USER FUNCTION INVOCATION! 
-            result = await _func(param, scrapbook);
-        }
-        catch (Exception exception)
-        {
-            await ProcessUnhandledException(functionId, exception, scrapbook);
-            return new Fail(exception);
-        }
+            _shutdownCoordinator.RegisterRunningRFunc();
+            var functionId = CreateFunctionId(param);
+            var created = await PersistFunctionInStore(functionId, param, onPersisted);
+            if (!created) return await WaitForFunctionResult(functionId);
 
-        await ProcessResult(functionId, result, scrapbook);
-        return result;
+            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, 0);
+            var scrapbook = CreateScrapbook(functionId);
+            RResult<TResult> result;
+            try
+            {
+                //USER FUNCTION INVOCATION! 
+                result = await _func(param, scrapbook);
+            }
+            catch (Exception exception)
+            {
+                await ProcessUnhandledException(functionId, exception, scrapbook);
+                return new Fail(exception);
+            }
+
+            await ProcessResult(functionId, result, scrapbook);
+            return result;
+        } finally{ _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
 
     private FunctionId CreateFunctionId(TParam param)
@@ -243,6 +261,9 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
 
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
     {
+        if (_shutdownCoordinator.ShutdownInitiated)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+        
         var paramJson = param.ToJson();
         var paramType = param.GetType().SimpleQualifiedName();
         var created = await _functionStore.CreateFunction(

@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Invocation;
+using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 using Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -26,12 +25,12 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
         public void AnFrameworkExceptionIsThrownWhenFunctionStoreThrowsException()
         {
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-
+            
             var storeMock = new FunctionStoreMock
             {
                 SetupGetFunctionsWithStatus = (_, _, _) => throw new Exception()
             };
-            
+
             using var crashedWatchdog = new CrashedWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
                 (param, _) => Funcs.ToUpper(param.ToString()!),
@@ -39,10 +38,12 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                    new ShutdownCoordinator()
                 ),
                 TimeSpan.FromMilliseconds(1),
-                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                new ShutdownCoordinator()
             );
 
             _ = crashedWatchdog.Start();
@@ -90,10 +91,12 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                new ShutdownCoordinator()
             );
 
             _ = crashedWatchdog.Start();
@@ -140,10 +143,12 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                new ShutdownCoordinator()
             );
 
             _ = crashedWatchdog.Start();
@@ -197,10 +202,12 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 new RFuncInvoker(
                     storeMock, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                    new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch)
+                new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
+                new ShutdownCoordinator()
             );
 
             _ = crashedWatchdog.Start();
@@ -209,6 +216,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
 
             _ = Task.Run(() =>
             {
+                // ReSharper disable once AccessToDisposedClosure
                 crashedWatchdog.Dispose();
                 disposeCompleted.Value = true;
             });

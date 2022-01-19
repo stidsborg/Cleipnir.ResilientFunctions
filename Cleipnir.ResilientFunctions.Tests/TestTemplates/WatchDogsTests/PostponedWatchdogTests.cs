@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Watchdogs;
@@ -36,10 +37,12 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 new RFuncInvoker(
                     store, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionHandler
+                    unhandledExceptionHandler,
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionHandler
+                unhandledExceptionHandler,
+                new ShutdownCoordinator()
             );
 
             await store.CreateFunction(
@@ -92,10 +95,12 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 new RFuncInvoker(
                     store, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionHandler
+                    unhandledExceptionHandler,
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionHandler
+                unhandledExceptionHandler,
+                new ShutdownCoordinator()
             );
 
             await store.CreateFunction(
@@ -149,13 +154,15 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return RResult.Success.ToTask();
                 },
                 store,
-                new RFuncInvoker(
+                new RActionInvoker(
                     store, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionHandler
+                    unhandledExceptionHandler,
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionHandler
+                unhandledExceptionHandler,
+                new ShutdownCoordinator()
             );
 
             await store.CreateFunction(
@@ -210,13 +217,15 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return RResult.Success;
                 },
                 store,
-                new RFuncInvoker(
+                new RActionInvoker(
                     store, 
                     new NeverExecutingSignOfLifeUpdaterFactory(),
-                    unhandledExceptionHandler
+                    unhandledExceptionHandler,
+                    new ShutdownCoordinator()
                 ),
                 checkFrequency: TimeSpan.FromMilliseconds(1),
-                unhandledExceptionHandler
+                unhandledExceptionHandler,
+                new ShutdownCoordinator()
             );
 
             await store.CreateFunction(
