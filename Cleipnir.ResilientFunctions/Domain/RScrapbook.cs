@@ -21,9 +21,10 @@ namespace Cleipnir.ResilientFunctions.Domain
         
         public async Task Save()
         {
-            //todo if not initialized throw framework exception
-            
-            var scrapbookJson= this.ToJson();
+            if (FunctionStore == null)
+                throw new FrameworkException($"'{GetType().Name}' scrapbook was uninitialized on save");
+
+            var scrapbookJson = this.ToJson();
             var success = await FunctionStore!.SetFunctionState(
                 FunctionId!,
                 Status.Executing,

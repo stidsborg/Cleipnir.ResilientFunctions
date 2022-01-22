@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 {
@@ -14,5 +16,21 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         [TestMethod]
         public override Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected()
             => ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public async Task ScrapbookThrowsExceptionWhenSavedBeforeInitialized()
+        {
+            var scrapbook = new TestScrapbook();
+            try
+            {
+                await scrapbook.Save();
+            }
+            catch (FrameworkException e)
+            {
+                e.Message.ShouldBe("'TestScrapbook' scrapbook was uninitialized on save");
+            }
+        }
+        
+        private class TestScrapbook : RScrapbook {}
     }
 }
