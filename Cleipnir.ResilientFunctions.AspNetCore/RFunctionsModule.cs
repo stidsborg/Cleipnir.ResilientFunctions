@@ -11,20 +11,23 @@ public static class RFunctionsModule
         this IServiceCollection services, 
         Func<IServiceProvider, IFunctionStore> store,
         Func<IServiceProvider, Action<RFunctionException>> unhandledExceptionHandler,
-        TimeSpan? unhandledFunctionsCheckFrequency = null
+        bool gracefulShutdown = false,
+        TimeSpan? crashedFunctionCheckFrequency = null,
+        TimeSpan? postponedFunctionCheckFrequency = null
     )
     {
         services.AddSingleton(store);
         services.AddSingleton(unhandledExceptionHandler);
         services.AddSingleton(s => RFunctions.Create(
             s.GetRequiredService<IFunctionStore>(),
-            s.GetRequiredService<Action<RFunctionException>>(),
-            unhandledFunctionsCheckFrequency
+            unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
+            crashedFunctionCheckFrequency,
+            postponedFunctionCheckFrequency
             )
         );
         
         var callingAssembly = Assembly.GetCallingAssembly();
-        services.AddHostedService(s => new RFunctionsService(s, callingAssembly));
+        services.AddHostedService(s => new RFunctionsService(s, callingAssembly, gracefulShutdown));
         
         return services;
     }
@@ -32,7 +35,9 @@ public static class RFunctionsModule
     public static IServiceCollection AddRFunctionsService<TFunctionStore>(
         this IServiceCollection services,
         Func<IServiceProvider, Action<RFunctionException>> unhandledExceptionHandler,
-        TimeSpan? unhandledFunctionsCheckFrequency = null
+        bool gracefulShutdown = false,
+        TimeSpan? crashedFunctionCheckFrequency = null,
+        TimeSpan? postponedFunctionCheckFrequency = null
     ) where TFunctionStore : class, IFunctionStore
     {
         services.AddSingleton<IFunctionStore, TFunctionStore>();
@@ -40,20 +45,24 @@ public static class RFunctionsModule
         services.AddSingleton(s => 
             RFunctions.Create(
                 s.GetRequiredService<IFunctionStore>(),
-                s.GetRequiredService<Action<RFunctionException>>(),
-                unhandledFunctionsCheckFrequency
+                unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
+                crashedFunctionCheckFrequency,
+                postponedFunctionCheckFrequency
             )
         );
 
-        services.AddHostedService<RFunctionsService>();
+        var callingAssembly = Assembly.GetCallingAssembly();
+        services.AddHostedService(s => new RFunctionsService(s, callingAssembly, gracefulShutdown));        
         return services;
     }
-    
+
     public static IServiceCollection AddRFunctionsService(
         this IServiceCollection services,
         IFunctionStore store,
         Func<IServiceProvider, Action<RFunctionException>> unhandledExceptionHandler,
-        TimeSpan? unhandledFunctionsCheckFrequency = null
+        bool gracefulShutdown = false,
+        TimeSpan? crashedFunctionCheckFrequency = null,
+        TimeSpan? postponedFunctionCheckFrequency = null
     ) 
     {
         services.AddSingleton(store);
@@ -61,12 +70,14 @@ public static class RFunctionsModule
         services.AddSingleton(s => 
             RFunctions.Create(
                 s.GetRequiredService<IFunctionStore>(),
-                s.GetRequiredService<Action<RFunctionException>>(),
-                unhandledFunctionsCheckFrequency
+                unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
+                crashedFunctionCheckFrequency,
+                postponedFunctionCheckFrequency
             )
         );
 
-        services.AddHostedService<RFunctionsService>();
+        var callingAssembly = Assembly.GetCallingAssembly();
+        services.AddHostedService(s => new RFunctionsService(s, callingAssembly, gracefulShutdown));
         return services;
     }
 }

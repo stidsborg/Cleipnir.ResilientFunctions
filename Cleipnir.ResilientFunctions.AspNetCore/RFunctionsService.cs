@@ -8,11 +8,13 @@ public class RFunctionsService : IHostedService
 {
     private readonly IServiceProvider _services;
     private readonly Assembly _callingAssembly;
+    private readonly bool _gracefulShutdown;
 
-    public RFunctionsService(IServiceProvider services, Assembly callingAssembly)
+    public RFunctionsService(IServiceProvider services, Assembly callingAssembly, bool gracefulShutdown)
     {
         _services = services;
         _callingAssembly = callingAssembly;
+        _gracefulShutdown = gracefulShutdown;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -22,7 +24,10 @@ public class RFunctionsService : IHostedService
             .Select(Assembly.Load)
             .Concat(new[] {_callingAssembly})
             .SelectMany(a => a.GetTypes())
-            .Where(t => t.GetInterfaces().Contains(typeof(IRegisterRFuncOnInstantiation)));
+            .Where(t => 
+                t.GetInterfaces().Contains(typeof(IRegisterRFuncOnInstantiation)) || 
+                t.IsSubclassOf(typeof(RSaga)) && !t.IsAbstract
+            );
 
         foreach (var iRegisterRFuncOnInstantiationType in iRegisterRFuncOnInstantiationTypes)
             _ = _services.GetService(iRegisterRFuncOnInstantiationType);
@@ -38,7 +43,9 @@ public class RFunctionsService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _services.GetRequiredService<RFunctions>().Dispose();
-        return Task.CompletedTask;
+        var shutdownTask = _services.GetRequiredService<RFunctions>().ShutdownGracefully();
+        return _gracefulShutdown 
+            ? shutdownTask 
+            : Task.CompletedTask;
     } 
 }
