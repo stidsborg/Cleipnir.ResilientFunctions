@@ -4,11 +4,11 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Invocation;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Watchdogs;
-using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions
 {
@@ -44,7 +44,8 @@ namespace Cleipnir.ResilientFunctions
         public RFunc<TParam, TReturn> Register<TParam, TReturn>(
             FunctionTypeId functionTypeId,
             Func<TParam, Task<RResult<TReturn>>> func,
-            Func<TParam, object> idFunc
+            Func<TParam, object> idFunc,
+            ISerializer? serializer = null
         ) where TParam : notnull where TReturn : notnull
         {
             if (_disposed)
@@ -56,14 +57,18 @@ namespace Cleipnir.ResilientFunctions
                 if (_functions.ContainsKey(functionTypeId))
                     return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
+                serializer ??= new DefaultSerializer();
+                
                 _watchDogsFactory.CreateAndStart(
                     functionTypeId,
+                    serializer,
                     (param, _) => func((TParam) param)
                 );
 
                 var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                     functionTypeId, idFunc, func, 
                     _functionStore, 
+                    serializer,
                     _signOfLifeUpdaterFactory, 
                     _unhandledExceptionHandler,
                     _shutdownCoordinator
@@ -78,7 +83,8 @@ namespace Cleipnir.ResilientFunctions
         public RAction<TParam> Register<TParam>(
             FunctionTypeId functionTypeId,
             Func<TParam, Task<RResult>> func,
-            Func<TParam, object> idFunc
+            Func<TParam, object> idFunc,
+            ISerializer? serializer = null
         ) where TParam : notnull 
         {
             if (_disposed)
@@ -90,14 +96,18 @@ namespace Cleipnir.ResilientFunctions
                 if (_functions.ContainsKey(functionTypeId))
                     return (RAction<TParam>) _functions[functionTypeId];
 
+                serializer ??= new DefaultSerializer();
+                
                 _watchDogsFactory.CreateAndStart(
                     functionTypeId,
+                    serializer,
                     (param, _) => func((TParam) param)
                 );
 
                 var rActionInvoker = new RActionInvoker<TParam>(
                     functionTypeId, idFunc, func, 
                     _functionStore, 
+                    serializer,
                     _signOfLifeUpdaterFactory, 
                     _unhandledExceptionHandler,
                     _shutdownCoordinator
@@ -112,7 +122,8 @@ namespace Cleipnir.ResilientFunctions
         public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
             FunctionTypeId functionTypeId,
             Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
-            Func<TParam, object> idFunc
+            Func<TParam, object> idFunc,
+            ISerializer? serializer = null
         ) where TParam : notnull where TScrapbook : RScrapbook, new() where TReturn : notnull
         {
             if (_disposed)
@@ -124,14 +135,18 @@ namespace Cleipnir.ResilientFunctions
                 if (_functions.ContainsKey(functionTypeId))
                     return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
+                serializer ??= new DefaultSerializer();
+                
                 _watchDogsFactory.CreateAndStart(
                     functionTypeId,
+                    serializer,
                     (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
                 );
 
                 var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                     functionTypeId, idFunc, func, 
                     _functionStore, 
+                    serializer,
                     _signOfLifeUpdaterFactory, 
                     _unhandledExceptionHandler,
                     _shutdownCoordinator
@@ -146,7 +161,8 @@ namespace Cleipnir.ResilientFunctions
         public RAction<TParam> Register<TParam, TScrapbook>(
             FunctionTypeId functionTypeId,
             Func<TParam, TScrapbook, Task<RResult>> func,
-            Func<TParam, object> idFunc
+            Func<TParam, object> idFunc,
+            ISerializer? serializer = null
         ) where TParam : notnull where TScrapbook : RScrapbook, new()
         {
             if (_disposed)
@@ -158,14 +174,18 @@ namespace Cleipnir.ResilientFunctions
                 if (_functions.ContainsKey(functionTypeId))
                     return (RAction<TParam>) _functions[functionTypeId];
 
+                serializer ??= new DefaultSerializer();
+                
                 _watchDogsFactory.CreateAndStart(
                     functionTypeId,
+                    serializer,
                     (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
                 );
 
                 var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
                     functionTypeId, idFunc, func, 
                     _functionStore, 
+                    serializer,
                     _signOfLifeUpdaterFactory, 
                     _unhandledExceptionHandler,
                     _shutdownCoordinator
@@ -215,13 +235,10 @@ namespace Cleipnir.ResilientFunctions
                 exceptionHandler,
                 crashedCheckFrequency.Value
             );
-            var rFuncInvoker = new RFuncInvoker(store, signOfLifeUpdaterFactory, exceptionHandler, shutdownCoordinator);
-            var rActionInvoker = new RActionInvoker(store, signOfLifeUpdaterFactory, exceptionHandler, shutdownCoordinator);
 
             var watchdogsFactory = new WatchDogsFactory(
                 store,
-                rFuncInvoker,
-                rActionInvoker,
+                signOfLifeUpdaterFactory,
                 crashedCheckFrequency.Value,
                 postponedCheckFrequency.Value,
                 exceptionHandler,

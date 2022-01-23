@@ -113,7 +113,7 @@ public abstract class CrashedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             await rFunc(param).EnsureSuccess().ShouldBeAsync("TEST");
         }
 
@@ -224,7 +224,7 @@ public abstract class CrashedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             var rResult = await rAction(param);
             rResult.EnsureSuccess();
         }

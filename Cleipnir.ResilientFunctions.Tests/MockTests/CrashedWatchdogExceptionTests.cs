@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
@@ -37,6 +38,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
@@ -90,6 +92,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
@@ -142,6 +145,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
@@ -201,6 +205,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()

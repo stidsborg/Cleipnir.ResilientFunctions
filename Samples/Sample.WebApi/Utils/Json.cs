@@ -1,8 +1,7 @@
-﻿using System;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
-namespace Cleipnir.ResilientFunctions.Helpers;
+namespace Sample.WebApi.Utils;
 
 public static class Json
 {

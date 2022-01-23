@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
@@ -16,6 +17,7 @@ public class RActionInvoker<TParam> where TParam : notnull
     private readonly Func<TParam, Task<RResult>> _func;
 
     private readonly IFunctionStore _functionStore;
+    private readonly ISerializer _serializer;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -25,6 +27,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         Func<TParam, object> idFunc,
         Func<TParam, Task<RResult>> func,
         IFunctionStore functionStore,
+        ISerializer serializer,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
         UnhandledExceptionHandler unhandledExceptionHandler, 
         ShutdownCoordinator shutdownCoordinator
@@ -34,6 +37,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         _idFunc = idFunc;
         _func = func;
         _functionStore = functionStore;
+        _serializer = serializer;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -75,7 +79,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         if (_shutdownCoordinator.ShutdownInitiated)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
         
-        var paramJson = param.ToJson();
+        var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.GetType().SimpleQualifiedName();
         var created = await _functionStore.CreateFunction(
             functionId,
@@ -106,7 +110,7 @@ public class RActionInvoker<TParam> where TParam : notnull
                 case Status.Succeeded:
                     return new RResult(ResultType.Succeeded, postponedUntil: null, failedException: null);
                 case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize());
+                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
                 case Status.Postponed:
                     var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
                     return Postpone.Until(postponedUntil);
@@ -133,7 +137,7 @@ public class RActionInvoker<TParam> where TParam : notnull
             scrapbookJson: null,
             result: null,
             failed: new StoredFailure(
-                FailedJson: unhandledException.ToJson(),
+                FailedJson: _serializer.SerializeFault(unhandledException),
                 FailedType: unhandledException.SimpleQualifiedTypeName()
             ),
             postponedUntil: null,
@@ -172,7 +176,7 @@ public class RActionInvoker<TParam> where TParam : notnull
                     scrapbookJson: null,
                     result: null,
                     failed: new StoredFailure(
-                        FailedJson: result.FailedException.ToJson(),
+                        FailedJson: _serializer.SerializeFault(result.FailedException!),
                         FailedType: result.FailedException!.SimpleQualifiedTypeName()
                     ),
                     postponedUntil: null,
@@ -192,6 +196,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private readonly Func<TParam, TScrapbook, Task<RResult>> _func;
 
     private readonly IFunctionStore _functionStore;
+    private readonly ISerializer _serializer;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -201,15 +206,16 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         Func<TParam, object> idFunc,
         Func<TParam, TScrapbook, Task<RResult>> func,
         IFunctionStore functionStore,
+        ISerializer serializer,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
         UnhandledExceptionHandler unhandledExceptionHandler, 
-        ShutdownCoordinator shutdownCoordinator
-    )
+        ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
         _func = func;
         _functionStore = functionStore;
+        _serializer = serializer;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -250,7 +256,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private TScrapbook CreateScrapbook(FunctionId functionId)
     {
         var scrapbook = new TScrapbook();
-        scrapbook.Initialize(functionId, _functionStore, epoch: 0);
+        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch: 0);
         return scrapbook;
     }
 
@@ -259,7 +265,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         if (_shutdownCoordinator.ShutdownInitiated)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
         
-        var paramJson = param.ToJson();
+        var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.GetType().SimpleQualifiedName();
         var created = await _functionStore.CreateFunction(
             functionId,
@@ -290,7 +296,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 case Status.Succeeded:
                     return new RResult(ResultType.Succeeded, postponedUntil: null, failedException: null);
                 case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize());
+                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
                 case Status.Postponed:
                     var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
                     return Postpone.Until(postponedUntil);
@@ -313,10 +319,10 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         await _functionStore.SetFunctionState(
             functionId,
             Status.Failed,
-            scrapbook.ToJson(),
+            _serializer.SerializeScrapbook(scrapbook),
             result: null,
             failed: new StoredFailure(
-                FailedJson: unhandledException.ToJson(),
+                FailedJson: _serializer.SerializeFault(unhandledException),
                 FailedType: unhandledException.SimpleQualifiedTypeName()
             ),
             postponedUntil: null,
@@ -332,7 +338,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
-                    scrapbookJson: scrapbook.ToJson(),
+                    scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     failed: null,
                     postponedUntil: null,
@@ -342,7 +348,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: scrapbook.ToJson(),
+                    scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     failed: null,
                     result.PostponedUntil!.Value.Ticks,
@@ -352,10 +358,10 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson: scrapbook.ToJson(),
+                    scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     failed: new StoredFailure(
-                        FailedJson: result.FailedException.ToJson(),
+                        FailedJson: _serializer.SerializeFault(result.FailedException!),
                         FailedType: result.FailedException!.SimpleQualifiedTypeName()
                     ),
                     postponedUntil: null,

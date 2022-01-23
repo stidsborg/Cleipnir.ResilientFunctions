@@ -141,7 +141,7 @@ public abstract class FailedTests
             storedFunction.Status.ShouldBe(Status.Failed);
 
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().ShouldBeOfType<Scrapbook>();
+            storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
 
             (await rFunc(PARAM)).Failed.ShouldBeTrue();
         }
@@ -270,7 +270,7 @@ public abstract class FailedTests
             storedFunction.Status.ShouldBe(Status.Failed);
 
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().ShouldBeOfType<Scrapbook>();
+            storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
             (await rFunc(param)).Failed.ShouldBeTrue();
         }
             

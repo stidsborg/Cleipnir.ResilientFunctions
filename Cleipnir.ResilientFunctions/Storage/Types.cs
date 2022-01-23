@@ -1,6 +1,6 @@
 using System;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 
 namespace Cleipnir.ResilientFunctions.Storage
 {
@@ -24,29 +24,23 @@ namespace Cleipnir.ResilientFunctions.Storage
         long? PostponedUntil
     );
 
-    public record StoredParameter(string ParamJson, string ParamType)
-    {
-        public object Deserialize()
-            => Json.Deserialize(ParamJson, Type.GetType(ParamType, throwOnError: true)!)!;
-    }
+    public record StoredParameter(string ParamJson, string ParamType);
+    public record StoredResult(string ResultJson, string ResultType);
+    public record StoredFailure(string FailedJson, string FailedType);
+    public record StoredScrapbook(string? ScrapbookJson, string ScrapbookType);
 
-    public record StoredResult(string ResultJson, string ResultType)
+    internal static class StorageTypeExtensions
     {
-        public object Deserialize()
-            => ResultJson.DeserializeFromJsonTo(Type.GetType(ResultType, throwOnError: true)!);
-    }
+        public static object Deserialize(this StoredParameter parameter, ISerializer serializer)
+            => serializer.DeserializeParameter(parameter.ParamJson, parameter.ParamType);
+        
+        public static RScrapbook Deserialize(this StoredScrapbook scrapbook, ISerializer serializer)
+            => serializer.DeserializeScrapbook(scrapbook.ScrapbookJson!, scrapbook.ScrapbookType);
 
-    public record StoredFailure(string FailedJson, string FailedType)
-    {
-        public Exception Deserialize()
-            => (Exception) FailedJson.DeserializeFromJsonTo(Type.GetType(FailedType, throwOnError: true)!);
-    }
+        public static Exception Deserialize(this StoredFailure failure, ISerializer serializer)
+            => serializer.DeserializeFault(failure.FailedJson, failure.FailedType);
 
-    public record StoredScrapbook(string? ScrapbookJson, string ScrapbookType)
-    {
-        public RScrapbook Deserialize() 
-            => ScrapbookJson == null
-                ? (RScrapbook) Activator.CreateInstance(Type.GetType(ScrapbookType, throwOnError: true)!)!
-                : (RScrapbook) ScrapbookJson.DeserializeFromJsonTo(Type.GetType(ScrapbookType, throwOnError: true)!);
+        public static object Deserialize(this StoredResult result, ISerializer serializer)
+            => serializer.DeserializeResult(result.ResultJson, result.ResultType);
     }
 }

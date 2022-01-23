@@ -106,7 +106,7 @@ public abstract class PostponedTests
             storedFunction.ShouldNotBeNull();
 
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             
             await rFunc(param).EnsureSuccess().ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -210,7 +210,7 @@ public abstract class PostponedTests
             storedFunction.ShouldNotBeNull();
 
             storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.Deserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
 
             var result = await rFunc(param);
             result.Succeeded.ShouldBe(true);

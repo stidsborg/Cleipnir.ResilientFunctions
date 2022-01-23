@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
@@ -12,21 +13,23 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
     internal class RActionInvoker
     {
         private readonly IFunctionStore _functionStore;
+        private readonly ISerializer _serializer;
         private readonly ISignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
         private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         private readonly ShutdownCoordinator _shutdownCoordinator;
 
         public RActionInvoker(
-            IFunctionStore functionStore, 
+            IFunctionStore functionStore,  
+            ISerializer serializer,
             ISignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
             UnhandledExceptionHandler unhandledExceptionHandler, 
-            ShutdownCoordinator shutdownCoordinator
-        )
+            ShutdownCoordinator shutdownCoordinator)
         {
             _functionStore = functionStore;
             _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
             _unhandledExceptionHandler = unhandledExceptionHandler;
             _shutdownCoordinator = shutdownCoordinator;
+            _serializer = serializer;
         }
 
         public async Task ReInvoke(
@@ -51,13 +54,13 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
 
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, newEpoch);
 
-                var parameter = storedFunction.Parameter.Deserialize();
+                var parameter = storedFunction.Parameter.Deserialize(_serializer);
 
                 RScrapbook? scrapbook = null;
                 if (storedFunction.Scrapbook != null)
                 {
-                    scrapbook = storedFunction.Scrapbook.Deserialize();
-                    scrapbook.Initialize(functionId, _functionStore, newEpoch);
+                    scrapbook = storedFunction.Scrapbook.Deserialize(_serializer);
+                    scrapbook.Initialize(functionId, _functionStore, _serializer, newEpoch);
                 }
 
                 RResult result;
@@ -75,7 +78,9 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                     ResultType.Succeeded => _functionStore.SetFunctionState(
                         functionId,
                         Status.Succeeded,
-                        scrapbookJson: scrapbook?.ToJson(),
+                        scrapbookJson: scrapbook == null 
+                            ? null 
+                            : _serializer.SerializeScrapbook(scrapbook),
                         result: null,
                         failed: null,
                         postponedUntil: null,
@@ -84,7 +89,9 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                     ResultType.Postponed => _functionStore.SetFunctionState(
                         functionId,
                         Status.Postponed,
-                        scrapbookJson: scrapbook?.ToJson(),
+                        scrapbookJson: scrapbook == null 
+                            ? null 
+                            : _serializer.SerializeScrapbook(scrapbook),
                         result: null,
                         failed: null,
                         postponedUntil: result.PostponedUntil!.Value.Ticks,
@@ -93,10 +100,12 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                     ResultType.Failed => _functionStore.SetFunctionState(
                         functionId,
                         Status.Failed,
-                        scrapbookJson: scrapbook?.ToJson(),
+                        scrapbookJson: scrapbook == null 
+                            ? null 
+                            : _serializer.SerializeScrapbook(scrapbook),
                         result: null,
                         new StoredFailure(
-                            FailedJson: result.FailedException!.ToJson(),
+                            FailedJson: _serializer.SerializeFault(result.FailedException!),
                             FailedType: result.FailedException!.GetType().SimpleQualifiedName()
                         ),
                         postponedUntil: null,

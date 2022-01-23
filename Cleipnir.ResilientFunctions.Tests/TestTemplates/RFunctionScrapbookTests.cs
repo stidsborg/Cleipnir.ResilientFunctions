@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -9,6 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     public abstract class RFunctionScrapbookTests
     {
+        private readonly DefaultSerializer _serializer = new();
         public abstract Task SunshineScenario();
         public async Task SunshineScenario(IFunctionStore store)
         {
@@ -43,10 +45,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             );
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
-            var storedResult = storedFunction.Result.Deserialize().ToString();
+            var storedResult = storedFunction.Result.Deserialize(_serializer);
             storedResult.ShouldBe("HELLO");
             storedFunction.Scrapbook.ShouldNotBeNull();
-            var scrapbook = (Scrapbook) storedFunction.Scrapbook.Deserialize();
+            var scrapbook = (Scrapbook) storedFunction.Scrapbook.Deserialize(_serializer);
             scrapbook.Scrap.ShouldBe("HELLO");
             
             unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -35,6 +36,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RFuncInvoker(
                     store, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -60,7 +62,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             );
 
             var storedFunction = await store.GetFunction(FunctionId);
-            storedFunction!.Result!.Deserialize().ShouldBe("HELLO");
+            storedFunction!.Result!.DefaultDeserialize().ShouldBe("HELLO");
             
             unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
             syncedScrapbook.Value.ShouldBeNull();
@@ -83,6 +85,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RFuncInvoker(
                     store, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -108,10 +111,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             );
 
             var storedFunction = await store.GetFunction(FunctionId);
-            storedFunction!.Result!.Deserialize().ShouldBe("HELLO");
+            storedFunction!.Result!.DefaultDeserialize().ShouldBe("HELLO");
             
             storedFunction.Scrapbook.ShouldNotBeNull();
-            var scrapbook = (Scrapbook) storedFunction.Scrapbook.Deserialize();
+            var scrapbook = (Scrapbook) storedFunction.Scrapbook.DefaultDeserialize();
             scrapbook.Value.ShouldBe(1);
             
             unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -137,6 +140,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RActionInvoker(
                     store, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -185,6 +189,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RActionInvoker(
                     store, 
+                    new DefaultSerializer(),
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -212,7 +217,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             var storedFunction = await store.GetFunction(FunctionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Scrapbook.ShouldNotBeNull();
-            var scrapbook = (Scrapbook) storedFunction.Scrapbook.Deserialize();
+            var scrapbook = (Scrapbook) storedFunction.Scrapbook.DefaultDeserialize();
             scrapbook.Value.ShouldBe(1);
             
             unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

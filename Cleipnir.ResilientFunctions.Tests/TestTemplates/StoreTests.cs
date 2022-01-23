@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -66,7 +67,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             storedFunction = await store.GetFunction(FunctionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
-            storedFunction.Result.Deserialize().ShouldBe(result);
+            storedFunction.Result.Deserialize(DefaultSerializer.Instance).ShouldBe(result);
         }
 
         public abstract Task SignOfLifeIsUpdatedWhenAsExpected();

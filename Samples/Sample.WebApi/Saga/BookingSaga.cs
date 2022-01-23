@@ -1,7 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Sample.WebApi.Model;
+using Sample.WebApi.Utils;
 
 namespace Sample.WebApi.Saga;
 

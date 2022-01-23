@@ -34,7 +34,7 @@ public abstract class PersistedCallbackTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter.Deserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -64,7 +64,7 @@ public abstract class PersistedCallbackTests
         storedFunction.Status.ShouldBe(Status.Executing);
         storedFunction.Scrapbook.ShouldNotBeNull();
         storedFunction.Scrapbook.ScrapbookType.ResolveType().ShouldBe(typeof(Scrapbook));
-        storedFunction.Parameter.Deserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -94,7 +94,7 @@ public abstract class PersistedCallbackTests
         storedFunction.Status.ShouldBe(Status.Executing);
         storedFunction.Scrapbook.ShouldNotBeNull();
         storedFunction.Scrapbook.ScrapbookType.ResolveType().ShouldBe(typeof(Scrapbook));
-        storedFunction.Parameter.Deserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -122,7 +122,7 @@ public abstract class PersistedCallbackTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter.Deserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 

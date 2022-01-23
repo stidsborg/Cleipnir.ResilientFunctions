@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -33,7 +34,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             ).ShouldBeTrueAsync();
             
             var scrapbook = new Scrapbook();
-            scrapbook.Initialize(FunctionId, store, 0);
+            scrapbook.Initialize(FunctionId, store, new DefaultSerializer(), 0);
 
             var storedScrapbook = (await store.GetFunction(FunctionId))!.Scrapbook;
             storedScrapbook.ShouldNotBeNull();
@@ -80,11 +81,11 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             ).ShouldBeTrueAsync();
             
             var scrapbook = new Scrapbook() {Name = "Peter"};
-            scrapbook.Initialize(FunctionId, store, 1);
+            scrapbook.Initialize(FunctionId, store, new DefaultSerializer(),1);
             await scrapbook.Save();
             
             scrapbook = new Scrapbook() {Name = "Ole"};
-            scrapbook.Initialize(FunctionId, store, 0);
+            scrapbook.Initialize(FunctionId, store, new DefaultSerializer(),0);
             await Should.ThrowAsync<ScrapbookSaveFailedException>(scrapbook.Save);
             
             (await store.GetFunction(FunctionId))!

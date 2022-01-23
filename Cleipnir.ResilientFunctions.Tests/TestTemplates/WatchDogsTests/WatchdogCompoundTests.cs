@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -117,7 +118,7 @@ public abstract class WatchdogCompoundTests
             );
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.Deserialize().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
+            storedFunction!.Result!.DefaultDeserialize().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
 
@@ -241,10 +242,10 @@ public abstract class WatchdogCompoundTests
             );
 
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.Deserialize()
+            storedFunction!.Result!.DefaultDeserialize()
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
-            storedFunction.Scrapbook!.Deserialize()
+            storedFunction.Scrapbook!.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
                 .SequenceEqual(new [] {1,2,3,4})
@@ -492,7 +493,7 @@ public abstract class WatchdogCompoundTests
             
             var storedFunction = await store.GetFunction(functionId);
             storedFunction!.Result.ShouldBeNull();
-            storedFunction.Scrapbook!.Deserialize()
+            storedFunction.Scrapbook!.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
                 .SequenceEqual(new [] {1,2,3,4})
