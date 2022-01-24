@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 
@@ -33,10 +34,13 @@ public class SerializationTests
             store, 
             crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
         );
+
+        var personCurr = default(PersonCurr);
         _ = rFunctions.Register(
             "typeId".ToFunctionTypeId(),
             (PersonCurr p) =>
             {
+                personCurr = p;
                 flag.Raise();
                 return RResult.Success.ToTask();
             },
@@ -45,6 +49,8 @@ public class SerializationTests
         );
 
         await flag.WaitForRaised();
+        personCurr.ShouldNotBeNull();
+        personCurr.Name.ShouldBe("Peter");
     }
 
     private class PersonPrev
