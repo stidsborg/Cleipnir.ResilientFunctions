@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.SqlServer;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Simple;
 
 public static class SimpleFetchFunctionsWithStatus
 {

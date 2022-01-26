@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Simple;
 
 public static class SimpleFetchPostponedFunctionsWithStatus
 {

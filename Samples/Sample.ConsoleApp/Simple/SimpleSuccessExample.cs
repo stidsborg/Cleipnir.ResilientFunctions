@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Simple;
 
 public static class SimpleSuccessExample
 {

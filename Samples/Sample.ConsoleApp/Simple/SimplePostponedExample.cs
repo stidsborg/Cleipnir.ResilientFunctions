@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using static ConsoleApp.Utils;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Simple;
 
 public static class SimplePostponeExample
 {
