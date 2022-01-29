@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Utils;
+using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Dapper;
 using Microsoft.Data.SqlClient;
 

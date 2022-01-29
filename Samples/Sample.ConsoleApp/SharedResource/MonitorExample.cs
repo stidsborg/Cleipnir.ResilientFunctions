@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.Utils;
+using Cleipnir.ResilientFunctions.Utils.Monitor;
 using static Cleipnir.ResilientFunctions.RResult;
 
 namespace ConsoleApp.SharedResource;

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Cleipnir.ResilientFunctions.Utils;
+using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;

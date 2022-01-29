@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Utils;
+namespace Cleipnir.ResilientFunctions.Utils.Monitor;
 
 public interface IMonitor
 {

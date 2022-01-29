@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 
-namespace Cleipnir.ResilientFunctions.Utils;
+namespace Cleipnir.ResilientFunctions.Utils.Monitor;
 
 public class InMemoryMonitor : IMonitor
 {
