@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.SqlServer.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Dapper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

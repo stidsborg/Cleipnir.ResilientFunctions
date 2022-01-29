@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
-namespace Cleipnir.ResilientFunctions.SqlServer;
+namespace Cleipnir.ResilientFunctions.SqlServer.Utils;
 
 public class Monitor : IMonitor
 {
