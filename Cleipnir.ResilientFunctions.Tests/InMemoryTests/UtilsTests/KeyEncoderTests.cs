@@ -2,7 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.UtilsTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.UtilsTests;
 
 [TestClass]
 public class KeyEncoderTests
