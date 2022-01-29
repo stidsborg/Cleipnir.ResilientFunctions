@@ -37,6 +37,13 @@ public class MonitorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Moni
     public override Task WhenALockIsReleasedActiveAcquireShouldGetTheLock()
         => WhenALockIsReleasedActiveAcquireShouldGetTheLock(CreateAndInitializeMonitor());
 
+    [TestMethod]
+    public async Task InvokingInitializeTwiceSucceeds()
+    {
+        var monitor = (Monitor) await CreateAndInitializeMonitor();
+        await monitor.Initialize();
+    }
+    
     private async Task<IMonitor> CreateAndInitializeMonitor([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
     {
         var monitor = new Monitor(Sql.ConnFunc, tablePrefix: memberName);
