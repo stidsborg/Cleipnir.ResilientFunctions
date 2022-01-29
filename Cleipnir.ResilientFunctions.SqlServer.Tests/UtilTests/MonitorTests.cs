@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Dapper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests;
+namespace Cleipnir.ResilientFunctions.SqlServer.Tests.UtilTests;
 
 [TestClass]
 public class MonitorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.MonitorTests
