@@ -226,40 +226,6 @@ namespace Cleipnir.ResilientFunctions.SqlServer
             return affectedRows > 0;
         }
 
-        public async Task<bool> Barricade(FunctionId functionId)
-        {
-            await using var conn = await _connFunc();
-            try
-            {
-                await conn.ExecuteAsync(@$"
-                INSERT INTO {_tablePrefix}RFunctions(
-                    FunctionTypeId, FunctionInstanceId,                                           
-                    Status,
-                    Epoch, SignOfLife)
-                VALUES(
-                    @FunctionTypeId, @FunctionInstanceId, 
-                    @Status,
-                    @Epoch, @SignOfLife)",
-                    new
-                    {
-                        FunctionTypeId = functionId.TypeId.Value,
-                        FunctionInstanceId = functionId.InstanceId.Value,
-                        Status = (int) Status.Barricaded,
-                        Epoch = 0,
-                        SignOfLife = 0
-                    });
-
-                return true;
-            }
-            catch (SqlException sqlException)
-            {
-                if (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
-                    return false;
-                    
-                throw;
-            }
-        }
-
         public async Task<StoredFunction?> GetFunction(FunctionId functionId)
         {
             await using var conn = await _connFunc();

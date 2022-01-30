@@ -173,36 +173,5 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             storedFunction.Epoch.ShouldBe(2);
             storedFunction.SignOfLife.ShouldBe(0);
         }
-        
-        public abstract Task NonExistingFunctionCanBeBarricaded();
-        public async Task NonExistingFunctionCanBeBarricaded(IFunctionStore store)
-        {
-            await store.CreateFunction(
-                FunctionId,
-                param: new StoredParameter(PARAM.ToJson(), PARAM.GetType().SimpleQualifiedName()),
-                scrapbookType: null,
-                Status.Executing,
-                initialEpoch: 2,
-                initialSignOfLife: 0
-            ).ShouldBeTrueAsync();
-            
-            var success = await store.Barricade(FunctionId);
-            success.ShouldBeFalse();
-
-            var storedFunction = await store.GetFunction(FunctionId);
-            storedFunction.ShouldNotBeNull();
-            storedFunction.Status.ShouldBe(Status.Executing);
-        }
-        
-        public abstract Task ExistingFunctionCannotBeBarricaded();
-        public async Task ExistingFunctionCannotBeBarricaded(IFunctionStore store)
-        {
-            var success = await store.Barricade(FunctionId);
-            success.ShouldBeTrue();
-
-            var storedFunction = await store.GetFunction(FunctionId);
-            storedFunction.ShouldNotBeNull();
-            storedFunction.Status.ShouldBe(Status.Barricaded);
-        }
     }
 }

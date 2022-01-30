@@ -9,5 +9,4 @@ public enum Status
     Succeeded = 1,
     Failed = 2,
     Postponed = 4,
-    Barricaded = 8,
 }

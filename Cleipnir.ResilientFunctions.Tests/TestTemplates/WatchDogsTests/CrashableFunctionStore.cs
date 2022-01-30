@@ -99,11 +99,6 @@ public class CrashableFunctionStore : IFunctionStore
         return success;
     }
 
-    public Task<bool> Barricade(FunctionId functionId)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.Barricade(functionId);
-
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _crashed
             ? Task.FromException<StoredFunction?>(new TimeoutException())

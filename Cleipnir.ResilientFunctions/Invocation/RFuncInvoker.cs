@@ -117,8 +117,6 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
                 case Status.Postponed:
                     var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
                     return Postpone.Until(postponedUntil);
-                case Status.Barricaded:
-                    throw new FunctionBarricadedException($"Function '{functionId.TypeId.Value}.{functionId.InstanceId.Value}' has been barricaded");
                 default:
                     throw new ArgumentOutOfRangeException(); //todo framework exception
             }
@@ -313,8 +311,6 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                 case Status.Postponed:
                     var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
                     return Postpone.Until(postponedUntil);
-                case Status.Barricaded:
-                    throw new FunctionInvocationException($"Function '{functionId}' has been barricaded");
                 default:
                     throw new ArgumentOutOfRangeException(); //todo framework exception
             }
