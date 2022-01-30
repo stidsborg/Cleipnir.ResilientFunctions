@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.UtilTests;
 
 [TestClass]
-public class MonitorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.MonitorTests
+public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.MonitorTests
 {
     [TestMethod]
     public override Task LockCanBeAcquiredAndReleasedSuccessfully()

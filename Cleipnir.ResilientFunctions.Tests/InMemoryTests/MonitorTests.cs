@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 
 [TestClass]
-public class MonitorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.MonitorTests
+public class MonitorTests : TestTemplates.UtilsTests.MonitorTests
 {
     private readonly Dictionary<string, InMemoryMonitor> _monitors = new();
     private readonly object _sync = new();

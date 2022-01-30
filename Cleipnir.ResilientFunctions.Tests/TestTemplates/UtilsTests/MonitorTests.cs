@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.UtilsTests;
 
 public abstract class MonitorTests
 {
