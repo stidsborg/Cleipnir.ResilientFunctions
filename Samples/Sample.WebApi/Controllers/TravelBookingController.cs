@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Cleipnir.ResilientFunctions.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
 using Sample.WebApi.Model;
 using Sample.WebApi.Saga;
 
@@ -6,7 +7,7 @@ namespace Sample.WebApi.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class TravelBookingController : ControllerBase
+public class TravelBookingController : ControllerBase, IRegisterRFuncOnInstantiation
 {
     private readonly ILogger<TravelBookingController> _logger;
     private readonly BookingSaga _bookingSaga;
@@ -25,7 +26,7 @@ public class TravelBookingController : ControllerBase
             FlightRequestId: Guid.NewGuid(),
             HotelRequestId: Guid.NewGuid()
         );
-        var result = await _bookingSaga.Invoke(orderAndRequestIds);
+        var result = await _bookingSaga.BookTravel(orderAndRequestIds);
         var booking = result.EnsureSuccess();
         return booking;
     }

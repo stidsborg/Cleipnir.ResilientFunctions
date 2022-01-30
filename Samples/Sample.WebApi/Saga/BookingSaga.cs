@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.Domain;
 using Sample.WebApi.Model;
 using Sample.WebApi.Utils;
@@ -11,27 +12,37 @@ public class BookingScrapbook : RScrapbook
     public string? FlightBooking { get; set; }
 }
 
-public class BookingSaga : RSaga<OrderAndRequestIds, BookingScrapbook, Booking>
+public class BookingSaga : IRegisterRFuncOnInstantiation
 {
     private readonly ILogger<BookingSaga> _logger;
     private readonly HttpClient _httpClient = new();
     private const string FLIGHT_URL = "https://postman-echo.com/post";
     private const string HOTEL_URL = "https://postman-echo.com/post";
 
-    public BookingSaga(RFunctions rFunctions, ILogger<BookingSaga> logger) 
-        : base(
-            nameof(BookingSaga).ToFunctionTypeId(), 
-            idFunc: param => param.Order.Id, 
-            rFunctions
-        ) => _logger = logger;
-
-    protected override async Task<RResult<Booking>> Func(OrderAndRequestIds param, BookingScrapbook scrapbook)
+    public RFunc<OrderAndRequestIds, Booking> BookTravel { get; }
+    
+    public BookingSaga(RFunctions rFunctions, ILogger<BookingSaga> logger)
     {
+        _logger = logger;
+        
+        BookTravel = rFunctions.Register<OrderAndRequestIds, BookingScrapbook, Booking>(
+            nameof(Saga.BookingSaga).ToFunctionTypeId(),
+            _BookTravel,
+            o => o.Order.Id
+        );
+    }
+
+    private async Task<RResult<Booking>> _BookTravel(OrderAndRequestIds param, BookingScrapbook scrapbook)
+    {
+        _logger.LogInformation("Started booking of order {OrderId}", param.Order.Id);
+        
         var (order, flightRequestId, hotelRequestId) = param;
 
         var flightBooking = await BookFlight(order, flightRequestId, scrapbook);
         var hotelBooking = await BookHotel(order, hotelRequestId, scrapbook);
 
+        _logger.LogInformation("Completed booking of order {OrderId}", param.Order.Id);
+        
         return new Booking(flightBooking, hotelBooking);
     }
 

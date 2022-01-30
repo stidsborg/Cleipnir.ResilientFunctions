@@ -24,13 +24,10 @@ public class RFunctionsService : IHostedService
             .Select(Assembly.Load)
             .Concat(new[] {_callingAssembly})
             .SelectMany(a => a.GetTypes())
-            .Where(t => 
-                t.GetInterfaces().Contains(typeof(IRegisterRFuncOnInstantiation)) || 
-                t.IsSubclassOf(typeof(RSaga)) && !t.IsAbstract
-            );
+            .Where(t => t.GetInterfaces().Contains(typeof(IRegisterRFuncOnInstantiation)));
 
         foreach (var iRegisterRFuncOnInstantiationType in iRegisterRFuncOnInstantiationTypes)
-            _ = _services.GetService(iRegisterRFuncOnInstantiationType);
+            _ = _services.GetService(iRegisterRFuncOnInstantiationType); //todo should this be required invocation or not?
 
         var rFunctions = _services.GetRequiredService<RFunctions>();
         var iRegisterRFuncs = _services.GetServices<IRegisterRFunc>();
