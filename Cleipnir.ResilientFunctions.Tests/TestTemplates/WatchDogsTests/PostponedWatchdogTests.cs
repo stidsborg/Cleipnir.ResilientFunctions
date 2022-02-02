@@ -269,12 +269,13 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
         }
 
         public abstract Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime();
+
         protected async Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(IFunctionStore store)
         {
             var functionType = nameof(MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime).ToFunctionTypeId();
             var unhandledExceptionsCatcher = new UnhandledExceptionCatcher();
             using var rFunctions = RFunctions.Create(
-                store, 
+                store,
                 unhandledExceptionsCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
@@ -290,6 +291,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                         syncedList.Add(delay);
                         return RResult.Success;
                     }
+
                     scrapbook.Value = 1;
                     await scrapbook.Save();
 
@@ -297,7 +299,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 },
                 _ => _
             );
-            
+
             _ = rFunc(10);
             _ = rFunc(110);
             _ = rFunc(210);
@@ -307,11 +309,19 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             await BusyWait.UntilAsync(() => syncedList.Count == 5, checkInterval: TimeSpan.FromMilliseconds(10));
 
             syncedList
-                .SequenceEqual(new[] { 10, 110, 210, 310, 410 })
+                .SequenceEqual(new[] {10, 110, 210, 310, 410})
                 .ShouldBeTrue($"But was: {string.Join(", ", syncedList)}");
-            await store.GetFunctionsWithStatus(functionType, Status.Succeeded)
+
+            await BusyWait.Until(async () =>
+                await store
+                    .GetFunctionsWithStatus(functionType, Status.Succeeded)
+                    .Map(e => e.Count()) != 0
+            );
+
+            await store
+                .GetFunctionsWithStatus(functionType, Status.Succeeded)
                 .Map(fs => fs.Select(s => int.Parse(s.InstanceId.Value)))
-                .Map(s => s.SequenceEqual(new[] { 10, 110, 210, 310, 410 }))
+                .Map(s => s.SequenceEqual(new[] {10, 110, 210, 310, 410}))
                 .ShouldBeTrueAsync();
         }
 
