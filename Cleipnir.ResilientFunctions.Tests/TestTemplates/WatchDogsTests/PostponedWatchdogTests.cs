@@ -306,7 +306,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
 
             await BusyWait.UntilAsync(() => syncedList.Count == 5, checkInterval: TimeSpan.FromMilliseconds(10));
 
-            syncedList.SequenceEqual(new[] { 10, 110, 210, 310, 410 }).ShouldBeTrue();
+            syncedList
+                .SequenceEqual(new[] { 10, 110, 210, 310, 410 })
+                .ShouldBeTrue($"But was: {string.Join(", ", syncedList)}");
             await store.GetFunctionsWithStatus(functionType, Status.Succeeded)
                 .Map(fs => fs.Select(s => int.Parse(s.InstanceId.Value)))
                 .Map(s => s.SequenceEqual(new[] { 10, 110, 210, 310, 410 }))
