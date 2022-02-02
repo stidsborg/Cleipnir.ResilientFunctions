@@ -269,7 +269,6 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
         }
 
         public abstract Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime();
-
         protected async Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(IFunctionStore store)
         {
             var functionType = nameof(MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime).ToFunctionTypeId();
