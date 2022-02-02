@@ -1,7 +1,14 @@
 namespace Cleipnir.ResilientFunctions.Domain
 {
-    public record FunctionTypeId(string Value);
-    public record FunctionInstanceId(string Value);
+    public record FunctionTypeId(string Value)
+    {
+        public static implicit operator FunctionTypeId(string functionTypeId) => new(functionTypeId);
+    }
+
+    public record FunctionInstanceId(string Value)
+    {
+        public static implicit operator FunctionInstanceId(string functionInstanceId) => new(functionInstanceId);
+    }
 
     public record FunctionId(FunctionTypeId TypeId, FunctionInstanceId InstanceId)
     {
@@ -13,7 +20,7 @@ namespace Cleipnir.ResilientFunctions.Domain
 
         public FunctionId(string functionTypeId, FunctionInstanceId functionInstanceId) 
             : this(functionTypeId.ToFunctionTypeId(), functionInstanceId) { }
-        
+
         public override string ToString() 
             => $"{nameof(FunctionId)} {{ TypeId = { TypeId.Value }, InstanceId = { InstanceId.Value } }}";
     }
