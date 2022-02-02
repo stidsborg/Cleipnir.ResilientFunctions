@@ -10,4 +10,8 @@
       <ProjectReference Include="..\..\Cleipnir.ResilientFunctions.SqlServer\Cleipnir.ResilientFunctions.SqlServer.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="MailKit" Version="3.1.1" />
+    </ItemGroup>
+
 </Project>
