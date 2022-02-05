@@ -15,7 +15,7 @@ public class InMemoryFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         string? scrapbookType,
-        Status initialStatus, 
+        Status initialStatus, //todo remove this parameter - may create invalid functions 
         int initialEpoch, 
         int initialSignOfLife
     )
