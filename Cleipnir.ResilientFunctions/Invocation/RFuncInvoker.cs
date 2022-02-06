@@ -256,11 +256,10 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var (created, epoch) = await PersistFunctionInStore(functionId, param, onPersisted, reInvoke, onlyReInvokeWhen);
+            var (created, epoch, scrapbook) = await PersistFunctionInStore(functionId, param, onPersisted, reInvoke, onlyReInvokeWhen);
             if (!created) return await WaitForFunctionResult(functionId);
 
             using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-            var scrapbook = CreateScrapbook(functionId, epoch);
             RResult<TResult> result;
             try
             {
@@ -288,11 +287,12 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         return scrapbook;
     }
 
-    private async Task<CreatedAndEpoch> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted, bool reInvoke, Status[]? onlyReInvokeWhen)
+    private async Task<CreatedAndEpochAndScrapbook> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted, bool reInvoke, Status[]? onlyReInvokeWhen)
     {
         if (_shutdownCoordinator.ShutdownInitiated)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
         var epoch = 0;
+        TScrapbook? scrapbook = null;
         var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.GetType().SimpleQualifiedName();
         var created = await _functionStore.CreateFunction(
@@ -312,6 +312,10 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
             if (onlyReInvokeWhen.All(status => storedFunction.Status != status))
                 throw new FrameworkException($"Unable to re-invoke function '{functionId}' as it is in unexpected state");
             epoch = storedFunction.Epoch + 1;
+            scrapbook = (TScrapbook) _serializer.DeserializeScrapbook(
+                storedFunction.Scrapbook!.ScrapbookJson,
+                storedFunction.Scrapbook.ScrapbookType
+            );
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,
@@ -320,13 +324,16 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
             );
             created = success;
         }
+        
+        scrapbook ??= CreateScrapbook(functionId, epoch);
+        
         if (onPersisted != null)
             _ = Task.Run(onPersisted);
         
-        return new CreatedAndEpoch(created, epoch);
+        return new CreatedAndEpochAndScrapbook(created, epoch, scrapbook);
     }
 
-    private record CreatedAndEpoch(bool Created, int Epoch);
+    private record CreatedAndEpochAndScrapbook(bool Created, int Epoch, TScrapbook Scrapbook);
 
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
     {

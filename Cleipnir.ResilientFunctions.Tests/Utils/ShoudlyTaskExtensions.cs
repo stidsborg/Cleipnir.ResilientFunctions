@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
@@ -10,9 +11,14 @@ public static class ShoudlyTaskExtensions
 
     public static async Task ShouldBeNullAsync<T>(this Task<T?> task) where T : class 
         => (await task).ShouldBeNull();
-    
-    public static async Task ShouldNotBeNullAsync<T>(this Task<T> task) where T : class 
-        => (await task).ShouldNotBeNull();
+
+    public static async Task<T> ShouldNotBeNullAsync<T>(this Task<T?> task) where T : notnull
+    {
+        var result = await task;
+        if (result == null)
+            throw new ShouldAssertException("Awaited result was null");
+        return result;
+    } 
 
     public static async Task ShouldBeDefault<T>(this Task<T?> task)
         => (await task).ShouldBe(default(T));

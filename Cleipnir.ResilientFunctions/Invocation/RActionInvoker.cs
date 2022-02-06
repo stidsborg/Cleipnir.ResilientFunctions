@@ -245,11 +245,11 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var (created, epoch) = await PersistFunctionInStore(functionId, param, onPersisted, reInvoke, onlyReInvokeWhen);
+            var (created, epoch, scrapbook) = await PersistFunctionInStore(functionId, param, onPersisted, reInvoke, onlyReInvokeWhen);
             if (!created) return await WaitForFunctionResult(functionId);
 
             using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-            var scrapbook = CreateScrapbook(functionId, epoch);
+            
             RResult result;
             try
             {
@@ -271,18 +271,12 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
-    private TScrapbook CreateScrapbook(FunctionId functionId, int epoch)
-    {
-        var scrapbook = new TScrapbook();
-        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
-        return scrapbook;
-    }
-
-    private async Task<CreatedAndEpoch> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted, bool reInvoke, Status[]? onlyReInvokeWhen)
+    private async Task<CreatedAndEpochAndScrapbook> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted, bool reInvoke, Status[]? onlyReInvokeWhen)
     {
         if (_shutdownCoordinator.ShutdownInitiated)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
 
+        TScrapbook? scrapbook = default;
         var epoch = 0;
         var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.GetType().SimpleQualifiedName();
@@ -304,6 +298,10 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             if (onlyReInvokeWhen.All(status => storedFunction.Status != status))
                 throw new FrameworkException("Unable to re-invoke function '{functionId}' as it is in unexpected state");
             epoch = storedFunction.Epoch + 1;
+            scrapbook = (TScrapbook) _serializer.DeserializeScrapbook(
+                storedFunction.Scrapbook!.ScrapbookJson, 
+                storedFunction.Scrapbook.ScrapbookType
+            );
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,
@@ -313,12 +311,21 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             created = success;
         }
         
+        scrapbook ??= CreateScrapbook(functionId, epoch);
+        
         if (onPersisted != null)
             _ = Task.Run(onPersisted);
-        return new CreatedAndEpoch(created, epoch);
+        return new CreatedAndEpochAndScrapbook(created, epoch, scrapbook);
+    }
+    
+    private TScrapbook CreateScrapbook(FunctionId functionId, int epoch)
+    {
+        var scrapbook = new TScrapbook();
+        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
+        return scrapbook;
     }
 
-    private record CreatedAndEpoch(bool Created, int Epoch);
+    private record CreatedAndEpochAndScrapbook(bool Created, int Epoch, TScrapbook Scrapbook);
 
     private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
     {
