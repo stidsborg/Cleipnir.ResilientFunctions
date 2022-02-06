@@ -49,7 +49,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
             if (_checkFrequency == TimeSpan.Zero) return;
             try
             {
-                var prevHangingFunctions = new Dictionary<FunctionInstanceId, StoredFunctionStatus>();
+                var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredFunctionStatus>();
 
                 while (!_disposed)
                 {
@@ -58,7 +58,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
                     if (_disposed) return;
                     _executing = true;
 
-                    var currHangingFunctions = await _functionStore
+                    var currExecutingFunctions = await _functionStore
                         .GetFunctionsWithStatus(_functionTypeId, Status.Executing)
                         .TaskSelect(l =>
                             l.ToDictionary(
@@ -68,8 +68,8 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
                         );
 
                     var hangingFunctions =
-                        from prev in prevHangingFunctions
-                        join curr in currHangingFunctions
+                        from prev in prevExecutingFunctions
+                        join curr in currExecutingFunctions
                             on (prev.Key, prev.Value.SignOfLife) equals (curr.Key, curr.Value.SignOfLife)
                         select prev.Value;
 
@@ -98,7 +98,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
                         }
                     }
 
-                    prevHangingFunctions = currHangingFunctions;
+                    prevExecutingFunctions = currExecutingFunctions;
                 }
             }
             catch (Exception innerException)
