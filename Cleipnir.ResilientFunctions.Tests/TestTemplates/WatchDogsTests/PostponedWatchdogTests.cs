@@ -300,15 +300,17 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             );
 
             _ = rFunc(10);
-            _ = rFunc(110);
-            _ = rFunc(210);
-            _ = rFunc(310);
-            _ = rFunc(410);
+            _ = rFunc(1000);
+            _ = rFunc(2000);
 
-            await BusyWait.UntilAsync(() => syncedList.Count == 5, checkInterval: TimeSpan.FromMilliseconds(10));
+            await BusyWait.UntilAsync(
+                () => syncedList.Count == 3, 
+                checkInterval: TimeSpan.FromMilliseconds(10), 
+                maxWait: TimeSpan.FromSeconds(5)
+            );
 
             syncedList
-                .SequenceEqual(new[] {10, 110, 210, 310, 410})
+                .SequenceEqual(new[] { 10, 1000, 2000 })
                 .ShouldBeTrue($"But was: {string.Join(", ", syncedList)}");
 
             await BusyWait.Until(async () =>
@@ -320,7 +322,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             await store
                 .GetFunctionsWithStatus(functionType, Status.Succeeded)
                 .Map(fs => fs.Select(s => int.Parse(s.InstanceId.Value)))
-                .Map(s => s.SequenceEqual(new[] {10, 110, 210, 310, 410}))
+                .Map(s => s.SequenceEqual(new[] { 10, 1000, 2000 }))
                 .ShouldBeTrueAsync();
         }
 
