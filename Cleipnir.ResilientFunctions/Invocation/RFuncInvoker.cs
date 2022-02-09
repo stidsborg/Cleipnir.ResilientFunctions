@@ -43,16 +43,16 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null, bool reInvoke = false, Status[]? onlyReInvokeWhen = null)
+    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
     {
         try
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var (created, epoch) = await PersistFunctionInStore(functionId, param, onPersisted, reInvoke, onlyReInvokeWhen);
+            var created = await PersistFunctionInStore(functionId, param, onPersisted);
             if (!created) return await WaitForFunctionResult(functionId);
 
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
             RResult<TResult> result;
             try
             {
@@ -61,11 +61,11 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
             }
             catch (Exception exception)
             {
-                await ProcessUnhandledException(functionId, exception, epoch);
+                await ProcessUnhandledException(functionId, exception);
                 return new Fail(exception);
             }
 
-            await ProcessResult(functionId, result, epoch);
+            await ProcessResult(functionId, result);
             return result;    
         } finally{ _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
@@ -73,7 +73,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
-    private async Task<CreatedAndEpoch> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted, bool reInvoke, Status[]? onlyReInvokeWhen)
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
     {
         if (_shutdownCoordinator.ShutdownInitiated)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
@@ -88,31 +88,12 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
             initialSignOfLife: 0,
             initialStatus: Status.Executing
         );
-        
-        if (!created && reInvoke)
-        {
-            onlyReInvokeWhen ??= new[] {Status.Failed};
-            var storedFunction = await _functionStore.GetFunction(functionId);
-            if (storedFunction == null)
-                throw new FrameworkException($"Function '{functionId}' not found on re-invocation");
-            if (onlyReInvokeWhen.All(status => storedFunction.Status != status))
-                throw new FrameworkException("Unable to re-invoke function '{functionId}' as it is in unexpected state");
-            epoch = storedFunction.Epoch + 1;
-            var success = await _functionStore.TryToBecomeLeader(
-                functionId,
-                Status.Executing,
-                expectedEpoch: epoch - 1,
-                newEpoch: epoch
-            );
-            created = success;
-        }
-        
+
         if (onPersisted != null)
             _ = Task.Run(onPersisted);
-        
-        return new CreatedAndEpoch(created, epoch);
+
+        return created;
     }
-    private record CreatedAndEpoch(bool Created, int Epoch);
 
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
     {
@@ -145,7 +126,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         }
     }
     
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, int epoch)
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException)
     {
         _unhandledExceptionHandler.Invoke(
             new FunctionInvocationException(
@@ -164,11 +145,11 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
                 FailedType: unhandledException.SimpleQualifiedTypeName()
             ),
             postponedUntil: null,
-            expectedEpoch: epoch
+            expectedEpoch: 0
         );
     }
 
-    private Task ProcessResult(FunctionId functionId, RResult<TResult> result, int epoch)
+    private Task ProcessResult(FunctionId functionId, RResult<TResult> result)
     {
         var persistInStoreTask = result.ResultType switch
         {
@@ -183,7 +164,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
                     ),
                     failed: null,
                     postponedUntil: null,
-                    expectedEpoch: epoch
+                    expectedEpoch: 0
                 ),
             ResultType.Postponed =>
                 _functionStore.SetFunctionState(
@@ -193,7 +174,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
                     result: null,
                     failed: null,
                     result.PostponedUntil!.Value.Ticks,
-                    expectedEpoch: epoch
+                    expectedEpoch: 0
                 ),
             ResultType.Failed =>
                 _functionStore.SetFunctionState(
@@ -206,7 +187,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
                         FailedType: result.FailedException!.SimpleQualifiedTypeName()
                     ),
                     postponedUntil: null,
-                    expectedEpoch: epoch
+                    expectedEpoch: 0
                 ),
             _ => throw new ArgumentOutOfRangeException()
         };
@@ -250,16 +231,17 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null, bool reInvoke = false, Status[]? onlyReInvokeWhen = null)
+    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
     {
         try
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var (created, epoch, scrapbook) = await PersistFunctionInStore(functionId, param, onPersisted, reInvoke, onlyReInvokeWhen);
+            var created = await PersistFunctionInStore(functionId, param, onPersisted);
             if (!created) return await WaitForFunctionResult(functionId);
-
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+            
+            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+            var scrapbook = CreateScrapbook(functionId);
             RResult<TResult> result;
             try
             {
@@ -268,11 +250,11 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
             }
             catch (Exception exception)
             {
-                await ProcessUnhandledException(functionId, exception, scrapbook, epoch);
+                await ProcessUnhandledException(functionId, exception, scrapbook);
                 return new Fail(exception);
             }
 
-            await ProcessResult(functionId, result, scrapbook, epoch);
+            await ProcessResult(functionId, result, scrapbook);
             return result;
         } finally{ _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
@@ -280,19 +262,19 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
     
-    private TScrapbook CreateScrapbook(FunctionId functionId, int epoch)
+    private TScrapbook CreateScrapbook(FunctionId functionId)
     {
         var scrapbook = new TScrapbook();
-        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
+        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch: 0);
         return scrapbook;
     }
 
-    private async Task<CreatedAndEpochAndScrapbook> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted, bool reInvoke, Status[]? onlyReInvokeWhen)
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
     {
         if (_shutdownCoordinator.ShutdownInitiated)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
         var epoch = 0;
-        TScrapbook? scrapbook = null;
+
         var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.GetType().SimpleQualifiedName();
         var created = await _functionStore.CreateFunction(
@@ -303,38 +285,13 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
             initialSignOfLife: 0,
             initialStatus: Status.Executing
         );
-        if (!created && reInvoke)
-        {
-            onlyReInvokeWhen ??= new[] {Status.Failed};
-            var storedFunction = await _functionStore.GetFunction(functionId);
-            if (storedFunction == null)
-                throw new FrameworkException($"Function '{functionId}' not found on re-invocation");
-            if (onlyReInvokeWhen.All(status => storedFunction.Status != status))
-                throw new FrameworkException($"Unable to re-invoke function '{functionId}' as it is in unexpected state");
-            epoch = storedFunction.Epoch + 1;
-            scrapbook = (TScrapbook) _serializer.DeserializeScrapbook(
-                storedFunction.Scrapbook!.ScrapbookJson,
-                storedFunction.Scrapbook.ScrapbookType
-            );
-            var success = await _functionStore.TryToBecomeLeader(
-                functionId,
-                Status.Executing,
-                expectedEpoch: epoch - 1,
-                newEpoch: epoch
-            );
-            created = success;
-        }
-        
-        scrapbook ??= CreateScrapbook(functionId, epoch);
-        
+
         if (onPersisted != null)
             _ = Task.Run(onPersisted);
         
-        return new CreatedAndEpochAndScrapbook(created, epoch, scrapbook);
+        return created;
     }
-
-    private record CreatedAndEpochAndScrapbook(bool Created, int Epoch, TScrapbook Scrapbook);
-
+    
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
     {
         while (true)
@@ -366,7 +323,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         }
     }
     
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook, int epoch)
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook)
     {
         _unhandledExceptionHandler.Invoke(new FunctionInvocationException(
             $"Function {functionId} threw unhandled exception", 
@@ -383,11 +340,11 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                 FailedType: unhandledException.SimpleQualifiedTypeName()
             ),
             postponedUntil: null,
-            expectedEpoch: epoch
+            expectedEpoch: 0
         );
     }
 
-    private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook, int epoch)
+    private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
     {
         var persistInStoreTask = result.ResultType switch
         {
@@ -402,7 +359,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                     ),
                     failed: null,
                     postponedUntil: null,
-                    expectedEpoch: epoch
+                    expectedEpoch: 0
                 ),
             ResultType.Postponed =>
                 _functionStore.SetFunctionState(
@@ -412,7 +369,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                     result: null,
                     failed: null,
                     result.PostponedUntil!.Value.Ticks,
-                    expectedEpoch: epoch
+                    expectedEpoch: 0
                 ),
             ResultType.Failed =>
                 _functionStore.SetFunctionState(
@@ -425,7 +382,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
                         FailedType: result.FailedException!.SimpleQualifiedTypeName()
                     ),
                     postponedUntil: null,
-                    expectedEpoch: epoch
+                    expectedEpoch: 0
                 ),
             _ => throw new ArgumentOutOfRangeException()
         };
