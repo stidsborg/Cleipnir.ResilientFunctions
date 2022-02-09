@@ -281,7 +281,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
 
             var syncedList = new SyncedList<int>();
 
-            var rFunc = rFunctions.Register(
+            var rAction = rFunctions.Register(
                 functionType,
                 async (int delay, Scrapbook scrapbook) =>
                 {
@@ -297,11 +297,11 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return Postpone.For(delay);
                 },
                 _ => _
-            );
+            ).RAction;
 
-            _ = rFunc(10);
-            _ = rFunc(1000);
-            _ = rFunc(2000);
+            _ = rAction(10);
+            _ = rAction(1000);
+            _ = rAction(2000);
 
             await BusyWait.UntilAsync(
                 () => syncedList.Count == 3, 

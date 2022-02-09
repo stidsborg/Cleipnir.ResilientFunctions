@@ -269,7 +269,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 unhandledExceptionCatcher.Catch
             );
-            var rFunc = rFunctions.Register(
+            var rAction = rFunctions.Register(
                 functionTypeId,
                 (Param p) =>
                 {
@@ -277,9 +277,9 @@ public abstract class WatchdogCompoundTests
                     return NeverCompletingTask.OfType<RResult>();
                 },
                 p => p.Id
-            );
+            ).RAction;
             
-            _ = rFunc(param);
+            _ = rAction(param);
             var actualParam = await tcs.Task;
             actualParam.ShouldBe(param);
 
@@ -395,7 +395,7 @@ public abstract class WatchdogCompoundTests
                         .Unwrap();
                 },
                 p => p.Id
-            );
+            ).RAction;
 
             _ = rFunc(param);
             var actualParam = await paramTcs.Task;

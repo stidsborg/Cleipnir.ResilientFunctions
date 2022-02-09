@@ -105,14 +105,14 @@ public abstract class SunshineTests
 
         using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
 
-        var rFunc = rFunctions
+        var rAction = rFunctions
             .Register(
                 functionTypeId,
                 (string s) => ToUpper(s),
                 _ => _
-            );
+            ).RAction;
 
-        var rResult = await rFunc("hello");
+        var rResult = await rAction("hello");
         rResult.Succeeded.ShouldBeTrue();
 
         var storedFunction = await store.GetFunction(
@@ -145,7 +145,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
                 _ => _
-            );
+            ).RAction;
 
         var rResult = await rFunc("hello");
         rResult.Succeeded.ShouldBeTrue();

@@ -17,13 +17,13 @@ public static class Example
             unhandledExceptionHandler: Console.WriteLine
         );
 
-        var rFunc = functions.Register<MailAndRecipients, EmailSenderSaga.Scrapbook>(
+        var rAction = functions.Register<MailAndRecipients, EmailSenderSaga.Scrapbook>(
             "OffersMailSender".ToFunctionTypeId(),
             EmailSenderSaga.Start,
             mr => mr.OfferDate
-        );
+        ).RAction;
 
-        var result = await rFunc(
+        var result = await rAction(
             new MailAndRecipients(
                 OfferDate: new DateOnly(2022, 1, 1),
                 new[]

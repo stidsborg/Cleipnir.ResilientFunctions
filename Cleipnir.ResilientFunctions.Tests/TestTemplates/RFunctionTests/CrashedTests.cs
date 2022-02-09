@@ -154,7 +154,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string _) => Task.FromResult(Succeed.WithoutResult()),
                     _ => _
-                );
+                ).RAction;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(
@@ -211,7 +211,7 @@ public abstract class CrashedTests
                         return RResult.Success;
                     },
                     _ => _
-                );
+                ).RAction;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(

@@ -120,7 +120,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rFunc = RFunctions
+            var rAction = RFunctions
                 .Create(
                     store,
                     unhandledExceptionHandler.Catch,
@@ -131,9 +131,9 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask(),
                     _ => _
-                );
+                ).RAction;
 
-            var result = await rFunc(param);
+            var result = await rAction(param);
             result.Postponed.ShouldBeTrue();
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
@@ -178,7 +178,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask(),
                     _ => _
-                );
+                ).RAction;
 
             var result = await rFunc(param);
             result.Postponed.ShouldBeTrue();
@@ -202,7 +202,7 @@ public abstract class PostponedTests
                         return RResult.Success;
                     },
                     _ => _
-                );
+                ).RAction;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);

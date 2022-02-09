@@ -77,14 +77,14 @@ public abstract class PersistedCallbackTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var rFunc = rFunctions.Register(
+        var rAction = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult>(),
             _ => _
-        );
+        ).RAction;
 
         var flag = new SyncedFlag();
-        _ = rFunc(functionInstanceId, flag.Raise);
+        _ = rAction(functionInstanceId, flag.Raise);
 
         await BusyWait.UntilAsync(() => flag.Position == Raised);
 
@@ -111,7 +111,7 @@ public abstract class PersistedCallbackTests
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<RResult>(),
             _ => _
-        );
+        ).RAction;
 
         var flag = new SyncedFlag();
         _ = rFunc(functionInstanceId, flag.Raise);

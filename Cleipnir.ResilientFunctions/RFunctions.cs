@@ -80,7 +80,7 @@ namespace Cleipnir.ResilientFunctions
             }
         }
         
-        public RAction<TParam> Register<TParam>(
+        public RActionRegistration<TParam> Register<TParam>(
             FunctionTypeId functionTypeId,
             Func<TParam, Task<RResult>> func,
             Func<TParam, object> idFunc,
@@ -94,7 +94,11 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (RAction<TParam>) _functions[functionTypeId];
+                    return new RActionRegistration<TParam>(
+                        (RAction<TParam>) _functions[functionTypeId],
+                        (_, _, _) => throw new NotImplementedException(),
+                        id => throw new NotImplementedException()
+                    );
 
                 serializer ??= new DefaultSerializer();
                 
@@ -115,7 +119,11 @@ namespace Cleipnir.ResilientFunctions
 
                 var rAction = new RAction<TParam>(rActionInvoker.Invoke);
                 _functions[functionTypeId] = rAction;
-                return rAction;
+                return new RActionRegistration<TParam>(
+                    rAction,
+                    (_, _, _) => throw new NotImplementedException(),
+                    id => throw new NotImplementedException()
+                );
             }
         }
 
@@ -158,7 +166,7 @@ namespace Cleipnir.ResilientFunctions
             }
         }
         
-        public RAction<TParam> Register<TParam, TScrapbook>(
+        public RActionRegistration<TParam, TScrapbook> Register<TParam, TScrapbook>(
             FunctionTypeId functionTypeId,
             Func<TParam, TScrapbook, Task<RResult>> func,
             Func<TParam, object> idFunc,
@@ -172,7 +180,12 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (RAction<TParam>) _functions[functionTypeId];
+                    return new RActionRegistration<TParam, TScrapbook>(
+                        (RAction<TParam>) _functions[functionTypeId],
+                        (_, _, _) => throw new NotImplementedException(),
+                        id => throw new NotImplementedException()
+                    );
+                
 
                 serializer ??= new DefaultSerializer();
                 
@@ -193,7 +206,11 @@ namespace Cleipnir.ResilientFunctions
 
                 var rAction = new RAction<TParam>(rActionInvoker.Invoke);
                 _functions[functionTypeId] = rAction;
-                return rAction;
+                return new RActionRegistration<TParam, TScrapbook>(
+                    rAction,
+                    (_, _, _) => throw new NotImplementedException(),
+                    id => throw new NotImplementedException()
+                );
             }
         }
 

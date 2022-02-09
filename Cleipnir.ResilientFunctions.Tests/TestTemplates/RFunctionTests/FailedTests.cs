@@ -123,14 +123,14 @@ public abstract class FailedTests
                     crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 );
-            var rFunc = rFunctions.Register(functionTypeId,
+            var rAction = rFunctions.Register(functionTypeId,
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
                     return RResult.Success.ToTask();
                 },
                 _ => _
-            );
+            ).RAction;
                 
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
@@ -143,7 +143,7 @@ public abstract class FailedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
 
-            (await rFunc(PARAM)).Failed.ShouldBeTrue();
+            (await rAction(PARAM)).Failed.ShouldBeTrue();
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
@@ -178,7 +178,7 @@ public abstract class FailedTests
                             ? throw new Exception()
                             : new Exception().ToFailedRResult().ToTask(),
                     _ => _
-                );
+                ).RAction;
 
             var result = await nonCompletingRFunctions(PARAM);
             result.Failed.ShouldBe(true);
@@ -199,7 +199,7 @@ public abstract class FailedTests
                     return RResult.Success.ToTask();
                 },
                 _ => _
-            );
+            ).RAction;
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
             
@@ -239,7 +239,7 @@ public abstract class FailedTests
                             ? throw new Exception()
                             : new Exception().ToFailedRResult().ToTask(),
                     _ => _
-                );
+                ).RAction;
 
             var result = await nonCompletingRFunctions(param);
             result.Failed.ShouldBe(true);
@@ -259,7 +259,7 @@ public abstract class FailedTests
                     return RResult.Success.ToTask();
                 }, 
                 _ => _
-            );
+            ).RAction;
                 
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);

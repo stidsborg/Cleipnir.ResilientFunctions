@@ -16,7 +16,7 @@ public sealed class TransferSaga
             "Transfers".ToFunctionTypeId(),
             _Perform,
             transfer => $"{transfer.FromAccount}¤{transfer.ToAccount}"
-        );
+        ).RAction;
     }
     
     public RAction<Transfer> Perform { get; }
