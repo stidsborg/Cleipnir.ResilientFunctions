@@ -75,7 +75,8 @@ namespace Cleipnir.ResilientFunctions
                     functionTypeId, idFunc, func, 
                     commonInvoker,
                     _signOfLifeUpdaterFactory, 
-                    _shutdownCoordinator
+                    _shutdownCoordinator,
+                    _unhandledExceptionHandler
                 );
 
                 var registration = new RFuncRegistration<TParam, TReturn>(
@@ -119,13 +120,14 @@ namespace Cleipnir.ResilientFunctions
                     functionTypeId, idFunc, func, 
                     commonInvoker,
                     _signOfLifeUpdaterFactory,
-                    _shutdownCoordinator
+                    _shutdownCoordinator,
+                    _unhandledExceptionHandler
                 );
                 
                 var registration =  new RActionRegistration<TParam>(
                     rActionInvoker.Invoke,
                     (_, _, _) => throw new NotImplementedException(),
-                    id => throw new NotImplementedException()
+                    rActionInvoker.ScheduleInvocation
                 );
                 _functions[functionTypeId] = registration;
                 return registration;
@@ -166,7 +168,8 @@ namespace Cleipnir.ResilientFunctions
                     functionTypeId, idFunc, func, 
                     commonInvoker,
                     _signOfLifeUpdaterFactory, 
-                    _shutdownCoordinator
+                    _shutdownCoordinator,
+                    _unhandledExceptionHandler
                 );
                 
                 var registration = new RFuncRegistration<TParam, TScrapbook, TReturn>(
@@ -211,13 +214,14 @@ namespace Cleipnir.ResilientFunctions
                     functionTypeId, idFunc, func, 
                     commonInvoker,
                     _signOfLifeUpdaterFactory, 
-                    _shutdownCoordinator
+                    _shutdownCoordinator,
+                    _unhandledExceptionHandler
                 );
                 
                 var registration = new RActionRegistration<TParam, TScrapbook>(
                     rActionInvoker.Invoke,
                     (_, _, _) => throw new NotImplementedException(),
-                    id => throw new NotImplementedException()
+                    rActionInvoker.ScheduleInvocation
                 );
                 _functions[functionTypeId] = registration;
                 return registration;

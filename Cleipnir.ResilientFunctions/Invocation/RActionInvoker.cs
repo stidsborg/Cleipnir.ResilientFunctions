@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 
@@ -15,6 +16,7 @@ public class RActionInvoker<TParam> where TParam : notnull
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
@@ -22,7 +24,8 @@ public class RActionInvoker<TParam> where TParam : notnull
         Func<TParam, Task<RResult>> func,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-        ShutdownCoordinator shutdownCoordinator)
+        ShutdownCoordinator shutdownCoordinator, 
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
@@ -30,22 +33,23 @@ public class RActionInvoker<TParam> where TParam : notnull
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public async Task<RResult> Invoke(TParam param)
     {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param);
+        if (!created) return await WaitForFunctionResult(functionId);
+
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+        _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            _shutdownCoordinator.RegisterRunningRFunc();
-            var functionId = CreateFunctionId(param);
-            var created = await PersistFunctionInStore(functionId, param);
-            if (!created) return await WaitForFunctionResult(functionId);
-
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
             RResult result;
             try
             {
-                //USER FUNCTION INVOCATION! 
+                // *** USER FUNCTION INVOCATION *** 
                 result = await _func(param);
             }
             catch (Exception exception)
@@ -58,6 +62,37 @@ public class RActionInvoker<TParam> where TParam : notnull
             return result;
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+    }
+
+    public async Task ScheduleInvocation(TParam param)
+    {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param);
+        if (!created) return;
+        
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+                _shutdownCoordinator.RegisterRunningRFunc();
+                RResult result;
+                try
+                {
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await _func(param);
+                }
+                catch (Exception exception)
+                {
+                    await ProcessUnhandledException(functionId, exception);
+                    return;
+                }
+
+                await ProcessResult(functionId, result);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
+            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
     }
 
     private FunctionId CreateFunctionId(TParam param)
@@ -85,6 +120,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
@@ -92,7 +128,8 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         Func<TParam, TScrapbook, Task<RResult>> func,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
-        ShutdownCoordinator shutdownCoordinator)
+        ShutdownCoordinator shutdownCoordinator, 
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
@@ -100,24 +137,24 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public async Task<RResult> Invoke(TParam param)
     {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param);
+        if (!created) return await WaitForFunctionResult(functionId);
+
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+        var scrapbook = CreateScrapbook(functionId);
+        _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            _shutdownCoordinator.RegisterRunningRFunc(); //todo move this further down in the method
-            var functionId = CreateFunctionId(param);
-            var created = await PersistFunctionInStore(functionId, param);
-            if (!created) return await WaitForFunctionResult(functionId);
-
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-
-            var scrapbook = CreateScrapbook(functionId);
             RResult result;
             try
             {
-                //USER FUNCTION INVOCATION! 
+                // *** USER FUNCTION INVOCATION *** 
                 result = await _func(param, scrapbook);
             }
             catch (Exception exception)
@@ -130,6 +167,39 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             return result;
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+    }
+    
+    public async Task ScheduleInvocation(TParam param)
+    {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param);
+        if (!created) return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _shutdownCoordinator.RegisterRunningRFunc();
+                using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+                var scrapbook = CreateScrapbook(functionId);
+
+                RResult result;
+                try
+                {
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await _func(param, scrapbook);
+                }
+                catch (Exception exception)
+                {
+                    await ProcessUnhandledException(functionId, exception, scrapbook);
+                    return;
+                }
+
+                await ProcessResult(functionId, result, scrapbook);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
+            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
     }
 
     private FunctionId CreateFunctionId(TParam param)
