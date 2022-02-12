@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
@@ -18,6 +19,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
 
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -37,116 +39,54 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         _func = func;
         _functionStore = functionStore;
         _serializer = serializer;
+        _commonInvoker = new CommonInvoker(
+            serializer,
+            functionStore,
+            unhandledExceptionHandler,
+            shutdownCoordinator
+        );
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
+    public async Task<RResult<TResult>> Invoke(TParam param)
     {
+        var functionId = CreateFunctionId(param);
+        var created = await PersistFunctionInStore(functionId, param);
+        if (!created) return await WaitForFunctionResult(functionId);
+
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+        _shutdownCoordinator.RegisterRunningRFunc();
+        RResult<TResult> result;
         try
         {
-            _shutdownCoordinator.RegisterRunningRFunc();
-            var functionId = CreateFunctionId(param);
-            var created = await PersistFunctionInStore(functionId, param, onPersisted);
-            if (!created) return await WaitForFunctionResult(functionId);
+            // *** START OF USER FUNCTION INVOCATION *** 
+            result = await _func(param);
+            // *** END OF INVOCATION ***
+        }
+        catch (Exception exception)
+        {
+            await ProcessUnhandledException(functionId, exception);
+            return new Fail(exception);
+        }
+        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
 
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-            RResult<TResult> result;
-            try
-            {
-                //USER FUNCTION INVOCATION! 
-                result = await _func(param);
-            }
-            catch (Exception exception)
-            {
-                await ProcessUnhandledException(functionId, exception);
-                return new Fail(exception);
-            }
-
-            await ProcessResult(functionId, result);
-            return result;    
-        } finally{ _shutdownCoordinator.RegisterRFuncCompletion(); }
+        await ProcessResult(functionId, result);
+        return result;
     }
 
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
-    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
-    {
-        if (_shutdownCoordinator.ShutdownInitiated)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        var epoch = 0;
-        var paramJson = _serializer.SerializeParameter(param);
-        var paramType = param.GetType().SimpleQualifiedName();
-        var created = await _functionStore.CreateFunction(
-            functionId,
-            param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
-            initialEpoch: epoch,
-            initialSignOfLife: 0,
-            initialStatus: Status.Executing
-        );
-
-        if (onPersisted != null)
-            _ = Task.Run(onPersisted);
-
-        return created;
-    }
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param)
+        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
-    {
-        while (true)
-        {
-            var possibleResult = await _functionStore.GetFunction(functionId);
-            if (possibleResult == null)
-                throw new FrameworkException($"Function {functionId} does not exist");
+        => await _commonInvoker.WaitForFunctionResult<TResult>(functionId);
 
-            switch (possibleResult.Status)
-            {
-                case Status.Executing:
-                    await Task.Delay(100);
-                    continue;
-                case Status.Succeeded:
-                    return new RResult<TResult>(
-                        ResultType.Succeeded,
-                        successResult: (TResult) possibleResult.Result!.Deserialize(_serializer),
-                        postponedUntil: null,
-                        failedException: null
-                    );
-                case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
-                case Status.Postponed:
-                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
-                    return Postpone.Until(postponedUntil);
-                default:
-                    throw new ArgumentOutOfRangeException(); //todo framework exception
-            }
-        }
-    }
-    
     private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException)
-    {
-        _unhandledExceptionHandler.Invoke(
-            new FunctionInvocationException(
-                $"Function {functionId} threw unhandled exception", 
-                unhandledException
-            )
-        );
-        
-        await _functionStore.SetFunctionState(
-            functionId,
-            Status.Failed,
-            scrapbookJson: null,
-            result: null,
-            failed: new StoredFailure(
-                FailedJson: _serializer.SerializeFault(unhandledException),
-                FailedType: unhandledException.SimpleQualifiedTypeName()
-            ),
-            postponedUntil: null,
-            expectedEpoch: 0
-        );
-    }
+        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null);
 
     private Task ProcessResult(FunctionId functionId, RResult<TResult> result)
     {
@@ -206,6 +146,7 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
 
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -225,22 +166,90 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         _func = func;
         _functionStore = functionStore;
         _serializer = serializer;
+        _commonInvoker = new CommonInvoker(
+            serializer,
+            functionStore,
+            unhandledExceptionHandler,
+            shutdownCoordinator
+        );
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task<RResult<TResult>> Invoke(TParam param, Action? onPersisted = null)
+    public async Task<RResult<TResult>> Invoke(TParam param)
     {
         try
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var created = await PersistFunctionInStore(functionId, param, onPersisted);
+            var created = await PersistFunctionInStore(functionId, param);
             if (!created) return await WaitForFunctionResult(functionId);
             
             using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
             var scrapbook = CreateScrapbook(functionId);
+            RResult<TResult> result;
+            try
+            {
+                //USER FUNCTION INVOCATION! 
+                result = await _func(param, scrapbook);
+            }
+            catch (Exception exception)
+            {
+                await ProcessUnhandledException(functionId, exception, scrapbook);
+                return new Fail(exception);
+            }
+
+            await ProcessResult(functionId, result, scrapbook);
+            return result;
+        } finally{ _shutdownCoordinator.RegisterRFuncCompletion(); }
+    }
+
+    public async Task ScheduleInvocation(TParam param)
+    {
+        var functionId = CreateFunctionId(param);
+        await PersistFunctionInStore(functionId, param);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _shutdownCoordinator.RegisterRunningRFunc();
+                using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+                var scrapbook = CreateScrapbook(functionId);
+                RResult<TResult> result;
+                try
+                {
+                    //USER FUNCTION INVOCATION! 
+                    result = await _func(param, scrapbook);
+                }
+                catch (Exception exception)
+                {
+                    await ProcessUnhandledException(functionId, exception, scrapbook);
+                    return new Fail(exception);
+                }
+
+                await ProcessResult(functionId, result, scrapbook);
+                return result;
+            }
+            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
+    }
+
+    public async Task<RResult<TResult>> ReInvoke(
+        FunctionInstanceId functionInstanceId, 
+        Action<TParam, TScrapbook> initializer,
+        IEnumerable<Status> expectedStatuses)
+    {
+        try
+        {
+            _shutdownCoordinator.RegisterRunningRFunc();
+            var functionId = new FunctionId(_functionTypeId, functionInstanceId);
+            var (param, scrapbook) = await _commonInvoker.PreprocessReInvocation<TParam, TScrapbook>(functionId, expectedStatuses);
+
+            initializer(param, scrapbook);
+            await scrapbook.Save();
+            
             RResult<TResult> result;
             try
             {
@@ -268,80 +277,14 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         return scrapbook;
     }
 
-    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
-    {
-        if (_shutdownCoordinator.ShutdownInitiated)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        var epoch = 0;
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
+        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: typeof(TScrapbook));
 
-        var paramJson = _serializer.SerializeParameter(param);
-        var paramType = param.GetType().SimpleQualifiedName();
-        var created = await _functionStore.CreateFunction(
-            functionId,
-            param: new StoredParameter(paramJson, paramType),
-            scrapbookType: typeof(TScrapbook).SimpleQualifiedName(),
-            initialEpoch: epoch,
-            initialSignOfLife: 0,
-            initialStatus: Status.Executing
-        );
-
-        if (onPersisted != null)
-            _ = Task.Run(onPersisted);
-        
-        return created;
-    }
-    
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
-    {
-        while (true)
-        {
-            var possibleResult = await _functionStore.GetFunction(functionId);
-            if (possibleResult == null)
-                throw new FrameworkException($"Function {functionId} does not exist");
+        => await _commonInvoker.WaitForFunctionResult<TResult>(functionId);
 
-            switch (possibleResult.Status)
-            {
-                case Status.Executing:
-                    await Task.Delay(100);
-                    continue;
-                case Status.Succeeded:
-                    return new RResult<TResult>(
-                        ResultType.Succeeded, 
-                        successResult: (TResult) possibleResult.Result!.Deserialize(_serializer), 
-                        postponedUntil: null, 
-                        failedException: null
-                    );
-                case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
-                case Status.Postponed:
-                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
-                    return Postpone.Until(postponedUntil);
-                default:
-                    throw new ArgumentOutOfRangeException(); //todo framework exception
-            }
-        }
-    }
-    
     private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook)
-    {
-        _unhandledExceptionHandler.Invoke(new FunctionInvocationException(
-            $"Function {functionId} threw unhandled exception", 
-            unhandledException)
-        );
-        
-        await _functionStore.SetFunctionState(
-            functionId,
-            Status.Failed,
-            scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
-            result: null,
-            failed: new StoredFailure(
-                FailedJson: _serializer.SerializeFault(unhandledException),
-                FailedType: unhandledException.SimpleQualifiedTypeName()
-            ),
-            postponedUntil: null,
-            expectedEpoch: 0
-        );
-    }
+        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook);
 
     private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
     {

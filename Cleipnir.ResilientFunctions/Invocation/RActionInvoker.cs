@@ -18,6 +18,7 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -30,26 +31,31 @@ public class RActionInvoker<TParam> where TParam : notnull
         ISerializer serializer,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
         UnhandledExceptionHandler unhandledExceptionHandler, 
-        ShutdownCoordinator shutdownCoordinator
-    )
+        ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
         _func = func;
         _functionStore = functionStore;
         _serializer = serializer;
+        _commonInvoker = new CommonInvoker(
+            serializer,
+            functionStore,
+            unhandledExceptionHandler,
+            shutdownCoordinator
+        );
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task<RResult> Invoke(TParam param, Action? onPersisted = null)
+    public async Task<RResult> Invoke(TParam param)
     {
         try
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var created = await PersistFunctionInStore(functionId, param, onPersisted);
+            var created = await PersistFunctionInStore(functionId, param);
             if (!created) return await WaitForFunctionResult(functionId);
 
             using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
@@ -74,28 +80,8 @@ public class RActionInvoker<TParam> where TParam : notnull
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
-    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
-    {
-        if (_shutdownCoordinator.ShutdownInitiated)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        var epoch = 0;
-        var paramJson = _serializer.SerializeParameter(param);
-        var paramType = param.GetType().SimpleQualifiedName();
-        var created = await _functionStore.CreateFunction(
-            functionId,
-            param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
-            initialEpoch: epoch,
-            initialSignOfLife: 0,
-            initialStatus: Status.Executing
-        );
-
-        if (onPersisted != null)
-            _ = Task.Run(onPersisted);
-        return created;
-    }
-
-    private record CreatedAndEpoch(bool Created, int Epoch);
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
+        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
     private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
     {
@@ -122,29 +108,9 @@ public class RActionInvoker<TParam> where TParam : notnull
             }
         }
     }
-    
+
     private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException)
-    {
-        _unhandledExceptionHandler.Invoke(
-            new FunctionInvocationException(
-                $"Function {functionId} threw unhandled exception", 
-                unhandledException
-            )
-        );
-        
-        await _functionStore.SetFunctionState(
-            functionId,
-            Status.Failed,
-            scrapbookJson: null,
-            result: null,
-            failed: new StoredFailure(
-                FailedJson: _serializer.SerializeFault(unhandledException),
-                FailedType: unhandledException.SimpleQualifiedTypeName()
-            ),
-            postponedUntil: null,
-            expectedEpoch: 0
-        );
-    }
+        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null);
 
     private Task ProcessResult(FunctionId functionId, RResult result)
     {
@@ -198,6 +164,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -217,18 +184,24 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         _func = func;
         _functionStore = functionStore;
         _serializer = serializer;
+        _commonInvoker = new CommonInvoker(
+            serializer, 
+            functionStore,
+            unhandledExceptionHandler,
+            shutdownCoordinator
+        );
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task<RResult> Invoke(TParam param, Action? onPersisted = null)
+    public async Task<RResult> Invoke(TParam param)
     {
         try
         {
             _shutdownCoordinator.RegisterRunningRFunc();
             var functionId = CreateFunctionId(param);
-            var created = await PersistFunctionInStore(functionId, param, onPersisted);
+            var created = await PersistFunctionInStore(functionId, param);
             if (!created) return await WaitForFunctionResult(functionId);
 
             using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
@@ -255,35 +228,15 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
-    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param, Action? onPersisted)
-    {
-        if (_shutdownCoordinator.ShutdownInitiated)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        
-        var paramJson = _serializer.SerializeParameter(param);
-        var paramType = param.GetType().SimpleQualifiedName();
-        var created = await _functionStore.CreateFunction(
-            functionId,
-            param: new StoredParameter(paramJson, paramType),
-            scrapbookType: typeof(TScrapbook).SimpleQualifiedName(),
-            initialEpoch: 0,
-            initialSignOfLife: 0,
-            initialStatus: Status.Executing
-        );
+    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param)
+        => await _commonInvoker.PersistFunctionInStore(functionId, param, typeof(TScrapbook));
 
-        if (onPersisted != null)
-            _ = Task.Run(onPersisted);
-        return created;
-    }
-    
     private TScrapbook CreateScrapbook(FunctionId functionId)
     {
         var scrapbook = new TScrapbook();
         scrapbook.Initialize(functionId, _functionStore, _serializer, epoch: 0);
         return scrapbook;
     }
-
-    private record CreatedAndEpochAndScrapbook(bool Created, int Epoch, TScrapbook Scrapbook);
 
     private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
     {
@@ -310,28 +263,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             }
         }
     }
-    
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook)
-    {
-        _unhandledExceptionHandler.Invoke(
-            new FunctionInvocationException(
-                $"Function {functionId} threw unhandled exception", 
-                unhandledException)
-        );
-        
-        await _functionStore.SetFunctionState(
-            functionId,
-            Status.Failed,
-            _serializer.SerializeScrapbook(scrapbook),
-            result: null,
-            failed: new StoredFailure(
-                FailedJson: _serializer.SerializeFault(unhandledException),
-                FailedType: unhandledException.SimpleQualifiedTypeName()
-            ),
-            postponedUntil: null,
-            expectedEpoch: 0
-        );
-    }
+
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook) 
+        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook);
 
     private async Task ProcessResult(FunctionId functionId, RResult result, TScrapbook scrapbook)
     {

@@ -117,7 +117,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                 await setFunctionStateTask;
 
                 if (result.FailedException != null)
-                    _unhandledExceptionHandler.Invoke(new FunctionInvocationException(
+                    _unhandledExceptionHandler.Invoke(new FunctionInvocationUnhandledException(
                         $"Function {functionId} threw unhandled exception",
                         result.FailedException
                     ));

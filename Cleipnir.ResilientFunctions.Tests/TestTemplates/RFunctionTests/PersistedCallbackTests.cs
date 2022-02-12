@@ -1,10 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
-using static Cleipnir.ResilientFunctions.Tests.Utils.FlagPosition;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
@@ -19,16 +17,13 @@ public abstract class PersistedCallbackTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var rFunc = rFunctions.Register(
+        var reInvoke = rFunctions.Register(
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<RResult<string>>(),
             _ => _
-        ).RFunc;
+        ).ReInvokeFunc;
 
-        var flag = new SyncedFlag();
-        _ = rFunc(functionInstanceId, flag.Raise);
-
-        await BusyWait.UntilAsync(() => flag.Position == Raised);
+        await reInvoke(functionInstanceId, initializer: _ => {}, expectedStatuses: new [] { Status.Failed });
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -47,16 +42,17 @@ public abstract class PersistedCallbackTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var rFunc = rFunctions.Register(
+        var reInvoke = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
             _ => _
-        ).RFunc;
+        ).ReInvoke;
 
-        var flag = new SyncedFlag();
-        _ = rFunc(functionInstanceId, flag.Raise);
-
-        await BusyWait.UntilAsync(() => flag.Position == Raised);
+        await reInvoke(
+            functionInstanceId,
+            initializer: (p, s) => { },
+            expectedStatuses: new[] {Status.Failed}
+        );
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -77,17 +73,18 @@ public abstract class PersistedCallbackTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var rAction = rFunctions.Register(
+        var reInvoke = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult>(),
             _ => _
-        ).RAction;
+        ).ReInvoke;
 
-        var flag = new SyncedFlag();
-        _ = rAction(functionInstanceId, flag.Raise);
-
-        await BusyWait.UntilAsync(() => flag.Position == Raised);
-
+        await reInvoke(
+            functionInstanceId,
+            initializer: (p, s) => { },
+            expectedStatuses: new[] {Status.Failed}
+        );
+        
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         
@@ -107,16 +104,17 @@ public abstract class PersistedCallbackTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var rFunc = rFunctions.Register(
+        var reInvoke = rFunctions.Register(
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<RResult>(),
             _ => _
-        ).RAction;
+        ).ReInvoke;
 
-        var flag = new SyncedFlag();
-        _ = rFunc(functionInstanceId, flag.Raise);
-
-        await BusyWait.UntilAsync(() => flag.Position == Raised);
+        await reInvoke(
+            functionInstanceId,
+            initializer: s => { },
+            expectedStatuses: new[] {Status.Failed}
+        );
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();

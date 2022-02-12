@@ -60,8 +60,8 @@ public class RResult<T>
         return ResultType switch
         {
             ResultType.Succeeded => SuccessResult!,
-            ResultType.Postponed => throw new FunctionInvocationException($"Function has been postponed until: '{PostponedUntil!.Value:O}'"),
-            ResultType.Failed => throw new FunctionInvocationException("Function invocation failed", FailedException!),
+            ResultType.Postponed => throw new FunctionInvocationUnhandledException($"Function has been postponed until: '{PostponedUntil!.Value:O}'"),
+            ResultType.Failed => throw new FunctionInvocationUnhandledException("Function invocation failed", FailedException!),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -198,9 +198,9 @@ public class RResult
             case ResultType.Succeeded:
                 return;
             case ResultType.Postponed:
-                throw new FunctionInvocationException($"Function has been postponed until: '{PostponedUntil!.Value:O}'");
+                throw new FunctionInvocationUnhandledException($"Function has been postponed until: '{PostponedUntil!.Value:O}'");
             case ResultType.Failed:
-                throw new FunctionInvocationException("Function invocation failed", FailedException!);
+                throw new FunctionInvocationUnhandledException("Function invocation failed", FailedException!);
             default:
                 throw new ArgumentOutOfRangeException();
         }

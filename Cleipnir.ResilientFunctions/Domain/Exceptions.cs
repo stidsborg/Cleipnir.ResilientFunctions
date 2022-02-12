@@ -24,6 +24,17 @@ namespace Cleipnir.ResilientFunctions.Domain
 
         public FunctionInvocationException(string? message, Exception? innerException) : base(message, innerException) { }
     }
+    
+    public sealed class FunctionInvocationUnhandledException : RFunctionException
+    {
+        public FunctionInvocationUnhandledException() { }
+
+        public FunctionInvocationUnhandledException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+
+        public FunctionInvocationUnhandledException(string? message) : base(message) { }
+
+        public FunctionInvocationUnhandledException(string? message, Exception? innerException) : base(message, innerException) { }
+    }
 
     public sealed class FrameworkException : RFunctionException
     {

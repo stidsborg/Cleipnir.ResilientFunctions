@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
+[Ignore] //todo remove
 [TestClass]
 public class PersistedCallbackTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.PersistedCallbackTests
 {
