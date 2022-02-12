@@ -110,6 +110,62 @@ internal class CommonInvoker
         }
     }
     
+    public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch) where TScrapbook : RScrapbook, new()
+    {
+        var scrapbook = new TScrapbook();
+        scrapbook.Initialize(functionId, _functionStore, _serializer, expectedEpoch);
+        return scrapbook;
+    }
+    
+    public async Task ProcessResult(FunctionId functionId, RResult result, RScrapbook? scrapbook, int expectedEpoch)
+    {
+        var scrapbookJson = scrapbook == null
+            ? null
+            : _serializer.SerializeScrapbook(scrapbook);
+        
+        var persistInStoreTask = result.ResultType switch
+        {
+            ResultType.Succeeded =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Succeeded,
+                    scrapbookJson,
+                    result: null,
+                    failed: null,
+                    postponedUntil: null,
+                    expectedEpoch
+                ),
+            ResultType.Postponed =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Postponed,
+                    scrapbookJson,
+                    result: null,
+                    failed: null,
+                    result.PostponedUntil!.Value.Ticks,
+                    expectedEpoch
+                ),
+            ResultType.Failed =>
+                _functionStore.SetFunctionState(
+                    functionId,
+                    Status.Failed,
+                    scrapbookJson,
+                    result: null,
+                    failed: new StoredFailure(
+                        FailedJson: _serializer.SerializeFault(result.FailedException!),
+                        FailedType: result.FailedException!.SimpleQualifiedTypeName()
+                    ),
+                    postponedUntil: null,
+                    expectedEpoch
+                ),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        var success = await persistInStoreTask;
+        if (!success)
+            throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
+    }
+    
     public async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, RScrapbook? scrapbook)
     {
         _unhandledExceptionHandler.Invoke(new FunctionInvocationUnhandledException(

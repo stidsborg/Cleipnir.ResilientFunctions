@@ -269,13 +269,9 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
 
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
-    
+
     private TScrapbook CreateScrapbook(FunctionId functionId)
-    {
-        var scrapbook = new TScrapbook();
-        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch: 0);
-        return scrapbook;
-    }
+        => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0);
 
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: typeof(TScrapbook));
