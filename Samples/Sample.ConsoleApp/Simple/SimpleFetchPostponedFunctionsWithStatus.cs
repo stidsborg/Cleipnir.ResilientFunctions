@@ -29,7 +29,7 @@ public static class SimpleFetchPostponedFunctionsWithStatus
             nameof(SimpleFetchPostponedFunctionsWithStatus).ToFunctionTypeId(),
             RFunc,
             s => s
-        );
+        ).RFunc;
 
         await Utils.SafeTry(async () => await f(0), Console.WriteLine);
         await Utils.SafeTry(async () => await f(1), Console.WriteLine);

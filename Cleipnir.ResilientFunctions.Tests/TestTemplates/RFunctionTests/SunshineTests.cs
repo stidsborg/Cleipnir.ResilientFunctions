@@ -30,7 +30,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s) => ToUpper(s),
                 _ => _
-            );
+            ).RFunc;
 
         var rResult = await rFunc("hello");
         var result = rResult.SuccessResult;
@@ -70,7 +70,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
                 _ => _
-            );
+            ).RFunc;
 
         var rResult = await rFunc("hello");
         var result = rResult.SuccessResult;

@@ -35,7 +35,7 @@ public class DistributedExample
                 "call.api".ToFunctionTypeId(),
                 new ApiCaller(true, 1).CallApi,
                 _ => _
-            );
+            ).RFunc;
 
         _ = callApi("input"); //will fail
         await Task.Delay(2_000);
@@ -57,7 +57,7 @@ public class DistributedExample
                 "call.api".ToFunctionTypeId(),
                 new ApiCaller(false, 2).CallApi,
                 _ => _
-            );
+            ).RFunc;
 
         await Task.Delay(2_000);
 

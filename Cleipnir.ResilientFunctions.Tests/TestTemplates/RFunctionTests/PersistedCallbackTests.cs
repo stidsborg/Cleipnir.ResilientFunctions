@@ -23,7 +23,7 @@ public abstract class PersistedCallbackTests
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<RResult<string>>(),
             _ => _
-        );
+        ).RFunc;
 
         var flag = new SyncedFlag();
         _ = rFunc(functionInstanceId, flag.Raise);
@@ -51,7 +51,7 @@ public abstract class PersistedCallbackTests
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
             _ => _
-        );
+        ).RFunc;
 
         var flag = new SyncedFlag();
         _ = rFunc(functionInstanceId, flag.Raise);

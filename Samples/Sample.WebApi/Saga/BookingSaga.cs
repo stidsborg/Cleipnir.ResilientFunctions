@@ -29,7 +29,7 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
             nameof(Saga.BookingSaga).ToFunctionTypeId(),
             _BookTravel,
             o => o.Order.Id
-        );
+        ).RFunc;
     }
 
     private async Task<RResult<Booking>> _BookTravel(OrderAndRequestIds param, BookingScrapbook scrapbook)

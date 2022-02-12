@@ -41,7 +41,7 @@ namespace Cleipnir.ResilientFunctions
             _shutdownCoordinator = shutdownCoordinator;
         }
         
-        public RFunc<TParam, TReturn> Register<TParam, TReturn>(
+        public RFuncRegistration<TParam, TReturn> Register<TParam, TReturn>(
             FunctionTypeId functionTypeId,
             Func<TParam, Task<RResult<TReturn>>> func,
             Func<TParam, object> idFunc,
@@ -55,7 +55,11 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (RFunc<TParam, TReturn>) _functions[functionTypeId];
+                    return new RFuncRegistration<TParam, TReturn>(
+                        (RFunc<TParam, TReturn>) _functions[functionTypeId],
+                        (_, _, _) => throw new NotImplementedException(),
+                        id => throw new NotImplementedException()
+                    );
 
                 serializer ??= new DefaultSerializer();
                 
@@ -76,7 +80,11 @@ namespace Cleipnir.ResilientFunctions
 
                 var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
                 _functions[functionTypeId] = rFunc;
-                return rFunc;
+                return new RFuncRegistration<TParam, TReturn>(
+                    rFunc,
+                    (_, _, _) => throw new NotImplementedException(),
+                    id => throw new NotImplementedException()
+                );
             }
         }
         
@@ -127,7 +135,7 @@ namespace Cleipnir.ResilientFunctions
             }
         }
 
-        public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
+        public RFuncRegistration<TParam, TScrapbook, TReturn> Register<TParam, TScrapbook, TReturn>(
             FunctionTypeId functionTypeId,
             Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
             Func<TParam, object> idFunc,
@@ -141,7 +149,11 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return (RFunc<TParam, TReturn>) _functions[functionTypeId];
+                    return new RFuncRegistration<TParam, TScrapbook, TReturn>(
+                        (RFunc<TParam, TReturn>) _functions[functionTypeId],
+                        (_, _, _) => throw new NotImplementedException(),
+                        id => throw new NotImplementedException()
+                    );
 
                 serializer ??= new DefaultSerializer();
                 
@@ -162,7 +174,11 @@ namespace Cleipnir.ResilientFunctions
 
                 var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
                 _functions[functionTypeId] = rFunc;
-                return rFunc;
+                return new RFuncRegistration<TParam, TScrapbook, TReturn>(
+                    rFunc,
+                    (_, _, _) => throw new NotImplementedException(),
+                    id => throw new NotImplementedException()
+                );
             }
         }
         

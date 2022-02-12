@@ -28,7 +28,7 @@ public static class SimpleFetchFunctionsWithStatus
             nameof(SimpleFetchFunctionsWithStatus).ToFunctionTypeId(),
             RFunc,
             s => s
-        );
+        ).RFunc;
 
         await Utils.SafeTry(async () => await f("a"), Console.WriteLine);
         await Utils.SafeTry(async () => await f("b"), Console.WriteLine);

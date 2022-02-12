@@ -28,7 +28,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
-                );
+                ).RFunc;
 
             _ = nonCompletingRFunctions(param);
         }
@@ -44,7 +44,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string s) => Funcs.ToUpper(s),
                     _ => _
-                );
+                ).RFunc;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(
@@ -79,7 +79,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
-                );
+                ).RFunc;
 
             _ = nonCompletingRFunctions(param);
         }
@@ -100,7 +100,7 @@ public abstract class CrashedTests
                         return Succeed.WithResult(s.ToUpper());
                     },
                     _ => _
-                );
+                ).RFunc;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(
@@ -138,7 +138,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
-                );
+                ).RFunc;
 
             _ = nonCompletingRFunctions(param);
         }
@@ -190,7 +190,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
                     _ => _
-                );
+                ).RFunc;
 
             _ = nonCompletingRFunctions(param);
         }
