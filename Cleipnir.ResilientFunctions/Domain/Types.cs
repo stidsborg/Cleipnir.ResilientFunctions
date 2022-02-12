@@ -22,7 +22,7 @@ namespace Cleipnir.ResilientFunctions.Domain
             : this(functionTypeId.ToFunctionTypeId(), functionInstanceId) { }
 
         public override string ToString() 
-            => $"{nameof(FunctionId)} {{ TypeId = { TypeId.Value }, InstanceId = { InstanceId.Value } }}";
+            => $"{ TypeId.Value } { InstanceId.Value }";
     }
     
     public static class DomainExtensions
