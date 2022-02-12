@@ -58,7 +58,8 @@ internal class ShutdownCoordinator
         _shutDownCompleted.SetResult();
     }
 
-    public void RegisterRunningRFunc() => Interlocked.Increment(ref _executingRFuncs);
+    public void RegisterRunningRFunc() 
+        => Interlocked.Increment(ref _executingRFuncs); //todo ensure shutdown initiated is false o/w throw exception
     public void RegisterRFuncCompletion() => Interlocked.Decrement(ref _executingRFuncs);
 
     public bool ObserveShutdown(Func<Task> onShutdown)
@@ -70,7 +71,7 @@ internal class ShutdownCoordinator
             var observerId = ++_nextObserverId;
             _observers[observerId] = onShutdown;
 
-            return !_shutDownInitiated;
+            return false;
         }
     }
 }
