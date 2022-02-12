@@ -33,25 +33,25 @@ public delegate Task<RResult<TResult>> ReInvokeFunc<TParam, TScrapbook, TResult>
 public record RFuncRegistration<TParam, TResult>(
     RFunc<TParam, TResult> RFunc,
     ReInvokeFunc<TParam, TResult> ReInvokeFunc,
-    Schedule Schedule
+    Schedule<TParam> Schedule
 ) where TParam : notnull where TResult : notnull;
 
 public record RFuncRegistration<TParam, TScrapbook, TResult> (
     RFunc<TParam, TResult> RFunc,
     ReInvokeFunc<TParam, TScrapbook, TResult> ReInvoke,
-    Schedule Schedule
+    Schedule<TParam> Schedule
 ) where TParam : notnull where TScrapbook : RScrapbook where TResult : notnull;
 
 public record RActionRegistration<TParam, TScrapbook>(
     RAction<TParam> RAction,
     ReInvokeAction<TParam, TScrapbook> ReInvoke,
-    Schedule Schedule
+    Schedule<TParam> Schedule
 ) where TParam : notnull where TScrapbook : RScrapbook;
 
 public record RActionRegistration<TParam>(
     RAction<TParam> RAction,
     ReInvokeAction<TParam> ReInvoke,
-    Schedule Schedule
+    Schedule<TParam> Schedule
 ) where TParam : notnull;
 
-public delegate Task Schedule(FunctionInstanceId instanceId);
+public delegate Task Schedule<TParam>(TParam param);

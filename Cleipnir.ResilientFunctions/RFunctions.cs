@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions
 {
     public class RFunctions : IDisposable 
     {
-        private readonly Dictionary<FunctionTypeId, Delegate> _functions = new();
+        private readonly Dictionary<FunctionTypeId, object> _functions = new();
 
         private readonly IFunctionStore _functionStore;
         private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
@@ -55,11 +55,7 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return new RFuncRegistration<TParam, TReturn>(
-                        (RFunc<TParam, TReturn>) _functions[functionTypeId],
-                        (_, _, _) => throw new NotImplementedException(),
-                        id => throw new NotImplementedException()
-                    );
+                    return (RFuncRegistration<TParam, TReturn>) _functions[functionTypeId];
 
                 serializer ??= new DefaultSerializer();
                 
@@ -82,13 +78,13 @@ namespace Cleipnir.ResilientFunctions
                     _shutdownCoordinator
                 );
 
-                var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
-                _functions[functionTypeId] = rFunc;
-                return new RFuncRegistration<TParam, TReturn>(
-                    rFunc,
+                var registration = new RFuncRegistration<TParam, TReturn>(
+                    rFuncInvoker.Invoke,
                     (_, _, _) => throw new NotImplementedException(),
-                    id => throw new NotImplementedException()
+                    rFuncInvoker.ScheduleInvocation
                 );
+                _functions[functionTypeId] = registration;
+                return registration;
             }
         }
         
@@ -106,11 +102,7 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return new RActionRegistration<TParam>(
-                        (RAction<TParam>) _functions[functionTypeId],
-                        (_, _, _) => throw new NotImplementedException(),
-                        id => throw new NotImplementedException()
-                    );
+                    return (RActionRegistration<TParam>) _functions[functionTypeId];
 
                 serializer ??= new DefaultSerializer();
                 
@@ -129,14 +121,14 @@ namespace Cleipnir.ResilientFunctions
                     _signOfLifeUpdaterFactory,
                     _shutdownCoordinator
                 );
-
-                var rAction = new RAction<TParam>(rActionInvoker.Invoke);
-                _functions[functionTypeId] = rAction;
-                return new RActionRegistration<TParam>(
-                    rAction,
+                
+                var registration =  new RActionRegistration<TParam>(
+                    rActionInvoker.Invoke,
                     (_, _, _) => throw new NotImplementedException(),
                     id => throw new NotImplementedException()
                 );
+                _functions[functionTypeId] = registration;
+                return registration;
             }
         }
 
@@ -154,11 +146,7 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return new RFuncRegistration<TParam, TScrapbook, TReturn>(
-                        (RFunc<TParam, TReturn>) _functions[functionTypeId],
-                        (_, _, _) => throw new NotImplementedException(),
-                        id => throw new NotImplementedException()
-                    );
+                    return (RFuncRegistration<TParam, TScrapbook, TReturn>) _functions[functionTypeId];
 
                 serializer ??= new DefaultSerializer();
                 
@@ -180,14 +168,14 @@ namespace Cleipnir.ResilientFunctions
                     _signOfLifeUpdaterFactory, 
                     _shutdownCoordinator
                 );
-
-                var rFunc = new RFunc<TParam, TReturn>(rFuncInvoker.Invoke);
-                _functions[functionTypeId] = rFunc;
-                return new RFuncRegistration<TParam, TScrapbook, TReturn>(
-                    rFunc,
+                
+                var registration = new RFuncRegistration<TParam, TScrapbook, TReturn>(
+                    rFuncInvoker.Invoke,
                     (_, _, _) => throw new NotImplementedException(),
-                    id => throw new NotImplementedException()
+                    rFuncInvoker.ScheduleInvocation
                 );
+                _functions[functionTypeId] = registration;
+                return registration;
             }
         }
         
@@ -205,11 +193,7 @@ namespace Cleipnir.ResilientFunctions
             {
                 //todo consider throwing exception if the method is not equal to the previously registered one...?!
                 if (_functions.ContainsKey(functionTypeId))
-                    return new RActionRegistration<TParam, TScrapbook>(
-                        (RAction<TParam>) _functions[functionTypeId],
-                        (_, _, _) => throw new NotImplementedException(),
-                        id => throw new NotImplementedException()
-                    );
+                    return (RActionRegistration<TParam, TScrapbook>) _functions[functionTypeId];
                 
 
                 serializer ??= new DefaultSerializer();
@@ -229,14 +213,14 @@ namespace Cleipnir.ResilientFunctions
                     _signOfLifeUpdaterFactory, 
                     _shutdownCoordinator
                 );
-
-                var rAction = new RAction<TParam>(rActionInvoker.Invoke);
-                _functions[functionTypeId] = rAction;
-                return new RActionRegistration<TParam, TScrapbook>(
-                    rAction,
+                
+                var registration = new RActionRegistration<TParam, TScrapbook>(
+                    rActionInvoker.Invoke,
                     (_, _, _) => throw new NotImplementedException(),
                     id => throw new NotImplementedException()
                 );
+                _functions[functionTypeId] = registration;
+                return registration;
             }
         }
 
