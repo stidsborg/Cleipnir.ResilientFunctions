@@ -53,11 +53,11 @@ internal class CommonInvoker
     {
         while (true)
         {
-            var possibleResult = await _functionStore.GetFunction(functionId);
-            if (possibleResult == null)
+            var storedFunction = await _functionStore.GetFunction(functionId);
+            if (storedFunction == null)
                 throw new FrameworkException($"Function {functionId} does not exist");
 
-            switch (possibleResult.Status)
+            switch (storedFunction.Status)
             {
                 case Status.Executing:
                     await Task.Delay(100);
@@ -65,14 +65,44 @@ internal class CommonInvoker
                 case Status.Succeeded:
                     return new RResult<TResult>(
                         ResultType.Succeeded,
-                        successResult: (TResult) possibleResult.Result!.Deserialize(_serializer),
+                        successResult: (TResult) storedFunction.Result!.Deserialize(_serializer),
                         postponedUntil: null,
                         failedException: null
                     );
                 case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
+                    return Fail.WithException(storedFunction.Failure!.Deserialize(_serializer));
                 case Status.Postponed:
-                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
+                    var postponedUntil = new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc);
+                    return Postpone.Until(postponedUntil);
+                default:
+                    throw new ArgumentOutOfRangeException(); //todo framework exception
+            }
+        }
+    }
+    
+    public async Task<RResult> WaitForActionResult(FunctionId functionId)
+    {
+        while (true)
+        {
+            var storedFunction = await _functionStore.GetFunction(functionId);
+            if (storedFunction == null)
+                throw new FrameworkException($"Function {functionId} does not exist");
+
+            switch (storedFunction.Status)
+            {
+                case Status.Executing:
+                    await Task.Delay(100);
+                    continue;
+                case Status.Succeeded:
+                    return new RResult(
+                        ResultType.Succeeded,
+                        postponedUntil: null,
+                        failedException: null
+                    );
+                case Status.Failed:
+                    return Fail.WithException(storedFunction.Failure!.Deserialize(_serializer));
+                case Status.Postponed:
+                    var postponedUntil = new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc);
                     return Postpone.Until(postponedUntil);
                 default:
                     throw new ArgumentOutOfRangeException(); //todo framework exception

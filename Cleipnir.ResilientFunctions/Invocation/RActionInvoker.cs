@@ -84,30 +84,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
     private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
-    {
-        while (true)
-        {
-            var possibleResult = await _functionStore.GetFunction(functionId);
-            if (possibleResult == null)
-                throw new FrameworkException($"Function {functionId} does not exist");
-
-            switch (possibleResult.Status)
-            {
-                case Status.Executing:
-                    await Task.Delay(100);
-                    continue;
-                case Status.Succeeded:
-                    return new RResult(ResultType.Succeeded, postponedUntil: null, failedException: null);
-                case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
-                case Status.Postponed:
-                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
-                    return Postpone.Until(postponedUntil);
-                default:
-                    throw new ArgumentOutOfRangeException(); //todo framework exception
-            }
-        }
-    }
+        => await _commonInvoker.WaitForActionResult(functionId);
 
     private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException)
         => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null);
@@ -239,30 +216,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     }
 
     private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
-    {
-        while (true)
-        {
-            var possibleResult = await _functionStore.GetFunction(functionId);
-            if (possibleResult == null)
-                throw new FrameworkException($"Function {functionId} does not exist");
-
-            switch (possibleResult.Status)
-            {
-                case Status.Executing:
-                    await Task.Delay(100);
-                    continue;
-                case Status.Succeeded:
-                    return new RResult(ResultType.Succeeded, postponedUntil: null, failedException: null);
-                case Status.Failed:
-                    return Fail.WithException(possibleResult.Failure!.Deserialize(_serializer));
-                case Status.Postponed:
-                    var postponedUntil = new DateTime(possibleResult.PostponedUntil!.Value, DateTimeKind.Utc);
-                    return Postpone.Until(postponedUntil);
-                default:
-                    throw new ArgumentOutOfRangeException(); //todo framework exception
-            }
-        }
-    }
+        => await _commonInvoker.WaitForActionResult(functionId);
 
     private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook) 
         => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook);
