@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
@@ -17,36 +14,23 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
     private readonly Func<TParam, object> _idFunc;
     private readonly Func<TParam, Task<RResult<TResult>>> _func;
 
-    private readonly IFunctionStore _functionStore;
-    private readonly ISerializer _serializer;
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, object> idFunc,
         Func<TParam, Task<RResult<TResult>>> func,
-        IFunctionStore functionStore,
-        ISerializer serializer,
+        CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
-        UnhandledExceptionHandler unhandledExceptionHandler, 
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
         _func = func;
-        _functionStore = functionStore;
-        _serializer = serializer;
-        _commonInvoker = new CommonInvoker(
-            serializer,
-            functionStore,
-            unhandledExceptionHandler,
-            shutdownCoordinator
-        );
+        _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
 
@@ -89,50 +73,7 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
         => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null);
 
     private Task ProcessResult(FunctionId functionId, RResult<TResult> result)
-    {
-        var persistInStoreTask = result.ResultType switch
-        {
-            ResultType.Succeeded =>
-                _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Succeeded,
-                    scrapbookJson: null,
-                    result: new StoredResult(
-                        ResultJson: _serializer.SerializeResult(result.SuccessResult!), 
-                        ResultType: result.SuccessResult!.GetType().SimpleQualifiedName()
-                    ),
-                    failed: null,
-                    postponedUntil: null,
-                    expectedEpoch: 0
-                ),
-            ResultType.Postponed =>
-                _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Postponed,
-                    scrapbookJson: null,
-                    result: null,
-                    failed: null,
-                    result.PostponedUntil!.Value.Ticks,
-                    expectedEpoch: 0
-                ),
-            ResultType.Failed =>
-                _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Failed,
-                    scrapbookJson: null,
-                    result: null,
-                    failed: new StoredFailure(
-                        FailedJson: _serializer.SerializeFault(result.FailedException!),
-                        FailedType: result.FailedException!.SimpleQualifiedTypeName()
-                    ),
-                    postponedUntil: null,
-                    expectedEpoch: 0
-                ),
-            _ => throw new ArgumentOutOfRangeException()
-        };
-
-        return persistInStoreTask;
-    }
+        => _commonInvoker.ProcessResult(functionId, result, scrapbook: null, expectedEpoch: 0);
 }
 
 public class RFuncInvoker<TParam, TScrapbook, TResult> 
@@ -144,36 +85,23 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
     private readonly Func<TParam, object> _idFunc;
     private readonly Func<TParam, TScrapbook, Task<RResult<TResult>>> _func;
 
-    private readonly IFunctionStore _functionStore;
-    private readonly ISerializer _serializer;
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, object> idFunc,
         Func<TParam, TScrapbook, Task<RResult<TResult>>> func,
-        IFunctionStore functionStore,
-        ISerializer serializer,
+        CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-        UnhandledExceptionHandler unhandledExceptionHandler, 
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
         _func = func;
-        _functionStore = functionStore;
-        _serializer = serializer;
-        _commonInvoker = new CommonInvoker(
-            serializer,
-            functionStore,
-            unhandledExceptionHandler,
-            shutdownCoordinator
-        );
+        _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
 
@@ -283,50 +211,5 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
         => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook);
 
     private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
-    {
-        var persistInStoreTask = result.ResultType switch
-        {
-            ResultType.Succeeded =>
-                _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Succeeded,
-                    scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
-                    result: new StoredResult(
-                        _serializer.SerializeResult(result.SuccessResult!), 
-                        result.SuccessResult!.GetType().SimpleQualifiedName()
-                    ),
-                    failed: null,
-                    postponedUntil: null,
-                    expectedEpoch: 0
-                ),
-            ResultType.Postponed =>
-                _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Postponed,
-                    scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
-                    result: null,
-                    failed: null,
-                    result.PostponedUntil!.Value.Ticks,
-                    expectedEpoch: 0
-                ),
-            ResultType.Failed =>
-                _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Failed,
-                    scrapbookJson: _serializer.SerializeScrapbook(scrapbook),
-                    result: null,
-                    failed: new StoredFailure(
-                        FailedJson: _serializer.SerializeFault(result.FailedException!),
-                        FailedType: result.FailedException!.SimpleQualifiedTypeName()
-                    ),
-                    postponedUntil: null,
-                    expectedEpoch: 0
-                ),
-            _ => throw new ArgumentOutOfRangeException()
-        };
-
-        var success = await persistInStoreTask;
-        if (!success)
-            throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
-    }
+        => await _commonInvoker.ProcessResult(functionId, result, scrapbook, expectedEpoch: 0);
 }

@@ -69,12 +69,16 @@ namespace Cleipnir.ResilientFunctions
                     (param, _) => func((TParam) param)
                 );
 
+                var commonInvoker = new CommonInvoker(
+                    serializer,
+                    _functionStore,
+                    _unhandledExceptionHandler,
+                    _shutdownCoordinator
+                );
                 var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                     functionTypeId, idFunc, func, 
-                    _functionStore, 
-                    serializer,
+                    commonInvoker,
                     _signOfLifeUpdaterFactory, 
-                    _unhandledExceptionHandler,
                     _shutdownCoordinator
                 );
 
@@ -164,12 +168,16 @@ namespace Cleipnir.ResilientFunctions
                     (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
                 );
 
+                var commonInvoker = new CommonInvoker(
+                    serializer,
+                    _functionStore,
+                    _unhandledExceptionHandler,
+                    _shutdownCoordinator
+                );
                 var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                     functionTypeId, idFunc, func, 
-                    _functionStore, 
-                    serializer,
+                    commonInvoker,
                     _signOfLifeUpdaterFactory, 
-                    _unhandledExceptionHandler,
                     _shutdownCoordinator
                 );
 
