@@ -66,12 +66,12 @@ internal class ShutdownCoordinator
     {
         lock (_sync)
         {
-            if (_shutDownInitiated) return !_shutDownInitiated;
+            if (_shutDownInitiated) return false;
             
             var observerId = ++_nextObserverId;
             _observers[observerId] = onShutdown;
 
-            return false;
+            return true;
         }
     }
 }
