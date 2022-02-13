@@ -6,24 +6,24 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-public abstract class PersistedCallbackTests
+public abstract class ScheduledInvocationTests
 {
-    public abstract Task PersistedCallbackIsInvokedAfterFuncStateHasBeenPersisted();
-    protected async Task PersistedCallbackIsInvokedAfterFuncStateHasBeenPersisted(IFunctionStore store)
+    public abstract Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted();
+    protected async Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(IFunctionStore store)
     {
-        var functionTypeId = nameof(PersistedCallbackIsInvokedAfterFuncStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var reInvoke = rFunctions.Register(
+        var schedule = rFunctions.Register(
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<RResult<string>>(),
             _ => _
-        ).ReInvokeFunc;
-
-        await reInvoke(functionInstanceId, initializer: _ => {}, expectedStatuses: new [] { Status.Failed });
+        ).Schedule;
+        
+        await schedule(functionInstanceId);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -33,26 +33,22 @@ public abstract class PersistedCallbackTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task PersistedCallbackIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted();
-    protected async Task PersistedCallbackIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(IFunctionStore store)
+    public abstract Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted();
+    protected async Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(IFunctionStore store)
     {
-        var functionTypeId = nameof(PersistedCallbackIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var reInvoke = rFunctions.Register(
+        var schedule = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
             _ => _
-        ).ReInvoke;
+        ).Schedule;
 
-        await reInvoke(
-            functionInstanceId,
-            initializer: (p, s) => { },
-            expectedStatuses: new[] {Status.Failed}
-        );
+        await schedule(functionInstanceId);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -64,26 +60,22 @@ public abstract class PersistedCallbackTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task PersistedCallbackIsInvokedAfterActionWithScrapbookStateHasBeenPersisted();
-    protected async Task PersistedCallbackIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(IFunctionStore store)
+    public abstract Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted();
+    protected async Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(IFunctionStore store)
     {
-        var functionTypeId = nameof(PersistedCallbackIsInvokedAfterActionWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var reInvoke = rFunctions.Register(
+        var schedule = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult>(),
             _ => _
-        ).ReInvoke;
+        ).Schedule;
 
-        await reInvoke(
-            functionInstanceId,
-            initializer: (p, s) => { },
-            expectedStatuses: new[] {Status.Failed}
-        );
+        await schedule(functionInstanceId);
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -95,26 +87,22 @@ public abstract class PersistedCallbackTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task PersistedCallbackIsInvokedAfterActionStateHasBeenPersisted();
-    protected async Task PersistedCallbackIsInvokedAfterActionStateHasBeenPersisted(IFunctionStore store)
+    public abstract Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted();
+    protected async Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(IFunctionStore store)
     {
-        var functionTypeId = nameof(PersistedCallbackIsInvokedAfterActionStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
-        var reInvoke = rFunctions.Register(
+        var schedule = rFunctions.Register(
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<RResult>(),
             _ => _
-        ).ReInvoke;
+        ).Schedule;
 
-        await reInvoke(
-            functionInstanceId,
-            initializer: s => { },
-            expectedStatuses: new[] {Status.Failed}
-        );
+        await schedule(functionInstanceId);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
