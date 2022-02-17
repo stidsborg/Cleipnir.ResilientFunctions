@@ -4,7 +4,6 @@ using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.SqlServer;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 

@@ -5,7 +5,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
-using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 

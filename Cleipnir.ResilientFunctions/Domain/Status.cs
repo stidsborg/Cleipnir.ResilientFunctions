@@ -1,8 +1,5 @@
-﻿using System;
+﻿namespace Cleipnir.ResilientFunctions.Domain;
 
-namespace Cleipnir.ResilientFunctions.Storage;
-
-[Flags]
 public enum Status
 {
     Executing = 0,
