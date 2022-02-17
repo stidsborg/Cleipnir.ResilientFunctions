@@ -1,16 +1,15 @@
-using System.Diagnostics;
-
 namespace Cleipnir.ResilientFunctions.Domain
 {
     public record FunctionTypeId(string Value)
     {
         public static implicit operator FunctionTypeId(string functionTypeId) => new(functionTypeId);
+        public override string ToString() => Value;
     }
 
     public record FunctionInstanceId(string Value)
     {
-        [DebuggerStepThrough]
         public static implicit operator FunctionInstanceId(string functionInstanceId) => new(functionInstanceId);
+        public override string ToString() => Value;
     }
 
     public record FunctionId(FunctionTypeId TypeId, FunctionInstanceId InstanceId)
@@ -25,7 +24,7 @@ namespace Cleipnir.ResilientFunctions.Domain
             : this(functionTypeId.ToFunctionTypeId(), functionInstanceId) { }
 
         public override string ToString() 
-            => $"{ TypeId.Value } { InstanceId.Value }";
+            => $"{InstanceId.Value}@{TypeId.Value}";
     }
     
     public static class DomainExtensions
