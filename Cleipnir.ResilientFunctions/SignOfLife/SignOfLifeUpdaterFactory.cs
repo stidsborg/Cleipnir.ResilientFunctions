@@ -1,45 +1,43 @@
 using System;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.SignOfLife
+namespace Cleipnir.ResilientFunctions.SignOfLife;
+
+internal interface ISignOfLifeUpdaterFactory
 {
-    internal interface ISignOfLifeUpdaterFactory
+    IDisposable CreateAndStart(FunctionId functionId, int epoch);
+}
+
+internal class SignOfLifeUpdaterFactory : ISignOfLifeUpdaterFactory
+{
+    private readonly IFunctionStore _functionStore;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly TimeSpan? _updateFrequency;
+
+    public SignOfLifeUpdaterFactory(
+        IFunctionStore functionStore, 
+        UnhandledExceptionHandler unhandledExceptionHandler, 
+        TimeSpan unhandledFunctionsCheckFrequency
+    )
     {
-        IDisposable CreateAndStart(FunctionId functionId, int epoch);
+        _functionStore = functionStore;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
+        _updateFrequency = unhandledFunctionsCheckFrequency / 2;
     }
 
-    internal class SignOfLifeUpdaterFactory : ISignOfLifeUpdaterFactory
+    public IDisposable CreateAndStart(FunctionId functionId, int epoch)
     {
-        private readonly IFunctionStore _functionStore;
-        private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-        private readonly TimeSpan? _updateFrequency;
-
-        public SignOfLifeUpdaterFactory(
-            IFunctionStore functionStore, 
-            UnhandledExceptionHandler unhandledExceptionHandler, 
-            TimeSpan unhandledFunctionsCheckFrequency
-        )
-        {
-            _functionStore = functionStore;
-            _unhandledExceptionHandler = unhandledExceptionHandler;
-            _updateFrequency = unhandledFunctionsCheckFrequency / 2;
-        }
-
-        public IDisposable CreateAndStart(FunctionId functionId, int epoch)
-        {
-            var signOfLifeUpdater = new SignOfLifeUpdater(
-                functionId,
-                epoch,
-                _functionStore,
-                _unhandledExceptionHandler,
-                _updateFrequency
-            );
+        var signOfLifeUpdater = new SignOfLifeUpdater(
+            functionId,
+            epoch,
+            _functionStore,
+            _unhandledExceptionHandler,
+            _updateFrequency
+        );
             
-            _ = signOfLifeUpdater.Start();
-            return signOfLifeUpdater;
-        }
+        _ = signOfLifeUpdater.Start();
+        return signOfLifeUpdater;
     }
 }
