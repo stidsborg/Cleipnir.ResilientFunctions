@@ -36,7 +36,7 @@ public class RFunctionsShutdownTests
                 return RResult.Success;
             },
             idFunc: _ => _
-        ).RAction;
+        ).Invoke;
 
         var rFuncTask1 = rAction("1");
         var rFuncTask2 = rAction("2");
@@ -76,7 +76,7 @@ public class RFunctionsShutdownTests
                 return NeverCompletingTask.OfType<RResult>();
             },
             idFunc: _ => _
-        ).RAction;
+        ).Invoke;
 
         _ = rFunc("1");
 

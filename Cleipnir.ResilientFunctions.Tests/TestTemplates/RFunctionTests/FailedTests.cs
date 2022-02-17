@@ -43,7 +43,7 @@ public abstract class FailedTests
                             ? throw new Exception() 
                             : new Exception().ToFailedRResult<string>().ToTask(),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var result = await nonCompletingRFunctions(PARAM);
             result.Failed.ShouldBeTrue();
@@ -64,7 +64,7 @@ public abstract class FailedTests
                     return s.ToUpper().ToSucceededRResult().ToTask();
                 },
                 _ => _
-            ).RFunc;
+            ).Invoke;
             await Task.Delay(100);
             
             flag.Position.ShouldBe(Lowered);
@@ -109,7 +109,7 @@ public abstract class FailedTests
                             ? throw new Exception()
                             : new Exception().ToFailedRResult<string>().ToTask(),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var result = await nonCompletingRFunctions(PARAM);
             result.Failed.ShouldBeTrue();
@@ -130,7 +130,7 @@ public abstract class FailedTests
                     return RResult.Success.ToTask();
                 },
                 _ => _
-            ).RAction;
+            ).Invoke;
                 
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
@@ -178,7 +178,7 @@ public abstract class FailedTests
                             ? throw new Exception()
                             : new Exception().ToFailedRResult().ToTask(),
                     _ => _
-                ).RAction;
+                ).Invoke;
 
             var result = await nonCompletingRFunctions(PARAM);
             result.Failed.ShouldBe(true);
@@ -199,7 +199,7 @@ public abstract class FailedTests
                     return RResult.Success.ToTask();
                 },
                 _ => _
-            ).RAction;
+            ).Invoke;
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
             
@@ -239,7 +239,7 @@ public abstract class FailedTests
                             ? throw new Exception()
                             : new Exception().ToFailedRResult().ToTask(),
                     _ => _
-                ).RAction;
+                ).Invoke;
 
             var result = await nonCompletingRFunctions(param);
             result.Failed.ShouldBe(true);
@@ -259,7 +259,7 @@ public abstract class FailedTests
                     return RResult.Success.ToTask();
                 }, 
                 _ => _
-            ).RAction;
+            ).Invoke;
                 
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);

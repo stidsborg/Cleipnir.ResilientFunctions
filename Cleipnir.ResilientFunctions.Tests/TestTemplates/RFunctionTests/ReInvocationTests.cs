@@ -45,7 +45,7 @@ public abstract class ReInvocationTests
             _ => _
         );
 
-        var result = await rFunc.RAction("something");
+        var result = await rFunc.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
 
@@ -98,7 +98,7 @@ public abstract class ReInvocationTests
             _ => _
         );
 
-        var result = await rAction.RAction("something");
+        var result = await rAction.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
 
@@ -156,7 +156,7 @@ public abstract class ReInvocationTests
             _ => _
         );
 
-        var result = await rFunc.RFunc("something");
+        var result = await rFunc.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
 
@@ -209,7 +209,7 @@ public abstract class ReInvocationTests
             _ => _
         );
 
-        var result = await rFunc.RFunc("something");
+        var result = await rFunc.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
 
@@ -258,7 +258,7 @@ public abstract class ReInvocationTests
             _ => _
         );
         
-        await rFunc.RAction("something");
+        await rFunc.Invoke("something");
 
         await Should.ThrowAsync<FunctionInvocationException>(() =>
             rFunc.ReInvoke("something", param => { }, new[] {Status.Executing})

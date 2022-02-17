@@ -39,7 +39,7 @@ public class SimpleHttpExample
                 return replies.ToSucceededRResult();
             },
             s => s
-        ).RFunc;
+        ).Invoke;
 
         var response = await rFunc("hello resilient world!").EnsureSuccess();
         Console.WriteLine(string.Join(Environment.NewLine, response));
@@ -78,7 +78,7 @@ public class SimpleHttpExample
                 return scrapbook.List.ToSucceededRResult();
             },
             idFunc: s => s
-        ).RFunc;
+        ).Invoke;
 
         var response = await rFunc("hello resilient world!").EnsureSuccess();
         Console.WriteLine(string.Join(Environment.NewLine, response));

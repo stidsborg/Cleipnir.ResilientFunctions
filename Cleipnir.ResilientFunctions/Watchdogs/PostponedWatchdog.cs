@@ -112,7 +112,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
         private readonly RActionInvoker _rActionInvoker;
         private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
-        private readonly RAction _action;
+        private readonly Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction _action;
 
         private readonly TimeSpan _checkFrequency;
         private readonly FunctionTypeId _functionTypeId;
@@ -121,7 +121,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
 
         public PostponedWatchdog(
             FunctionTypeId functionTypeId, 
-            RAction action,
+            Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction action,
             IFunctionStore functionStore, 
             RActionInvoker rActionInvoker,
             TimeSpan checkFrequency,

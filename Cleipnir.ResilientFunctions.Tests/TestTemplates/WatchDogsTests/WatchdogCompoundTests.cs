@@ -39,7 +39,7 @@ public abstract class WatchdogCompoundTests
                     return NeverCompletingTask.OfType<RResult<string>>();
                 },
                 p => p.Id
-            ).RFunc;
+            ).Invoke;
 
             _ = rFunc(param);
 
@@ -150,7 +150,7 @@ public abstract class WatchdogCompoundTests
                         .Unwrap();
                 },
                 p => p.Id
-            ).RFunc;
+            ).Invoke;
 
             _ = rFunc(param);
             var actualParam = await paramTcs.Task;
@@ -277,7 +277,7 @@ public abstract class WatchdogCompoundTests
                     return NeverCompletingTask.OfType<RResult>();
                 },
                 p => p.Id
-            ).RAction;
+            ).Invoke;
             
             _ = rAction(param);
             var actualParam = await tcs.Task;
@@ -395,7 +395,7 @@ public abstract class WatchdogCompoundTests
                         .Unwrap();
                 },
                 p => p.Id
-            ).RAction;
+            ).Invoke;
 
             _ = rFunc(param);
             var actualParam = await paramTcs.Task;

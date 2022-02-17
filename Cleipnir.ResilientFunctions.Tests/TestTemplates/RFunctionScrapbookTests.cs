@@ -32,7 +32,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
                     functionTypeId,
                     (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var result = await rFunc("hello").EnsureSuccess();
             result.ShouldBe("HELLO");

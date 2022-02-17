@@ -16,10 +16,10 @@ public sealed class TransferSaga
             "Transfers".ToFunctionTypeId(),
             _Perform,
             transfer => $"{transfer.FromAccount}¤{transfer.ToAccount}"
-        ).RAction;
+        ).Invoke;
     }
     
-    public RAction<Transfer> Perform { get; }
+    public RAction.Invoke<Transfer> Perform { get; }
     private async Task<RResult> _Perform(Transfer transfer)
     {
         try

@@ -19,7 +19,7 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
     private const string FLIGHT_URL = "https://postman-echo.com/post";
     private const string HOTEL_URL = "https://postman-echo.com/post";
 
-    public RFunc<OrderAndRequestIds, Booking> BookTravel { get; }
+    public RFunc.Invoke<OrderAndRequestIds, Booking> BookTravel { get; }
     
     public BookingSaga(RFunctions rFunctions, ILogger<BookingSaga> logger)
     {
@@ -29,7 +29,7 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
             nameof(Saga.BookingSaga).ToFunctionTypeId(),
             _BookTravel,
             o => o.Order.Id
-        ).RFunc;
+        ).Invoke;
     }
 
     private async Task<RResult<Booking>> _BookTravel(OrderAndRequestIds param, BookingScrapbook scrapbook)

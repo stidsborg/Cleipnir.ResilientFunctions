@@ -21,7 +21,7 @@ public static class Example
             "OffersMailSender".ToFunctionTypeId(),
             EmailSenderSaga.Start,
             mr => mr.OfferDate
-        ).RAction;
+        ).Invoke;
 
         var result = await rAction(
             new MailAndRecipients(

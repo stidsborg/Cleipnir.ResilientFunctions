@@ -297,7 +297,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return Postpone.For(delay);
                 },
                 _ => _
-            ).RAction;
+            ).Invoke;
 
             _ = rAction(10);
             _ = rAction(1000);

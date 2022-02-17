@@ -30,7 +30,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s) => ToUpper(s),
                 _ => _
-            ).RFunc;
+            ).Invoke;
 
         var rResult = await rFunc("hello");
         var result = rResult.SuccessResult;
@@ -70,7 +70,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
                 _ => _
-            ).RFunc;
+            ).Invoke;
 
         var rResult = await rFunc("hello");
         var result = rResult.SuccessResult;
@@ -110,7 +110,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s) => ToUpper(s),
                 _ => _
-            ).RAction;
+            ).Invoke;
 
         var rResult = await rAction("hello");
         rResult.Succeeded.ShouldBeTrue();
@@ -145,7 +145,7 @@ public abstract class SunshineTests
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
                 _ => _
-            ).RAction;
+            ).Invoke;
 
         var rResult = await rFunc("hello");
         rResult.Succeeded.ShouldBeTrue();

@@ -28,7 +28,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult<string>().ToTask(),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var result = await rFunc(param);
             result.Postponed.ShouldBeTrue();
@@ -47,7 +47,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string s) => s.ToUpper().ToSucceededRResult().ToTask(),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
@@ -74,7 +74,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult<string>().ToTask(),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var result = await rFunc(param);
             result.Postponed.ShouldBeTrue();
@@ -98,7 +98,7 @@ public abstract class PostponedTests
                         return s.ToUpper().ToSucceededRResult();
                     },
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
@@ -131,7 +131,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask(),
                     _ => _
-                ).RAction;
+                ).Invoke;
 
             var result = await rAction(param);
             result.Postponed.ShouldBeTrue();
@@ -150,7 +150,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string s) => s.ToUpper().ToSucceededRResult().ToTask(),
                     _ => _
-                ).RFunc;
+                ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
@@ -178,7 +178,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask(),
                     _ => _
-                ).RAction;
+                ).Invoke;
 
             var result = await rFunc(param);
             result.Postponed.ShouldBeTrue();
@@ -202,7 +202,7 @@ public abstract class PostponedTests
                         return RResult.Success;
                     },
                     _ => _
-                ).RAction;
+                ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);

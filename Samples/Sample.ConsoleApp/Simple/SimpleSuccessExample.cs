@@ -22,7 +22,7 @@ public static class SimpleSuccessExample
             nameof(SimpleSuccessExample).ToFunctionTypeId(),
             RFunc,
             s => s
-        ).RFunc;
+        ).Invoke;
 
         var returned = await f("hello world");
         Console.WriteLine($"1: {returned}");

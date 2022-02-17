@@ -23,7 +23,7 @@ public static class SimpleFailExample
             nameof(SimpleSuccessExample).ToFunctionTypeId(),
             RFunc,
             s => s
-        ).RFunc;
+        ).Invoke;
 
         await SafeTry(async () => await f("hello world"), Console.WriteLine);
         await SafeTry(async () => await f("hello world"), Console.WriteLine);

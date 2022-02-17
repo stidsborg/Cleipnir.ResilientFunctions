@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
+using _RAction = Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs
 {
@@ -128,7 +129,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
     internal class CrashedWatchdog : IDisposable 
     {
         private readonly FunctionTypeId _functionTypeId;
-        private readonly RAction _action;
+        private readonly _RAction _action;
 
         private readonly IFunctionStore _functionStore;
 
@@ -141,7 +142,7 @@ namespace Cleipnir.ResilientFunctions.Watchdogs
 
         public CrashedWatchdog(
             FunctionTypeId functionTypeId,
-            RAction action,
+            _RAction action,
             IFunctionStore functionStore,
             RActionInvoker rActionInvoker,
             TimeSpan checkFrequency,
