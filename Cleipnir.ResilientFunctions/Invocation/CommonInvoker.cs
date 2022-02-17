@@ -49,7 +49,7 @@ internal class CommonInvoker
         return created;
     }
     
-    public async Task<RResult<TResult>> WaitForFunctionResult<TResult>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
+    public async Task<RResult<TReturn>> WaitForFunctionResult<TReturn>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
     {
         while (true)
         {
@@ -63,9 +63,9 @@ internal class CommonInvoker
                     await Task.Delay(100);
                     continue;
                 case Status.Succeeded:
-                    return new RResult<TResult>(
+                    return new RResult<TReturn>(
                         ResultType.Succeeded,
-                        successResult: (TResult) storedFunction.Result!.Deserialize(_serializer)!,
+                        successResult: (TReturn) storedFunction.Result!.Deserialize(_serializer)!,
                         postponedUntil: null,
                         failedException: null
                     );
@@ -166,9 +166,9 @@ internal class CommonInvoker
             throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
     }
     
-    public async Task ProcessResult<TResult>(
+    public async Task ProcessResult<TReturn>(
         FunctionId functionId, 
-        RResult<TResult> result, 
+        RResult<TReturn> result, 
         RScrapbook? scrapbook,
         int expectedEpoch)
     {
