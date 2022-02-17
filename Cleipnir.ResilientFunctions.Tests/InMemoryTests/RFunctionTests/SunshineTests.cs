@@ -22,5 +22,13 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests
         [TestMethod]
         public override Task SunshineScenarioActionWithScrapbook()
             => SunshineScenarioActionWithScrapbook(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task SunshineScenarioNullReturningFunc()
+            => SunshineScenarioNullReturningFunc(new InMemoryFunctionStore());
+
+        [TestMethod]
+        public override Task SunshineScenarioNullReturningFuncWithScrapbook()
+            => SunshineScenarioNullReturningFuncWithScrapbook(new InMemoryFunctionStore());
     }
 }

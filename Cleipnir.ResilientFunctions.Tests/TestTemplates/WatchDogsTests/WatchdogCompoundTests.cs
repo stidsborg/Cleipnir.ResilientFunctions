@@ -118,7 +118,7 @@ public abstract class WatchdogCompoundTests
             );
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.DefaultDeserialize().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
+            storedFunction!.Result!.DefaultDeserialize()!.CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
 
@@ -242,7 +242,7 @@ public abstract class WatchdogCompoundTests
             );
 
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.DefaultDeserialize()
+            storedFunction!.Result!.DefaultDeserialize()!
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
             storedFunction.Scrapbook!.DefaultDeserialize()

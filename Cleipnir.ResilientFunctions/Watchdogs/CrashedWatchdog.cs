@@ -12,7 +12,7 @@ using _RAction = Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs
 {
-    internal class CrashedWatchdog<TReturn> : IDisposable where TReturn : notnull
+    internal class CrashedWatchdog<TReturn> : IDisposable
     {
         private readonly FunctionTypeId _functionTypeId;
         private readonly RFunc<TReturn> _func;

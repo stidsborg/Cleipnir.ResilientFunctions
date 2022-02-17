@@ -1,8 +1,11 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
+using Cleipnir.ResilientFunctions.Utils.Scrapbooks;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
@@ -159,6 +162,57 @@ public abstract class SunshineTests
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+
+    public abstract Task SunshineScenarioNullReturningFunc();
+    protected async Task SunshineScenarioNullReturningFunc(IFunctionStore store)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FunctionTypeId functionTypeId = "SomeFunctionType";
+        var rFunctions = RFunctions.Create(
+            store,
+            unhandledExceptionCatcher.Catch
+        );
+
+        var rFunc = rFunctions.Register(
+            functionTypeId,
+            (string s) => default(string).ToSucceededRResult().ToTask(),
+            _ => _
+        ).Invoke;
+
+        var result = await rFunc("hello world").EnsureSuccess();
+        result.ShouldBeNull();
+    }
+
+    public abstract Task SunshineScenarioNullReturningFuncWithScrapbook();
+    protected async Task SunshineScenarioNullReturningFuncWithScrapbook(IFunctionStore store)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FunctionTypeId functionTypeId = "SomeFunctionType";
+        var rFunctions = RFunctions.Create(
+            store,
+            unhandledExceptionCatcher.Catch
+        );
+
+        var rFunc = rFunctions.Register(
+            functionTypeId,
+            (string _, ListScrapbook<string> scrapbook) =>
+            {
+                scrapbook.List.Add("hello world");
+                return default(string).ToSucceededRResult().ToTask();
+            },
+            _ => _
+        ).Invoke;
+
+        var result = await rFunc("hello world").EnsureSuccess();
+        result.ShouldBeNull();
+
+        var storedFunction = await store
+            .GetFunction(new FunctionId(functionTypeId, "hello world"))
+            .ShouldNotBeNullAsync();
+
+        var scrapbook = storedFunction.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<ListScrapbook<string>>();
+        scrapbook.List.Single().ShouldBe("hello world");
     }
 
     private class Scrapbook : RScrapbook {}

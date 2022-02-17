@@ -89,7 +89,7 @@ public class RResult<T>
 
     public override string ToString() => ResultType switch
     {
-        ResultType.Succeeded => $"Succeeded with: '{SuccessResult!}'",
+        ResultType.Succeeded => $"Succeeded with: '{SuccessResult?.ToString() ?? "NULL"}'",
         ResultType.Postponed => $"Postponed until: '{PostponedUntil!.Value:O}'",
         ResultType.Failed => $"Failed with: {FailedException}",
         _ => throw new ArgumentOutOfRangeException()
@@ -217,6 +217,15 @@ public class RResult
         postpone.PostponeUntil, 
         failedException: null
     );
+
+    public override string ToString()
+        => ResultType switch
+        {
+            ResultType.Succeeded => "Succeeded",
+            ResultType.Postponed => $"Postponed until: '{PostponedUntil!.Value:O}'",
+            ResultType.Failed => $"Failed with: {FailedException}",
+            _ => throw new ArgumentOutOfRangeException()
+        };
 }
 
 public static class RResultExtensions

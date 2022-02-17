@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult : notnull
+public class RFuncInvoker<TParam, TResult> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, object> _idFunc;
@@ -150,7 +150,6 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
 public class RFuncInvoker<TParam, TScrapbook, TResult> 
     where TParam : notnull 
     where TScrapbook : RScrapbook, new()
-    where TResult : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, object> _idFunc;

@@ -82,8 +82,10 @@ namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation
                             ? null 
                             : _serializer.SerializeScrapbook(scrapbook),
                         new StoredResult(
-                            ResultJson: _serializer.SerializeResult(result.SuccessResult!),
-                            ResultType: result.SuccessResult!.GetType().SimpleQualifiedName()
+                            ResultJson: result.SuccessResult == null 
+                                ? null 
+                                : _serializer.SerializeResult(result.SuccessResult!),
+                            ResultType: result.SuccessResult?.GetType().SimpleQualifiedName()
                         ),
                         failed: null,
                         postponedUntil: null,

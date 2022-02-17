@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests
@@ -22,5 +21,13 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests
         [TestMethod]
         public override Task SunshineScenarioActionWithScrapbook() 
             => SunshineScenarioActionWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
+
+        [TestMethod]
+        public override Task SunshineScenarioNullReturningFunc()
+            => SunshineScenarioNullReturningFunc(Sql.AutoCreateAndInitializeStore().Result);
+
+        [TestMethod]
+        public override Task SunshineScenarioNullReturningFuncWithScrapbook()
+            => SunshineScenarioNullReturningFuncWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
     }
 }

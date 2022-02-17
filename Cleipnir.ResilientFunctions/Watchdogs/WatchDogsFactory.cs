@@ -34,7 +34,7 @@ internal class WatchDogsFactory
         _postponedCheckFrequency = postponedCheckFrequency;
     }
 
-    public void CreateAndStart<TReturn>(FunctionTypeId functionTypeId, ISerializer serializer, RFunc<TReturn> rFunc) where TReturn : notnull
+    public void CreateAndStart<TReturn>(FunctionTypeId functionTypeId, ISerializer serializer, RFunc<TReturn> rFunc) 
     {
         var rFuncInvoker = new RFuncInvoker(
             _functionStore,

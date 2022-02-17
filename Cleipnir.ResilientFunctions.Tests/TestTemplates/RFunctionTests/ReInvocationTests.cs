@@ -173,7 +173,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ResultJson.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -232,7 +232,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ResultJson.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
         

@@ -16,6 +16,6 @@ public static class StorageTypesExtensions
     public static Exception DefaultDeserialize(this StoredFailure failure)
         => failure.Deserialize(DefaultSerializer.Instance);
 
-    public static object DefaultDeserialize(this StoredResult result)
+    public static object? DefaultDeserialize(this StoredResult result)
         => result.Deserialize(DefaultSerializer.Instance);
 }

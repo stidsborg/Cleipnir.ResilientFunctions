@@ -25,7 +25,7 @@ namespace Cleipnir.ResilientFunctions.Storage
     );
 
     public record StoredParameter(string ParamJson, string ParamType);
-    public record StoredResult(string ResultJson, string ResultType);
+    public record StoredResult(string? ResultJson, string? ResultType);
     public record StoredFailure(string FailedJson, string FailedType);
     public record StoredScrapbook(string? ScrapbookJson, string ScrapbookType);
 
@@ -40,7 +40,9 @@ namespace Cleipnir.ResilientFunctions.Storage
         public static Exception Deserialize(this StoredFailure failure, ISerializer serializer)
             => serializer.DeserializeFault(failure.FailedJson, failure.FailedType);
 
-        public static object Deserialize(this StoredResult result, ISerializer serializer)
-            => serializer.DeserializeResult(result.ResultJson, result.ResultType);
+        public static object? Deserialize(this StoredResult result, ISerializer serializer)
+            => result.ResultJson == null || result.ResultType == null
+                ? null 
+                : serializer.DeserializeResult(result.ResultJson, result.ResultType);
     }
 }

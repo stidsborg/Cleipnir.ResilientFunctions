@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
@@ -66,7 +65,7 @@ internal class CommonInvoker
                 case Status.Succeeded:
                     return new RResult<TResult>(
                         ResultType.Succeeded,
-                        successResult: (TResult) storedFunction.Result!.Deserialize(_serializer),
+                        successResult: (TResult) storedFunction.Result!.Deserialize(_serializer)!,
                         postponedUntil: null,
                         failedException: null
                     );
@@ -185,8 +184,10 @@ internal class CommonInvoker
                     Status.Succeeded,
                     scrapbookJson,
                     result: new StoredResult(
-                        _serializer.SerializeResult(result.SuccessResult!), 
-                        result.SuccessResult!.GetType().SimpleQualifiedName()
+                        ResultJson: result.SuccessResult == null 
+                            ? null 
+                            : _serializer.SerializeResult(result.SuccessResult), 
+                        ResultType: result.SuccessResult?.GetType().SimpleQualifiedName()
                     ),
                     failed: null,
                     postponedUntil: null,

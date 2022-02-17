@@ -46,7 +46,7 @@ namespace Cleipnir.ResilientFunctions
             Func<TParam, Task<RResult<TReturn>>> func,
             Func<TParam, object> idFunc,
             ISerializer? serializer = null
-        ) where TParam : notnull where TReturn : notnull
+        ) where TParam : notnull
         {
             if (_disposed)
                 throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
@@ -139,7 +139,7 @@ namespace Cleipnir.ResilientFunctions
             Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
             Func<TParam, object> idFunc,
             ISerializer? serializer = null
-        ) where TParam : notnull where TScrapbook : RScrapbook, new() where TReturn : notnull
+        ) where TParam : notnull where TScrapbook : RScrapbook, new()
         {
             if (_disposed)
                 throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
