@@ -20,7 +20,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = RFunctions.Create(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.Zero,
@@ -74,7 +74,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = RFunctions.Create(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.Zero,
@@ -134,7 +134,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = RFunctions.Create(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.Zero,
@@ -185,7 +185,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = RFunctions.Create(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.Zero,
@@ -245,7 +245,7 @@ public abstract class ReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = RFunctions.Create(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.Zero,
@@ -273,7 +273,7 @@ public abstract class ReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = RFunctions.Create(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.Zero,
