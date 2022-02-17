@@ -8,22 +8,22 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
     {
         [TestMethod]
         public override Task SunshineScenarioTest() 
-            => SunshineScenarioTest(Sql.AutoCreateAndInitializeStore());
+            => SunshineScenarioTest(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-            => SignOfLifeIsUpdatedWhenAsExpected(Sql.AutoCreateAndInitializeStore());
+            => SignOfLifeIsUpdatedWhenAsExpected(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected() 
-            => SignOfLifeIsNotUpdatedWhenNotAsExpected(Sql.AutoCreateAndInitializeStore());
+            => SignOfLifeIsNotUpdatedWhenNotAsExpected(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected() 
-            => BecomeLeaderSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+            => BecomeLeaderSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
-            => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+            => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore().Result);
     }
 }

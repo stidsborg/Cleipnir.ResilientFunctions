@@ -81,7 +81,7 @@ namespace Cleipnir.ResilientFunctions
 
                 var registration = new RFuncRegistration<TParam, TReturn>(
                     rFuncInvoker.Invoke,
-                    (_, _, _) => throw new NotImplementedException(),
+                    rFuncInvoker.ReInvoke,
                     rFuncInvoker.ScheduleInvocation
                 );
                 _functions[functionTypeId] = registration;
@@ -126,7 +126,7 @@ namespace Cleipnir.ResilientFunctions
                 
                 var registration =  new RActionRegistration<TParam>(
                     rActionInvoker.Invoke,
-                    (_, _, _) => throw new NotImplementedException(),
+                    rActionInvoker.ReInvoke,
                     rActionInvoker.ScheduleInvocation
                 );
                 _functions[functionTypeId] = registration;
@@ -174,7 +174,7 @@ namespace Cleipnir.ResilientFunctions
                 
                 var registration = new RFuncRegistration<TParam, TScrapbook, TReturn>(
                     rFuncInvoker.Invoke,
-                    (_, _, _) => throw new NotImplementedException(),
+                    rFuncInvoker.ReInvoke,
                     rFuncInvoker.ScheduleInvocation
                 );
                 _functions[functionTypeId] = registration;
@@ -220,7 +220,7 @@ namespace Cleipnir.ResilientFunctions
                 
                 var registration = new RActionRegistration<TParam, TScrapbook>(
                     rActionInvoker.Invoke,
-                    (_, _, _) => throw new NotImplementedException(),
+                    rActionInvoker.ReInvoke,
                     rActionInvoker.ScheduleInvocation
                 );
                 _functions[functionTypeId] = registration;

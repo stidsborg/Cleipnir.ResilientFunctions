@@ -7,32 +7,32 @@ using Cleipnir.ResilientFunctions.Storage;
 namespace Cleipnir.ResilientFunctions;
 
 public delegate Task<RResult> ReInvokeAction<TParam, TScrapbook>(
-    FunctionInstanceId instanceId,
+    string instanceId,
     Action<TParam, TScrapbook> initializer,
     IEnumerable<Status> expectedStatuses
 ) where TParam : notnull where TScrapbook : RScrapbook;
 
 public delegate Task<RResult> ReInvokeAction<TParam>(
-    FunctionInstanceId instanceId,
+    string instanceId,
     Action<TParam> initializer,
     IEnumerable<Status> expectedStatuses
 ) where TParam : notnull;
 
 public delegate Task<RResult<TResult>> ReInvokeFunc<TParam, TResult>(
-    FunctionInstanceId instanceId,
+    string instanceId,
     Action<TParam> initializer,
     IEnumerable<Status> expectedStatuses
 ) where TParam : notnull where TResult : notnull;
 
 public delegate Task<RResult<TResult>> ReInvokeFunc<TParam, TScrapbook, TResult>(
-    FunctionInstanceId instanceId,
+    string instanceId,
     Action<TParam, TScrapbook> initializer,
     IEnumerable<Status> expectedStatuses
 ) where TParam : notnull where TScrapbook : RScrapbook where TResult : notnull;
 
 public record RFuncRegistration<TParam, TResult>(
     RFunc<TParam, TResult> RFunc,
-    ReInvokeFunc<TParam, TResult> ReInvokeFunc,
+    ReInvokeFunc<TParam, TResult> ReInvoke,
     Schedule<TParam> Schedule
 ) where TParam : notnull where TResult : notnull;
 

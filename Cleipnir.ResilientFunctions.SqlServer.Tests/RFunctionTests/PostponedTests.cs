@@ -8,17 +8,17 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
 {
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
-        => PostponedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
     [TestMethod]
     public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
-        => PostponedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 }

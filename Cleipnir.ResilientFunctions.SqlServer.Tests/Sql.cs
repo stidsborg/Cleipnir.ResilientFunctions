@@ -52,7 +52,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
             return store;
         }
 
-        public static SqlServerFunctionStore AutoCreateAndInitializeStore(
+        public static Task<SqlServerFunctionStore> AutoCreateAndInitializeStore(
             [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = "",
             [System.Runtime.CompilerServices.CallerMemberName] string callMemberName = ""
         )
@@ -62,7 +62,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
                 .Last()
                 .Replace(".cs", "");
 
-            return CreateAndInitializeStore(sourceFileName, callMemberName).Result;
+            return CreateAndInitializeStore(sourceFileName, callMemberName);
         }
     }
 }

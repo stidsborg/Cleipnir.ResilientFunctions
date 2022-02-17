@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -94,6 +96,37 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
         });
     }
+    
+    public async Task<RResult<TResult>> ReInvoke(
+        string instanceId, 
+        Action<TParam> initializer, 
+        IEnumerable<Status> expectedStatuses)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
+        
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+        _shutdownCoordinator.RegisterRunningRFunc();
+        try
+        {
+            RResult<TResult> result;
+            try
+            {
+                initializer(param);
+                // *** USER FUNCTION INVOCATION *** 
+                result = await _func(param);
+            }
+            catch (Exception exception)
+            {
+                await ProcessUnhandledException(functionId, exception, epoch);
+                return new Fail(exception);
+            }
+
+            await ProcessResult(functionId, result, epoch);
+            return result;
+        }
+        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+    }
 
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
@@ -104,11 +137,14 @@ public class RFuncInvoker<TParam, TResult> where TParam : notnull where TResult 
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TResult>(functionId);
 
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException)
-        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null);
+    private async Task<Tuple<TParam, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
+        => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses);
+    
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, int epoch = 0)
+        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null, epoch);
 
-    private Task ProcessResult(FunctionId functionId, RResult<TResult> result)
-        => _commonInvoker.ProcessResult(functionId, result, scrapbook: null, expectedEpoch: 0);
+    private Task ProcessResult(FunctionId functionId, RResult<TResult> result, int epoch = 0)
+        => _commonInvoker.ProcessResult(functionId, result, scrapbook: null, epoch);
 }
 
 public class RFuncInvoker<TParam, TScrapbook, TResult> 
@@ -202,12 +238,40 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
         });
     }
+    
+    public async Task<RResult<TResult>> ReInvoke(string instanceId, Action<TParam, TScrapbook> initializer, IEnumerable<Status> expectedStatuses)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
+
+        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+        _shutdownCoordinator.RegisterRunningRFunc();
+        try
+        {
+            RResult<TResult> result;
+            try
+            {
+                initializer(param, scrapbook);
+                // *** USER FUNCTION INVOCATION *** 
+                result = await _func(param, scrapbook);
+            }
+            catch (Exception exception)
+            {
+                await ProcessUnhandledException(functionId, exception, scrapbook, epoch);
+                return new Fail(exception);
+            }
+
+            await ProcessResult(functionId, result, scrapbook, epoch);
+            return result;
+        }
+        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+    }
 
     private FunctionId CreateFunctionId(TParam param)
         => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
-    private TScrapbook CreateScrapbook(FunctionId functionId)
-        => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0);
+    private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
+        => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch);
 
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: typeof(TScrapbook));
@@ -215,9 +279,12 @@ public class RFuncInvoker<TParam, TScrapbook, TResult>
     private async Task<RResult<TResult>> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TResult>(functionId);
 
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook)
-        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook);
+    private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
+        => await _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(functionId, expectedStatuses);
+    
+    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook, int epoch = 0)
+        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook, epoch);
 
-    private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook)
-        => await _commonInvoker.ProcessResult(functionId, result, scrapbook, expectedEpoch: 0);
+    private async Task ProcessResult(FunctionId functionId, RResult<TResult> result, TScrapbook scrapbook, int epoch = 0)
+        => await _commonInvoker.ProcessResult(functionId, result, scrapbook, epoch);
 }

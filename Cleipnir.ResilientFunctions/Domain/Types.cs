@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Cleipnir.ResilientFunctions.Domain
 {
     public record FunctionTypeId(string Value)
@@ -7,6 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain
 
     public record FunctionInstanceId(string Value)
     {
+        [DebuggerStepThrough]
         public static implicit operator FunctionInstanceId(string functionInstanceId) => new(functionInstanceId);
     }
 

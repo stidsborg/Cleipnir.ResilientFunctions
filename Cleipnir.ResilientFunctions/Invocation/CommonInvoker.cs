@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
@@ -49,7 +50,7 @@ internal class CommonInvoker
         return created;
     }
     
-    public async Task<RResult<TResult>> WaitForFunctionResult<TResult>(FunctionId functionId)
+    public async Task<RResult<TResult>> WaitForFunctionResult<TResult>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
     {
         while (true)
         {
@@ -222,7 +223,11 @@ internal class CommonInvoker
             throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
     }
     
-    public async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, RScrapbook? scrapbook)
+    public async Task ProcessUnhandledException(
+        FunctionId functionId, 
+        Exception unhandledException, 
+        RScrapbook? scrapbook, 
+        int epoch)
     {
         _unhandledExceptionHandler.Invoke(new FunctionInvocationUnhandledException(
             $"Function {functionId} threw unhandled exception", 
@@ -239,12 +244,34 @@ internal class CommonInvoker
                 FailedType: unhandledException.SimpleQualifiedTypeName()
             ),
             postponedUntil: null,
-            expectedEpoch: 0
+            expectedEpoch: epoch
         );
     }
 
-    public async Task<(TParam, TScrapbook)> PreprocessReInvocation<TParam, TScrapbook>(FunctionId functionId, IEnumerable<Status> expectedStatuses)
-        where TParam : notnull where TScrapbook : RScrapbook
+    public async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation<TParam, TScrapbook>(
+        FunctionId functionId, 
+        IEnumerable<Status> expectedStatuses) where TParam : notnull where TScrapbook : RScrapbook
+    {
+        var (param, epoch, scrapbook) = await PrepareForReInvocation<TParam>(functionId, expectedStatuses, hasScrapbook: true);
+        return Tuple.Create(
+            param, 
+            (TScrapbook) scrapbook!,
+            epoch
+        );
+    }
+
+    public async Task<Tuple<TParam, int>> PrepareForReInvocation<TParam>(FunctionId functionId, IEnumerable<Status> expectedStatuses)
+        where TParam : notnull
+    {
+        var (param, epoch, _) = await PrepareForReInvocation<TParam>(functionId, expectedStatuses, hasScrapbook: false);
+        return Tuple.Create(param, epoch);
+    }
+    
+    private async Task<Tuple<TParam, int, RScrapbook?>> PrepareForReInvocation<TParam>(
+        FunctionId functionId, 
+        IEnumerable<Status> expectedStatuses,
+        bool hasScrapbook)
+        where TParam : notnull
     {
         expectedStatuses = expectedStatuses.ToList();
         var sf = await _functionStore.GetFunction(functionId);
@@ -267,13 +294,15 @@ internal class CommonInvoker
             throw new FunctionInvocationException($"Function '{functionId}' did not have expected status: '{sf.Status}'");
 
         var param = (TParam) _serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-        var scrapbook = (TScrapbook) _serializer.DeserializeScrapbook(
+        if (!hasScrapbook)
+            return Tuple.Create(param, epoch, default(RScrapbook));
+        
+        var scrapbook = _serializer.DeserializeScrapbook(
             sf.Scrapbook!.ScrapbookJson,
             sf.Scrapbook.ScrapbookType
-        ); 
-
+        );
         scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
         
-        return new(param, scrapbook);
+        return Tuple.Create(param, epoch, (RScrapbook?) scrapbook);
     }
 }

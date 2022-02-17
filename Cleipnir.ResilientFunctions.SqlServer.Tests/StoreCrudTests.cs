@@ -8,34 +8,34 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
     {
         [TestMethod]
         public override Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
-            => FunctionCanBeCreatedWithASingleParameterSuccessfully(Sql.AutoCreateAndInitializeStore());
+            => FunctionCanBeCreatedWithASingleParameterSuccessfully(Sql.AutoCreateAndInitializeStore().Result);
         
         [TestMethod]
         public override Task FunctionCanBeCreatedWithATwoParametersSuccessfully()
-            => FunctionCanBeCreatedWithATwoParametersSuccessfully(Sql.AutoCreateAndInitializeStore());
+            => FunctionCanBeCreatedWithATwoParametersSuccessfully(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
-            => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(Sql.AutoCreateAndInitializeStore());
+            => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task FetchingNonExistingFunctionReturnsNull()
-            => FetchingNonExistingFunctionReturnsNull(Sql.AutoCreateAndInitializeStore());
+            => FetchingNonExistingFunctionReturnsNull(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected()
-            => SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+            => SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task UpdateScrapbookSunshineScenario()
-            => UpdateScrapbookSunshineScenario(Sql.AutoCreateAndInitializeStore());
+            => UpdateScrapbookSunshineScenario(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
-            => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+            => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task GetFunctionsWithStatusOnlyReturnsSucceededFunction()
-            => GetFunctionsWithStatusOnlyReturnsSucceededFunction(Sql.AutoCreateAndInitializeStore());
+            => GetFunctionsWithStatusOnlyReturnsSucceededFunction(Sql.AutoCreateAndInitializeStore().Result);
     }
 }

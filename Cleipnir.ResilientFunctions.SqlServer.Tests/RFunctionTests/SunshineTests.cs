@@ -9,18 +9,18 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests
     {
         [TestMethod]
         public override Task SunshineScenarioFunc() 
-            => SunshineScenarioFunc(Sql.AutoCreateAndInitializeStore());
+            => SunshineScenarioFunc(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task SunshineScenarioFuncWithScrapbook() 
-            => SunshineScenarioFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
+            => SunshineScenarioFuncWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task SunshineScenarioAction() 
-            => SunshineScenarioAction(Sql.AutoCreateAndInitializeStore());
+            => SunshineScenarioAction(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task SunshineScenarioActionWithScrapbook() 
-            => SunshineScenarioActionWithScrapbook(Sql.AutoCreateAndInitializeStore());
+            => SunshineScenarioActionWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
     }
 }

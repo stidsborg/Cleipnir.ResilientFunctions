@@ -8,18 +8,18 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.WatchDogsTests
     {
         [TestMethod]
         public override Task CrashedFunctionInvocationIsCompletedByWatchDog()
-            => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-            => CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task CrashedActionInvocationIsCompletedByWatchDog()
-            => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog()
-            => CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
     }
 }

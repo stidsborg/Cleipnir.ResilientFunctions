@@ -8,22 +8,22 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests.WatchDogsTests
     {
         [TestMethod]
         public override Task PostponedFunctionInvocationIsCompletedByWatchDog()
-            => PostponedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => PostponedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-            => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task PostponedActionInvocationIsCompletedByWatchDog()
-            => PostponedActionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => PostponedActionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
-            => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+            => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
 
         [TestMethod]
         public override Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime()
-            => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(Sql.AutoCreateAndInitializeStore());
+            => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(Sql.AutoCreateAndInitializeStore().Result);
     }
 }
