@@ -134,7 +134,7 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RFunc<TParam, TScrapbook, TReturn> Register<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
         Func<TParam, object> idFunc,
@@ -148,7 +148,7 @@ public class RFunctions : IDisposable
         {
             //todo consider throwing exception if the method is not equal to the previously registered one...?!
             if (_functions.ContainsKey(functionTypeId))
-                return (RFunc<TParam, TScrapbook, TReturn>) _functions[functionTypeId];
+                return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
             serializer ??= new DefaultSerializer();
                 
@@ -172,7 +172,7 @@ public class RFunctions : IDisposable
                 _unhandledExceptionHandler
             );
                 
-            var registration = new RFunc<TParam, TScrapbook, TReturn>(
+            var registration = new RFunc<TParam, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvocation
@@ -182,7 +182,7 @@ public class RFunctions : IDisposable
         }
     }
         
-    public RAction<TParam, TScrapbook> Register<TParam, TScrapbook>(
+    public RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<RResult>> func,
         Func<TParam, object> idFunc,
@@ -196,7 +196,7 @@ public class RFunctions : IDisposable
         {
             //todo consider throwing exception if the method is not equal to the previously registered one...?!
             if (_functions.ContainsKey(functionTypeId))
-                return (RAction<TParam, TScrapbook>) _functions[functionTypeId];
+                return (RAction<TParam>) _functions[functionTypeId];
                 
 
             serializer ??= new DefaultSerializer();
@@ -218,7 +218,7 @@ public class RFunctions : IDisposable
                 _unhandledExceptionHandler
             );
                 
-            var registration = new RAction<TParam, TScrapbook>(
+            var registration = new RAction<TParam>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
                 rActionInvoker.ScheduleInvocation

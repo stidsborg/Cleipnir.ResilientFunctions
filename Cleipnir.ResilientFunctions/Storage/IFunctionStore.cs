@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -36,6 +39,42 @@ public interface IFunctionStore
         long? postponedUntil,
         int expectedEpoch
     );
+
+    async Task UpdateScrapbook<TScrapbook>(
+        FunctionId functionId, 
+        Action<TScrapbook> updater,
+        IEnumerable<Status> expectedStatuses,
+        ISerializer? serializer = null) where TScrapbook : RScrapbook
+    {
+        var sf = await GetFunction(functionId);
+        if (sf == null)
+            throw new FunctionInvocationException($"Function '{functionId}' not found");
+        if (sf.Scrapbook == null)
+            throw new FunctionInvocationException($"Function '{functionId}' does not have scrapbook");
+        if (!expectedStatuses.Contains(sf.Status))
+            throw new FunctionInvocationException($"Function '{functionId}' did not have expected status: '{sf.Status}'");
+        
+        serializer ??= DefaultSerializer.Instance;
+
+        var scrapbook = (TScrapbook) serializer.DeserializeScrapbook(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
+
+        updater(scrapbook);
+
+        var scrapbookJson = serializer.SerializeScrapbook(scrapbook);
+
+        var success = await SetFunctionState(
+            functionId,
+            sf.Status,
+            scrapbookJson,
+            sf.Result,
+            sf.Failure,
+            sf.PostponedUntil,
+            sf.Epoch
+        );
+
+        if (!success)
+            throw new FunctionInvocationException($"Unable to persist function '{functionId}' scrapbook due to concurrent modification");
+    }
 
     // ** GETTER ** //
     Task<StoredFunction?> GetFunction(FunctionId functionId);

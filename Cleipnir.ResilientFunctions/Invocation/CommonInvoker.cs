@@ -163,7 +163,7 @@ internal class CommonInvoker
 
         var success = await persistInStoreTask;
         if (!success)
-            throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
+            throw new FunctionInvocationException($"Unable to persist function '{functionId}' result due to concurrent modification");
     }
     
     public async Task ProcessResult<TReturn>(
@@ -283,16 +283,15 @@ internal class CommonInvoker
             throw new FunctionInvocationException($"Function '{functionId}' did not have expected status: '{sf.Status}'");
 
         var epoch = sf.Epoch + 1;
-        var success = await _functionStore.TryToBecomeLeader(functionId, sf.Status, sf.Epoch, epoch);
-        if (!success)
-            throw new FunctionInvocationException($"Unable to become leader for function: '{functionId}'");
+        var success = await _functionStore.TryToBecomeLeader(
+            functionId,
+            Status.Executing,
+            expectedEpoch: sf.Epoch,
+            newEpoch: epoch
+        );
         
-        sf = await _functionStore.GetFunction(functionId);
-        if (sf == null)
-            throw new FunctionInvocationException($"Function '{functionId}' not found");
-            
-        if (expectedStatuses.All(expectedStatus => expectedStatus != sf.Status))
-            throw new FunctionInvocationException($"Function '{functionId}' did not have expected status: '{sf.Status}'");
+        if (!success)
+            throw new FunctionInvocationException($"Unable to become leader for function: '{functionId}'"); //todo concurrent modification exception
 
         var param = (TParam) _serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
         if (!hasScrapbook)

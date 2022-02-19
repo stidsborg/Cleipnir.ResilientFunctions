@@ -96,7 +96,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         });
     }
     
-    public async Task<RResult> ReInvoke(string functionInstanceId, Action<TParam> initializer, IEnumerable<Status> expectedStatuses)
+    public async Task<RResult> ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -108,7 +108,6 @@ public class RActionInvoker<TParam> where TParam : notnull
             RResult result;
             try
             {
-                initializer(param);
                 // *** USER FUNCTION INVOCATION *** 
                 result = await _func(param);
             }
@@ -234,7 +233,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         });
     }
     
-    public async Task<RResult> ReInvoke(string functionInstanceId, Action<TParam, TScrapbook> initializer, IEnumerable<Status> expectedStatuses)
+    public async Task<RResult> ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -246,7 +245,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             RResult result;
             try
             {
-                initializer(param, scrapbook);
                 // *** USER FUNCTION INVOCATION *** 
                 result = await _func(param, scrapbook);
             }

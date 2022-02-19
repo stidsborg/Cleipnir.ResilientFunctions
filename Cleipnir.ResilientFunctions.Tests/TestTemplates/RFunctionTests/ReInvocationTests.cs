@@ -48,16 +48,13 @@ public abstract class ReInvocationTests
         var result = await rFunc.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
-
-        var syncedValue = new Synced<string>();
+        
         result = await rFunc.ReInvoke(
             "something",
-            param => syncedValue.Value = param,
             new[] {Status.Failed}
         );
 
         result.EnsureSuccess();
-        syncedValue.Value.ShouldBe("something");
         syncedParameter.Value.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
@@ -101,22 +98,24 @@ public abstract class ReInvocationTests
         var result = await rAction.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
-
-        var syncedValue = new Synced<string>();
-        var scrapbookList = new Synced<List<string>>();
+        
+        var syncedListFromScrapbook = new Synced<List<string>>();
+        await store.UpdateScrapbook<ListScrapbook<string>>(
+            new FunctionId(functionType, "something"),
+            s =>
+            {
+                syncedListFromScrapbook.Value = new List<string>(s.List);
+                s.List.Clear();
+            },
+            expectedStatuses: new [] {Status.Failed}
+        );
+        
         result = await rAction.ReInvoke(
             "something",
-            (param, scrapbook) =>
-            {
-                scrapbookList.Value = new List<string>(scrapbook.List);
-                scrapbook.List.Clear();
-                syncedValue.Value = param;
-            },
             new[] {Status.Failed}
         );
 
         result.EnsureSuccess();
-        syncedValue.Value.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -159,16 +158,13 @@ public abstract class ReInvocationTests
         var result = await rFunc.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
-
-        var syncedValue = new Synced<string>();
+        
         result = await rFunc.ReInvoke(
             "something",
-            param => syncedValue.Value = param,
             new[] {Status.Failed}
         );
 
         result.EnsureSuccess().ShouldBe("something");
-        syncedValue.Value.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -212,22 +208,25 @@ public abstract class ReInvocationTests
         var result = await rFunc.Invoke("something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
-
-        var syncedValue = new Synced<string>();
+        
         var scrapbookList = new Synced<List<string>>();
+
+        await store.UpdateScrapbook<ListScrapbook<string>>(
+            new FunctionId(functionType, "something"),
+            s =>
+            {
+                scrapbookList.Value = new List<string>(s.List);
+                s.List.Clear();
+            },
+            new [] {Status.Failed}
+        );
+            
         result = await rFunc.ReInvoke(
             "something",
-            (param, scrapbook) =>
-            {
-                scrapbookList.Value = new List<string>(scrapbook.List);
-                scrapbook.List.Clear();
-                syncedValue.Value = param;
-            },
             new[] {Status.Failed}
         );
 
         result.EnsureSuccess().ShouldBe("something");
-        syncedValue.Value.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -261,7 +260,7 @@ public abstract class ReInvocationTests
         await rFunc.Invoke("something");
 
         await Should.ThrowAsync<FunctionInvocationException>(() =>
-            rFunc.ReInvoke("something", param => { }, new[] {Status.Executing})
+            rFunc.ReInvoke("something", new[] {Status.Executing})
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -287,7 +286,7 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<FunctionInvocationException>(() =>
-            rFunc.ReInvoke("something", param => { }, new[] {Status.Executing})
+            rFunc.ReInvoke("something", new[] {Status.Executing})
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

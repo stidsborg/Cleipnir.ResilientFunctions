@@ -38,7 +38,7 @@ public abstract class RScrapbook
         );
             
         if (!success)
-            throw new ScrapbookSaveFailedException("Unable to save Scrapbook due to unexpected version stamp");
+            throw new ScrapbookSaveFailedException("Unable to save Scrapbook due to concurrent modification");
     }
 }
 

@@ -96,10 +96,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         });
     }
     
-    public async Task<RResult<TReturn>> ReInvoke(
-        string instanceId, 
-        Action<TParam> initializer, 
-        IEnumerable<Status> expectedStatuses)
+    public async Task<RResult<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -111,7 +108,6 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             RResult<TReturn> result;
             try
             {
-                initializer(param);
                 // *** USER FUNCTION INVOCATION *** 
                 result = await _func(param);
             }
@@ -237,7 +233,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         });
     }
     
-    public async Task<RResult<TReturn>> ReInvoke(string instanceId, Action<TParam, TScrapbook> initializer, IEnumerable<Status> expectedStatuses)
+    public async Task<RResult<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -249,7 +245,6 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             RResult<TReturn> result;
             try
             {
-                initializer(param, scrapbook);
                 // *** USER FUNCTION INVOCATION *** 
                 result = await _func(param, scrapbook);
             }
