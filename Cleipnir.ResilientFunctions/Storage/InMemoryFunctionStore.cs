@@ -54,6 +54,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 return false.ToTask();
 
             state.Epoch = newEpoch;
+            state.Status = newStatus;
             return true.ToTask();
         }
     }

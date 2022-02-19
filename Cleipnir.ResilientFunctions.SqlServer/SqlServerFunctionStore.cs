@@ -104,18 +104,18 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch,
-        int newEpoch)
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
     {
         await using var conn = await _connFunc();
         var affectedRows = await conn.ExecuteAsync(@$"
                 UPDATE {_tablePrefix}RFunctions
-                SET Epoch = @NewEpoch
+                SET Epoch = @NewEpoch, Status = @NewStatus
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch",
             new
             {
                 FunctionTypeId = functionId.TypeId.Value,
                 FunctionInstanceId = functionId.InstanceId.Value,
+                NewStatus = newStatus,
                 NewEpoch = newEpoch,
                 ExpectedEpoch = expectedEpoch
             }
