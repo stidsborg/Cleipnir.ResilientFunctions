@@ -37,7 +37,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RFuncInvoker(
                     store, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -96,7 +96,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RFuncInvoker(
                     store, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -159,7 +159,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RActionInvoker(
                     store, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()
@@ -223,7 +223,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 store,
                 new RActionInvoker(
                     store, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     unhandledExceptionHandler,
                     new ShutdownCoordinator()

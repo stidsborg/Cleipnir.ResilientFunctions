@@ -65,7 +65,7 @@ public class SerializationTests
 
     private class Serializer : ISerializer
     {
-        private readonly DefaultSerializer _defaultSerializer = new();
+        private readonly DefaultSerializer _defaultSerializer = DefaultSerializer.Instance;
         
         public string SerializeParameter(object parameter)
             => JsonConvert.SerializeObject(parameter);

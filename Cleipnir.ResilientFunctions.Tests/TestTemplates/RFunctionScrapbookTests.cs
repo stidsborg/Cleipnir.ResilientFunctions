@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     public abstract class RFunctionScrapbookTests
     {
-        private readonly DefaultSerializer _serializer = new();
+        private readonly DefaultSerializer _serializer = DefaultSerializer.Instance;
         public abstract Task SunshineScenario();
         public async Task SunshineScenario(IFunctionStore store)
         {

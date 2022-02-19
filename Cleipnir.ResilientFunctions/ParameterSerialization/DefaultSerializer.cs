@@ -9,6 +9,8 @@ public class DefaultSerializer : ISerializer
     public static readonly DefaultSerializer Instance = new(); 
     private static JsonSerializerSettings SerializerSettings { get; } = new() { TypeNameHandling = TypeNameHandling.Auto };
     
+    private DefaultSerializer() {}
+    
     public string SerializeParameter(object parameter)
         => JsonConvert.SerializeObject(parameter, SerializerSettings);
 

@@ -34,7 +34,7 @@ public abstract class ScrapbookTests
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
-        scrapbook.Initialize(FunctionId, store, new DefaultSerializer(), 0);
+        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance, 0);
 
         var storedScrapbook = (await store.GetFunction(FunctionId))!.Scrapbook;
         storedScrapbook.ShouldNotBeNull();
@@ -81,11 +81,11 @@ public abstract class ScrapbookTests
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};
-        scrapbook.Initialize(FunctionId, store, new DefaultSerializer(),1);
+        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance,1);
         await scrapbook.Save();
             
         scrapbook = new Scrapbook() {Name = "Ole"};
-        scrapbook.Initialize(FunctionId, store, new DefaultSerializer(),0);
+        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance,0);
         await Should.ThrowAsync<ScrapbookSaveFailedException>(scrapbook.Save);
             
         (await store.GetFunction(FunctionId))!

@@ -57,7 +57,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
                 return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
-            serializer ??= new DefaultSerializer();
+            serializer ??= DefaultSerializer.Instance;
                 
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
@@ -105,7 +105,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
                 return (RAction<TParam>) _functions[functionTypeId];
 
-            serializer ??= new DefaultSerializer();
+            serializer ??= DefaultSerializer.Instance;
                 
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
@@ -150,7 +150,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
                 return (RFunc<TParam, TReturn>) _functions[functionTypeId];
 
-            serializer ??= new DefaultSerializer();
+            serializer ??= DefaultSerializer.Instance;
                 
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
@@ -199,7 +199,7 @@ public class RFunctions : IDisposable
                 return (RAction<TParam>) _functions[functionTypeId];
                 
 
-            serializer ??= new DefaultSerializer();
+            serializer ??= DefaultSerializer.Instance;
                 
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,

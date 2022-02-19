@@ -38,7 +38,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
@@ -92,7 +92,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock,
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
@@ -145,7 +145,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
@@ -205,7 +205,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
-                    new DefaultSerializer(),
+                    DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
                     new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch),
                     new ShutdownCoordinator()
