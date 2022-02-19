@@ -6,7 +6,7 @@ namespace ConsoleApp
     {
         private static async Task Main()
         {
-            await EmailOffers.Example.Perform();
+            await StressTest.Example.Perform();
         }
     }
 }
