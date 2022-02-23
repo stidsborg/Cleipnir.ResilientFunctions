@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -52,7 +54,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
             return store;
         }
 
-        public static Task<SqlServerFunctionStore> AutoCreateAndInitializeStore(
+        public static Task<IFunctionStore> AutoCreateAndInitializeStore(
             [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = "",
             [System.Runtime.CompilerServices.CallerMemberName] string callMemberName = ""
         )
@@ -62,7 +64,8 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
                 .Last()
                 .Replace(".cs", "");
 
-            return CreateAndInitializeStore(sourceFileName, callMemberName);
+            return CreateAndInitializeStore(sourceFileName, callMemberName)
+                .Map(store => (IFunctionStore) store);
         }
     }
 }

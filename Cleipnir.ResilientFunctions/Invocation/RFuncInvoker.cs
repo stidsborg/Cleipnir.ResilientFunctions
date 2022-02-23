@@ -18,6 +18,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    private readonly OnFuncException<TParam, TReturn> _exceptionHandler;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
@@ -26,7 +27,8 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
         ShutdownCoordinator shutdownCoordinator, 
-        UnhandledExceptionHandler unhandledExceptionHandler)
+        UnhandledExceptionHandler unhandledExceptionHandler,
+        OnFuncException<TParam, TReturn>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
@@ -35,6 +37,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
     public async Task<RResult<TReturn>> Invoke(TParam param)
@@ -55,8 +58,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             }
             catch (Exception exception)
             {
-                await ProcessUnhandledException(functionId, exception);
-                return new Fail(exception);
+                result = _exceptionHandler(exception, functionId.InstanceId, param);
             }
 
             await ProcessResult(functionId, result);
@@ -85,8 +87,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
                 }
                 catch (Exception exception)
                 {
-                    await ProcessUnhandledException(functionId, exception);
-                    return;
+                    result = _exceptionHandler(exception, functionId.InstanceId, param);
                 }
 
                 await ProcessResult(functionId, result);
@@ -113,8 +114,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             }
             catch (Exception exception)
             {
-                await ProcessUnhandledException(functionId, exception, epoch);
-                return new Fail(exception);
+                result = _exceptionHandler(exception, instanceId, param);
             }
 
             await ProcessResult(functionId, result, epoch);
@@ -134,12 +134,21 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     private async Task<Tuple<TParam, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
         => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses);
-    
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, int epoch = 0)
-        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook: null, epoch);
 
     private Task ProcessResult(FunctionId functionId, RResult<TReturn> result, int epoch = 0)
         => _commonInvoker.ProcessResult(functionId, result, scrapbook: null, epoch);
+    
+    private RResult<TReturn> DefaultProcessUnhandledException(Exception unhandledException, FunctionInstanceId functionInstanceId, TParam _)
+    {
+        _unhandledExceptionHandler.Invoke(
+            new FunctionInvocationUnhandledException(
+                $"Function {functionInstanceId} threw unhandled exception",
+                unhandledException
+            )
+        );
+
+        return new Fail(unhandledException);
+    }
 }
 
 public class RFuncInvoker<TParam, TScrapbook, TReturn> 
@@ -154,6 +163,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly OnFuncException<TParam, TScrapbook, TReturn> _exceptionHandler;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
@@ -162,7 +172,8 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
         ShutdownCoordinator shutdownCoordinator, 
-        UnhandledExceptionHandler unhandledExceptionHandler)
+        UnhandledExceptionHandler unhandledExceptionHandler, 
+        OnFuncException<TParam, TScrapbook, TReturn>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _idFunc = idFunc;
@@ -171,6 +182,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
     public async Task<RResult<TReturn>> Invoke(TParam param)
@@ -192,8 +204,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             }
             catch (Exception exception)
             {
-                await ProcessUnhandledException(functionId, exception, scrapbook);
-                return new Fail(exception);
+                result = _exceptionHandler(exception, scrapbook, functionId.InstanceId, param);
             }
 
             await ProcessResult(functionId, result, scrapbook);
@@ -222,8 +233,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                 }
                 catch (Exception exception)
                 {
-                    await ProcessUnhandledException(functionId, exception, scrapbook);
-                    return;
+                    result = _exceptionHandler(exception, scrapbook, functionId.InstanceId, param);
                 }
 
                 await ProcessResult(functionId, result, scrapbook);
@@ -250,8 +260,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             }
             catch (Exception exception)
             {
-                await ProcessUnhandledException(functionId, exception, scrapbook, epoch);
-                return new Fail(exception);
+                result = _exceptionHandler(exception, scrapbook, instanceId, param);
             }
 
             await ProcessResult(functionId, result, scrapbook, epoch);
@@ -274,10 +283,19 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
     private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
         => await _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(functionId, expectedStatuses);
-    
-    private async Task ProcessUnhandledException(FunctionId functionId, Exception unhandledException, TScrapbook scrapbook, int epoch = 0)
-        => await _commonInvoker.ProcessUnhandledException(functionId, unhandledException, scrapbook, epoch);
 
     private async Task ProcessResult(FunctionId functionId, RResult<TReturn> result, TScrapbook scrapbook, int epoch = 0)
         => await _commonInvoker.ProcessResult(functionId, result, scrapbook, epoch);
+    
+    private RResult<TReturn> DefaultProcessUnhandledException(Exception unhandledException, TScrapbook _, FunctionInstanceId functionInstanceId, TParam __)
+    {
+        _unhandledExceptionHandler.Invoke(
+            new FunctionInvocationUnhandledException(
+                $"Function {functionInstanceId} threw unhandled exception",
+                unhandledException
+            )
+        );
+
+        return new Fail(unhandledException);
+    }
 }

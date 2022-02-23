@@ -223,31 +223,6 @@ internal class CommonInvoker
         if (!success)
             throw new FrameworkException($"Unable to persist function '{functionId}' result in FunctionStore");
     }
-    
-    public async Task ProcessUnhandledException(
-        FunctionId functionId, 
-        Exception unhandledException, 
-        RScrapbook? scrapbook, 
-        int epoch)
-    {
-        _unhandledExceptionHandler.Invoke(new FunctionInvocationUnhandledException(
-            $"Function {functionId} threw unhandled exception", 
-            unhandledException)
-        );
-        
-        await _functionStore.SetFunctionState(
-            functionId,
-            Status.Failed,
-            scrapbookJson: scrapbook == null ? null : _serializer.SerializeScrapbook(scrapbook),
-            result: null,
-            failed: new StoredFailure(
-                FailedJson: _serializer.SerializeFault(unhandledException),
-                FailedType: unhandledException.SimpleQualifiedTypeName()
-            ),
-            postponedUntil: null,
-            expectedEpoch: epoch
-        );
-    }
 
     public async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation<TParam, TScrapbook>(
         FunctionId functionId, 

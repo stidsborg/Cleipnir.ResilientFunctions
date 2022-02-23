@@ -25,27 +25,47 @@ public class RFunctions : IDisposable
     private volatile bool _disposed;
 
     private readonly object _sync = new();
-
-    private RFunctions(
-        IFunctionStore functionStore, 
-        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
-        WatchDogsFactory watchDogsFactory, 
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator
+    
+    public RFunctions(
+        IFunctionStore store,
+        Action<RFunctionException>? unhandledExceptionHandler = null,
+        TimeSpan? crashedCheckFrequency = null,
+        TimeSpan? postponedCheckFrequency = null
     )
     {
-        _functionStore = functionStore;
+        crashedCheckFrequency ??= TimeSpan.FromSeconds(10);
+        postponedCheckFrequency ??= TimeSpan.FromSeconds(10);
+        var exceptionHandler = new UnhandledExceptionHandler(unhandledExceptionHandler ?? (_ => { }));
+        var shutdownCoordinator = new ShutdownCoordinator();
+            
+        var signOfLifeUpdaterFactory = new SignOfLifeUpdaterFactory(
+            store,
+            exceptionHandler,
+            crashedCheckFrequency.Value
+        );
+
+        var watchdogsFactory = new WatchDogsFactory(
+            store,
+            signOfLifeUpdaterFactory,
+            crashedCheckFrequency.Value,
+            postponedCheckFrequency.Value,
+            exceptionHandler,
+            shutdownCoordinator
+        );
+
+        _functionStore = store;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-        _watchDogsFactory = watchDogsFactory;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
+        _watchDogsFactory = watchdogsFactory;
+        _unhandledExceptionHandler = exceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
-        
+
     public RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<RResult<TReturn>>> func,
         Func<TParam, object> idFunc,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        OnFuncException<TParam, TReturn>? onException = null
     ) where TParam : notnull
     {
         if (_disposed)
@@ -76,7 +96,8 @@ public class RFunctions : IDisposable
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
-                _unhandledExceptionHandler
+                _unhandledExceptionHandler,
+                onException
             );
 
             var registration = new RFunc<TParam, TReturn>(
@@ -93,7 +114,8 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, Task<RResult>> func,
         Func<TParam, object> idFunc,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        OnActionException<TParam>? onException = null
     ) where TParam : notnull 
     {
         if (_disposed)
@@ -121,7 +143,8 @@ public class RFunctions : IDisposable
                 commonInvoker,
                 _signOfLifeUpdaterFactory,
                 _shutdownCoordinator,
-                _unhandledExceptionHandler
+                _unhandledExceptionHandler, 
+                onException
             );
                 
             var registration =  new RAction<TParam>(
@@ -138,7 +161,8 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
         Func<TParam, object> idFunc,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        OnFuncException<TParam, TScrapbook, TReturn>? onException = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
@@ -169,7 +193,8 @@ public class RFunctions : IDisposable
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
-                _unhandledExceptionHandler
+                _unhandledExceptionHandler,
+                onException
             );
                 
             var registration = new RFunc<TParam, TReturn>(
@@ -186,7 +211,8 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<RResult>> func,
         Func<TParam, object> idFunc,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        OnActionException<TParam, TScrapbook>? onException = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
@@ -215,7 +241,8 @@ public class RFunctions : IDisposable
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
-                _unhandledExceptionHandler
+                _unhandledExceptionHandler, 
+                onException
             );
                 
             var registration = new RAction<TParam>(
@@ -254,36 +281,5 @@ public class RFunctions : IDisposable
         Action<RFunctionException>? unhandledExceptionHandler = null,
         TimeSpan? crashedCheckFrequency = null,
         TimeSpan? postponedCheckFrequency = null
-    )
-    { 
-        crashedCheckFrequency ??= TimeSpan.FromSeconds(10);
-        postponedCheckFrequency ??= TimeSpan.FromSeconds(10);
-        var exceptionHandler = new UnhandledExceptionHandler(unhandledExceptionHandler ?? (_ => { }));
-        var shutdownCoordinator = new ShutdownCoordinator();
-            
-        var signOfLifeUpdaterFactory = new SignOfLifeUpdaterFactory(
-            store,
-            exceptionHandler,
-            crashedCheckFrequency.Value
-        );
-
-        var watchdogsFactory = new WatchDogsFactory(
-            store,
-            signOfLifeUpdaterFactory,
-            crashedCheckFrequency.Value,
-            postponedCheckFrequency.Value,
-            exceptionHandler,
-            shutdownCoordinator
-        );
-            
-        var rFunctions = new RFunctions(
-            store,
-            signOfLifeUpdaterFactory,
-            watchdogsFactory, 
-            exceptionHandler,
-            shutdownCoordinator
-        );
-            
-        return rFunctions;
-    }
+    ) => new RFunctions(store, unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency);
 }
