@@ -26,13 +26,12 @@ public static class SimpleFetchPostponedFunctionsWithStatus
 
         var f = functions.Register<int, string>(
             nameof(SimpleFetchPostponedFunctionsWithStatus).ToFunctionTypeId(),
-            RFunc,
-            s => s
+            RFunc
         ).Invoke;
 
-        await Utils.SafeTry(async () => await f(0), Console.WriteLine);
-        await Utils.SafeTry(async () => await f(1), Console.WriteLine);
-        await Utils.SafeTry(async () => await f(2), Console.WriteLine);
+        await Utils.SafeTry(async () => await f(0.ToString(), 0), Console.WriteLine);
+        await Utils.SafeTry(async () => await f(1.ToString(), 1), Console.WriteLine);
+        await Utils.SafeTry(async () => await f(2.ToString(), 2), Console.WriteLine);
 
         var statuses = await store
             .GetFunctionsWithStatus(functionTypeId, Status.Postponed, DateTime.Today.AddDays(1).ToUniversalTime().Ticks)

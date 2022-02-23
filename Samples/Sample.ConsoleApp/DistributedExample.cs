@@ -33,14 +33,13 @@ public class DistributedExample
         var callApi = functions
             .Register<string, string>(
                 "call.api".ToFunctionTypeId(),
-                new ApiCaller(true, 1).CallApi,
-                _ => _
+                new ApiCaller(true, 1).CallApi
             ).Invoke;
 
-        _ = callApi("input"); //will fail
+        _ = callApi("input", "input"); //will fail
         await Task.Delay(2_000);
 
-        var output = await callApi("input");
+        var output = await callApi("input", "input");
         Console.WriteLine($"[SERVICE1] Function Return Value: '{output}'");
     }
 
@@ -55,13 +54,12 @@ public class DistributedExample
         var callApi = functions
             .Register<string, string>(
                 "call.api".ToFunctionTypeId(),
-                new ApiCaller(false, 2).CallApi,
-                _ => _
+                new ApiCaller(false, 2).CallApi
             ).Invoke;
 
         await Task.Delay(2_000);
 
-        var output = await callApi("input");
+        var output = await callApi("input", "input");
         Console.WriteLine($"[SERVICE2] Function Return Value: '{output}'");
     }
 

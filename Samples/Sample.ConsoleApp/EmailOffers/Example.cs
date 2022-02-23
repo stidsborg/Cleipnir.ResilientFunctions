@@ -19,13 +19,14 @@ public static class Example
 
         var rAction = functions.Register<MailAndRecipients, EmailSenderSaga.Scrapbook>(
             "OffersMailSender".ToFunctionTypeId(),
-            EmailSenderSaga.Start,
-            mr => mr.OfferDate
+            EmailSenderSaga.Start
         ).Invoke;
 
+        var offerDate = new DateOnly(2022, 1, 1);
         var result = await rAction(
+            offerDate.ToString(),
             new MailAndRecipients(
-                OfferDate: new DateOnly(2022, 1, 1),
+                offerDate,
                 new[]
                 {
                     new EmailAddress("Peter Hansen", "peter@gmail.com"),

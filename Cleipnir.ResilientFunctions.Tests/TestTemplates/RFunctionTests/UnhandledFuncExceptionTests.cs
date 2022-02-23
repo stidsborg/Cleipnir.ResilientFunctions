@@ -23,7 +23,6 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string, string>(
             functionType,
             _ => throw new Exception("oh no"),
-            _ => _,
             onException: (exception, _, _) =>
             {
                 syncedException.Value = exception;
@@ -32,14 +31,14 @@ public abstract class UnhandledFuncExceptionTests
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1");
+        var invokedResult = await rFunc.Invoke("1", "1");
         invokedResult.Postponed.ShouldBeTrue();
         invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
 
         //schedule
-        await rFunc.Schedule("2");
+        await rFunc.Schedule("2", "2");
         await BusyWait.Until(
             () => store
                 .GetFunction(new FunctionId(functionType, "2"))
@@ -64,7 +63,6 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string, ListScrapbook<string>, string>(
             functionType,
             (_, _) => throw new Exception("oh no"),
-            _ => _,
             onException: (exception, scrapbook, _, _) =>
             {
                 syncedException.Value = exception;
@@ -74,7 +72,7 @@ public abstract class UnhandledFuncExceptionTests
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1");
+        var invokedResult = await rFunc.Invoke("1", "1");
         invokedResult.Postponed.ShouldBeTrue();
         invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
@@ -87,7 +85,7 @@ public abstract class UnhandledFuncExceptionTests
             .ShouldBe("onException");
 
         //schedule
-        await rFunc.Schedule("2");
+        await rFunc.Schedule("2", "2");
         await BusyWait.Until(
             () => store
                 .GetFunction(new FunctionId(functionType, "2"))
@@ -125,7 +123,6 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string>(
             functionType,
             _ => throw new Exception("oh no"),
-            _ => _,
             onException: (exception, _, _) =>
             {
                 syncedException.Value = exception;
@@ -134,14 +131,14 @@ public abstract class UnhandledFuncExceptionTests
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1");
+        var invokedResult = await rFunc.Invoke("1", "1");
         invokedResult.Postponed.ShouldBeTrue();
         invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
 
         //schedule
-        await rFunc.Schedule("2");
+        await rFunc.Schedule("2", "2");
         await BusyWait.Until(
             () => store
                 .GetFunction(new FunctionId(functionType, "2"))
@@ -166,7 +163,6 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string, ListScrapbook<string>>(
             functionType,
             (_, _) => throw new Exception("oh no"),
-            _ => _,
             onException: (exception, scrapbook, _, _) =>
             {
                 syncedException.Value = exception;
@@ -176,7 +172,7 @@ public abstract class UnhandledFuncExceptionTests
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1");
+        var invokedResult = await rFunc.Invoke("1", "1");
         invokedResult.Postponed.ShouldBeTrue();
         invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
@@ -189,7 +185,7 @@ public abstract class UnhandledFuncExceptionTests
             .ShouldBe("onException");
 
         //schedule
-        await rFunc.Schedule("2");
+        await rFunc.Schedule("2", "2");
         await BusyWait.Until(
             () => store
                 .GetFunction(new FunctionId(functionType, "2"))

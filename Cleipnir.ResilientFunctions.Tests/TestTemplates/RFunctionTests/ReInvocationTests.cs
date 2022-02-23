@@ -41,11 +41,10 @@ public abstract class ReInvocationTests
 
                 syncedParameter.Value = s;
                 return RResult.Success;
-            },
-            _ => _
+            }
         );
 
-        var result = await rFunc.Invoke("something");
+        var result = await rFunc.Invoke("something", "something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
         
@@ -91,11 +90,10 @@ public abstract class ReInvocationTests
                 }
                 scrapbook.List.Add("world");
                 return RResult.Success;
-            },
-            _ => _
+            }
         );
 
-        var result = await rAction.Invoke("something");
+        var result = await rAction.Invoke("something", "something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
         
@@ -151,11 +149,10 @@ public abstract class ReInvocationTests
                     return Fail.WithException(new Exception("oh no"));
                 }
                 return s;
-            },
-            _ => _
+            }
         );
 
-        var result = await rFunc.Invoke("something");
+        var result = await rFunc.Invoke("something", "something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
         
@@ -201,11 +198,10 @@ public abstract class ReInvocationTests
                 }
                 scrapbook.List.Add("world");
                 return param;
-            },
-            _ => _
+            }
         );
 
-        var result = await rFunc.Invoke("something");
+        var result = await rFunc.Invoke("something", "something");
         result.FailedException.ShouldNotBeNull();
         result.FailedException.ShouldBeOfType<Exception>();
         
@@ -253,11 +249,10 @@ public abstract class ReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Exception("oh no").ToFailedRResult().ToTask(),
-            _ => _
+            _ => new Exception("oh no").ToFailedRResult().ToTask()
         );
         
-        await rFunc.Invoke("something");
+        await rFunc.Invoke("something", "something");
 
         await Should.ThrowAsync<FunctionInvocationException>(() =>
             rFunc.ReInvoke("something", new[] {Status.Executing})
@@ -281,8 +276,7 @@ public abstract class ReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Exception("oh no").ToFailedRResult().ToTask(),
-            _ => _
+            _ => new Exception("oh no").ToFailedRResult().ToTask()
         );
 
         await Should.ThrowAsync<FunctionInvocationException>(() =>

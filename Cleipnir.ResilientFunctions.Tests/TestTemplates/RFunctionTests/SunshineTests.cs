@@ -31,11 +31,10 @@ public abstract class SunshineTests
         var rFunc = rFunctions
             .Register(
                 functionTypeId,
-                (string s) => ToUpper(s),
-                _ => _
+                (string s) => ToUpper(s)
             ).Invoke;
 
-        var rResult = await rFunc("hello");
+        var rResult = await rFunc("hello", "hello");
         var result = rResult.SuccessResult;
         result.ShouldBe("HELLO");
             
@@ -71,11 +70,10 @@ public abstract class SunshineTests
         var rFunc = rFunctions
             .Register(
                 functionTypeId,
-                (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
-                _ => _
+                (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
             ).Invoke;
 
-        var rResult = await rFunc("hello");
+        var rResult = await rFunc("hello", "hello");
         var result = rResult.SuccessResult;
         result.ShouldBe("HELLO");
             
@@ -111,11 +109,10 @@ public abstract class SunshineTests
         var rAction = rFunctions
             .Register(
                 functionTypeId,
-                (string s) => ToUpper(s),
-                _ => _
+                (string s) => ToUpper(s)
             ).Invoke;
 
-        var rResult = await rAction("hello");
+        var rResult = await rAction("hello", "hello");
         rResult.Succeeded.ShouldBeTrue();
 
         var storedFunction = await store.GetFunction(
@@ -146,11 +143,10 @@ public abstract class SunshineTests
         var rFunc = rFunctions
             .Register(
                 functionTypeId,
-                (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
-                _ => _
+                (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
             ).Invoke;
 
-        var rResult = await rFunc("hello");
+        var rResult = await rFunc("hello", "hello");
         rResult.Succeeded.ShouldBeTrue();
 
         var storedFunction = await store.GetFunction(
@@ -176,11 +172,10 @@ public abstract class SunshineTests
 
         var rFunc = rFunctions.Register(
             functionTypeId,
-            (string s) => default(string).ToSucceededRResult().ToTask(),
-            _ => _
+            (string s) => default(string).ToSucceededRResult().ToTask()
         ).Invoke;
 
-        var result = await rFunc("hello world").EnsureSuccess();
+        var result = await rFunc("hello world", "hello world").EnsureSuccess();
         result.ShouldBeNull();
     }
 
@@ -200,11 +195,10 @@ public abstract class SunshineTests
             {
                 scrapbook.List.Add("hello world");
                 return default(string).ToSucceededRResult().ToTask();
-            },
-            _ => _
+            }
         ).Invoke;
 
-        var result = await rFunc("hello world").EnsureSuccess();
+        var result = await rFunc("hello world", "hello world").EnsureSuccess();
         result.ShouldBeNull();
 
         var storedFunction = await store

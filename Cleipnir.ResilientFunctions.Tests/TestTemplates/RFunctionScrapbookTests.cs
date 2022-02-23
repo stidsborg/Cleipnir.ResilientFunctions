@@ -30,11 +30,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook),
-                    _ => _
+                    (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
                 ).Invoke;
 
-            var result = await rFunc("hello").EnsureSuccess();
+            var result = await rFunc("hello", "hello").EnsureSuccess();
             result.ShouldBe("HELLO");
             
             var storedFunction = await store.GetFunction(

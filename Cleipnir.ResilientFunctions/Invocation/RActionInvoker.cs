@@ -11,7 +11,6 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public class RActionInvoker<TParam> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, object> _idFunc;
     private readonly Func<TParam, Task<RResult>> _func;
 
     private readonly CommonInvoker _commonInvoker;
@@ -22,7 +21,6 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, object> idFunc,
         Func<TParam, Task<RResult>> func,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
@@ -31,7 +29,6 @@ public class RActionInvoker<TParam> where TParam : notnull
         OnActionException<TParam>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
-        _idFunc = idFunc;
         _func = func;
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
@@ -40,9 +37,9 @@ public class RActionInvoker<TParam> where TParam : notnull
         _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
-    public async Task<RResult> Invoke(TParam param)
+    public async Task<RResult> Invoke(string functionInstanceId, TParam param)
     {
-        var functionId = CreateFunctionId(param);
+        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
         if (!created) return await WaitForFunctionResult(functionId);
 
@@ -67,9 +64,9 @@ public class RActionInvoker<TParam> where TParam : notnull
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
 
-    public async Task ScheduleInvocation(TParam param)
+    public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
-        var functionId = CreateFunctionId(param);
+        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
         if (!created) return;
         
@@ -122,10 +119,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
-
-    private FunctionId CreateFunctionId(TParam param)
-        => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
-
+    
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
@@ -154,7 +148,6 @@ public class RActionInvoker<TParam> where TParam : notnull
 public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, object> _idFunc;
     private readonly Func<TParam, TScrapbook, Task<RResult>> _func;
     
     private readonly CommonInvoker _commonInvoker;
@@ -165,7 +158,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, object> idFunc,
         Func<TParam, TScrapbook, Task<RResult>> func,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
@@ -174,7 +166,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         OnActionException<TParam, TScrapbook>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
-        _idFunc = idFunc;
         _func = func;
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
@@ -183,9 +174,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
-    public async Task<RResult> Invoke(TParam param)
+    public async Task<RResult> Invoke(string functionInstanceId, TParam param)
     {
-        var functionId = CreateFunctionId(param);
+        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
         if (!created) return await WaitForFunctionResult(functionId);
 
@@ -211,9 +202,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
     
-    public async Task ScheduleInvocation(TParam param)
+    public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
-        var functionId = CreateFunctionId(param);
+        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
         if (!created) return;
 
@@ -268,9 +259,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
-
-    private FunctionId CreateFunctionId(TParam param)
-        => new FunctionId(_functionTypeId, _idFunc(param).ToString()!.ToFunctionInstanceId());
 
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param)
         => await _commonInvoker.PersistFunctionInStore(functionId, param, typeof(TScrapbook));

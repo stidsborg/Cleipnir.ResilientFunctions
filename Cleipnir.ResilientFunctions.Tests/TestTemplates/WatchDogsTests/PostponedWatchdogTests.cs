@@ -295,13 +295,12 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     await scrapbook.Save();
 
                     return Postpone.For(delay);
-                },
-                _ => _
+                }
             ).Invoke;
 
-            _ = rAction(10);
-            _ = rAction(1000);
-            _ = rAction(2000);
+            _ = rAction(10.ToString(), 10);
+            _ = rAction(1000.ToString(), 1000);
+            _ = rAction(2000.ToString(), 2000);
 
             await BusyWait.UntilAsync(
                 () => syncedList.Count == 3, 

@@ -26,11 +26,10 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfType<RResult<string>>(),
-                    _ => _
+                    (string _) => NeverCompletingTask.OfType<RResult<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param);
+            _ = nonCompletingRFunctions(param, param);
         }
         {
             using var rFunctions = RFunctions.Create(
@@ -42,8 +41,7 @@ public abstract class CrashedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => Funcs.ToUpper(s),
-                    _ => _
+                    (string s) => Funcs.ToUpper(s)
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -55,7 +53,7 @@ public abstract class CrashedTests
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
-            await rFunc(param).EnsureSuccess().ShouldBeAsync("TEST");
+            await rFunc(param, param).EnsureSuccess().ShouldBeAsync("TEST");
         }
 
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -77,11 +75,10 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
-                    _ => _
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param);
+            _ = nonCompletingRFunctions(param, param);
         }
         {
             using var rFunctions = RFunctions.Create(
@@ -98,8 +95,7 @@ public abstract class CrashedTests
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                         return Succeed.WithResult(s.ToUpper());
-                    },
-                    _ => _
+                    }
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -114,7 +110,7 @@ public abstract class CrashedTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
-            await rFunc(param).EnsureSuccess().ShouldBeAsync("TEST");
+            await rFunc(param, param).EnsureSuccess().ShouldBeAsync("TEST");
         }
 
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -136,11 +132,10 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfType<RResult<string>>(),
-                    _ => _
+                    (string _) => NeverCompletingTask.OfType<RResult<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param);
+            _ = nonCompletingRFunctions(param, param);
         }
         {
             using var rFunctions = RFunctions.Create(
@@ -152,8 +147,7 @@ public abstract class CrashedTests
             var rAction = rFunctions
                 .Register(
                     functionTypeId,
-                    (string _) => Task.FromResult(Succeed.WithoutResult()),
-                    _ => _
+                    (string _) => Task.FromResult(Succeed.WithoutResult())
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -165,7 +159,7 @@ public abstract class CrashedTests
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
-            var rResult = await rAction(param);
+            var rResult = await rAction(param, param);
             rResult.EnsureSuccess();
         }
 
@@ -188,11 +182,10 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
-                    _ => _
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param);
+            _ = nonCompletingRFunctions(param, param);
         }
         {
             using var rFunctions = RFunctions.Create(
@@ -209,8 +202,7 @@ public abstract class CrashedTests
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                         return RResult.Success;
-                    },
-                    _ => _
+                    }
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -225,7 +217,7 @@ public abstract class CrashedTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
-            var rResult = await rAction(param);
+            var rResult = await rAction(param, param);
             rResult.EnsureSuccess();
         }
 

@@ -41,11 +41,10 @@ public abstract class FailedTests
                     (string _) =>
                         throwUnhandledException 
                             ? throw new Exception() 
-                            : new Exception().ToFailedRResult<string>().ToTask(),
-                    _ => _
+                            : new Exception().ToFailedRResult<string>().ToTask()
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(PARAM);
+            var result = await nonCompletingRFunctions(PARAM, PARAM);
             result.Failed.ShouldBeTrue();
         }
         {
@@ -62,8 +61,7 @@ public abstract class FailedTests
                 {
                     flag.Raise();
                     return s.ToUpper().ToSucceededRResult().ToTask();
-                },
-                _ => _
+                }
             ).Invoke;
             await Task.Delay(100);
             
@@ -73,7 +71,7 @@ public abstract class FailedTests
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            (await rFunc(PARAM)).Failed.ShouldBeTrue();
+            (await rFunc(PARAM, PARAM)).Failed.ShouldBeTrue();
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
@@ -107,11 +105,10 @@ public abstract class FailedTests
                     (string _, Scrapbook _) =>
                         throwUnhandledException 
                             ? throw new Exception()
-                            : new Exception().ToFailedRResult<string>().ToTask(),
-                    _ => _
+                            : new Exception().ToFailedRResult<string>().ToTask()
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(PARAM);
+            var result = await nonCompletingRFunctions(PARAM, PARAM);
             result.Failed.ShouldBeTrue();
         }
         {
@@ -128,8 +125,7 @@ public abstract class FailedTests
                 {
                     flag.Raise();
                     return RResult.Success.ToTask();
-                },
-                _ => _
+                }
             ).Invoke;
                 
             await Task.Delay(100);
@@ -143,7 +139,7 @@ public abstract class FailedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
 
-            (await rAction(PARAM)).Failed.ShouldBeTrue();
+            (await rAction(PARAM, PARAM)).Failed.ShouldBeTrue();
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
@@ -176,11 +172,10 @@ public abstract class FailedTests
                     (string _) =>
                         throwUnhandledException 
                             ? throw new Exception()
-                            : new Exception().ToFailedRResult().ToTask(),
-                    _ => _
+                            : new Exception().ToFailedRResult().ToTask()
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(PARAM);
+            var result = await nonCompletingRFunctions(PARAM, PARAM);
             result.Failed.ShouldBe(true);
         }
         {
@@ -197,8 +192,7 @@ public abstract class FailedTests
                 {
                     flag.Raise();
                     return RResult.Success.ToTask();
-                },
-                _ => _
+                }
             ).Invoke;
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
@@ -207,7 +201,7 @@ public abstract class FailedTests
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            (await rFunc(PARAM)).Failed.ShouldBeTrue();
+            (await rFunc(PARAM, PARAM)).Failed.ShouldBeTrue();
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
@@ -237,11 +231,10 @@ public abstract class FailedTests
                     (string _, Scrapbook _) => 
                         throwUnhandledException
                             ? throw new Exception()
-                            : new Exception().ToFailedRResult().ToTask(),
-                    _ => _
+                            : new Exception().ToFailedRResult().ToTask()
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(param);
+            var result = await nonCompletingRFunctions(param, param);
             result.Failed.ShouldBe(true);
         }
         {
@@ -257,8 +250,7 @@ public abstract class FailedTests
                 {
                     flag.Raise();
                     return RResult.Success.ToTask();
-                }, 
-                _ => _
+                }
             ).Invoke;
                 
             await Task.Delay(100);
@@ -271,7 +263,7 @@ public abstract class FailedTests
 
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
-            (await rFunc(param)).Failed.ShouldBeTrue();
+            (await rFunc(param, param)).Failed.ShouldBeTrue();
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);

@@ -19,11 +19,10 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _) => NeverCompletingTask.OfType<RResult<string>>(),
-            _ => _
+            (string _) => NeverCompletingTask.OfType<RResult<string>>()
         ).Schedule;
         
-        await schedule(functionInstanceId);
+        await schedule(functionInstanceId, functionInstanceId);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -44,11 +43,10 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>(),
-            _ => _
+            (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>()
         ).Schedule;
 
-        await schedule(functionInstanceId);
+        await schedule(functionInstanceId, functionInstanceId);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -71,11 +69,10 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult>(),
-            _ => _
+            (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult>()
         ).Schedule;
 
-        await schedule(functionInstanceId);
+        await schedule(functionInstanceId, functionInstanceId);
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -98,11 +95,10 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _) => NeverCompletingTask.OfType<RResult>(),
-            _ => _
+            (string _) => NeverCompletingTask.OfType<RResult>()
         ).Schedule;
 
-        await schedule(functionInstanceId);
+        await schedule(functionInstanceId, functionInstanceId);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();

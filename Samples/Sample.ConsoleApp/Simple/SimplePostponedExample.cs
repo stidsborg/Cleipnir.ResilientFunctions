@@ -21,12 +21,11 @@ public static class SimplePostponeExample
 
         var f = functions.Register<string, string>(
             nameof(SimpleSuccessExample).ToFunctionTypeId(),
-            RFunc,
-            s => s
+            RFunc
         ).Invoke;
 
-        await SafeTry(async () => await f("hello world"), Console.WriteLine);
-        await SafeTry(async () => await f("hello world"), Console.WriteLine);
+        await SafeTry(async () => await f("hello world", "hello world"), Console.WriteLine);
+        await SafeTry(async () => await f("hello world", "hello world"), Console.WriteLine);
     }
 
     private static async Task<RResult<string>> RFunc(string s)

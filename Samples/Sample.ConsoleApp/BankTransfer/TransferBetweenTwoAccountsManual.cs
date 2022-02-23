@@ -14,8 +14,7 @@ public sealed class TransferSaga
         BankClient = bankClient;
         Perform = rFunctions.Register<Transfer>(
             "Transfers".ToFunctionTypeId(),
-            _Perform,
-            transfer => $"{transfer.FromAccount}¤{transfer.ToAccount}"
+            _Perform
         ).Invoke;
     }
     

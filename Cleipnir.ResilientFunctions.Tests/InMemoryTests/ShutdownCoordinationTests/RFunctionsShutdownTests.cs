@@ -34,12 +34,11 @@ public class RFunctionsShutdownTests
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
                 return RResult.Success;
-            },
-            idFunc: _ => _
+            }
         ).Invoke;
 
-        var rFuncTask1 = rAction("1");
-        var rFuncTask2 = rAction("2");
+        var rFuncTask1 = rAction("1", "1");
+        var rFuncTask2 = rAction("2", "2");
         
         await insideRFuncFlag.WaitForRaised();
 
@@ -74,11 +73,10 @@ public class RFunctionsShutdownTests
             {
                 insideRFuncFlag.Raise();
                 return NeverCompletingTask.OfType<RResult>();
-            },
-            idFunc: _ => _
+            }
         ).Invoke;
 
-        _ = rFunc("1");
+        _ = rFunc("1", "1");
 
         await insideRFuncFlag.WaitForRaised();
 
@@ -119,8 +117,7 @@ public class RFunctionsShutdownTests
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
                 return RResult.Success;
-            },
-            _ => functionId.InstanceId
+            }
         );
 
         await insideRFuncFlag.WaitForRaised();
@@ -177,8 +174,7 @@ public class RFunctionsShutdownTests
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
                 return RResult.Success;
-            },
-            _ => functionId.InstanceId
+            }
         );
 
         await insideRFuncFlag.WaitForRaised();

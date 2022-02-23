@@ -37,11 +37,10 @@ public abstract class WatchdogCompoundTests
                 {
                     paramTcs.TrySetResult(p);
                     return NeverCompletingTask.OfType<RResult<string>>();
-                },
-                p => p.Id
+                }
             ).Invoke;
 
-            _ = rFunc(param);
+            _ = rFunc(param.Id, param);
 
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
@@ -68,8 +67,7 @@ public abstract class WatchdogCompoundTests
                 {
                     paramTcs.TrySetResult(p);
                     return TimeSpan.FromMilliseconds(10).ToPostponedRResult<string>().ToTask();
-                },
-                p => p.Id
+                }
             );
 
             await afterNextSetFunctionState;
@@ -91,8 +89,7 @@ public abstract class WatchdogCompoundTests
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
                     return NeverCompletingTask.OfType<RResult<string>>();
-                },
-                p => p.Id
+                }
             );
 
             var actualParam = await paramTcs.Task;
@@ -109,8 +106,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = rFunctions.Register(
                 functionTypeId,
-                (Param p) => $"{p.Id}-{p.Value}".ToSucceededRResult().ToTask(),
-                p => p.Id
+                (Param p) => $"{p.Id}-{p.Value}".ToSucceededRResult().ToTask()
             );
 
             await BusyWait.Until(async () =>
@@ -148,11 +144,10 @@ public abstract class WatchdogCompoundTests
                         .ContinueWith(_ => paramTcs.TrySetResult(p))
                         .ContinueWith(_ => NeverCompletingTask.OfType<RResult<string>>())
                         .Unwrap();
-                },
-                p => p.Id
+                }
             ).Invoke;
 
-            _ = rFunc(param);
+            _ = rFunc(param.Id, param);
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
 
@@ -182,8 +177,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
                     return Postpone.For(10);
-                },
-                p => p.Id
+                }
             );
             
             await afterNextPostponedSetFunctionState;
@@ -211,8 +205,7 @@ public abstract class WatchdogCompoundTests
                         Task.Run(() => paramTcs.TrySetResult(p));
                         return NeverCompletingTask.OfType<RResult<string>>();
                     }).Unwrap();
-                },
-                p => p.Id
+                }
             );
 
             var actualParam = await paramTcs.Task;
@@ -233,8 +226,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
                     return $"{p.Id}-{p.Value}".ToSucceededRResult();
-                },
-                p => p.Id
+                }
             );
 
             await BusyWait.Until(async () =>
@@ -275,11 +267,10 @@ public abstract class WatchdogCompoundTests
                 {
                     tcs.TrySetResult(p);
                     return NeverCompletingTask.OfType<RResult>();
-                },
-                p => p.Id
+                }
             ).Invoke;
             
-            _ = rAction(param);
+            _ = rAction(param.Id, param);
             var actualParam = await tcs.Task;
             actualParam.ShouldBe(param);
 
@@ -304,8 +295,7 @@ public abstract class WatchdogCompoundTests
                 {
                     paramTcs.TrySetResult(p);
                     return TimeSpan.FromMilliseconds(10).ToPostponedRResult().ToTask();
-                },
-                p => p.Id
+                }
             );
 
             await afterSetFunctionState;
@@ -329,8 +319,7 @@ public abstract class WatchdogCompoundTests
                     paramTcs.TrySetResult(p);
                     Task.Run(invocationStarted.SetResult);
                     return NeverCompletingTask.OfType<RResult>();
-                },
-                p => p.Id
+                }
             );
 
             await invocationStarted.Task;
@@ -352,8 +341,7 @@ public abstract class WatchdogCompoundTests
                 {
                     paramTcs.TrySetResult(p);
                     return RResult.Success.ToTask();
-                },
-                p => p.Id
+                }
             );
             
             await BusyWait.Until(async () =>
@@ -393,11 +381,10 @@ public abstract class WatchdogCompoundTests
                         .ContinueWith(_ => Task.Run(() => paramTcs.TrySetResult(p)))
                         .ContinueWith(_ => NeverCompletingTask.OfType<RResult>())
                         .Unwrap();
-                },
-                p => p.Id
+                }
             ).Invoke;
 
-            _ = rFunc(param);
+            _ = rFunc(param.Id, param);
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
 
@@ -426,8 +413,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
                     return Postpone.For(10);
-                },
-                p => p.Id
+                }
             );
             
             await afterNextPostponed;
@@ -457,8 +443,7 @@ public abstract class WatchdogCompoundTests
                         Task.Run(invocationStarted.SetResult);
                         return NeverCompletingTask.OfType<RResult>();
                     }).Unwrap();
-                },
-                p => p.Id
+                }
             );
             
             await invocationStarted.Task;
@@ -481,8 +466,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
                     return RResult.Success;
-                },
-                p => p.Id
+                }
             );
 
             await BusyWait.Until(async () =>

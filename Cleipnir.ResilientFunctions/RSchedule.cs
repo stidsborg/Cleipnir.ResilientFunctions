@@ -2,4 +2,4 @@
 
 namespace Cleipnir.ResilientFunctions;
 
-public delegate Task Schedule<TParam>(TParam param);
+public delegate Task Schedule<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;

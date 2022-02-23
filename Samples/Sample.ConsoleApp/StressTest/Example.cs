@@ -35,14 +35,13 @@ public static class Example
             {
                 await Task.Delay(1);
                 return param.ToString();
-            },
-            _ => _
+            }
         ).Invoke;
 
         var tasks = new List<Tuple<int, Task<RResult<string>>>>();
         for (var i = 0; i < 10_000; i++)
         {
-            var task = rFunc(i);
+            var task = rFunc(i.ToString(), i);
             tasks.Add(Tuple.Create(i, task));
         }
 

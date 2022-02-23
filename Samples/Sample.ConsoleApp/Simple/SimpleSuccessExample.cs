@@ -20,14 +20,13 @@ public static class SimpleSuccessExample
 
         var f = functions.Register<string, string>(
             nameof(SimpleSuccessExample).ToFunctionTypeId(),
-            RFunc,
-            s => s
+            RFunc
         ).Invoke;
 
-        var returned = await f("hello world");
+        var returned = await f("hello world", "hello world");
         Console.WriteLine($"1: {returned}");
         
-        returned = await f("hello world");
+        returned = await f("hello world", "hello world");
         Console.WriteLine($"2: {returned}");
     }
 

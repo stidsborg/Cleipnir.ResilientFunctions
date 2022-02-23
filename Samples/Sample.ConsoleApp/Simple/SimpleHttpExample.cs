@@ -37,11 +37,10 @@ public class SimpleHttpExample
                     replies.Add(echo);
                 }
                 return replies.ToSucceededRResult();
-            },
-            s => s
+            }
         ).Invoke;
 
-        var response = await rFunc("hello resilient world!").EnsureSuccess();
+        var response = await rFunc("hello resilient world!", "hello resilient world!").EnsureSuccess();
         Console.WriteLine(string.Join(Environment.NewLine, response));
     }
     
@@ -76,11 +75,10 @@ public class SimpleHttpExample
                     await scrapbook.Save();
                 }
                 return scrapbook.List.ToSucceededRResult();
-            },
-            idFunc: s => s
+            }
         ).Invoke;
 
-        var response = await rFunc("hello resilient world!").EnsureSuccess();
+        var response = await rFunc("hello resilient world!", "hello resilient world!").EnsureSuccess();
         Console.WriteLine(string.Join(Environment.NewLine, response));
     }
 }

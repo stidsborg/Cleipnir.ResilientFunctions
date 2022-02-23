@@ -63,7 +63,6 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<RResult<TReturn>>> func,
-        Func<TParam, object> idFunc,
         ISerializer? serializer = null,
         OnFuncException<TParam, TReturn>? onException = null
     ) where TParam : notnull
@@ -92,7 +91,8 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
             var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
-                functionTypeId, idFunc, func, 
+                functionTypeId, 
+                func, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
@@ -113,7 +113,6 @@ public class RFunctions : IDisposable
     public RAction<TParam> Register<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<RResult>> func,
-        Func<TParam, object> idFunc,
         ISerializer? serializer = null,
         OnActionException<TParam>? onException = null
     ) where TParam : notnull 
@@ -139,7 +138,8 @@ public class RFunctions : IDisposable
                 serializer, _functionStore, _unhandledExceptionHandler, _shutdownCoordinator
             );
             var rActionInvoker = new RActionInvoker<TParam>(
-                functionTypeId, idFunc, func, 
+                functionTypeId, 
+                func, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory,
                 _shutdownCoordinator,
@@ -160,7 +160,6 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
-        Func<TParam, object> idFunc,
         ISerializer? serializer = null,
         OnFuncException<TParam, TScrapbook, TReturn>? onException = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -189,7 +188,8 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
-                functionTypeId, idFunc, func, 
+                functionTypeId, 
+                func, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
@@ -210,7 +210,6 @@ public class RFunctions : IDisposable
     public RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<RResult>> func,
-        Func<TParam, object> idFunc,
         ISerializer? serializer = null,
         OnActionException<TParam, TScrapbook>? onException = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -237,7 +236,8 @@ public class RFunctions : IDisposable
                 serializer, _functionStore, _unhandledExceptionHandler, _shutdownCoordinator
             );
             var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
-                functionTypeId, idFunc, func, 
+                functionTypeId, 
+                func, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,

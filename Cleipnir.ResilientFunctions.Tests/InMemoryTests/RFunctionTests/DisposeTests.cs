@@ -19,8 +19,7 @@ public class DisposeTests
         Should.Throw<ObjectDisposedException>(() =>
             _ = rFunctions.Register(
                 "id".ToFunctionTypeId(),
-                (string s) => RResult.Success.ToTask(),
-                _ => _
+                (string _) => RResult.Success.ToTask()
             )
         );
     }

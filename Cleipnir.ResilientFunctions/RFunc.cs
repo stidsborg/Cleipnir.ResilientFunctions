@@ -6,7 +6,7 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RFunc
 {
-    public delegate Task<RResult<TReturn>> Invoke<TParam, TReturn>(TParam param)
+    public delegate Task<RResult<TReturn>> Invoke<in TParam, TReturn>(string functionInstanceId, TParam param)
         where TParam : notnull;
 
     public delegate Task<RResult<TReturn>> ReInvoke<TReturn>(

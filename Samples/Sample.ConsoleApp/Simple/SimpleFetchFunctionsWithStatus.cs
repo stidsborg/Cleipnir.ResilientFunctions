@@ -25,13 +25,12 @@ public static class SimpleFetchFunctionsWithStatus
 
         var f = functions.Register<string, string>(
             nameof(SimpleFetchFunctionsWithStatus).ToFunctionTypeId(),
-            RFunc,
-            s => s
+            RFunc
         ).Invoke;
 
-        await Utils.SafeTry(async () => await f("a"), Console.WriteLine);
-        await Utils.SafeTry(async () => await f("b"), Console.WriteLine);
-        await Utils.SafeTry(async () => await f("c"), Console.WriteLine);
+        await Utils.SafeTry(async () => await f("a", "a"), Console.WriteLine);
+        await Utils.SafeTry(async () => await f("b", "b"), Console.WriteLine);
+        await Utils.SafeTry(async () => await f("c", "c"), Console.WriteLine);
 
         var statuses = await store
             .GetFunctionsWithStatus(functionTypeId, Status.Executing)
