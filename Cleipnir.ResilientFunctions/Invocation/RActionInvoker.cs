@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public class RActionInvoker<TParam> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<RResult>> _func;
+    private readonly InnerAction<TParam> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
@@ -21,7 +21,7 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<RResult>> func,
+        InnerAction<TParam> inner,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
         ShutdownCoordinator shutdownCoordinator, 
@@ -29,7 +29,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         OnActionException<TParam>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
-        _func = func;
+        _inner = inner;
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
@@ -51,7 +51,7 @@ public class RActionInvoker<TParam> where TParam : notnull
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param);
+                result = await _inner(param);
             }
             catch (Exception exception)
             {
@@ -80,7 +80,7 @@ public class RActionInvoker<TParam> where TParam : notnull
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _func(param);
+                    result = await _inner(param);
                 }
                 catch (Exception exception)
                 {
@@ -107,7 +107,7 @@ public class RActionInvoker<TParam> where TParam : notnull
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param);
+                result = await _inner(param);
             }
             catch (Exception exception)
             {
@@ -148,7 +148,7 @@ public class RActionInvoker<TParam> where TParam : notnull
 public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<RResult>> _func;
+    private readonly InnerAction<TParam, TScrapbook> _inner;
     
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
@@ -158,7 +158,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<RResult>> func,
+        InnerAction<TParam, TScrapbook> inner,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
         ShutdownCoordinator shutdownCoordinator, 
@@ -166,7 +166,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         OnActionException<TParam, TScrapbook>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
-        _func = func;
+        _inner = inner;
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
@@ -189,7 +189,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param, scrapbook);
+                result = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {
@@ -220,7 +220,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _func(param, scrapbook);
+                    result = await _inner(param, scrapbook);
                 }
                 catch (Exception exception)
                 {
@@ -247,7 +247,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param, scrapbook);
+                result = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {

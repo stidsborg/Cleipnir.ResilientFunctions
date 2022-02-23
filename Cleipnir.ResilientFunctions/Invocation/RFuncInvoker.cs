@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<RResult<TReturn>>> _func;
+    private readonly InnerFunc<TParam, TReturn> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -21,7 +21,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<RResult<TReturn>>> func,
+        InnerFunc<TParam, TReturn> inner,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
         ShutdownCoordinator shutdownCoordinator, 
@@ -29,7 +29,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         OnFuncException<TParam, TReturn>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
-        _func = func;
+        _inner = inner;
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
@@ -51,7 +51,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param);
+                result = await _inner(param);
             }
             catch (Exception exception)
             {
@@ -80,7 +80,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _func(param);
+                    result = await _inner(param);
                 }
                 catch (Exception exception)
                 {
@@ -107,7 +107,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param);
+                result = await _inner(param);
             }
             catch (Exception exception)
             {
@@ -150,7 +150,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<RResult<TReturn>>> _func;
+    private readonly InnerFunc<TParam, TScrapbook, TReturn> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
@@ -160,7 +160,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
+        InnerFunc<TParam, TScrapbook, TReturn> inner,
         CommonInvoker commonInvoker,
         SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
         ShutdownCoordinator shutdownCoordinator, 
@@ -168,7 +168,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         OnFuncException<TParam, TScrapbook, TReturn>? exceptionHandler)
     {
         _functionTypeId = functionTypeId;
-        _func = func;
+        _inner = inner;
         _commonInvoker = commonInvoker;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _shutdownCoordinator = shutdownCoordinator;
@@ -191,7 +191,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param, scrapbook);
+                result = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {
@@ -220,7 +220,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _func(param, scrapbook);
+                    result = await _inner(param, scrapbook);
                 }
                 catch (Exception exception)
                 {
@@ -247,7 +247,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _func(param, scrapbook);
+                result = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {

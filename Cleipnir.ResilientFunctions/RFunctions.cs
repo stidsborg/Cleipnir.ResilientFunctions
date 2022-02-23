@@ -62,7 +62,7 @@ public class RFunctions : IDisposable
 
     public RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<RResult<TReturn>>> func,
+        InnerFunc<TParam, TReturn> inner,
         ISerializer? serializer = null,
         OnFuncException<TParam, TReturn>? onException = null
     ) where TParam : notnull
@@ -81,7 +81,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, _) => func((TParam) param)
+                (param, _) => inner((TParam) param)
             );
 
             var commonInvoker = new CommonInvoker(
@@ -92,7 +92,7 @@ public class RFunctions : IDisposable
             );
             var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                 functionTypeId, 
-                func, 
+                inner, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
@@ -112,7 +112,7 @@ public class RFunctions : IDisposable
         
     public RAction<TParam> Register<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<RResult>> func,
+        InnerAction<TParam> inner,
         ISerializer? serializer = null,
         OnActionException<TParam>? onException = null
     ) where TParam : notnull 
@@ -131,7 +131,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, _) => func((TParam) param)
+                (param, _) => inner((TParam) param)
             );
 
             var commonInvoker = new CommonInvoker(
@@ -139,7 +139,7 @@ public class RFunctions : IDisposable
             );
             var rActionInvoker = new RActionInvoker<TParam>(
                 functionTypeId, 
-                func, 
+                inner, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory,
                 _shutdownCoordinator,
@@ -159,7 +159,7 @@ public class RFunctions : IDisposable
 
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<RResult<TReturn>>> func,
+        InnerFunc<TParam, TScrapbook, TReturn> inner,
         ISerializer? serializer = null,
         OnFuncException<TParam, TScrapbook, TReturn>? onException = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -178,7 +178,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
+                (param, scrapbook) => inner((TParam) param, (TScrapbook) scrapbook!)
             );
 
             var commonInvoker = new CommonInvoker(
@@ -189,7 +189,7 @@ public class RFunctions : IDisposable
             );
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
-                func, 
+                inner, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
@@ -209,7 +209,7 @@ public class RFunctions : IDisposable
         
     public RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<RResult>> func,
+        InnerAction<TParam, TScrapbook> inner,
         ISerializer? serializer = null,
         OnActionException<TParam, TScrapbook>? onException = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -229,7 +229,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, scrapbook) => func((TParam) param, (TScrapbook) scrapbook!)
+                (param, scrapbook) => inner((TParam) param, (TScrapbook) scrapbook!)
             );
 
             var commonInvoker = new CommonInvoker(
@@ -237,7 +237,7 @@ public class RFunctions : IDisposable
             );
             var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
                 functionTypeId, 
-                func, 
+                inner, 
                 commonInvoker,
                 _signOfLifeUpdaterFactory, 
                 _shutdownCoordinator,
