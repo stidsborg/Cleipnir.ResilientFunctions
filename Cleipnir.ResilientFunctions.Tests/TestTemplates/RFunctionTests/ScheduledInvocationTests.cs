@@ -19,7 +19,7 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _) => NeverCompletingTask.OfType<RResult<string>>()
+            (string _) => NeverCompletingTask.OfType<Return<string>>()
         ).Schedule;
         
         await schedule(functionInstanceId, functionInstanceId);
@@ -43,7 +43,7 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>()
+            (string _, Scrapbook _) => NeverCompletingTask.OfType<Return<string>>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
@@ -69,7 +69,7 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult>()
+            (string _, Scrapbook _) => NeverCompletingTask.OfType<Return>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
@@ -95,7 +95,7 @@ public abstract class ScheduledInvocationTests
         using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
-            (string _) => NeverCompletingTask.OfType<RResult>()
+            (string _) => NeverCompletingTask.OfType<Return>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);

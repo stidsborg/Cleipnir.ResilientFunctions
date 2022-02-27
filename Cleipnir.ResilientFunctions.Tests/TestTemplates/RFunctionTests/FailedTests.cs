@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -41,7 +42,7 @@ public abstract class FailedTests
                     (string _) =>
                         throwUnhandledException 
                             ? throw new Exception() 
-                            : new Exception().ToFailedRResult<string>().ToTask()
+                            : new Return(new Exception()).ToTask()
                 ).Invoke;
 
             var result = await nonCompletingRFunctions(PARAM, PARAM);
@@ -60,7 +61,7 @@ public abstract class FailedTests
                 (string s) =>
                 {
                     flag.Raise();
-                    return s.ToUpper().ToSucceededRResult().ToTask();
+                    return new Return<string>(s.ToUpper()).ToTask();
                 }
             ).Invoke;
             await Task.Delay(100);
@@ -105,7 +106,7 @@ public abstract class FailedTests
                     (string _, Scrapbook _) =>
                         throwUnhandledException 
                             ? throw new Exception()
-                            : new Exception().ToFailedRResult<string>().ToTask()
+                            : new Return(new Exception()).ToTask()
                 ).Invoke;
 
             var result = await nonCompletingRFunctions(PARAM, PARAM);
@@ -124,7 +125,7 @@ public abstract class FailedTests
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
-                    return RResult.Success.ToTask();
+                    return Succeed.WithoutValue.ToTask();
                 }
             ).Invoke;
                 
@@ -172,7 +173,7 @@ public abstract class FailedTests
                     (string _) =>
                         throwUnhandledException 
                             ? throw new Exception()
-                            : new Exception().ToFailedRResult().ToTask()
+                            : new Return(new Exception()).ToTask()
                 ).Invoke;
 
             var result = await nonCompletingRFunctions(PARAM, PARAM);
@@ -191,7 +192,7 @@ public abstract class FailedTests
                 (string _) =>
                 {
                     flag.Raise();
-                    return RResult.Success.ToTask();
+                    return Succeed.WithoutValue.ToTask();
                 }
             ).Invoke;
             await Task.Delay(100);
@@ -231,7 +232,7 @@ public abstract class FailedTests
                     (string _, Scrapbook _) => 
                         throwUnhandledException
                             ? throw new Exception()
-                            : new Exception().ToFailedRResult().ToTask()
+                            : new Return(new Exception()).ToTask()
                 ).Invoke;
 
             var result = await nonCompletingRFunctions(param, param);
@@ -249,7 +250,7 @@ public abstract class FailedTests
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
-                    return RResult.Success.ToTask();
+                    return Succeed.WithoutValue.ToTask();
                 }
             ).Invoke;
                 
@@ -263,10 +264,20 @@ public abstract class FailedTests
 
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
+            
             (await rFunc(param, param)).Failed.ShouldBeTrue();
         }
-            
+        
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
+        if (throwUnhandledException)
+        {
+            var errorJson = await store
+                .GetFunction(new FunctionId(functionTypeId, param))
+                .Map(f => f?.ErrorJson)
+                .ShouldNotBeNullAsync();
+            var exception = DefaultSerializer.Instance.DeserializeError(errorJson);
+            exception.ShouldNotBeNull();
+        }
     }
 
     private class Scrapbook : RScrapbook { }

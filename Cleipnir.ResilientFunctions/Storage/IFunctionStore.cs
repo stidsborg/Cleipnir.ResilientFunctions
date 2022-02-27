@@ -35,7 +35,7 @@ public interface IFunctionStore
         Status status,
         string? scrapbookJson,
         StoredResult? result,
-        StoredFailure? failed,
+        string? errorJson,
         long? postponedUntil,
         int expectedEpoch
     );
@@ -48,11 +48,11 @@ public interface IFunctionStore
     {
         var sf = await GetFunction(functionId);
         if (sf == null)
-            throw new FunctionInvocationException($"Function '{functionId}' not found");
+            throw new FunctionInvocationException(functionId, $"Function '{functionId}' not found");
         if (sf.Scrapbook == null)
-            throw new FunctionInvocationException($"Function '{functionId}' does not have scrapbook");
+            throw new FunctionInvocationException(functionId, $"Function '{functionId}' does not have scrapbook");
         if (!expectedStatuses.Contains(sf.Status))
-            throw new FunctionInvocationException($"Function '{functionId}' did not have expected status: '{sf.Status}'");
+            throw new FunctionInvocationException(functionId, $"Function '{functionId}' did not have expected status: '{sf.Status}'");
         
         serializer ??= DefaultSerializer.Instance;
 
@@ -67,13 +67,16 @@ public interface IFunctionStore
             sf.Status,
             scrapbookJson,
             sf.Result,
-            sf.Failure,
+            sf.ErrorJson,
             sf.PostponedUntil,
             sf.Epoch
         );
 
         if (!success)
-            throw new FunctionInvocationException($"Unable to persist function '{functionId}' scrapbook due to concurrent modification");
+            throw new FunctionInvocationException(
+                functionId,
+                $"Unable to persist function '{functionId}' scrapbook due to concurrent modification"
+            );
     }
 
     // ** GETTER ** //

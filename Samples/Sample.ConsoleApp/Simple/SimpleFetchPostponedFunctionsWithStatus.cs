@@ -43,7 +43,7 @@ public static class SimpleFetchPostponedFunctionsWithStatus
         Console.WriteLine(JsonConvert.SerializeObject(function, Formatting.Indented));
     }
 
-    private static async Task<RResult<string>> RFunc(int postponeForDays)
+    private static async Task<Return<string>> RFunc(int postponeForDays)
     {
         await Task.Delay(0);
         return Postpone.Until(DateTime.Today.AddDays(postponeForDays));

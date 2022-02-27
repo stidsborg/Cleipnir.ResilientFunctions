@@ -16,24 +16,44 @@ public abstract class RFunctionException : Exception
     
 public sealed class FunctionInvocationException : RFunctionException
 {
-    public FunctionInvocationException() { }
+    public FunctionId FunctionId { get; }
 
-    public FunctionInvocationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    public FunctionInvocationException(FunctionId functionId, string? message) : base(message) 
+        => FunctionId = functionId;
 
-    public FunctionInvocationException(string? message) : base(message) { }
-
-    public FunctionInvocationException(string? message, Exception? innerException) : base(message, innerException) { }
+    public FunctionInvocationException(FunctionId functionId, string? message, Exception? innerException) 
+        : base(message, innerException) => FunctionId = functionId;
 }
-    
-public sealed class FunctionInvocationUnhandledException : RFunctionException
+
+public sealed class PreviousFunctionInvocationException : RFunctionException
 {
-    public FunctionInvocationUnhandledException() { }
+    public FunctionId FunctionId { get; }
+    public RError Error { get; }
 
-    public FunctionInvocationUnhandledException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    public PreviousFunctionInvocationException(FunctionId functionId, RError error, string? message) : base(message)
+    {
+        FunctionId = functionId;
+        Error = error;
+    }
+}
 
-    public FunctionInvocationUnhandledException(string? message) : base(message) { }
+public sealed class PostponedFunctionInvocationException : RFunctionException
+{
+    public FunctionId FunctionId { get; }
 
-    public FunctionInvocationUnhandledException(string? message, Exception? innerException) : base(message, innerException) { }
+    public PostponedFunctionInvocationException(FunctionId functionId, string? message) : base(message) 
+        => FunctionId = functionId;
+}
+
+public sealed class InnerFunctionUnhandledException : RFunctionException
+{
+    public FunctionId FunctionId { get; }
+
+    public InnerFunctionUnhandledException(FunctionId functionId, string? message)
+        : base(message) => FunctionId = functionId;
+
+    public InnerFunctionUnhandledException(FunctionId functionId, string? message, Exception? innerException)
+        : base(message, innerException) => FunctionId = functionId;
 }
 
 public sealed class FrameworkException : RFunctionException

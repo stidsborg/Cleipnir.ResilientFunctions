@@ -3,33 +3,42 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
 
+public enum Outcome
+{
+    Succeeded = 1,
+    Postponed = 2,
+    Failed = 3
+}
+
 public class RResult<T>
 {
-    public ResultType ResultType { get; }
+    public FunctionId FunctionId { get; }
+    public Outcome Outcome { get; }
     public T? SuccessResult { get; }
-    public bool Succeeded => ResultType == ResultType.Succeeded;
+    public bool Succeeded => Outcome == Outcome.Succeeded;
     public DateTime? PostponedUntil { get; }
-    public bool Postponed => ResultType == ResultType.Postponed;
+    public bool Postponed => Outcome == Outcome.Postponed;
     public Exception? FailedException { get; }
-    public bool Failed => ResultType == ResultType.Failed;
+    public bool Failed => Outcome == Outcome.Failed;
 
-    internal RResult(ResultType resultType, T? successResult, DateTime? postponedUntil, Exception? failedException)
+    internal RResult(FunctionId functionId, Outcome outcome, T? successResult, DateTime? postponedUntil, Exception? failedException)
     {
+        FunctionId = functionId;
         SuccessResult = successResult;
         FailedException = failedException;
         PostponedUntil = postponedUntil;
-        ResultType = resultType;
+        Outcome = outcome;
     }
 
     public TMatched Match<TMatched>(
         Func<T, TMatched> onSuccess,
         Func<DateTime, TMatched> onPostponed,
         Func<Exception, TMatched> onFailed
-    ) => ResultType switch
+    ) => Outcome switch
     {
-        ResultType.Succeeded => onSuccess(SuccessResult!),
-        ResultType.Postponed => onPostponed(PostponedUntil!.Value),
-        ResultType.Failed => onFailed(FailedException!),
+        Outcome.Succeeded => onSuccess(SuccessResult!),
+        Outcome.Postponed => onPostponed(PostponedUntil!.Value),
+        Outcome.Failed => onFailed(FailedException!),
         _ => throw new ArgumentOutOfRangeException()
     };
 
@@ -39,15 +48,15 @@ public class RResult<T>
         Action<Exception> onFailed
     )
     {
-        switch (ResultType)
+        switch (Outcome)
         {
-            case ResultType.Succeeded:
+            case Outcome.Succeeded:
                 onSuccess(SuccessResult!);
                 break;
-            case ResultType.Postponed:
+            case Outcome.Postponed:
                 onPostponed(PostponedUntil!.Value);
                 break;
-            case ResultType.Failed:
+            case Outcome.Failed:
                 onFailed(FailedException!);
                 break;
             default:
@@ -57,115 +66,54 @@ public class RResult<T>
     
     public T EnsureSuccess()
     {
-        return ResultType switch
+        return Outcome switch
         {
-            ResultType.Succeeded => SuccessResult!,
-            ResultType.Postponed => throw new FunctionInvocationUnhandledException($"Function has been postponed until: '{PostponedUntil!.Value:O}'"),
-            ResultType.Failed => throw new FunctionInvocationUnhandledException("Function invocation failed", FailedException!),
+            Outcome.Succeeded => SuccessResult!,
+            Outcome.Postponed => throw new PostponedFunctionInvocationException(
+                FunctionId,
+                $"Function has been postponed until: '{PostponedUntil!.Value:O}'"
+            ),
+            Outcome.Failed => throw FailedException!,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
 
-    public static implicit operator RResult<T>(T result) => new(
-        ResultType.Succeeded,
-        result, 
-        postponedUntil: null, 
-        failedException: null
-    );
-    
-    public static implicit operator RResult<T>(Fail fail) => new(
-        ResultType.Failed, 
-        default,
-        postponedUntil: null,
-        fail.Exception
-    );
-    
-    public static implicit operator RResult<T>(Postpone postpone) => new(
-        ResultType.Postponed, 
-        successResult: default,
-        postpone.PostponeUntil, 
-        failedException: null
-    );
-
-    public override string ToString() => ResultType switch
+    public override string ToString() => Outcome switch
     {
-        ResultType.Succeeded => $"Succeeded with: '{SuccessResult?.ToString() ?? "NULL"}'",
-        ResultType.Postponed => $"Postponed until: '{PostponedUntil!.Value:O}'",
-        ResultType.Failed => $"Failed with: {FailedException}",
+        Outcome.Succeeded => $"{FunctionId} succeeded with: '{SuccessResult?.ToString() ?? "NULL"}'",
+        Outcome.Postponed => $"{FunctionId} postponed until: '{PostponedUntil!.Value:O}'",
+        Outcome.Failed => $"{FunctionId} failed with: {FailedException}",
         _ => throw new ArgumentOutOfRangeException()
     };
 }
 
-public enum ResultType
-{
-    Succeeded = 1,
-    Postponed = 2,
-    Failed = 3
-}
-
-public sealed class Succeed
-{
-    public static RResult<T> WithResult<T>(T result) =>
-        new RResult<T>(
-            ResultType.Succeeded,
-            result,
-            postponedUntil: null,
-            failedException: null
-        );
-
-    public static RResult WithoutResult() => 
-        new RResult(
-            ResultType.Succeeded, 
-            postponedUntil: null, 
-            failedException: null
-        );
-}
-
-public sealed class Fail
-{
-    public Exception Exception { get; }
-    
-    public Fail(Exception exception) => Exception = exception;
-    public static Fail WithException(Exception exception) => new Fail(exception);
-}
-
-public sealed class Postpone
-{
-    public DateTime PostponeUntil { get; }
-    
-    public Postpone(DateTime postponeUntilUntil) => PostponeUntil = postponeUntilUntil;
-    
-    public static Postpone For(TimeSpan delay) => new(DateTime.UtcNow.Add(delay));
-    public static Postpone For(int delayMs) => For(TimeSpan.FromMilliseconds(delayMs));
-    public static Postpone Until(DateTime dateTime) => new(dateTime.ToUniversalTime());
-}
-
 public class RResult
 {
-    public static RResult Success { get; } = new(ResultType.Succeeded, postponedUntil: null, failedException: null);
-    public ResultType ResultType { get; }
-    public bool Succeeded => ResultType == ResultType.Succeeded;
+    public FunctionId FunctionId { get; }
+    public Outcome Outcome { get; }
+    public bool Succeeded => Outcome == Outcome.Succeeded;
     public DateTime? PostponedUntil { get; }
-    public bool Postponed => ResultType == ResultType.Postponed;
+    public bool Postponed => Outcome == Outcome.Postponed;
     public Exception? FailedException { get; }
-    public bool Failed => ResultType == ResultType.Failed;
+    public bool Failed => Outcome == Outcome.Failed;
 
-    internal RResult(ResultType resultType, DateTime? postponedUntil, Exception? failedException)
+    internal RResult(FunctionId functionId, Outcome outcome, DateTime? postponedUntil, Exception? failedException)
     {
+        FunctionId = functionId;
         FailedException = failedException;
         PostponedUntil = postponedUntil;
-        ResultType = resultType;
+        Outcome = outcome;
     }
 
     public TMatched Match<TMatched>(
         Func<TMatched> onSuccess,
         Func<DateTime, TMatched> onPostponed,
         Func<Exception, TMatched> onFailed
-    ) => ResultType switch
+    ) => Outcome switch
     {
-        ResultType.Succeeded => onSuccess(),
-        ResultType.Postponed => onPostponed(PostponedUntil!.Value),
-        ResultType.Failed => onFailed(FailedException!),
+        Outcome.Succeeded => onSuccess(),
+        Outcome.Postponed => onPostponed(PostponedUntil!.Value),
+        Outcome.Failed => onFailed(FailedException!),
         _ => throw new ArgumentOutOfRangeException()
     };
 
@@ -175,15 +123,15 @@ public class RResult
         Action<Exception> onFailed
     )
     {
-        switch (ResultType)
+        switch (Outcome)
         {
-            case ResultType.Succeeded:
+            case Outcome.Succeeded:
                 onSuccess();
                 break;
-            case ResultType.Postponed:
+            case Outcome.Postponed:
                 onPostponed(PostponedUntil!.Value);
                 break;
-            case ResultType.Failed:
+            case Outcome.Failed:
                 onFailed(FailedException!);
                 break;
             default:
@@ -193,71 +141,29 @@ public class RResult
 
     public void EnsureSuccess()
     {
-        switch (ResultType)
+        switch (Outcome)
         {
-            case ResultType.Succeeded:
+            case Outcome.Succeeded:
                 return;
-            case ResultType.Postponed:
-                throw new FunctionInvocationUnhandledException($"Function has been postponed until: '{PostponedUntil!.Value:O}'");
-            case ResultType.Failed:
-                throw new FunctionInvocationUnhandledException("Function invocation failed", FailedException!);
+            case Outcome.Postponed:
+                throw new InvalidOperationException(
+                    $"Function has been postponed until: '{PostponedUntil!.Value:O}'"
+                );
+            case Outcome.Failed:
+                throw new InvalidOperationException(
+                    "Function invocation failed", FailedException!
+                );
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
     
-    public static implicit operator RResult(Fail fail) => new(
-        ResultType.Failed,
-        postponedUntil: null,
-        fail.Exception
-    );
-    
-    public static implicit operator RResult(Postpone postpone) => new(
-        ResultType.Postponed,
-        postpone.PostponeUntil, 
-        failedException: null
-    );
-
     public override string ToString()
-        => ResultType switch
+        => Outcome switch
         {
-            ResultType.Succeeded => "Succeeded",
-            ResultType.Postponed => $"Postponed until: '{PostponedUntil!.Value:O}'",
-            ResultType.Failed => $"Failed with: {FailedException}",
+            Outcome.Succeeded => $"{FunctionId} succeeded",
+            Outcome.Postponed => $"{FunctionId} postponed until: '{PostponedUntil!.Value:O}'",
+            Outcome.Failed => $"{FunctionId} failed with: {FailedException}",
             _ => throw new ArgumentOutOfRangeException()
         };
-}
-
-public static class RResultExtensions
-{
-    public static RResult<T> ToFailedRResult<T>(this Exception exception)
-        => new(ResultType.Failed, successResult: default, postponedUntil: null, exception);
-    
-    public static RResult ToFailedRResult(this Exception exception)
-        => new(ResultType.Failed, postponedUntil: null, exception);
-    
-    public static RResult ToPostponedRResult(this TimeSpan @for)
-        => new(ResultType.Postponed, postponedUntil: DateTime.UtcNow.Add(@for), failedException: null);
-    
-    public static RResult<T> ToPostponedRResult<T>(this TimeSpan @for)
-        => new(
-            ResultType.Postponed, 
-            successResult: default, 
-            postponedUntil: DateTime.UtcNow.Add(@for), 
-            failedException: null
-        );
-    
-    public static RResult ToPostponedRResult(this DateTime until)
-        => new(ResultType.Postponed, postponedUntil: until.ToUniversalTime(), failedException: null);
-    
-    public static RResult<T> ToPostponedRResult<T>(this DateTime until)
-        => new(
-            ResultType.Postponed, 
-            successResult: default, 
-            postponedUntil: until.ToUniversalTime(), 
-            failedException: null
-        );
-    
-    public static RResult<T> ToSucceededRResult<T>(this T result)
-        => new(ResultType.Succeeded, successResult: result, postponedUntil: null, failedException: null);
 }

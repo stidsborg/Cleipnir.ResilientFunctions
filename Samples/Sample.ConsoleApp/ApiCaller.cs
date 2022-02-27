@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace ConsoleApp;
 
@@ -15,7 +15,7 @@ public class ApiCaller
         _service = service;
     }
 
-    public async Task<RResult<string>> CallApi(string input)
+    public async Task<Return<string>> CallApi(string input)
     {
         Console.WriteLine($"[SERVICE{_service}] Executing CallApi");
         await Task.Delay(1_000);

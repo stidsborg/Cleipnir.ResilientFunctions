@@ -42,7 +42,7 @@ public class SerializationTests
             {
                 personCurr = p;
                 flag.Raise();
-                return RResult.Success.ToTask();
+                return Succeed.WithoutValue.ToTask();
             },
             serializer
         );
@@ -86,12 +86,12 @@ public class SerializationTests
         public RScrapbook DeserializeScrapbook(string? json, string type)
             => _defaultSerializer.DeserializeScrapbook(json, type);
 
-        public string SerializeFault(Exception fault)
-            => _defaultSerializer.SerializeFault(fault);
+        public string SerializeError(RError error)
+            => _defaultSerializer.SerializeError(error);
 
-        public Exception DeserializeFault(string json, string type)
-            => _defaultSerializer.DeserializeFault(json, type);
-
+        public RError DeserializeError(string json)
+            => _defaultSerializer.DeserializeError(json);
+        
         public string SerializeResult(object result)
             => _defaultSerializer.SerializeResult(result);
 

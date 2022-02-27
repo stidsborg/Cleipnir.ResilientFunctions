@@ -39,7 +39,7 @@ public static class SimpleFetchFunctionsWithStatus
         Console.WriteLine(statuses);
     }
 
-    private static async Task<RResult<string>> RFunc(string s)
+    private static async Task<Return<string>> RFunc(string s)
     {
         await Task.Delay(0);
         throw new Exception("oh no");

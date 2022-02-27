@@ -31,7 +31,7 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
         ).Invoke;
     }
 
-    private async Task<RResult<Booking>> _BookTravel(OrderAndRequestIds param, BookingScrapbook scrapbook)
+    private async Task<Return<Booking>> _BookTravel(OrderAndRequestIds param, BookingScrapbook scrapbook)
     {
         _logger.LogInformation("Started booking of order {OrderId}", param.Order.Id);
         

@@ -19,13 +19,13 @@ public sealed class TransferSaga
     }
     
     public RAction.Invoke<Transfer> Perform { get; }
-    private async Task<RResult> _Perform(Transfer transfer)
+    private async Task<Return> _Perform(Transfer transfer)
     {
         try
         {
             await BankClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount);
             await BankClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount);
-            return RResult.Success;
+            return Succeed.WithoutValue;
         }
         catch (Exception exception)
         {

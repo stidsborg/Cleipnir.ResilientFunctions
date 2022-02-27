@@ -13,9 +13,6 @@ public static class StorageTypesExtensions
     public static RScrapbook DefaultDeserialize(this StoredScrapbook scrapbook)
         => scrapbook.Deserialize(DefaultSerializer.Instance);
 
-    public static Exception DefaultDeserialize(this StoredFailure failure)
-        => failure.Deserialize(DefaultSerializer.Instance);
-
     public static object? DefaultDeserialize(this StoredResult result)
         => result.Deserialize(DefaultSerializer.Instance);
 }

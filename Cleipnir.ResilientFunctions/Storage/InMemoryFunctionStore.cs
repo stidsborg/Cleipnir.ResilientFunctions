@@ -33,7 +33,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 Status = Status.Executing,
                 Epoch = initialEpoch,
                 SignOfLife = initialSignOfLife,
-                Failed = null,
+                ErrorJson = null,
                 Result = null,
                 PostponeUntil = null
             };
@@ -109,7 +109,7 @@ public class InMemoryFunctionStore : IFunctionStore
         Status status, 
         string? scrapbookJson, 
         StoredResult? result, 
-        StoredFailure? failed,
+        string? errorJson,
         long? postponedUntil, 
         int expectedEpoch
     )
@@ -129,7 +129,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 : new StoredScrapbook(scrapbookJson, state.Scrapbook!.ScrapbookType);
 
             state.Result = result;
-            state.Failed = failed;
+            state.ErrorJson = errorJson;
             state.PostponeUntil = postponedUntil;
 
             return true.ToTask();
@@ -151,7 +151,7 @@ public class InMemoryFunctionStore : IFunctionStore
                     state.Scrapbook,
                     state.Status,
                     state.Result,
-                    state.Failed,
+                    state.ErrorJson,
                     state.PostponeUntil,
                     state.Epoch,
                     state.SignOfLife
@@ -168,7 +168,7 @@ public class InMemoryFunctionStore : IFunctionStore
         public StoredScrapbook? Scrapbook { get; set; }
         public Status Status { get; set; }
         public StoredResult? Result { get; set; }
-        public StoredFailure? Failed { get; set; }
+        public string? ErrorJson { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }

@@ -20,7 +20,7 @@ public class SimpleHttpExample
         
         var httpClient = new HttpClient();
 
-        var rFunc = functions.Register(
+        var rFunc = functions.Register<string, List<string>>(
             nameof(SimpleSuccessExample).ToFunctionTypeId(),
             async (string s) =>
             {
@@ -36,7 +36,7 @@ public class SimpleHttpExample
                     var echo = Regex.Match(content, @"""data"":""(?<echo>[\w\s]+)", RegexOptions.IgnoreCase).Groups["echo"].ToString();
                     replies.Add(echo);
                 }
-                return replies.ToSucceededRResult();
+                return replies;
             }
         ).Invoke;
 
@@ -52,9 +52,9 @@ public class SimpleHttpExample
         
         var httpClient = new HttpClient();
 
-        var rFunc = rfunctions.Register(
+        var rFunc = rfunctions.Register<string, ListScrapbook<string>, List<string>>(
             "pair-of-http-calls".ToFunctionTypeId(),
-            async (string s, ListScrapbook<string> scrapbook) =>
+            async (s, scrapbook) =>
             {
                 for (var i = scrapbook.List.Count; i < 2; i++)
                 {
@@ -74,7 +74,7 @@ public class SimpleHttpExample
                     scrapbook.List.Add(echo);
                     await scrapbook.Save();
                 }
-                return scrapbook.List.ToSucceededRResult();
+                return scrapbook.List;
             }
         ).Invoke;
 

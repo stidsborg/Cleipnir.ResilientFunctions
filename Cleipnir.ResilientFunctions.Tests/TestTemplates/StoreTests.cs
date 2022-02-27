@@ -59,7 +59,7 @@ public abstract class StoreTests
             Status.Succeeded,
             scrapbookJson: null,
             result: new StoredResult(resultJson, resultType),
-            failed: null,
+            errorJson: null,
             postponedUntil: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();

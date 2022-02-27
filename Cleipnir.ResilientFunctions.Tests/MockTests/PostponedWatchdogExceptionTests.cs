@@ -78,7 +78,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         Scrapbook: null,
                         Status.Executing,
                         Result: null,
-                        Failure: null,
+                        ErrorJson: null,
                         PostponedUntil: null,
                         Epoch: 0,
                         SignOfLife: 0
@@ -132,7 +132,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         Scrapbook: null,
                         Status.Executing,
                         Result: null,
-                        Failure: null,
+                        ErrorJson: null,
                         PostponedUntil: null,
                         Epoch: 0,
                         SignOfLife: 0
@@ -141,7 +141,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
 
             using var crashedWatchdog = new PostponedWatchdog<string>(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => Funcs.ThrowsException(param.ToString()!),
+                (param, _) => throw new NullReferenceException(),
                 storeMock,
                 new RFuncInvoker(
                     storeMock, 
@@ -191,7 +191,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         Scrapbook: null,
                         Status.Executing,
                         Result: null,
-                        Failure: null,
+                        ErrorJson: null,
                         PostponedUntil: null,
                         Epoch: 0,
                         SignOfLife: 0

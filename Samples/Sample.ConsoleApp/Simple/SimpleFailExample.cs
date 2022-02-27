@@ -28,7 +28,7 @@ public static class SimpleFailExample
         await SafeTry(async () => await f("hello world", "hello world"), Console.WriteLine);
     }
 
-    private static async Task<RResult<string>> RFunc(string s)
+    private static async Task<Return<string>> RFunc(string s)
     {
         await Task.Delay(100);
         return Fail.WithException(new Exception("some exception message"));

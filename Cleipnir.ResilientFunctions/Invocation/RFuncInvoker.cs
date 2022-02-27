@@ -47,19 +47,18 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            RResult<TReturn> result;
+            Return<TReturn> returned;
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param);
+                returned = await _inner(param);
             }
             catch (Exception exception)
             {
-                result = _exceptionHandler(exception, functionInstanceId, param);
+                returned = _exceptionHandler(exception, functionInstanceId, param);
             }
 
-            await ProcessResult(functionId, result);
-            return result;
+            return await ProcessReturned(functionId, returned);
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
@@ -76,18 +75,18 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             {
                 _shutdownCoordinator.RegisterRunningRFunc();
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-                RResult<TReturn> result;
+                Return<TReturn> returned;
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param);
+                    returned = await _inner(param);
                 }
                 catch (Exception exception)
                 {
-                    result = _exceptionHandler(exception, functionId.InstanceId, param);
+                    returned = _exceptionHandler(exception, functionId.InstanceId, param);
                 }
 
-                await ProcessResult(functionId, result);
+                await ProcessReturned(functionId, returned);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
@@ -103,19 +102,18 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            RResult<TReturn> result;
+            Return<TReturn> returned;
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param);
+                returned = await _inner(param);
             }
             catch (Exception exception)
             {
-                result = _exceptionHandler(exception, instanceId, param);
+                returned = _exceptionHandler(exception, instanceId, param);
             }
 
-            await ProcessResult(functionId, result, epoch);
-            return result;
+            return await ProcessReturned(functionId, returned, epoch);
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
@@ -129,13 +127,14 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     private async Task<Tuple<TParam, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
         => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses);
 
-    private Task ProcessResult(FunctionId functionId, RResult<TReturn> result, int epoch = 0)
-        => _commonInvoker.ProcessResult(functionId, result, scrapbook: null, epoch);
+    private Task<RResult<TReturn>> ProcessReturned(FunctionId functionId, Return<TReturn> returned, int epoch = 0)
+        => _commonInvoker.ProcessReturned(functionId, returned, scrapbook: null, epoch);
     
-    private RResult<TReturn> DefaultProcessUnhandledException(Exception unhandledException, FunctionInstanceId functionInstanceId, TParam _)
+    private Return<TReturn> DefaultProcessUnhandledException(Exception unhandledException, FunctionInstanceId functionInstanceId, TParam _)
     {
         _unhandledExceptionHandler.Invoke(
-            new FunctionInvocationUnhandledException(
+            new InnerFunctionUnhandledException(
+                new FunctionId(_functionTypeId, functionInstanceId),
                 $"Function {functionInstanceId} threw unhandled exception",
                 unhandledException
             )
@@ -187,19 +186,18 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            RResult<TReturn> result;
+            Return<TReturn> returned;
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param, scrapbook);
+                returned = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {
-                result = _exceptionHandler(exception, scrapbook, functionId.InstanceId, param);
+                returned = _exceptionHandler(exception, scrapbook, functionId.InstanceId, param);
             }
-
-            await ProcessResult(functionId, result, scrapbook);
-            return result;
+            
+            return await ProcessResult(functionId, returned, scrapbook);
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
@@ -216,7 +214,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                 _shutdownCoordinator.RegisterRunningRFunc();
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
                 var scrapbook = CreateScrapbook(functionId);
-                RResult<TReturn> result;
+                Return<TReturn> result;
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
@@ -243,19 +241,18 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            RResult<TReturn> result;
+            Return<TReturn> returned;
             try
             {
                 // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param, scrapbook);
+                returned = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {
-                result = _exceptionHandler(exception, scrapbook, instanceId, param);
+                returned = _exceptionHandler(exception, scrapbook, instanceId, param);
             }
 
-            await ProcessResult(functionId, result, scrapbook, epoch);
-            return result;
+            return await ProcessResult(functionId, returned, scrapbook, epoch);
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
@@ -272,18 +269,19 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
         => await _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(functionId, expectedStatuses);
 
-    private async Task ProcessResult(FunctionId functionId, RResult<TReturn> result, TScrapbook scrapbook, int epoch = 0)
-        => await _commonInvoker.ProcessResult(functionId, result, scrapbook, epoch);
+    private async Task<RResult<TReturn>> ProcessResult(FunctionId functionId, Return<TReturn> result, TScrapbook scrapbook, int epoch = 0)
+        => await _commonInvoker.ProcessReturned(functionId, result, scrapbook, epoch);
     
-    private RResult<TReturn> DefaultProcessUnhandledException(Exception unhandledException, TScrapbook _, FunctionInstanceId functionInstanceId, TParam __)
+    private Return<TReturn> DefaultProcessUnhandledException(Exception unhandledException, TScrapbook _, FunctionInstanceId functionInstanceId, TParam __)
     {
         _unhandledExceptionHandler.Invoke(
-            new FunctionInvocationUnhandledException(
+            new InnerFunctionUnhandledException(
+                new FunctionId(_functionTypeId, functionInstanceId),
                 $"Function {functionInstanceId} threw unhandled exception",
                 unhandledException
             )
         );
 
-        return new Fail(unhandledException);
+        return new Domain.Fail(unhandledException);
     }
 }

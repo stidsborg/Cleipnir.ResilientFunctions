@@ -31,7 +31,7 @@ public delegate Task<bool> SetFunctionState(
     Status status,
     string? scrapbookJson,
     StoredResult? result,
-    StoredFailure? failed,
+    string? errorJson,
     long? postponedUntil,
     int expectedEpoch
 );
@@ -81,12 +81,12 @@ public class FunctionStoreMock : IFunctionStore
         Status status,
         string? scrapbookJson,
         StoredResult? result,
-        StoredFailure? failed,
+        string? errorJson,
         long? postponedUntil,
         int expectedEpoch
     ) => SetupSetFunctionState == null
         ? true.ToTask()
-        : SetupSetFunctionState(functionId, status, scrapbookJson, result, failed, postponedUntil, expectedEpoch);
+        : SetupSetFunctionState(functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch);
 
     public Barricade? SetupBarricade { private get; init; }
     public Task<bool> Barricade(FunctionId functionId)

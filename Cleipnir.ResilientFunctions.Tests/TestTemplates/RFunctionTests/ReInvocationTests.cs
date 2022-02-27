@@ -40,7 +40,7 @@ public abstract class ReInvocationTests
                 }
 
                 syncedParameter.Value = s;
-                return RResult.Success;
+                return Succeed.WithoutValue;
             }
         );
 
@@ -89,7 +89,7 @@ public abstract class ReInvocationTests
                     return Fail.WithException(new Exception("oh no"));
                 }
                 scrapbook.List.Add("world");
-                return RResult.Success;
+                return Succeed.WithoutValue;
             }
         );
 
@@ -249,7 +249,7 @@ public abstract class ReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Exception("oh no").ToFailedRResult().ToTask()
+            _ => new Return(new Exception("oh no")).ToTask()
         );
         
         await rFunc.Invoke("something", "something");
@@ -276,7 +276,7 @@ public abstract class ReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Exception("oh no").ToFailedRResult().ToTask()
+            _ => new Return(new Exception("oh no")).ToTask()
         );
 
         await Should.ThrowAsync<FunctionInvocationException>(() =>

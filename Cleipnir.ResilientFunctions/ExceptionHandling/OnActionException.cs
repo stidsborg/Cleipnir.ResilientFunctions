@@ -3,13 +3,13 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.ExceptionHandling;
 
-public delegate RResult OnActionException<TParam>(
+public delegate Return OnActionException<TParam>(
     Exception exception,
     FunctionInstanceId functionInstanceId,
     TParam param
 ) where TParam : notnull;
 
-public delegate RResult OnActionException<TParam, TScrapbook>(
+public delegate Return OnActionException<TParam, TScrapbook>(
     Exception exception,
     TScrapbook scrapbook,
     FunctionInstanceId functionInstanceId,

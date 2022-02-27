@@ -26,7 +26,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult<string>().ToTask()
+                    (string _) => new Return<string>(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
                 ).Invoke;
 
             var result = await rFunc(param, param);
@@ -44,7 +44,7 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => s.ToUpper().ToSucceededRResult().ToTask()
+                    (string s) => Succeed.WithValue(s.ToUpper()).ToTask()
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -70,7 +70,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult<string>().ToTask()
+                    (string _, Scrapbook _) => new Return<string>(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
                 ).Invoke;
 
             var result = await rFunc(param, param);
@@ -92,7 +92,7 @@ public abstract class PostponedTests
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
-                        return s.ToUpper().ToSucceededRResult();
+                        return Succeed.WithValue(s.ToUpper());
                     }
                 ).Invoke;
 
@@ -125,7 +125,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask()
+                    (string _) => new Return(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
                 ).Invoke;
 
             var result = await rAction(param, param);
@@ -143,7 +143,7 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => s.ToUpper().ToSucceededRResult().ToTask()
+                    (string s) => Succeed.WithValue(s.ToUpper()).ToTask()
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -170,7 +170,7 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => TimeSpan.FromMilliseconds(1).ToPostponedRResult().ToTask()
+                    (string _, Scrapbook _) => new Return(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
                 ).Invoke;
 
             var result = await rFunc(param, param);
@@ -192,7 +192,7 @@ public abstract class PostponedTests
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
-                        return RResult.Success;
+                        return Succeed.WithoutValue;
                     }
                 ).Invoke;
 

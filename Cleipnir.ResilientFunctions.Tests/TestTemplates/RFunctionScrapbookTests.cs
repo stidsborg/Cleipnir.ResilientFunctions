@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
         public async Task SunshineScenario(IFunctionStore store)
         {
             var functionTypeId = nameof(SunshineScenario).ToFunctionTypeId();
-            async Task<RResult<string>> ToUpper(string s, Scrapbook scrapbook)
+            async Task<Return<string>> ToUpper(string s, Scrapbook scrapbook)
             {
                 var toReturn = s.ToUpper();
                 scrapbook.Scrap = toReturn;

@@ -28,12 +28,12 @@ public class DefaultSerializer : ISerializer
         
         return (RScrapbook) JsonConvert.DeserializeObject(json, scrapbookType)!;
     }
-    
-    public string SerializeFault(Exception fault)
-        => JsonConvert.SerializeObject(fault, SerializerSettings);
 
-    public Exception DeserializeFault(string json, string type)
-        => (Exception) JsonConvert.DeserializeObject(json, Type.GetType(type, throwOnError: true)!)!;
+    public string SerializeError(RError error)
+        => JsonConvert.SerializeObject(error, SerializerSettings);
+
+    public RError DeserializeError(string json)
+        => JsonConvert.DeserializeObject<RError>(json)!;
 
     public string SerializeResult(object result)
         => JsonConvert.SerializeObject(result, SerializerSettings);

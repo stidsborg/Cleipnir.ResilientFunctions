@@ -33,7 +33,7 @@ public class RFunctionsShutdownTests
             {
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
-                return RResult.Success;
+                return Succeed.WithoutValue;
             }
         ).Invoke;
 
@@ -72,7 +72,7 @@ public class RFunctionsShutdownTests
              (string _) =>
             {
                 insideRFuncFlag.Raise();
-                return NeverCompletingTask.OfType<RResult>();
+                return NeverCompletingTask.OfType<Return>();
             }
         ).Invoke;
 
@@ -116,7 +116,7 @@ public class RFunctionsShutdownTests
             {
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
-                return RResult.Success;
+                return Succeed.WithoutValue;
             }
         );
 
@@ -151,7 +151,7 @@ public class RFunctionsShutdownTests
             Status.Postponed,
             scrapbookJson: null,
             result: null,
-            failed: null,
+            errorJson: null,
             postponedUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -173,7 +173,7 @@ public class RFunctionsShutdownTests
             {
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
-                return RResult.Success;
+                return Succeed.WithoutValue;
             }
         );
 

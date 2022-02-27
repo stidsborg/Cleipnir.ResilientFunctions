@@ -31,7 +31,7 @@ public abstract class RScrapbook
             FunctionId!,
             Status.Executing,
             scrapbookJson,
-            failed: null,
+            errorJson: null,
             result: null,
             postponedUntil: null,
             expectedEpoch: Epoch!.Value

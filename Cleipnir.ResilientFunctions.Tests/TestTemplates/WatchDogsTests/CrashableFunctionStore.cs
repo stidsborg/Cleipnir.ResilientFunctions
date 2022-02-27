@@ -62,7 +62,7 @@ public class CrashableFunctionStore : IFunctionStore
         Status Status,
         string? ScrapbookJson,
         StoredResult? Result,
-        StoredFailure? Failed,
+        string? ErrorJson,
         long? PostponedUntil,
         int ExpectedEpoch
     );
@@ -72,7 +72,7 @@ public class CrashableFunctionStore : IFunctionStore
         Status status,
         string? scrapbookJson,
         StoredResult? result,
-        StoredFailure? failed,
+        string? errorJson,
         long? postponedUntil,
         int expectedEpoch
     )
@@ -86,14 +86,14 @@ public class CrashableFunctionStore : IFunctionStore
                 status,
                 scrapbookJson,
                 result,
-                failed,
+                errorJson,
                 postponedUntil,
                 expectedEpoch
             );
 
         lock (_sync)
             _subject.OnNext(new SetFunctionStateParams(
-                functionId, status, scrapbookJson, result, failed, postponedUntil, expectedEpoch
+                functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch
             ));
 
         return success;

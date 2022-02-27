@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Microsoft.Data.SqlClient;
 
@@ -31,7 +32,7 @@ public static class Example
 
         var rFunc = rFunctions.Register<int, string>(
             "stresstest",
-            async Task<RResult<string>>(int param) =>
+            async Task<Return<string>>(int param) =>
             {
                 await Task.Delay(1);
                 return param.ToString();

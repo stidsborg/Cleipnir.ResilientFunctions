@@ -26,7 +26,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfType<RResult<string>>()
+                    (string _) => NeverCompletingTask.OfType<Return<string>>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
@@ -75,7 +75,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>()
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<Return<string>>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
@@ -94,7 +94,7 @@ public abstract class CrashedTests
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
-                        return Succeed.WithResult(s.ToUpper());
+                        return Succeed.WithValue(s.ToUpper());
                     }
                 ).Invoke;
 
@@ -132,7 +132,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfType<RResult<string>>()
+                    (string _) => NeverCompletingTask.OfType<Return<string>>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
@@ -147,7 +147,7 @@ public abstract class CrashedTests
             var rAction = rFunctions
                 .Register(
                     functionTypeId,
-                    (string _) => Task.FromResult(Succeed.WithoutResult())
+                    (string _) => Task.FromResult(Succeed.WithoutValue)
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
@@ -182,7 +182,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<RResult<string>>()
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<Return<string>>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
@@ -201,7 +201,7 @@ public abstract class CrashedTests
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
-                        return RResult.Success;
+                        return Succeed.WithoutValue;
                     }
                 ).Invoke;
 

@@ -61,7 +61,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 Status.Postponed,
                 scrapbookJson: null,
                 result: null,
-                failed: null,
+                errorJson: null,
                 postponedUntil: DateTime.UtcNow.AddMinutes(-1).Ticks,
                 expectedEpoch: 0
             ).ShouldBeTrueAsync();
@@ -91,7 +91,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 {
                     ((Scrapbook) scrapbook!).Value = 1;
                     await scrapbook.Save();
-                    return ((string) param).ToUpper().ToSucceededRResult();
+                    return new Return<string>(((string) param).ToUpper());
                 },
                 store,
                 new RFuncInvoker(
@@ -120,7 +120,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 Status.Postponed,
                 new Scrapbook().ToJson(),
                 result: null,
-                failed: null,
+                errorJson: null,
                 postponedUntil: DateTime.UtcNow.AddMinutes(-1).Ticks,
                 expectedEpoch: 0
             ).ShouldBeTrueAsync();
@@ -154,7 +154,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 {
                     syncedScrapbook.Value = scrapbook;
                     syncedParam.Value = (string) param;
-                    return RResult.Success.ToTask();
+                    return new Return().ToTask();
                 },
                 store,
                 new RActionInvoker(
@@ -183,7 +183,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 Status.Postponed,
                 scrapbookJson: null,
                 result: null,
-                failed: null,
+                errorJson: null,
                 postponedUntil: DateTime.UtcNow.AddMinutes(-1).Ticks,
                 expectedEpoch: 0
             ).ShouldBeTrueAsync();
@@ -218,7 +218,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     syncedParam.Value = param;
                     ((Scrapbook) scrapbook!).Value = 1;
                     await scrapbook.Save();
-                    return RResult.Success;
+                    return new Return();
                 },
                 store,
                 new RActionInvoker(
@@ -247,7 +247,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 Status.Postponed,
                 new Scrapbook().ToJson(),
                 result: null,
-                failed: null,
+                errorJson: null,
                 postponedUntil: DateTime.UtcNow.AddMinutes(-1).Ticks,
                 expectedEpoch: 0
             ).ShouldBeTrueAsync();
@@ -288,7 +288,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     if (scrapbook.Value == 1)
                     {
                         syncedList.Add(delay);
-                        return RResult.Success;
+                        return new Return();
                     }
 
                     scrapbook.Value = 1;

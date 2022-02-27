@@ -30,7 +30,7 @@ public static class SimpleSuccessExample
         Console.WriteLine($"2: {returned}");
     }
 
-    private static async Task<RResult<string>> RFunc(string s)
+    private static async Task<Return<string>> RFunc(string s)
     {
         await Task.Delay(1_000);
         return s.ToUpper();

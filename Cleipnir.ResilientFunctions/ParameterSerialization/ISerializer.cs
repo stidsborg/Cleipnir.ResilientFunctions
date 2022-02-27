@@ -1,5 +1,4 @@
-﻿using System;
-using Cleipnir.ResilientFunctions.Domain;
+﻿using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.ParameterSerialization;
 
@@ -9,8 +8,8 @@ public interface ISerializer
     object DeserializeParameter(string json, string type);
     string SerializeScrapbook(RScrapbook scrapbook);
     RScrapbook DeserializeScrapbook(string? json, string type);
-    string SerializeFault(Exception fault);
-    Exception DeserializeFault(string json, string type);
+    string SerializeError(RError error);
+    RError DeserializeError(string json);
     string SerializeResult(object result);
     object DeserializeResult(string json, string type);
 }

@@ -5,7 +5,6 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -36,7 +35,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     paramTcs.TrySetResult(p);
-                    return NeverCompletingTask.OfType<RResult<string>>();
+                    return NeverCompletingTask.OfType<Return<string>>();
                 }
             ).Invoke;
 
@@ -66,7 +65,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     paramTcs.TrySetResult(p);
-                    return TimeSpan.FromMilliseconds(10).ToPostponedRResult<string>().ToTask();
+                    return new Return<string>(new DateTime().ToUniversalTime().AddMilliseconds(10)).ToTask();
                 }
             );
 
@@ -88,7 +87,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return NeverCompletingTask.OfType<RResult<string>>();
+                    return NeverCompletingTask.OfType<Return<string>>();
                 }
             );
 
@@ -106,7 +105,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = rFunctions.Register(
                 functionTypeId,
-                (Param p) => $"{p.Id}-{p.Value}".ToSucceededRResult().ToTask()
+                (Param p) => Succeed.WithValue($"{p.Id}-{p.Value}").ToTask()
             );
 
             await BusyWait.Until(async () =>
@@ -142,7 +141,7 @@ public abstract class WatchdogCompoundTests
                     return scrapbook
                         .Save()
                         .ContinueWith(_ => paramTcs.TrySetResult(p))
-                        .ContinueWith(_ => NeverCompletingTask.OfType<RResult<string>>())
+                        .ContinueWith(_ => NeverCompletingTask.OfType<Return<string>>())
                         .Unwrap();
                 }
             ).Invoke;
@@ -203,7 +202,7 @@ public abstract class WatchdogCompoundTests
                     return savedTask.ContinueWith(_ =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return NeverCompletingTask.OfType<RResult<string>>();
+                        return NeverCompletingTask.OfType<Return<string>>();
                     }).Unwrap();
                 }
             );
@@ -225,7 +224,7 @@ public abstract class WatchdogCompoundTests
                 {
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
-                    return $"{p.Id}-{p.Value}".ToSucceededRResult();
+                    return Succeed.WithValue($"{p.Id}-{p.Value}");
                 }
             );
 
@@ -266,7 +265,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     tcs.TrySetResult(p);
-                    return NeverCompletingTask.OfType<RResult>();
+                    return NeverCompletingTask.OfType<Return>();
                 }
             ).Invoke;
             
@@ -294,7 +293,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     paramTcs.TrySetResult(p);
-                    return TimeSpan.FromMilliseconds(10).ToPostponedRResult().ToTask();
+                    return new Return(DateTime.UtcNow.AddMilliseconds(10)).ToTask();
                 }
             );
 
@@ -318,7 +317,7 @@ public abstract class WatchdogCompoundTests
                 {
                     paramTcs.TrySetResult(p);
                     Task.Run(invocationStarted.SetResult);
-                    return NeverCompletingTask.OfType<RResult>();
+                    return NeverCompletingTask.OfType<Return>();
                 }
             );
 
@@ -340,7 +339,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     paramTcs.TrySetResult(p);
-                    return RResult.Success.ToTask();
+                    return Succeed.WithoutValue.ToTask();
                 }
             );
             
@@ -379,7 +378,7 @@ public abstract class WatchdogCompoundTests
                     return scrapbook
                         .Save()
                         .ContinueWith(_ => Task.Run(() => paramTcs.TrySetResult(p)))
-                        .ContinueWith(_ => NeverCompletingTask.OfType<RResult>())
+                        .ContinueWith(_ => NeverCompletingTask.OfType<Return>())
                         .Unwrap();
                 }
             ).Invoke;
@@ -441,7 +440,7 @@ public abstract class WatchdogCompoundTests
                     return savedTask.ContinueWith(_ =>
                     {
                         Task.Run(invocationStarted.SetResult);
-                        return NeverCompletingTask.OfType<RResult>();
+                        return NeverCompletingTask.OfType<Return>();
                     }).Unwrap();
                 }
             );
@@ -465,7 +464,7 @@ public abstract class WatchdogCompoundTests
                     paramTcs.TrySetResult(p);
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
-                    return RResult.Success;
+                    return Succeed.WithoutValue;
                 }
             );
 

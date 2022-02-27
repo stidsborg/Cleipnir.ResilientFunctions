@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
@@ -63,51 +62,55 @@ internal class RActionInvoker
                 scrapbook.Initialize(functionId, _functionStore, _serializer, newEpoch);
             }
 
-            RResult result;
+            Return returned;
             try
             {
-                result = await rAction(parameter, scrapbook);
+                returned = await rAction(parameter, scrapbook);
             }
             catch (Exception exception)
             {
-                result = Fail.WithException(exception);
+                _unhandledExceptionHandler.Invoke(
+                    new InnerFunctionUnhandledException(
+                        functionId,
+                        $"Function {functionId} threw unhandled exception",
+                        exception
+                    )
+                );
+                returned = Fail.WithException(exception);
             }
 
-            var setFunctionStateTask = result.ResultType switch
+            var setFunctionStateTask = returned.Intent switch
             {
-                ResultType.Succeeded => _functionStore.SetFunctionState(
+                Intent.Succeed => _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
                     scrapbookJson: scrapbook == null 
                         ? null 
                         : _serializer.SerializeScrapbook(scrapbook),
                     result: null,
-                    failed: null,
+                    errorJson: null,
                     postponedUntil: null,
                     newEpoch
                 ),
-                ResultType.Postponed => _functionStore.SetFunctionState(
+                Intent.Postpone => _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
                     scrapbookJson: scrapbook == null 
                         ? null 
                         : _serializer.SerializeScrapbook(scrapbook),
                     result: null,
-                    failed: null,
-                    postponedUntil: result.PostponedUntil!.Value.Ticks,
+                    errorJson: null,
+                    postponedUntil: returned.Postpone!.Value.Ticks,
                     newEpoch
                 ),
-                ResultType.Failed => _functionStore.SetFunctionState(
+                Intent.Fail => _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
                     scrapbookJson: scrapbook == null 
                         ? null 
                         : _serializer.SerializeScrapbook(scrapbook),
                     result: null,
-                    new StoredFailure(
-                        FailedJson: _serializer.SerializeFault(result.FailedException!),
-                        FailedType: result.FailedException!.GetType().SimpleQualifiedName()
-                    ),
+                    errorJson: _serializer.SerializeError(returned.Fail!.ToError()),
                     postponedUntil: null,
                     newEpoch
                 ),
@@ -115,12 +118,6 @@ internal class RActionInvoker
             };
 
             await setFunctionStateTask;
-
-            if (result.FailedException != null)
-                _unhandledExceptionHandler.Invoke(new FunctionInvocationUnhandledException(
-                    $"Function {functionId} threw unhandled exception",
-                    result.FailedException
-                ));
         }
         finally
         {

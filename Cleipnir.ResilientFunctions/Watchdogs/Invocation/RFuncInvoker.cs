@@ -63,52 +63,56 @@ internal class RFuncInvoker
                 scrapbook.Initialize(functionId, _functionStore, _serializer, newEpoch);
             }
 
-            RResult<TReturn> result;
+            Return<TReturn> returned;
             try
             {
-                result = await rFunc(parameter, scrapbook);
+                returned = await rFunc(parameter, scrapbook);
             }
             catch (Exception exception)
             {
-                result = Fail.WithException(exception);
+                _unhandledExceptionHandler.Invoke(
+                    new InnerFunctionUnhandledException(
+                        functionId,
+                        $"Function {functionId} threw unhandled exception",
+                        exception
+                    )
+                );
+                returned = Fail.WithException(exception);
             }
 
-            var setFunctionStateTask = result.ResultType switch
+            var setFunctionStateTask = returned.Intent switch
             {
-                ResultType.Succeeded => _functionStore.SetFunctionState(
+                Intent.Succeed => _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
                     scrapbookJson: scrapbook == null 
                         ? null 
                         : _serializer.SerializeScrapbook(scrapbook),
                     new StoredResult(
-                        ResultJson: result.SuccessResult == null 
+                        ResultJson: returned.SucceedWithValue == null 
                             ? null 
-                            : _serializer.SerializeResult(result.SuccessResult!),
-                        ResultType: result.SuccessResult?.GetType().SimpleQualifiedName()
+                            : _serializer.SerializeResult(returned.SucceedWithValue!),
+                        ResultType: returned.SucceedWithValue?.GetType().SimpleQualifiedName()
                     ),
-                    failed: null,
+                    errorJson: null,
                     postponedUntil: null,
                     newEpoch
                 ),
-                ResultType.Postponed => _functionStore.SetFunctionState(
+                Intent.Postpone => _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
                     scrapbookJson: null,
                     result: null,
-                    failed: null,
-                    postponedUntil: result.PostponedUntil!.Value.Ticks,
+                    errorJson: null,
+                    postponedUntil: returned.Postpone!.Value.Ticks,
                     newEpoch
                 ),
-                ResultType.Failed => _functionStore.SetFunctionState(
+                Intent.Fail => _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
                     scrapbookJson: null,
                     result: null,
-                    new StoredFailure(
-                        FailedJson: _serializer.SerializeFault(result.FailedException!),
-                        FailedType: result.FailedException!.GetType().SimpleQualifiedName()
-                    ),
+                    errorJson: _serializer.SerializeError(returned.Fail!.ToError()),
                     postponedUntil: null,
                     newEpoch
                 ),
@@ -116,12 +120,6 @@ internal class RFuncInvoker
             };
 
             await setFunctionStateTask;
-
-            if (result.FailedException != null)
-                _unhandledExceptionHandler.Invoke(new FunctionInvocationUnhandledException(
-                    $"Function {functionId} threw unhandled exception",
-                    result.FailedException
-                ));
         }
         finally
         {

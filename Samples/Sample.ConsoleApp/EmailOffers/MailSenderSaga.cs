@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using MailKit.Net.Smtp;
 using MimeKit;
@@ -12,10 +11,10 @@ namespace ConsoleApp.EmailOffers;
 
 public static class EmailSenderSaga
 {
-    public static async Task<RResult> Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
+    public static async Task<Return> Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
     {
         var (_, recipients, subject, content) = mailAndRecipients;
-        if (scrapbook.Initialized && scrapbook.RecipientsLeft.Count == 0) return RResult.Success;
+        if (scrapbook.Initialized && scrapbook.RecipientsLeft.Count == 0) return Succeed.WithoutValue;
         if (scrapbook.RecipientsLeft.Count == 0)
         {
             //must be first invocation - add all recipients to scrapbook's queue
@@ -46,7 +45,7 @@ public static class EmailSenderSaga
             await scrapbook.Save();
         }
 
-        return RResult.Success;
+        return Succeed.WithoutValue;
     }
 
     public class Scrapbook : RScrapbook

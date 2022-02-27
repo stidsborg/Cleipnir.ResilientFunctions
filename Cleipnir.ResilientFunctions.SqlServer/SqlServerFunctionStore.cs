@@ -37,8 +37,7 @@ public class SqlServerFunctionStore : IFunctionStore
                         {nameof(Row.Status)} INT NOT NULL,
                         {nameof(Row.ResultJson)} NVARCHAR(MAX) NULL,
                         {nameof(Row.ResultType)} NVARCHAR(255) NULL,
-                        {nameof(Row.FailedJson)} NVARCHAR(MAX) NULL,
-                        {nameof(Row.FailedType)} NVARCHAR(255) NULL,
+                        {nameof(Row.ErrorJson)} NVARCHAR(MAX) NULL,
                         {nameof(Row.PostponedUntil)} BIGINT NULL,
                         {nameof(Row.Epoch)} INT NOT NULL,
                         {nameof(Row.SignOfLife)} INT NOT NULL,
@@ -193,7 +192,7 @@ public class SqlServerFunctionStore : IFunctionStore
         Status status,
         string? scrapbookJson,
         StoredResult? result,
-        StoredFailure? failed,
+        string? errorJson,
         long? postponedUntil,
         int expectedEpoch
     )
@@ -205,7 +204,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     Status = @Status,
                     ScrapbookJson = @ScrapbookJson,
                     ResultJson = @ResultJson, ResultType = @ResultType,
-                    FailedJson = @FailedJson, FailedType = @FailedType,
+                    ErrorJson = @ErrorJson,
                     PostponedUntil = @PostponedUntil
                 WHERE FunctionTypeId = @FunctionTypeId
                 AND FunctionInstanceId = @FunctionInstanceId
@@ -219,8 +218,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 ScrapbookJson = scrapbookJson,
                 ResultJson = result?.ResultJson,
                 ResultType = result?.ResultType,
-                FailedJson = failed?.FailedJson,
-                FailedType = failed?.FailedType,
+                ErrorJson = errorJson,
                 PostponedUntil = postponedUntil
             });
         return affectedRows > 0;
@@ -250,7 +248,7 @@ public class SqlServerFunctionStore : IFunctionStore
             Scrapbook: row.ScrapbookType != null ? new StoredScrapbook(row.ScrapbookJson!, row.ScrapbookType) : null,
             Status: (Status) row.Status,
             Result: row.ResultType != null ? new StoredResult(row.ResultJson!, row.ResultType) : null,
-            Failure: row.FailedType != null ? new StoredFailure(row.FailedJson!, row.FailedType) : null,
+            row.ErrorJson,
             row.PostponedUntil,
             row.Epoch,
             row.SignOfLife
@@ -267,8 +265,7 @@ public class SqlServerFunctionStore : IFunctionStore
         int Status,
         string? ResultJson,
         string? ResultType,
-        string? FailedJson,
-        string? FailedType,
+        string? ErrorJson,
         long? PostponedUntil,
         int Epoch,
         int SignOfLife

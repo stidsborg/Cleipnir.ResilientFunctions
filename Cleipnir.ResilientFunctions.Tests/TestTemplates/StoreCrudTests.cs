@@ -134,7 +134,7 @@ public abstract class StoreCrudTests
             Status.Executing,
             scrapbook.ToJson(),
             result: null,
-            failed: null,
+            errorJson: null,
             postponedUntil: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -165,7 +165,7 @@ public abstract class StoreCrudTests
             Status.Executing,
             scrapbook.ToJson(),
             result: null,
-            failed: null,
+            errorJson: null,
             postponedUntil: null,
             expectedEpoch: 1
         ).ShouldBeFalseAsync();
@@ -194,7 +194,7 @@ public abstract class StoreCrudTests
             Status.Succeeded,
             scrapbookJson: null,
             new StoredResult("some result".ToJson(), typeof(string).SimpleQualifiedName()),
-            failed: null,
+            errorJson: null,
             postponedUntil: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();

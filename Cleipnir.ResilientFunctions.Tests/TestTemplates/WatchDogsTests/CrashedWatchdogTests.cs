@@ -135,7 +135,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 {
                     syncedScrapbook.Value = scrapbook;
                     syncedParam.Value = (string) param;
-                    return RResult.Success.ToTask();
+                    return Succeed.WithoutValue.ToTask();
                 },
                 store,
                 new RActionInvoker(
@@ -184,7 +184,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     syncedParam.Value = (string) param;
                     ((Scrapbook) scrapbook!).Value = 1;
                     await scrapbook.Save();
-                    return RResult.Success;
+                    return Succeed.WithoutValue;
                 },
                 store,
                 new RActionInvoker(
