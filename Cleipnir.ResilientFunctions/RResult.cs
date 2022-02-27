@@ -150,9 +150,7 @@ public class RResult
                     $"Function has been postponed until: '{PostponedUntil!.Value:O}'"
                 );
             case Outcome.Failed:
-                throw new InvalidOperationException(
-                    "Function invocation failed", FailedException!
-                );
+                throw FailedException!;
             default:
                 throw new ArgumentOutOfRangeException();
         }
