@@ -22,8 +22,9 @@ public abstract class ScrapbookTests
     }
         
     public abstract Task SunshineScenario();
-    public async Task SunshineScenario(IFunctionStore store)
+    public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -69,8 +70,9 @@ public abstract class ScrapbookTests
     }
 
     public abstract Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected();
-    public async Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(IFunctionStore store)
+    public async Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -11,11 +12,13 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
     {
         [TestMethod]
         public override Task SunshineScenario()
-            => SunshineScenario(new InMemoryFunctionStore());
+            => SunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
         [TestMethod]
         public override Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected()
-            => ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(new InMemoryFunctionStore());
+            => ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(
+                new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            );
 
         [TestMethod]
         public async Task ScrapbookThrowsExceptionWhenSavedBeforeInitialized()
