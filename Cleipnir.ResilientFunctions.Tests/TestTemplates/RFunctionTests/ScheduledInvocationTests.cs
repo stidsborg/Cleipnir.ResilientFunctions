@@ -9,8 +9,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 public abstract class ScheduledInvocationTests
 {
     public abstract Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted();
-    protected async Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(IFunctionStore store)
+    protected async Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
@@ -33,8 +34,9 @@ public abstract class ScheduledInvocationTests
     }
 
     public abstract Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted();
-    protected async Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(IFunctionStore store)
+    protected async Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
@@ -59,8 +61,9 @@ public abstract class ScheduledInvocationTests
     }
 
     public abstract Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted();
-    protected async Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(IFunctionStore store)
+    protected async Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
@@ -85,8 +88,9 @@ public abstract class ScheduledInvocationTests
     }
 
     public abstract Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted();
-    protected async Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(IFunctionStore store)
+    protected async Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);

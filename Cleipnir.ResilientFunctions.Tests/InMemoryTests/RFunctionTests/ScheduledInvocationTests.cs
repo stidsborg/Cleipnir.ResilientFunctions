@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,17 +10,25 @@ public class ScheduledInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTe
 {
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(new InMemoryFunctionStore());
-    
+        => ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(new InMemoryFunctionStore());
-    
+        => ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(new InMemoryFunctionStore());
+        => ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(new InMemoryFunctionStore());
+        => ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }
