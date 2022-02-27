@@ -15,8 +15,9 @@ public abstract class StoreTests
     private const string PARAM = "param";
 
     public abstract Task SunshineScenarioTest();
-    public async Task SunshineScenarioTest(IFunctionStore store)
+    public async Task SunshineScenarioTest(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
@@ -71,8 +72,9 @@ public abstract class StoreTests
     }
 
     public abstract Task SignOfLifeIsUpdatedWhenAsExpected();
-    public async Task SignOfLifeIsUpdatedWhenAsExpected(IFunctionStore store)
+    public async Task SignOfLifeIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
@@ -97,8 +99,9 @@ public abstract class StoreTests
     }
 
     public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
-    public async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(IFunctionStore store)
+    public async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
@@ -125,8 +128,9 @@ public abstract class StoreTests
     }
         
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
-    public async Task BecomeLeaderSucceedsWhenEpochIsAsExpected(IFunctionStore store)
+    public async Task BecomeLeaderSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
@@ -150,8 +154,9 @@ public abstract class StoreTests
     }
         
     public abstract Task BecomeLeaderFailsWhenEpochIsNotAsExpected();
-    public async Task BecomeLeaderFailsWhenEpochIsNotAsExpected(IFunctionStore store)
+    public async Task BecomeLeaderFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 

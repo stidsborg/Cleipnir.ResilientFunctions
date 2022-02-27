@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,17 +10,17 @@ public class WatchdogCompoundTests : Cleipnir.ResilientFunctions.Tests.TestTempl
 {
     [TestMethod]
     public override Task FunctionCompoundTest() 
-        => FunctionCompoundTest(new InMemoryFunctionStore());
+        => FunctionCompoundTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
     public override Task FunctionWithScrapbookCompoundTest() 
-        => FunctionWithScrapbookCompoundTest(new InMemoryFunctionStore());
+        => FunctionWithScrapbookCompoundTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
     public override Task ActionCompoundTest()
-        => ActionCompoundTest(new InMemoryFunctionStore());
+        => ActionCompoundTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
     public override Task ActionWithScrapbookCompoundTest()
-        => ActionWithScrapbookCompoundTest(new InMemoryFunctionStore());
+        => ActionWithScrapbookCompoundTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

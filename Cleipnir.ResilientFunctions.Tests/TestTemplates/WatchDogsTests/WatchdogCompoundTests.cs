@@ -14,8 +14,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 public abstract class WatchdogCompoundTests 
 {
     public abstract Task FunctionCompoundTest();
-    public async Task FunctionCompoundTest(IFunctionStore store)
+    public async Task FunctionCompoundTest(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(FunctionCompoundTest).ToFunctionTypeId();
         const string functionInstanceId = "SomeId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
@@ -118,8 +119,9 @@ public abstract class WatchdogCompoundTests
     }
 
     public abstract Task FunctionWithScrapbookCompoundTest();
-    public async Task FunctionWithScrapbookCompoundTest(IFunctionStore store)
+    public async Task FunctionWithScrapbookCompoundTest(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(FunctionWithScrapbookCompoundTest).ToFunctionTypeId();
         const string functionInstanceId = "SomeId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
@@ -245,8 +247,9 @@ public abstract class WatchdogCompoundTests
     }
 
     public abstract Task ActionCompoundTest();
-    public async Task ActionCompoundTest(IFunctionStore store)
+    public async Task ActionCompoundTest(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(ActionCompoundTest).ToFunctionTypeId();
         const string functionInstanceId = "SomeId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
@@ -355,8 +358,9 @@ public abstract class WatchdogCompoundTests
     }
 
     public abstract Task ActionWithScrapbookCompoundTest();
-    public async Task ActionWithScrapbookCompoundTest(IFunctionStore store)
+    public async Task ActionWithScrapbookCompoundTest(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(ActionWithScrapbookCompoundTest).ToFunctionTypeId();
         const string functionInstanceId = "SomeId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);

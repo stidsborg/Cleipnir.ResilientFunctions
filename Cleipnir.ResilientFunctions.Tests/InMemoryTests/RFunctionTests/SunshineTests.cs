@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,25 +10,25 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
 {
     [TestMethod]
     public override Task SunshineScenarioFunc()
-        => SunshineScenarioFunc(new InMemoryFunctionStore());
+        => SunshineScenarioFunc(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
         
     [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook()
-        => SunshineScenarioFuncWithScrapbook(new InMemoryFunctionStore());
+        => SunshineScenarioFuncWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SunshineScenarioAction()
-        => SunshineScenarioAction(new InMemoryFunctionStore());
+        => SunshineScenarioAction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SunshineScenarioActionWithScrapbook()
-        => SunshineScenarioActionWithScrapbook(new InMemoryFunctionStore());
+        => SunshineScenarioActionWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFunc()
-        => SunshineScenarioNullReturningFunc(new InMemoryFunctionStore());
+        => SunshineScenarioNullReturningFunc(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFuncWithScrapbook()
-        => SunshineScenarioNullReturningFuncWithScrapbook(new InMemoryFunctionStore());
+        => SunshineScenarioNullReturningFuncWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

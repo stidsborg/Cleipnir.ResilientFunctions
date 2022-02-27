@@ -20,8 +20,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
         private FunctionId FunctionId => new FunctionId(_functionTypeId, _instanceId);
 
         public abstract Task CrashedFunctionInvocationIsCompletedByWatchDog();
-        protected async Task CrashedFunctionInvocationIsCompletedByWatchDog(IFunctionStore store)
+        protected async Task CrashedFunctionInvocationIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
         {
+            var store = await storeTask;
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
             var syncedScrapbook = new Synced<RScrapbook>();
@@ -69,8 +70,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
         }
         
         public abstract Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog();
-        protected async Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(IFunctionStore store)
+        protected async Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
         {
+            var store = await storeTask;
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
 
@@ -122,8 +124,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
         }
         
         public abstract Task CrashedActionInvocationIsCompletedByWatchDog();
-        protected async Task CrashedActionInvocationIsCompletedByWatchDog(IFunctionStore store)
+        protected async Task CrashedActionInvocationIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
         {
+            var store = await storeTask;
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
             var syncedParam = new Synced<string>();
@@ -171,8 +174,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
         }
         
         public abstract Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog();
-        protected async Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(IFunctionStore store)
+        protected async Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
         {
+            var store = await storeTask;
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
             var syncedParam = new Synced<string>();

@@ -15,8 +15,9 @@ public abstract class SunshineTests
     private readonly DefaultSerializer _serializer = DefaultSerializer.Instance;
         
     public abstract Task SunshineScenarioFunc();
-    public async Task SunshineScenarioFunc(IFunctionStore store)
+    public async Task SunshineScenarioFunc(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioFunc).ToFunctionTypeId();
         async Task<Return<string>> ToUpper(string s)
         {
@@ -54,8 +55,9 @@ public abstract class SunshineTests
     }
         
     public abstract Task SunshineScenarioFuncWithScrapbook();
-    public async Task SunshineScenarioFuncWithScrapbook(IFunctionStore store)
+    public async Task SunshineScenarioFuncWithScrapbook(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioFuncWithScrapbook).ToFunctionTypeId();
         async Task<Return<string>> ToUpper(string s, Scrapbook scrapbook)
         {
@@ -93,8 +95,9 @@ public abstract class SunshineTests
     }
         
     public abstract Task SunshineScenarioAction();
-    public async Task SunshineScenarioAction(IFunctionStore store)
+    public async Task SunshineScenarioAction(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioAction).ToFunctionTypeId();
         async Task<Return> ToUpper(string _)
         {
@@ -127,8 +130,9 @@ public abstract class SunshineTests
     }
         
     public abstract Task SunshineScenarioActionWithScrapbook();
-    public async Task SunshineScenarioActionWithScrapbook(IFunctionStore store)
+    public async Task SunshineScenarioActionWithScrapbook(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioActionWithScrapbook).ToFunctionTypeId();
         async Task<Return> ToUpper(string _, Scrapbook scrapbook)
         {
@@ -161,8 +165,9 @@ public abstract class SunshineTests
     }
 
     public abstract Task SunshineScenarioNullReturningFunc();
-    protected async Task SunshineScenarioNullReturningFunc(IFunctionStore store)
+    protected async Task SunshineScenarioNullReturningFunc(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
         var rFunctions = RFunctions.Create(
@@ -180,8 +185,9 @@ public abstract class SunshineTests
     }
 
     public abstract Task SunshineScenarioNullReturningFuncWithScrapbook();
-    protected async Task SunshineScenarioNullReturningFuncWithScrapbook(IFunctionStore store)
+    protected async Task SunshineScenarioNullReturningFuncWithScrapbook(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
         var rFunctions = RFunctions.Create(

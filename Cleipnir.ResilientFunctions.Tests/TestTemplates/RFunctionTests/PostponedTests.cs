@@ -11,8 +11,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 public abstract class PostponedTests
 {
     public abstract Task PostponedFuncIsCompletedByWatchDog();
-    protected async Task PostponedFuncIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task PostponedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(PostponedFuncIsCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
@@ -55,8 +56,9 @@ public abstract class PostponedTests
     }
     
     public abstract Task PostponedFuncWithScrapbookIsCompletedByWatchDog();
-    protected async Task PostponedFuncWithScrapbookIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task PostponedFuncWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
@@ -110,8 +112,9 @@ public abstract class PostponedTests
     }
     
     public abstract Task PostponedActionIsCompletedByWatchDog();
-    protected async Task PostponedActionIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task PostponedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(PostponedFuncIsCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
@@ -155,8 +158,9 @@ public abstract class PostponedTests
     }
     
     public abstract Task PostponedActionWithScrapbookIsCompletedByWatchDog();
-    protected async Task PostponedActionWithScrapbookIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task PostponedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";

@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,21 +10,21 @@ public class StoreTests : TestTemplates.StoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest() 
-        => SunshineScenarioTest(new InMemoryFunctionStore());
+        => SunshineScenarioTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-        => SignOfLifeIsUpdatedWhenAsExpected(new InMemoryFunctionStore());
+        => SignOfLifeIsUpdatedWhenAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(new InMemoryFunctionStore());
+        => SignOfLifeIsNotUpdatedWhenNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected()
-        => BecomeLeaderSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore());
+        => BecomeLeaderSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
-        => BecomeLeaderFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore());
+        => BecomeLeaderFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

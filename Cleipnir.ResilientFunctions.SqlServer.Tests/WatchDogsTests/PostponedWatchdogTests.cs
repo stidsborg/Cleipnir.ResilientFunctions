@@ -8,21 +8,21 @@ public class PostponedWatchdogTests : ResilientFunctions.Tests.TestTemplates.Wat
 {
     [TestMethod]
     public override Task PostponedFunctionInvocationIsCompletedByWatchDog()
-        => PostponedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => PostponedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-        => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionInvocationIsCompletedByWatchDog()
-        => PostponedActionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => PostponedActionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime()
-        => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(Sql.AutoCreateAndInitializeStore().Result);
+        => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(Sql.AutoCreateAndInitializeStore());
 }

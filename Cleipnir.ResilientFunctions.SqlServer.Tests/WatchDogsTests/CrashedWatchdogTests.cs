@@ -8,17 +8,17 @@ public class CrashedWatchdogTests : ResilientFunctions.Tests.TestTemplates.Watch
 {
     [TestMethod]
     public override Task CrashedFunctionInvocationIsCompletedByWatchDog()
-        => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-        => CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => CrashedFunctionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CrashedActionInvocationIsCompletedByWatchDog()
-        => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => CrashedFunctionInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CrashedActionWithScrapbookInvocationIsCompletedByWatchDog()
-        => CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore().Result);
+        => CrashedActionWithScrapbookInvocationIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 }

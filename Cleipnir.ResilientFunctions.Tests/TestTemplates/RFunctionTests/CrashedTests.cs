@@ -11,8 +11,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 public abstract class CrashedTests
 {
     public abstract Task NonCompletedFuncIsCompletedByWatchDog();
-    protected async Task NonCompletedFuncIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task NonCompletedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(NonCompletedFuncIsCompletedByWatchDog).ToFunctionTypeId();
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -60,8 +61,9 @@ public abstract class CrashedTests
     }
 
     public abstract Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog();
-    protected async Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(NonCompletedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -117,8 +119,9 @@ public abstract class CrashedTests
     }
     
     public abstract Task NonCompletedActionIsCompletedByWatchDog();
-    protected async Task NonCompletedActionIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task NonCompletedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(NonCompletedActionIsCompletedByWatchDog).ToFunctionTypeId();
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -167,8 +170,9 @@ public abstract class CrashedTests
     }
 
     public abstract Task NonCompletedActionWithScrapbookIsCompletedByWatchDog();
-    protected async Task NonCompletedActionWithScrapbookIsCompletedByWatchDog(IFunctionStore store)
+    protected async Task NonCompletedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         var functionTypeId = nameof(NonCompletedFuncIsCompletedByWatchDog).ToFunctionTypeId();
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();

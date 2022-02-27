@@ -21,8 +21,9 @@ public abstract class StoreCrudTests
     }
         
     public abstract Task FunctionCanBeCreatedWithASingleParameterSuccessfully();
-    public async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(IFunctionStore store)
+    public async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -45,8 +46,9 @@ public abstract class StoreCrudTests
     }
 
     public abstract Task FunctionCanBeCreatedWithATwoParametersSuccessfully();
-    public async Task FunctionCanBeCreatedWithATwoParametersSuccessfully(IFunctionStore store)
+    public async Task FunctionCanBeCreatedWithATwoParametersSuccessfully(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -69,8 +71,9 @@ public abstract class StoreCrudTests
     }
         
     public abstract Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully();
-    public async Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(IFunctionStore store)
+    public async Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -95,12 +98,16 @@ public abstract class StoreCrudTests
     }
 
     public abstract Task FetchingNonExistingFunctionReturnsNull();
-    public async Task FetchingNonExistingFunctionReturnsNull(IFunctionStore store)
-        => await store.GetFunction(FunctionId).ShouldBeNullAsync(); 
+    public async Task FetchingNonExistingFunctionReturnsNull(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.GetFunction(FunctionId).ShouldBeNullAsync();
+    }  
         
     public abstract Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected();
-    public async Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(IFunctionStore store)
+    public async Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -117,8 +124,9 @@ public abstract class StoreCrudTests
     }
 
     public abstract Task UpdateScrapbookSunshineScenario();
-    public async Task UpdateScrapbookSunshineScenario(IFunctionStore store)
+    public async Task UpdateScrapbookSunshineScenario(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -148,8 +156,9 @@ public abstract class StoreCrudTests
     }
         
     public abstract Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected();
-    public async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected(IFunctionStore store)
+    public async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -176,10 +185,11 @@ public abstract class StoreCrudTests
     }
 
     public abstract Task GetFunctionsWithStatusOnlyReturnsSucceededFunction();
-    public async Task GetFunctionsWithStatusOnlyReturnsSucceededFunction(IFunctionStore store)
+    public async Task GetFunctionsWithStatusOnlyReturnsSucceededFunction(Task<IFunctionStore> storeTask)
     {
         const string functionType = "someFunctionType";
         var function1Id = new FunctionId(functionType, "instance1");
+        var store = await storeTask;
         await store.CreateFunction(
             function1Id,
             Param,

@@ -8,17 +8,17 @@ public class WatchdogCompoundTests : Cleipnir.ResilientFunctions.Tests.TestTempl
 {
     [TestMethod]
     public override Task FunctionCompoundTest() 
-        => FunctionCompoundTest(Sql.AutoCreateAndInitializeStore().Result);
+        => FunctionCompoundTest(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task FunctionWithScrapbookCompoundTest() 
-        => FunctionWithScrapbookCompoundTest(Sql.AutoCreateAndInitializeStore().Result);
+        => FunctionWithScrapbookCompoundTest(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task ActionCompoundTest()
-        => ActionCompoundTest(Sql.AutoCreateAndInitializeStore().Result);
+        => ActionCompoundTest(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task ActionWithScrapbookCompoundTest()
-        => ActionWithScrapbookCompoundTest(Sql.AutoCreateAndInitializeStore().Result);
+        => ActionWithScrapbookCompoundTest(Sql.AutoCreateAndInitializeStore());
 }

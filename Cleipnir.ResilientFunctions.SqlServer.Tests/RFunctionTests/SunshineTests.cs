@@ -8,25 +8,25 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
 {
     [TestMethod]
     public override Task SunshineScenarioFunc() 
-        => SunshineScenarioFunc(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioFunc(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook() 
-        => SunshineScenarioFuncWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SunshineScenarioAction() 
-        => SunshineScenarioAction(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioAction(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SunshineScenarioActionWithScrapbook() 
-        => SunshineScenarioActionWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioActionWithScrapbook(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFunc()
-        => SunshineScenarioNullReturningFunc(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioNullReturningFunc(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFuncWithScrapbook()
-        => SunshineScenarioNullReturningFuncWithScrapbook(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioNullReturningFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
 }

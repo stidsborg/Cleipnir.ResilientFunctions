@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,22 +10,22 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.WatchDogsTests
     {
         [TestMethod]
         public override Task PostponedFunctionInvocationIsCompletedByWatchDog()
-            => PostponedFunctionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+            => PostponedFunctionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
         [TestMethod]
         public override Task PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog()
-            => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+            => PostponedFunctionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
         [TestMethod]
         public override Task PostponedActionInvocationIsCompletedByWatchDog()
-            => PostponedActionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+            => PostponedActionInvocationIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
         [TestMethod]
         public override Task PostponedActionWithScrapbookInvocationIsCompletedByWatchDog()
-            => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore());
+            => PostponedActionWithScrapbookInvocationIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
         [TestMethod]
         public override Task MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime()
-            => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(new InMemoryFunctionStore());
+            => MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
     }
 }

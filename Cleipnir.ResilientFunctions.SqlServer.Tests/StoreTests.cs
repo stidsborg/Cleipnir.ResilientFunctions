@@ -8,21 +8,21 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest() 
-        => SunshineScenarioTest(Sql.AutoCreateAndInitializeStore().Result);
+        => SunshineScenarioTest(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-        => SignOfLifeIsUpdatedWhenAsExpected(Sql.AutoCreateAndInitializeStore().Result);
+        => SignOfLifeIsUpdatedWhenAsExpected(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected() 
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(Sql.AutoCreateAndInitializeStore().Result);
+        => SignOfLifeIsNotUpdatedWhenNotAsExpected(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected() 
-        => BecomeLeaderSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore().Result);
+        => BecomeLeaderSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
-        => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore().Result);
+        => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
 }

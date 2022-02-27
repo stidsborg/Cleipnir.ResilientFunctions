@@ -15,18 +15,19 @@ public abstract class FailedTests
     private const string PARAM = "test";
     
     public abstract Task ExceptionThrowingFuncIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingFuncIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingFuncIsNotCompletedByWatchDog(store, throwUnhandledException: false);
+    protected Task ExceptionThrowingFuncIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingFuncIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
     public abstract Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingFuncIsNotCompletedByWatchDog(store, throwUnhandledException: true);
+    protected Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingFuncIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
     
     private async Task ExceptionThrowingFuncIsNotCompletedByWatchDog(
-        IFunctionStore store, 
+        Task<IFunctionStore> storeTask, 
         bool throwUnhandledException,
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
     )
     {
+        var store = await storeTask;
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -79,18 +80,19 @@ public abstract class FailedTests
     }
     
     public abstract Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(store, throwUnhandledException: false);
+    protected Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
     public abstract Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(IFunctionStore store) 
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(store, throwUnhandledException: true);
+    protected Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask) 
+        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
     
     private async Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(
-        IFunctionStore store,
+        Task<IFunctionStore> storeTask,
         bool throwUnhandledException, 
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
     )
     {
+        var store = await storeTask;
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -147,17 +149,18 @@ public abstract class FailedTests
     }
     
     public abstract Task ExceptionThrowingActionIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingActionIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(store, throwUnhandledException: false);
+    protected Task ExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingActionIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
     public abstract Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(store, throwUnhandledException: true);
+    protected Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingActionIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
     private async Task ExceptionThrowingActionIsNotCompletedByWatchDog(
-        IFunctionStore store,
+        Task<IFunctionStore> storeTask,
         bool throwUnhandledException,
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
     )
     {
+        var store = await storeTask;
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -209,18 +212,19 @@ public abstract class FailedTests
     }
     
     public abstract Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(store, throwUnhandledException: false);
+    protected Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
     public abstract Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(IFunctionStore store)
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(store, throwUnhandledException: true);
+    protected Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
     
     private async Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(
-        IFunctionStore store,
+        Task<IFunctionStore> storeTask,
         bool throwUnhandledException,
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
     )
     {
+        var store = await storeTask;
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
