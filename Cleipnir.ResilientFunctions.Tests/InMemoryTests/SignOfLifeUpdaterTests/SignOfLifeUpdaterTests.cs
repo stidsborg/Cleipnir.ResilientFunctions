@@ -41,7 +41,7 @@ public class SignOfLifeUpdaterTests
         );
         var updater = updaterFactory.CreateAndStart(_functionId, expectedEpoch);
 
-        await Task.Delay(100);
+        await Task.Delay(200);
         updater.Dispose();
 
         invocations.Count.ShouldBeGreaterThan(2);
