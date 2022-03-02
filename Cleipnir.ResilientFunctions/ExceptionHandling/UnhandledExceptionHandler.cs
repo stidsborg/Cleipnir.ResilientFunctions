@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using static Cleipnir.ResilientFunctions.Helpers.ExceptionUtils;
 
 namespace Cleipnir.ResilientFunctions.ExceptionHandling;
