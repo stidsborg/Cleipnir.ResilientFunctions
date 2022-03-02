@@ -52,6 +52,12 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
 
+    public async Task DropIfExists()
+    {
+        await using var conn = await _connFunc();
+        await conn.ExecuteAsync($"DROP TABLE IF EXISTS {_tablePrefix}RFunctions ");
+    }
+
     public async Task Truncate()
     {
         await using var conn = await _connFunc();
