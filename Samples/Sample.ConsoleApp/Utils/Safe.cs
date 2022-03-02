@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Utils;
 
-public static class Utils
+public static class Safe
 {
-    public static async Task SafeTry(Func<Task> f, Action<Exception> onException)
+    public static async Task Try(Func<Task> f, Action<Exception> onException)
     {
         try
         {

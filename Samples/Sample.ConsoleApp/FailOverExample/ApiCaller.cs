@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
-namespace ConsoleApp;
+namespace ConsoleApp.FailOverExample;
 
 public class ApiCaller
 {

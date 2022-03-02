@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.SqlServer;
+using ConsoleApp.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace ConsoleApp.Simple;
@@ -28,9 +29,9 @@ public static class SimpleFetchFunctionsWithStatus
             RFunc
         ).Invoke;
 
-        await Utils.SafeTry(async () => await f("a", "a"), Console.WriteLine);
-        await Utils.SafeTry(async () => await f("b", "b"), Console.WriteLine);
-        await Utils.SafeTry(async () => await f("c", "c"), Console.WriteLine);
+        await Safe.Try(async () => await f("a", "a"), Console.WriteLine);
+        await Safe.Try(async () => await f("b", "b"), Console.WriteLine);
+        await Safe.Try(async () => await f("c", "c"), Console.WriteLine);
 
         var statuses = await store
             .GetFunctionsWithStatus(functionTypeId, Status.Executing)

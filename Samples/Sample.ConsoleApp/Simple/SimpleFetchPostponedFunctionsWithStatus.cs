@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.SqlServer;
+using ConsoleApp.Utils;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 
@@ -29,9 +30,9 @@ public static class SimpleFetchPostponedFunctionsWithStatus
             RFunc
         ).Invoke;
 
-        await Utils.SafeTry(async () => await f(0.ToString(), 0), Console.WriteLine);
-        await Utils.SafeTry(async () => await f(1.ToString(), 1), Console.WriteLine);
-        await Utils.SafeTry(async () => await f(2.ToString(), 2), Console.WriteLine);
+        await Safe.Try(async () => await f(0.ToString(), 0), Console.WriteLine);
+        await Safe.Try(async () => await f(1.ToString(), 1), Console.WriteLine);
+        await Safe.Try(async () => await f(2.ToString(), 2), Console.WriteLine);
 
         var statuses = await store
             .GetFunctionsWithStatus(functionTypeId, Status.Postponed, DateTime.Today.AddDays(1).ToUniversalTime().Ticks)

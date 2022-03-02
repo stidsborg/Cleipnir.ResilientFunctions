@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
-using static ConsoleApp.Utils;
+using static ConsoleApp.Utils.Safe;
 
 namespace ConsoleApp.Simple;
 
@@ -24,8 +24,8 @@ public static class SimpleFailExample
             RFunc
         ).Invoke;
 
-        await SafeTry(async () => await f("hello world","hello world"), Console.WriteLine);
-        await SafeTry(async () => await f("hello world", "hello world"), Console.WriteLine);
+        await Try(async () => await f("hello world","hello world"), Console.WriteLine);
+        await Try(async () => await f("hello world", "hello world"), Console.WriteLine);
     }
 
     private static async Task<Return<string>> RFunc(string s)

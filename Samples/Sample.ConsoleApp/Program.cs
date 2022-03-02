@@ -6,7 +6,7 @@ namespace ConsoleApp
     {
         private static async Task Main()
         {
-            await StressTest.Example.Perform();
+            await FailOverExample.Example.Execute();
         }
     }
 }

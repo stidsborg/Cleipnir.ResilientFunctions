@@ -5,9 +5,9 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Microsoft.Data.SqlClient;
 
-namespace ConsoleApp;
+namespace ConsoleApp.FailOverExample;
 
-public class DistributedExample
+public static class Example
 {
     public static async Task Execute()
     {
@@ -33,14 +33,15 @@ public class DistributedExample
         var callApi = functions
             .Register<string, string>(
                 "call.api".ToFunctionTypeId(),
-                new ApiCaller(true, 1).CallApi
+                new ApiCaller(true, 1).CallApi,
+                onException: (exception, id, s) => Postpone.For(10)
             ).Invoke;
 
         _ = callApi("input", "input"); //will fail
         await Task.Delay(2_000);
 
         var output = await callApi("input", "input");
-        Console.WriteLine($"[SERVICE1] Function Return Value: '{output}'");
+        Console.WriteLine($"[SERVICE1] Function Return Value: {output}");
     }
 
     private static async Task Service2()
@@ -48,7 +49,8 @@ public class DistributedExample
         var functions = RFunctions.Create(
             new SqlServerFunctionStore(CreateConnection),
             unhandledExceptionHandler: Console.WriteLine,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000)
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
+            postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
         );
 
         var callApi = functions
@@ -60,7 +62,7 @@ public class DistributedExample
         await Task.Delay(2_000);
 
         var output = await callApi("input", "input");
-        Console.WriteLine($"[SERVICE2] Function Return Value: '{output}'");
+        Console.WriteLine($"[SERVICE2] Function Return Value: {output}");
     }
 
     private static async Task<SqlConnection> CreateConnection()
