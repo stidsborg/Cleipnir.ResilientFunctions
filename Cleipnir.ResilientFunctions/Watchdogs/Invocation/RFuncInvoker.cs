@@ -38,9 +38,9 @@ internal class RFuncInvoker
         RFunc<TReturn> rFunc
     )
     {
+        _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            _shutdownCoordinator.RegisterRunningRFunc();
             var expectedEpoch = storedFunction.Epoch;
             var newEpoch = expectedEpoch + 1;
             var success = await _functionStore.TryToBecomeLeader(

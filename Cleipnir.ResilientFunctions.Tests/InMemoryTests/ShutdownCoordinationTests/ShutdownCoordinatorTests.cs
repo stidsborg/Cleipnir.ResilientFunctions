@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -105,5 +106,14 @@ public class ShutdownCoordinatorTests
 
         shutdownCoordinator.RegisterRFuncCompletion();
         await BusyWait.UntilAsync(() => shutdownCompleted.IsCompleted);
+    }
+    
+    [TestMethod]
+    public void RegisteringRunningRFuncOnDisposedShutdownCoordinatorThrowsException()
+    {
+        var shutdownCoordinator = new ShutdownCoordinator();
+        _ = shutdownCoordinator.PerformShutdown();
+        
+        Should.Throw<ObjectDisposedException>(shutdownCoordinator.RegisterRunningRFunc);
     }
 }

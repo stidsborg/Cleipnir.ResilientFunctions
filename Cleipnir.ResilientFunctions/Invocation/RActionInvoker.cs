@@ -71,10 +71,10 @@ public class RActionInvoker<TParam> where TParam : notnull
         
         _ = Task.Run(async () =>
         {
+            _shutdownCoordinator.RegisterRunningRFunc();
             try
             {
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-                _shutdownCoordinator.RegisterRunningRFunc();
                 Return returned;
                 try
                 {
@@ -208,9 +208,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
         _ = Task.Run(async () =>
         {
+            _shutdownCoordinator.RegisterRunningRFunc();
             try
             {
-                _shutdownCoordinator.RegisterRunningRFunc();
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
                 var scrapbook = CreateScrapbook(functionId);
 

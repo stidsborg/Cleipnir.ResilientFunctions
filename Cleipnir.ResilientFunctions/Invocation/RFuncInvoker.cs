@@ -71,9 +71,9 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
         _ = Task.Run(async () =>
         {
+            _shutdownCoordinator.RegisterRunningRFunc();
             try
             {
-                _shutdownCoordinator.RegisterRunningRFunc();
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
                 Return<TReturn> returned;
                 try
@@ -209,9 +209,9 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
         _ = Task.Run(async () =>
         {
+            _shutdownCoordinator.RegisterRunningRFunc();
             try
             {
-                _shutdownCoordinator.RegisterRunningRFunc();
                 using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
                 var scrapbook = CreateScrapbook(functionId);
                 Return<TReturn> result;
