@@ -84,12 +84,7 @@ public class RFunctions : IDisposable
                 (param, _) => inner((TParam) param)
             );
 
-            var commonInvoker = new CommonInvoker(
-                serializer,
-                _functionStore,
-                _unhandledExceptionHandler,
-                _shutdownCoordinator
-            );
+            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -134,9 +129,7 @@ public class RFunctions : IDisposable
                 (param, _) => inner((TParam) param)
             );
 
-            var commonInvoker = new CommonInvoker(
-                serializer, _functionStore, _unhandledExceptionHandler, _shutdownCoordinator
-            );
+            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionInvoker<TParam>(
                 functionTypeId, 
                 inner, 
@@ -181,12 +174,7 @@ public class RFunctions : IDisposable
                 (param, scrapbook) => inner((TParam) param, (TScrapbook) scrapbook!)
             );
 
-            var commonInvoker = new CommonInvoker(
-                serializer,
-                _functionStore,
-                _unhandledExceptionHandler,
-                _shutdownCoordinator
-            );
+            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -232,9 +220,7 @@ public class RFunctions : IDisposable
                 (param, scrapbook) => inner((TParam) param, (TScrapbook) scrapbook!)
             );
 
-            var commonInvoker = new CommonInvoker(
-                serializer, _functionStore, _unhandledExceptionHandler, _shutdownCoordinator
-            );
+            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
                 functionTypeId, 
                 inner, 

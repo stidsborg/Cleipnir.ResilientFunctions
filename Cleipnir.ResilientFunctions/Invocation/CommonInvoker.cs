@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
@@ -14,20 +13,14 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 internal class CommonInvoker
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ISerializer _serializer;
     private readonly IFunctionStore _functionStore;
 
-    public CommonInvoker(
-        ISerializer serializer,
-        IFunctionStore functionStore, 
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator)
+    public CommonInvoker(ISerializer serializer, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
     {
         _shutdownCoordinator = shutdownCoordinator;
         _serializer = serializer;
         _functionStore = functionStore;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public async Task<bool> PersistFunctionInStore<TParam>(FunctionId functionId, TParam param, Type? scrapbookType)
