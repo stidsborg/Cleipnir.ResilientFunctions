@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Microsoft.Data.SqlClient;
 
-namespace ConsoleApp.StressTest;
+namespace ConsoleApp.Tests.Stress;
 
 public static class Example
 {
@@ -21,18 +21,18 @@ public static class Example
         var rFunctions = RFunctions
             .Create(
                 store,
-                e =>
+                unhandledExceptionHandler: e =>
                 {
                     lock (Sync)
                         exceptions.Add(e);
                 },
-                TimeSpan.FromMilliseconds(10_000),
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10_000),
                 postponedCheckFrequency: TimeSpan.Zero
             );
 
         var rFunc = rFunctions.Register<int, string>(
-            "stresstest",
-            async Task<Return<string>>(int param) =>
+            functionTypeId: "stresstest",
+            inner: async Task<Return<string>>(int param) =>
             {
                 await Task.Delay(1);
                 return param.ToString();
