@@ -58,8 +58,14 @@ internal class ShutdownCoordinator
         _shutDownCompleted.SetResult();
     }
 
-    public void RegisterRunningRFunc() 
-        => Interlocked.Increment(ref _executingRFuncs); //todo ensure shutdown initiated is false o/w throw exception
+    public void RegisterRunningRFunc()
+    {
+        Interlocked.Increment(ref _executingRFuncs); 
+        if (!_shutDownInitiated) return;
+
+        Interlocked.Decrement(ref _executingRFuncs);
+        throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed"); 
+    }
     public void RegisterRFuncCompletion() => Interlocked.Decrement(ref _executingRFuncs);
 
     public bool ObserveShutdown(Func<Task> onShutdown)
