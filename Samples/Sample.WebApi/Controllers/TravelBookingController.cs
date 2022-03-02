@@ -9,15 +9,10 @@ namespace Sample.WebApi.Controllers;
 [Route("[controller]")]
 public class TravelBookingController : ControllerBase, IRegisterRFuncOnInstantiation
 {
-    private readonly ILogger<TravelBookingController> _logger;
     private readonly BookingSaga _bookingSaga;
 
-    public TravelBookingController(ILogger<TravelBookingController> logger, BookingSaga bookingSaga)
-    {
-        _logger = logger;
-        _bookingSaga = bookingSaga;
-    }
-    
+    public TravelBookingController(BookingSaga bookingSaga) => _bookingSaga = bookingSaga;
+
     [HttpPost]
     public async Task<Booking> Post(Order order)
     {
