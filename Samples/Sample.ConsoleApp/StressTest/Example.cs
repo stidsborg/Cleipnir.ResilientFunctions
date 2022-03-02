@@ -14,8 +14,8 @@ public static class Example
     public static async Task Perform()
     {
         var store = new SqlServerFunctionStore(CreateConnection, "stress_test");
+        await store.DropIfExists();
         await store.Initialize();
-        await store.Truncate();
 
         var exceptions = new List<Exception>();
         var rFunctions = RFunctions
