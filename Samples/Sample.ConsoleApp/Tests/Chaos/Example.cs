@@ -52,7 +52,7 @@ public static class Example
 
         var secondRFunc = secondRFunctions.Register<int, string>(
             functionTypeId,
-            async Task<Return<string>>(param) => param.ToString()
+            Task<Return<string>>(param) => Succeed.WithValue(param.ToString()).ToTask()
         ).Invoke;
         
         for (var i = 0; i < testSize; i++)
