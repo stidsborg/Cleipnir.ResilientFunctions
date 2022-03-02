@@ -25,7 +25,7 @@ public abstract class RScrapbook
     public async Task Save()
     {
         if (FunctionStore == null)
-            throw new FrameworkException($"'{GetType().Name}' scrapbook was uninitialized on save");
+            throw new InvalidOperationException($"'{GetType().Name}' scrapbook is uninitialized on save");
 
         var scrapbookJson = Serializer!.SerializeScrapbook(this);
         var success = await FunctionStore!.SetFunctionState(
@@ -37,21 +37,19 @@ public abstract class RScrapbook
             postponedUntil: null,
             expectedEpoch: Epoch!.Value
         );
-            
+
         if (!success)
-            throw new ScrapbookSaveFailedException("Unable to save Scrapbook due to concurrent modification");
+            throw new ScrapbookSaveFailedException(
+                FunctionId!,
+                $"Unable to save '{FunctionId}'-scrapbook due to concurrent modification"
+            );
     }
 }
 
 public sealed class ScrapbookSaveFailedException : Exception
 {
-    public ScrapbookSaveFailedException() { }
-
-    public ScrapbookSaveFailedException(SerializationInfo info, StreamingContext context) 
-        : base(info, context) { }
-
-    public ScrapbookSaveFailedException(string? message) : base(message) { }
-
-    public ScrapbookSaveFailedException(string? message, Exception? innerException) 
-        : base(message, innerException) { }
+    public FunctionId FunctionId { get; }
+    
+    public ScrapbookSaveFailedException(FunctionId functionId, string message) : base(message) 
+        => FunctionId = functionId;
 }
