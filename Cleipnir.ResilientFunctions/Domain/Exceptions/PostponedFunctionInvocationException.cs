@@ -4,6 +4,6 @@ public sealed class PostponedFunctionInvocationException : RFunctionException
 {
     public FunctionId FunctionId { get; }
 
-    public PostponedFunctionInvocationException(FunctionId functionId, string? message) : base(message) 
-        => FunctionId = functionId;
+    public PostponedFunctionInvocationException(FunctionId functionId, string message) 
+        : base(functionId.TypeId, message) => FunctionId = functionId;
 }

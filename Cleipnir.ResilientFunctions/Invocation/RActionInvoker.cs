@@ -89,7 +89,7 @@ public class RActionInvoker<TParam> where TParam : notnull
 
                 await ProcessReturned(functionId, returned);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
         });
     }
@@ -228,7 +228,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
                 await ProcessReturned(functionId, returned, scrapbook);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
         });
     }

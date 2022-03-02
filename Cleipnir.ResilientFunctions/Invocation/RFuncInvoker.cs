@@ -89,7 +89,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
                 await ProcessReturned(functionId, returned);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
         });
     }
@@ -228,7 +228,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
                 await ProcessResult(functionId, result, scrapbook);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
         });
     }

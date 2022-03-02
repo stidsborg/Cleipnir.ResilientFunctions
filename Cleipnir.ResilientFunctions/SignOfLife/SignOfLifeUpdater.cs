@@ -65,6 +65,7 @@ public class SignOfLifeUpdater : IDisposable
                     _disposed = true;
                     _unhandledExceptionHandler.Invoke(
                         new FrameworkException(
+                            _functionId.TypeId,
                             $"{nameof(SignOfLifeUpdater)} failed while executing: '{_functionId}'",
                             e
                         )

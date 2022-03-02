@@ -4,7 +4,11 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public abstract class RFunctionException : Exception
 {
-    public RFunctionException(string? message) : base(message) { }
+    public FunctionTypeId FunctionTypeId { get; }
+    
+    public RFunctionException(FunctionTypeId functionTypeId, string message) 
+        : base(message) => FunctionTypeId = functionTypeId;
 
-    public RFunctionException(string? message, Exception? innerException) : base(message, innerException) { }
+    public RFunctionException(FunctionTypeId functionTypeId, string message, Exception innerException) 
+        : base(message, innerException) => FunctionTypeId = functionTypeId;
 }

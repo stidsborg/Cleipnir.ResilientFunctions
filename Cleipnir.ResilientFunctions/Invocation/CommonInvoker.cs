@@ -49,7 +49,7 @@ internal class CommonInvoker
         {
             var storedFunction = await _functionStore.GetFunction(functionId);
             if (storedFunction == null)
-                throw new FrameworkException($"Function {functionId} does not exist");
+                throw new FrameworkException(functionId.TypeId, $"Function {functionId} does not exist");
 
             switch (storedFunction.Status)
             {
@@ -97,7 +97,7 @@ internal class CommonInvoker
         {
             var storedFunction = await _functionStore.GetFunction(functionId);
             if (storedFunction == null)
-                throw new FrameworkException($"Function {functionId} does not exist");
+                throw new FrameworkException(functionId.TypeId, $"Function {functionId} does not exist");
 
             switch (storedFunction.Status)
             {

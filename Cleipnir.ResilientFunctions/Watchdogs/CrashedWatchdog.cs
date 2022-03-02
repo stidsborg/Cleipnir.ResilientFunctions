@@ -81,9 +81,7 @@ internal class CrashedWatchdog<TReturn> : IDisposable
                         
                     var functionId = new FunctionId(_functionTypeId, function.InstanceId);
                     var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction == null)
-                        throw new FrameworkException($"Function '{functionId}' not found on retry");
-                    if (storedFunction.Status != Status.Executing) return;
+                    if (storedFunction?.Status != Status.Executing) continue;
 
                     try
                     {
@@ -93,6 +91,7 @@ internal class CrashedWatchdog<TReturn> : IDisposable
                     {
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
+                                _functionTypeId,
                                 $"{nameof(CrashedWatchdog<TReturn>)} failed while executing: '{functionId}'",
                                 innerException
                             )
@@ -107,6 +106,7 @@ internal class CrashedWatchdog<TReturn> : IDisposable
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
+                    _functionTypeId,
                     $"{nameof(CrashedWatchdog<TReturn>)} failed while executing: '{_functionTypeId}'",
                     innerException
                 )
@@ -197,7 +197,7 @@ internal class CrashedWatchdog : IDisposable
                     var functionId = new FunctionId(_functionTypeId, function.InstanceId);
                     var storedFunction = await _functionStore.GetFunction(functionId);
                     if (storedFunction == null)
-                        throw new FrameworkException($"Function '{functionId}' not found on retry");
+                        throw new FrameworkException(_functionTypeId, $"Function '{functionId}' not found on retry");
                     if (storedFunction.Status != Status.Executing) return;
 
                     try
@@ -208,6 +208,7 @@ internal class CrashedWatchdog : IDisposable
                     {
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
+                                _functionTypeId,
                                 $"{nameof(CrashedWatchdog)} failed while executing: '{functionId}'",
                                 innerException
                             )
@@ -222,6 +223,7 @@ internal class CrashedWatchdog : IDisposable
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
+                    _functionTypeId,
                     $"{nameof(CrashedWatchdog)} failed while executing: '{_functionTypeId}'",
                     innerException
                 )

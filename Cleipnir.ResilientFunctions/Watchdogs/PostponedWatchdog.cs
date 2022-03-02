@@ -75,6 +75,7 @@ internal class PostponedWatchdog<TReturn> : IDisposable
                     {
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
+                                _functionTypeId,
                                 $"{nameof(PostponedWatchdog<TReturn>)} failed while executing: '{functionId}'",
                                 innerException
                             )
@@ -87,6 +88,7 @@ internal class PostponedWatchdog<TReturn> : IDisposable
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
+                    _functionTypeId,
                     $"{nameof(PostponedWatchdog<TReturn>)} failed while executing: '{_functionTypeId}'",
                     innerException
                 )
@@ -172,6 +174,7 @@ internal class PostponedWatchdog : IDisposable
                     {
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
+                                functionId.TypeId,
                                 $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
                                 innerException
                             )
@@ -184,6 +187,7 @@ internal class PostponedWatchdog : IDisposable
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
+                    _functionTypeId,
                     $"{nameof(PostponedWatchdog)} failed while executing: '{_functionTypeId}'",
                     innerException
                 )

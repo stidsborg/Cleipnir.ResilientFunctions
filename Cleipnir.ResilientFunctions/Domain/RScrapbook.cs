@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -25,7 +23,7 @@ public abstract class RScrapbook
     public async Task Save()
     {
         if (FunctionStore == null)
-            throw new InvalidOperationException($"'{GetType().Name}' scrapbook is uninitialized on save");
+            throw new InvalidOperationException($"'{GetType().Name}' scrapbook was uninitialized on save");
 
         var scrapbookJson = Serializer!.SerializeScrapbook(this);
         var success = await FunctionStore!.SetFunctionState(
