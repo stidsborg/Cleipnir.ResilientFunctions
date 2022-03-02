@@ -24,9 +24,8 @@ public static class Example
 
         var offerDate = new DateOnly(2022, 1, 1);
         var result = await rAction(
-            offerDate.ToString(),
-            new MailAndRecipients(
-                offerDate,
+            functionInstanceId: offerDate.ToString(),
+            param: new MailAndRecipients(
                 new[]
                 {
                     new EmailAddress("Peter Hansen", "peter@gmail.com"),

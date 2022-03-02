@@ -71,7 +71,7 @@ public class RResult<T>
             Outcome.Succeeded => SuccessResult!,
             Outcome.Postponed => throw new PostponedFunctionInvocationException(
                 FunctionId,
-                $"Function has been postponed until: '{PostponedUntil!.Value:O}'"
+                $"Function '{FunctionId}' has been postponed until: '{PostponedUntil!.Value:O}'"
             ),
             Outcome.Failed => throw FailedException!,
             _ => throw new ArgumentOutOfRangeException()
@@ -147,7 +147,7 @@ public class RResult
                 return;
             case Outcome.Postponed:
                 throw new InvalidOperationException(
-                    $"Function has been postponed until: '{PostponedUntil!.Value:O}'"
+                    $"Function '{FunctionId}' has been postponed until: '{PostponedUntil!.Value:O}'"
                 );
             case Outcome.Failed:
                 throw FailedException!;

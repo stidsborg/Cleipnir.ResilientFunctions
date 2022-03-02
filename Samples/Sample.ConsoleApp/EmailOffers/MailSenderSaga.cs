@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -13,9 +12,9 @@ public static class EmailSenderSaga
 {
     public static async Task<Return> Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
     {
-        var (_, recipients, subject, content) = mailAndRecipients;
+        var (recipients, subject, content) = mailAndRecipients;
         if (scrapbook.Initialized && scrapbook.RecipientsLeft.Count == 0) return Succeed.WithoutValue;
-        if (scrapbook.RecipientsLeft.Count == 0)
+        if (!scrapbook.Initialized)
         {
             //must be first invocation - add all recipients to scrapbook's queue
             foreach (var recipient in recipients)
@@ -32,14 +31,11 @@ public static class EmailSenderSaga
         {
             var recipient = scrapbook.RecipientsLeft.Dequeue();
             var message = new MimeMessage();
-            message.To.Add(new MailboxAddress(recipient.Name,recipient.Address));
+            message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
             message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
 
             message.Subject = subject;
-            message.Body = new TextPart(TextFormat.Html)
-            {
-                Text = content
-            };
+            message.Body = new TextPart(TextFormat.Html) { Text = content };
             await client.SendAsync(message);
 
             await scrapbook.Save();
@@ -57,7 +53,6 @@ public static class EmailSenderSaga
 
 public record EmailAddress(string Name, string Address);
 public record MailAndRecipients(
-    DateOnly OfferDate,
     IEnumerable<EmailAddress> Recipients,
     string Subject,
     string Content
