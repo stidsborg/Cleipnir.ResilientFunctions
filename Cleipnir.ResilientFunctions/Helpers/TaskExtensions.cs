@@ -23,4 +23,10 @@ public static class TaskExtensions
         var result = await task;
         return result.EnsureSuccess();
     }
+    
+    public static async Task EnsureSuccess(this Task<RResult> task)
+    {
+        var result = await task;
+        result.EnsureSuccess();
+    }
 }
