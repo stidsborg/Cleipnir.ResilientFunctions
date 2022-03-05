@@ -3,4 +3,4 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
-internal delegate Task<Return> RAction(object param, RScrapbook? scrapbook);
+internal delegate Task<Return<TReturn>> InnerFunc<TReturn>(object param, RScrapbook? scrapbook);

@@ -16,7 +16,7 @@ internal class PostponedWatchdog<TReturn> : IDisposable
     private readonly RFuncInvoker _rFuncInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
-    private readonly RFunc<TReturn> _func;
+    private readonly InnerFunc<TReturn> _func;
 
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
@@ -25,7 +25,7 @@ internal class PostponedWatchdog<TReturn> : IDisposable
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId, 
-        RFunc<TReturn> func,
+        InnerFunc<TReturn> func,
         IFunctionStore functionStore, 
         RFuncInvoker rFuncInvoker,
         TimeSpan checkFrequency,
@@ -115,7 +115,7 @@ internal class PostponedWatchdog : IDisposable
     private readonly RActionInvoker _rActionInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
-    private readonly Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction _action;
+    private readonly InnerAction _action;
 
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
@@ -124,7 +124,7 @@ internal class PostponedWatchdog : IDisposable
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId, 
-        Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction action,
+        InnerAction action,
         IFunctionStore functionStore, 
         RActionInvoker rActionInvoker,
         TimeSpan checkFrequency,

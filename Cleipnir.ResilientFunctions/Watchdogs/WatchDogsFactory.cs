@@ -34,7 +34,7 @@ internal class WatchDogsFactory
         _postponedCheckFrequency = postponedCheckFrequency;
     }
 
-    public void CreateAndStart<TReturn>(FunctionTypeId functionTypeId, ISerializer serializer, RFunc<TReturn> rFunc) 
+    public void CreateAndStart<TReturn>(FunctionTypeId functionTypeId, ISerializer serializer, InnerFunc<TReturn> innerFunc) 
     {
         var rFuncInvoker = new RFuncInvoker(
             _functionStore,
@@ -46,7 +46,7 @@ internal class WatchDogsFactory
         
         var crashedWatchdog = new CrashedWatchdog<TReturn>(
             functionTypeId,
-            rFunc,
+            innerFunc,
             _functionStore,
             rFuncInvoker,
             _crashedCheckFrequency,
@@ -56,7 +56,7 @@ internal class WatchDogsFactory
 
         var postponedWatchdog = new PostponedWatchdog<TReturn>(
             functionTypeId,
-            rFunc,
+            innerFunc,
             _functionStore,
             rFuncInvoker,
             _postponedCheckFrequency,
@@ -68,12 +68,12 @@ internal class WatchDogsFactory
         _ = postponedWatchdog.Start();
     } 
     
-    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, Cleipnir.ResilientFunctions.Watchdogs.Invocation.RAction rAction)  
+    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, Cleipnir.ResilientFunctions.Watchdogs.Invocation.InnerAction innerAction)  
     {
         var rActionInvoker = new RActionInvoker(_functionStore, serializer, _signOfLifeUpdaterFactory, _unhandledExceptionHandler, _shutdownCoordinator);
         var crashedWatchdog = new CrashedWatchdog(
             functionTypeId,
-            rAction,
+            innerAction,
             _functionStore,
             rActionInvoker,
             _crashedCheckFrequency,
@@ -83,7 +83,7 @@ internal class WatchDogsFactory
 
         var postponedWatchdog = new PostponedWatchdog(
             functionTypeId,
-            rAction,
+            innerAction,
             _functionStore,
             rActionInvoker,
             _postponedCheckFrequency,

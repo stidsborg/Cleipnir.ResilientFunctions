@@ -35,7 +35,7 @@ internal class RActionInvoker
     public async Task ReInvoke(
         FunctionId functionId,
         StoredFunction storedFunction,
-        RAction rAction
+        InnerAction innerAction
     )
     {
         _shutdownCoordinator.RegisterRunningRFunc();
@@ -66,7 +66,7 @@ internal class RActionInvoker
             Return returned;
             try
             {
-                returned = await rAction(parameter, scrapbook);
+                returned = await innerAction(parameter, scrapbook);
             }
             catch (Exception exception)
             {
