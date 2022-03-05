@@ -13,7 +13,7 @@ public class DisposeTests
     [TestMethod]
     public void RegisteringFunctionOnDisposedRFunctionsThrowsException()
     {
-        var rFunctions = RFunctions.Create(new InMemoryFunctionStore());
+        var rFunctions = new RFunctions(new InMemoryFunctionStore());
         rFunctions.Dispose();
 
         Should.Throw<ObjectDisposedException>(() =>

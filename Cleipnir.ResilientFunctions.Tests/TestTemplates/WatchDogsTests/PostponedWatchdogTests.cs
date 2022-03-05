@@ -278,7 +278,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             var store = await storeTask;
             var functionType = nameof(MultiplePostponedFunctionsAreInvokedOrderedByTheirDueTime).ToFunctionTypeId();
             var unhandledExceptionsCatcher = new UnhandledExceptionCatcher();
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionsCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)

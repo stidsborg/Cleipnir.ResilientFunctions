@@ -17,7 +17,7 @@ public class RFunctionsShutdownTests
     {
         var functionTypeId = "functionTypeId".ToFunctionTypeId();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             new InMemoryFunctionStore(),
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.FromMilliseconds(5),
@@ -58,7 +58,7 @@ public class RFunctionsShutdownTests
     {
         var functionTypeId = "functionTypeId".ToFunctionTypeId();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             new InMemoryFunctionStore(),
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.FromMilliseconds(5),
@@ -100,7 +100,7 @@ public class RFunctionsShutdownTests
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
@@ -157,7 +157,7 @@ public class RFunctionsShutdownTests
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             store,
             unhandledExceptionCatcher.Catch,
             crashedCheckFrequency: TimeSpan.FromMilliseconds(2),

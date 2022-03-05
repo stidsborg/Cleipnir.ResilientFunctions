@@ -12,7 +12,7 @@ public static class HelloWorldExample
     public static async Task Execute()
     {
         var store = new InMemoryFunctionStore();
-        var functions = RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+        var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
 
         var f = functions.Register<string, string>(
             "hello world",

@@ -18,7 +18,7 @@ public static class SimpleFetchFunctionsWithStatus
         await store.Initialize();
         await store.Truncate();
         
-        var functions = RFunctions.Create(
+        var functions = new RFunctions(
             store,
             unhandledExceptionHandler: Console.WriteLine,
             crashedCheckFrequency: TimeSpan.Zero

@@ -19,7 +19,7 @@ public class SimpleHttpAndDbExample
     
     public static async Task Perform(IFunctionStore store, IDbConnection connection)
     {
-        var functions = RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+        var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
         var httpClient = new HttpClient();
 
         var rFunc = functions.Register(
@@ -41,12 +41,11 @@ public class SimpleHttpAndDbExample
     public static async Task DoWithScrapbook()
     {
         var store = new InMemoryFunctionStore();
-        var rfunctions = 
-            RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+        var rFunctions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
         
         var httpClient = new HttpClient();
 
-        var rFunc = rfunctions.Register<string, ListScrapbook<string>, List<string>>(
+        var rFunc = rFunctions.Register<string, ListScrapbook<string>, List<string>>(
             "pair-of-http-calls".ToFunctionTypeId(),
             async (s, scrapbook) =>
             {

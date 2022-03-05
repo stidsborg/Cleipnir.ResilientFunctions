@@ -31,8 +31,8 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -51,7 +51,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store, 
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
@@ -96,8 +96,8 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -117,7 +117,7 @@ public abstract class FailedTests
         {
             var flag = new SyncedFlag();
             using var rFunctions = 
-                RFunctions.Create(
+                new RFunctions(
                     store,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
@@ -164,8 +164,8 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -184,7 +184,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store, 
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
@@ -229,8 +229,8 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+            var nonCompletingRFunctions = new RFunctions
+                (store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
                 .Register(
                     functionTypeId,
                     (string _, Scrapbook _) => 
@@ -244,7 +244,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store, 
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2)

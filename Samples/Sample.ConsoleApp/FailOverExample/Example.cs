@@ -24,7 +24,7 @@ public static class Example
 
     private static async Task Service1()
     {
-        var functions = RFunctions.Create(
+        var functions = new RFunctions(
             new SqlServerFunctionStore(CreateConnection),
             unhandledExceptionHandler: Console.WriteLine,
             crashedCheckFrequency: TimeSpan.Zero
@@ -46,7 +46,7 @@ public static class Example
 
     private static async Task Service2()
     {
-        var functions = RFunctions.Create(
+        var functions = new RFunctions(
             new SqlServerFunctionStore(CreateConnection),
             unhandledExceptionHandler: Console.WriteLine,
             crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),

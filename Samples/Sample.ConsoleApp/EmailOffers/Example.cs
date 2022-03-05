@@ -12,7 +12,7 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = RFunctions.Create(
+        var functions = new RFunctions(
             store,
             unhandledExceptionHandler: Console.WriteLine
         );

@@ -17,7 +17,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<Return<string>>()
@@ -42,7 +42,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<Return<string>>()
@@ -69,7 +69,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<Return>()
@@ -96,7 +96,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
         var schedule = rFunctions.Register(
             functionTypeId,
             (string _) => NeverCompletingTask.OfType<Return>()

@@ -273,11 +273,4 @@ public class RFunctions : IDisposable
 
         return tcs.Task;
     }
-
-    public static RFunctions Create(
-        IFunctionStore store,
-        Action<RFunctionException>? unhandledExceptionHandler = null,
-        TimeSpan? crashedCheckFrequency = null,
-        TimeSpan? postponedCheckFrequency = null
-    ) => new RFunctions(store, unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency);
 }

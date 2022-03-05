@@ -19,7 +19,7 @@ public static class RFunctionsModule
     {
         services.AddSingleton(store);
         services.AddSingleton(unhandledExceptionHandler);
-        services.AddSingleton(s => RFunctions.Create(
+        services.AddSingleton(s => new RFunctions(
             s.GetRequiredService<IFunctionStore>(),
             unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
             crashedFunctionCheckFrequency,
@@ -44,7 +44,7 @@ public static class RFunctionsModule
         services.AddSingleton<IFunctionStore, TFunctionStore>();
         services.AddSingleton(unhandledExceptionHandler);
         services.AddSingleton(s => 
-            RFunctions.Create(
+            new RFunctions(
                 s.GetRequiredService<IFunctionStore>(),
                 unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
                 crashedFunctionCheckFrequency,
@@ -69,7 +69,7 @@ public static class RFunctionsModule
         services.AddSingleton(store);
         services.AddSingleton(unhandledExceptionHandler);
         services.AddSingleton(s => 
-            RFunctions.Create(
+            new RFunctions(
                 s.GetRequiredService<IFunctionStore>(),
                 unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
                 crashedFunctionCheckFrequency,

@@ -27,7 +27,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
 
         var rFunc = rFunctions
             .Register(
@@ -67,8 +67,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
-
+        using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
             .Register(
                 functionTypeId,
@@ -107,8 +106,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
-
+        using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rAction = rFunctions
             .Register(
                 functionTypeId,
@@ -142,8 +140,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = RFunctions.Create(store, unhandledExceptionHandler.Catch);
-
+        using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
             .Register(
                 functionTypeId,
@@ -170,7 +167,7 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             store,
             unhandledExceptionCatcher.Catch
         );
@@ -190,7 +187,7 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             store,
             unhandledExceptionCatcher.Catch
         );

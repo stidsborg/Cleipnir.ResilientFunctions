@@ -25,8 +25,8 @@ public static class Example
         await store.Initialize();
 
         var exceptions = new List<Exception>();
-        var firstRFunctions = RFunctions
-            .Create(
+        var firstRFunctions = new RFunctions
+            (
                 crashableStore,
                 unhandledExceptionHandler: e => { lock (Sync) exceptions.Add(e); },
                 crashedCheckFrequency: TimeSpan.Zero,
@@ -42,8 +42,8 @@ public static class Example
             }
         ).Invoke;
         
-        var secondRFunctions = RFunctions
-            .Create(
+        var secondRFunctions = new RFunctions
+            (
                 store,
                 unhandledExceptionHandler: e => { lock (Sync) exceptions.Add(e); },
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(10),

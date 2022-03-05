@@ -18,8 +18,8 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero, 
@@ -33,7 +33,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
@@ -68,8 +68,8 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero, 
@@ -83,10 +83,10 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
-                TimeSpan.FromMilliseconds(2)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
             );
 
             var rFunc = rFunctions
@@ -126,8 +126,8 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -141,7 +141,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 TimeSpan.FromMilliseconds(2)
@@ -177,8 +177,8 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = RFunctions
-                .Create(
+            var nonCompletingRFunctions = new RFunctions
+                (
                     store, 
                     unhandledExceptionHandler.Catch, 
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -192,7 +192,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 TimeSpan.FromMilliseconds(2)

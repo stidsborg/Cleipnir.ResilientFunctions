@@ -18,8 +18,8 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rFunc = RFunctions
-                .Create(
+            var rFunc = new RFunctions
+                (
                     store,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -35,7 +35,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
@@ -63,8 +63,8 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rFunc = RFunctions
-                .Create(
+            var rFunc = new RFunctions
+                (
                     store,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -80,7 +80,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
@@ -119,8 +119,8 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rAction = RFunctions
-                .Create(
+            var rAction = new RFunctions
+                (
                     store,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -136,7 +136,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
@@ -165,8 +165,8 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rFunc = RFunctions
-                .Create(
+            var rFunc = new RFunctions
+                (
                     store,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
@@ -182,7 +182,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = RFunctions.Create(
+            using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(0),

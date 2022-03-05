@@ -16,7 +16,7 @@ public class SimpleHttpExample
     public static async Task Do1()
     {
         var store = new InMemoryFunctionStore();
-        var functions = RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+        var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
         
         var httpClient = new HttpClient();
 
@@ -47,12 +47,11 @@ public class SimpleHttpExample
     public static async Task DoWithScrapbook()
     {
         var store = new InMemoryFunctionStore();
-        var rfunctions = 
-            RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+        var rFunctions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
         
         var httpClient = new HttpClient();
 
-        var rFunc = rfunctions.Register<string, ListScrapbook<string>, List<string>>(
+        var rFunc = rFunctions.Register<string, ListScrapbook<string>, List<string>>(
             "pair-of-http-calls".ToFunctionTypeId(),
             async (s, scrapbook) =>
             {

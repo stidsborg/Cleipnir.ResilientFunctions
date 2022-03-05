@@ -30,7 +30,7 @@ public class SerializationTests
             initialSignOfLife: 0
         ).ShouldBeTrueAsync();
         
-        var rFunctions = RFunctions.Create(
+        using var rFunctions = new RFunctions(
             store, 
             crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
         );

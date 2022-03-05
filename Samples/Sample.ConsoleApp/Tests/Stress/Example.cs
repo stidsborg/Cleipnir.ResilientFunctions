@@ -18,8 +18,8 @@ public static class Example
         await store.Initialize();
 
         var exceptions = new List<Exception>();
-        var rFunctions = RFunctions
-            .Create(
+        var rFunctions = new RFunctions
+            (
                 store,
                 unhandledExceptionHandler: e =>
                 {
