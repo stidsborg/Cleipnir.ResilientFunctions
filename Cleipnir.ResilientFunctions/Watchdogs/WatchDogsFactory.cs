@@ -68,7 +68,7 @@ internal class WatchDogsFactory
         _ = postponedWatchdog.Start();
     } 
     
-    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, Cleipnir.ResilientFunctions.Watchdogs.Invocation.InnerAction innerAction)  
+    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, InnerAction innerAction)  
     {
         var rActionInvoker = new RActionInvoker(_functionStore, serializer, _signOfLifeUpdaterFactory, _unhandledExceptionHandler, _shutdownCoordinator);
         var crashedWatchdog = new CrashedWatchdog(
