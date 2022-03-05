@@ -292,7 +292,7 @@ internal class CommonInvoker
 
     public async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation<TParam, TScrapbook>(
         FunctionId functionId, 
-        IEnumerable<Status> expectedStatuses) where TParam : notnull where TScrapbook : RScrapbook
+        IEnumerable<Status> expectedStatuses) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         var (param, epoch, scrapbook) = await PrepareForReInvocation<TParam>(functionId, expectedStatuses, hasScrapbook: true);
         return Tuple.Create(

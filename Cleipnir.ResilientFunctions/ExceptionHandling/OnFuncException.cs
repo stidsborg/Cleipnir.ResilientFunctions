@@ -14,4 +14,4 @@ public delegate Return<TReturn> OnFuncException<TParam, TScrapbook, TReturn>(
     TScrapbook scrapbook,
     FunctionInstanceId functionInstanceId,
     TParam param
-) where TParam : notnull where TScrapbook : RScrapbook;
+) where TParam : notnull where TScrapbook : RScrapbook, new();
