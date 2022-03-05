@@ -13,7 +13,6 @@ public static class EmailSenderSaga
     public static async Task<Return> Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
     {
         var (recipients, subject, content) = mailAndRecipients;
-        if (scrapbook.Initialized && scrapbook.RecipientsLeft.Count == 0) return Succeed.WithoutValue;
         if (!scrapbook.Initialized)
         {
             //must be first invocation - add all recipients to scrapbook's queue
