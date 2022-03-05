@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
@@ -73,9 +74,12 @@ public class RFunctions : IDisposable
             
         lock (_sync)
         {
-            //todo consider throwing exception if the method is not equal to the previously registered one...?!
             if (_functions.ContainsKey(functionTypeId))
-                return (RFunc<TParam, TReturn>) _functions[functionTypeId];
+            {
+                if (_functions[functionTypeId] is not RFunc<TParam, TReturn> r)
+                    throw new ArgumentException($"{typeof(RFunc<TParam, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
 
             serializer ??= DefaultSerializer.Instance;
                 
@@ -118,10 +122,12 @@ public class RFunctions : IDisposable
             
         lock (_sync)
         {
-            //todo consider throwing exception if the method is not equal to the previously registered one...?!
             if (_functions.ContainsKey(functionTypeId))
-                return (RAction<TParam>) _functions[functionTypeId];
-
+            {
+                if (_functions[functionTypeId] is not RAction<TParam> r)
+                    throw new ArgumentException($"{typeof(RAction<TParam>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
             serializer ??= DefaultSerializer.Instance;
                 
             _watchDogsFactory.CreateAndStart(
@@ -163,9 +169,12 @@ public class RFunctions : IDisposable
             
         lock (_sync)
         {
-            //todo consider throwing exception if the method is not equal to the previously registered one...?!
             if (_functions.ContainsKey(functionTypeId))
-                return (RFunc<TParam, TReturn>) _functions[functionTypeId];
+            {
+                if (_functions[functionTypeId] is not RFunc<TParam, TReturn> r)
+                    throw new ArgumentException($"{typeof(RFunc<TParam, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
 
             serializer ??= DefaultSerializer.Instance;
                 
@@ -208,11 +217,13 @@ public class RFunctions : IDisposable
             
         lock (_sync)
         {
-            //todo consider throwing exception if the method is not equal to the previously registered one...?!
             if (_functions.ContainsKey(functionTypeId))
-                return (RAction<TParam>) _functions[functionTypeId];
-                
-
+            {
+                if (_functions[functionTypeId] is not RAction<TParam> r)
+                    throw new ArgumentException($"{typeof(RAction<TParam>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
+            
             serializer ??= DefaultSerializer.Instance;
                 
             _watchDogsFactory.CreateAndStart(
