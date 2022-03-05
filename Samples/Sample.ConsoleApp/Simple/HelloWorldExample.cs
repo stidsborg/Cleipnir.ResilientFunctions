@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace ConsoleApp.Simple;
 
+#pragma warning disable CS1998
 public static class HelloWorldExample
 {
     public static async Task Execute()
@@ -22,3 +23,4 @@ public static class HelloWorldExample
         Console.WriteLine($"1: {returned}");
     }
 }
+#pragma warning restore CS1998
