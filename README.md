@@ -77,8 +77,8 @@ public static async Task RegisterAndInvoke()
       new[]
         { new EmailAddress("Peter Hansen", "peter@gmail.com"),
           new EmailAddress("Ulla Hansen", "ulla@gmail.com") },
-        Subject: "Dreaming yourself away?",
-        Content: "We have found these great offers for you!"
+      Subject: "Dreaming yourself away?",
+      Content: "We have found these great offers for you!"
     )
   );
 
@@ -108,8 +108,7 @@ public static async Task<Return> StartMailSending(MailAndRecipients mailAndRecip
     var recipient = scrapbook.RecipientsLeft.Dequeue();
     var message = new MimeMessage();
     message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
-    message.From.Add(
-      new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
+    message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
 
     message.Subject = subject;
     message.Body = new TextPart(TextFormat.Html) { Text = content };
@@ -123,5 +122,46 @@ public static async Task<Return> StartMailSending(MailAndRecipients mailAndRecip
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/tree/main/Samples/Sample.ConsoleApp/EmailOffers)
 
+### ASP.NET Core Integration
+To simplify integration with ASP.NET Core projects the companying nuget package can be used, which automatically registers and initializes the framework within your ASP.NET application. Further, the package can be configured to postpone shutdown until all executing resilient functions have completed - so called graceful shutdown. 
+
+Using this functionality within your application is simply a matter of adding the following (or similar) snippet to your code-base:
+
+```csharp
+builder.Services.AddRFunctionsService(
+  store,
+  unhandledExceptionHandler,
+  gracefulShutdown: true
+);
+```
+
+The AddRFunctionsService-method has a couple of overloads, thus, allowing several use-cases to be catered for.
+
+#### Registering Functions:
+In order for a crashed or postponed resilient function to be invokable within the framework the resilient function’s type must first be registered. 
+
+Using dependency injection may delay this registration as types performing the registration are only executed when they are resolved. In order to cater for this the framework provides two marker interfaces which the Cleipnir ASP.NET Core hosted-service will use for registering functions on startup. 
+* IRegisterRFunc
+* IRegisterRFuncOnInstantiation
+
+## Resilient Function Anatomy
+### Defintion
+A resilient function is simply a wrapped user-specified function (called inner function) with a certain signature. 
+
+The inner function must return either a Task<Return> or Task<Return<T>> and accept a user-specified parameter as well as an optional scrapbook-parameter.   
+
+  For instance, concretely, the inner function could have any of the following signatures:
+* ```csharp Task<Return<Booking>> ProcessOrder(Order order, Scrapbook scrapbook)```
+* ```csharp Task<Return>> ProcessOrder(Order order, Scrapbook scrapbook)```
+* ```csharp Task<Return<Booking>> ProcessOrder(Order order)``` 
+* ```csharp Task<Return>> ProcessOrder(Order order)```
+
+Which would result in one of the following resilient function signatures:
+* ```csharp Task<RResult<Booking>> RFunc(string id, Order param)``` 
+* ```csharp Task<RResult> RAction(string id, Order param)```
+* ```csharp Task<RResult<Booking>> RFunc(string id, Order param)```
+* ```csharp Task<RResult> RAction(Order param)```
+
+---
 
 More documentation to be provided soon...
