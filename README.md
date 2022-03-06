@@ -17,7 +17,7 @@ Firstly, the compulsory, ‘hello world’-example can be realized as follows:
 ### Hello-World
 ```csharp
 var store = new InMemoryFunctionStore();
-var functions = RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
 
 var rFunc = functions.Register<string, string>(
   "HelloWorld",
@@ -36,7 +36,7 @@ Invoking a HTTP-endpoint and storing the response in a database table:
 public static async Task Perform(IDbConnection connection)
 {
  var store = new InMemoryFunctionStore();
- var functions = RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+ var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
  var httpClient = new HttpClient();
 
  var rAction = functions.Register(
@@ -65,7 +65,7 @@ Consider a travel agency which wants to send a promotional email to its customer
 public static async Task RegisterAndInvoke()
 {
   var store = new InMemoryFunctionStore();
-  var functions = RFunctions.Create(store, unhandledExceptionHandler: Console.WriteLine);
+  var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
   var rAction = functions.Register<MailAndRecipients, EmailSenderSaga.Scrapbook>(
     "OffersMailSender", StartMailSending
   ).Invoke;
@@ -151,16 +151,16 @@ A resilient function is simply a wrapped user-specified function (called inner f
 The inner function must return either a Task<Return> or Task<Return<T>> and accept a user-specified parameter as well as an optional scrapbook-parameter.   
 
   For instance, concretely, the inner function could have any of the following signatures:
-* ```csharp Task<Return<Booking>> ProcessOrder(Order order, Scrapbook scrapbook)```
-* ```csharp Task<Return>> ProcessOrder(Order order, Scrapbook scrapbook)```
-* ```csharp Task<Return<Booking>> ProcessOrder(Order order)``` 
-* ```csharp Task<Return>> ProcessOrder(Order order)```
+* ```Task<Return<Booking>> ProcessOrder(Order order, Scrapbook scrapbook)```
+* ```Task<Return>> ProcessOrder(Order order, Scrapbook scrapbook)```
+* ```Task<Return<Booking>> ProcessOrder(Order order)``` 
+* ```Task<Return>> ProcessOrder(Order order)```
 
 Which would result in one of the following resilient function signatures:
-* ```csharp Task<RResult<Booking>> RFunc(string id, Order param)``` 
-* ```csharp Task<RResult> RAction(string id, Order param)```
-* ```csharp Task<RResult<Booking>> RFunc(string id, Order param)```
-* ```csharp Task<RResult> RAction(Order param)```
+* ```Task<RResult<Booking>> RFunc(string id, Order param)``` 
+* ```Task<RResult> RAction(string id, Order param)```
+* ```Task<RResult<Booking>> RFunc(string id, Order param)```
+* ```Task<RResult> RAction(Order param)```
 
 ---
 
