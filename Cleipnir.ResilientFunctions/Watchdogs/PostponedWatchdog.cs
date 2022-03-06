@@ -65,7 +65,7 @@ internal class PostponedWatchdog<TReturn> : IDisposable
 
                     var functionId = new FunctionId(_functionTypeId, expired.InstanceId);
                     var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction == null) continue;
+                    if (storedFunction?.Status != Status.Postponed || expired.Epoch != storedFunction.Epoch) continue;
 
                     try
                     {
@@ -164,7 +164,7 @@ internal class PostponedWatchdog : IDisposable
 
                     var functionId = new FunctionId(_functionTypeId, expired.InstanceId);
                     var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction == null) continue;
+                    if (storedFunction?.Status != Status.Postponed || expired.Epoch != storedFunction.Epoch) continue;
 
                     try
                     {

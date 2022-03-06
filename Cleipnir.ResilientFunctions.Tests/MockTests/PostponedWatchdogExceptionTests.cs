@@ -69,7 +69,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         "id".ToFunctionInstanceId(),
                         Epoch: 0, 
                         SignOfLife: 0, 
-                        Status.Executing, 
+                        Status.Postponed, 
                         PostponedUntil: null
                     )}.AsEnumerable().ToTask(),
                 SetupGetFunction = id => 
@@ -77,7 +77,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         id, 
                         Parameter1,
                         Scrapbook: null,
-                        Status.Executing,
+                        Status.Postponed,
                         Result: null,
                         ErrorJson: null,
                         PostponedUntil: null,
@@ -123,7 +123,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         "it".ToFunctionInstanceId(), 
                         Epoch: 100, 
                         SignOfLife: 10, 
-                        Status.Executing, 
+                        Status.Postponed, 
                         PostponedUntil: null
                     ).ToList().AsEnumerable().ToTask(),
                 SetupGetFunction = id => 
@@ -131,12 +131,12 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         id,
                         Parameter1,
                         Scrapbook: null,
-                        Status.Executing,
+                        Status.Postponed,
                         Result: null,
                         ErrorJson: null,
                         PostponedUntil: null,
-                        Epoch: 0,
-                        SignOfLife: 0
+                        Epoch: 100,
+                        SignOfLife: 10
                     ).ToNullable().ToTask()
             };
 

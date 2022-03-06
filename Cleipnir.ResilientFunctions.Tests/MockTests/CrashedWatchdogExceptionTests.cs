@@ -135,8 +135,8 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                         Result: null,
                         ErrorJson: null,
                         PostponedUntil: null,
-                        Epoch: 0,
-                        SignOfLife: 0
+                        Epoch: 100,
+                        SignOfLife: 10
                     ).ToNullable().ToTask()
             };
 

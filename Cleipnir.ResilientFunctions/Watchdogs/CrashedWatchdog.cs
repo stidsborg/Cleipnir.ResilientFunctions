@@ -80,7 +80,7 @@ internal class CrashedWatchdog<TReturn> : IDisposable
                         
                     var functionId = new FunctionId(_functionTypeId, function.InstanceId);
                     var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction?.Status != Status.Executing) continue;
+                    if (storedFunction?.Status != Status.Executing || function.Epoch != storedFunction.Epoch) continue;
 
                     try
                     {
@@ -195,9 +195,7 @@ internal class CrashedWatchdog : IDisposable
                         
                     var functionId = new FunctionId(_functionTypeId, function.InstanceId);
                     var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction == null)
-                        throw new FrameworkException(_functionTypeId, $"Function '{functionId}' not found on retry");
-                    if (storedFunction.Status != Status.Executing) return;
+                    if (storedFunction?.Status != Status.Executing || function.Epoch != storedFunction.Epoch) continue;
 
                     try
                     {
