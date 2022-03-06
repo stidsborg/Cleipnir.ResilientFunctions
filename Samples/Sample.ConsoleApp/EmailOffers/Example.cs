@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace ConsoleApp.EmailOffers;
@@ -18,7 +17,7 @@ public static class Example
         );
 
         var rAction = functions.Register<MailAndRecipients, EmailSenderSaga.Scrapbook>(
-            "OffersMailSender".ToFunctionTypeId(),
+            "OffersMailSender",
             EmailSenderSaga.Start
         ).Invoke;
 
