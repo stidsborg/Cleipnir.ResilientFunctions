@@ -80,14 +80,16 @@ internal class RActionInvoker
                 returned = Fail.WithException(exception);
             }
 
+            var scrapbookJson = scrapbook == null
+                ? null
+                : _serializer.SerializeScrapbook(scrapbook);
+            
             var setFunctionStateTask = returned.Intent switch
             {
                 Intent.Succeed => _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
-                    scrapbookJson: scrapbook == null 
-                        ? null 
-                        : _serializer.SerializeScrapbook(scrapbook),
+                    scrapbookJson,
                     result: null,
                     errorJson: null,
                     postponedUntil: null,
@@ -96,9 +98,7 @@ internal class RActionInvoker
                 Intent.Postpone => _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: scrapbook == null 
-                        ? null 
-                        : _serializer.SerializeScrapbook(scrapbook),
+                    scrapbookJson,
                     result: null,
                     errorJson: null,
                     postponedUntil: returned.Postpone!.Value.Ticks,
@@ -107,9 +107,7 @@ internal class RActionInvoker
                 Intent.Fail => _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson: scrapbook == null 
-                        ? null 
-                        : _serializer.SerializeScrapbook(scrapbook),
+                    scrapbookJson,
                     result: null,
                     errorJson: _serializer.SerializeError(returned.Fail!.ToError()),
                     postponedUntil: null,
