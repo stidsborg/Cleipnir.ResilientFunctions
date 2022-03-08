@@ -47,8 +47,8 @@ internal class RFuncInvoker
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,
-                expectedEpoch: expectedEpoch,
-                newEpoch: newEpoch
+                expectedEpoch,
+                newEpoch
             );
 
             if (!success) return;
