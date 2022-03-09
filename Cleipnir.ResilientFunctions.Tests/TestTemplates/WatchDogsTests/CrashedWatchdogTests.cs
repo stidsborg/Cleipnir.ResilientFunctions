@@ -27,15 +27,15 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
             var syncedScrapbook = new Synced<RScrapbook>();
             
-            using var watchDog = new CrashedWatchdog<string>(
+            using var watchDog = new CrashedWatchdog(
                 _functionTypeId,
                 (param, scrapbook) =>
                 {
                     syncedScrapbook.Value = scrapbook;
-                    return Funcs.ToUpper(param.ToString()!);
+                    return new Return<object?>(param.ToString()!.ToUpper()).ToTask();
                 },
                 store,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -76,7 +76,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
 
-            using var watchDog = new CrashedWatchdog<string>(
+            using var watchDog = new CrashedWatchdog(
                 _functionTypeId,
                 async (param, scrapbook) =>
                 {
@@ -85,7 +85,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return ((string) param).ToUpper();
                 },
                 store,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -138,10 +138,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 {
                     syncedScrapbook.Value = scrapbook;
                     syncedParam.Value = (string) param;
-                    return Succeed.WithoutValue.ToTask();
+                    return new Return<object?>(succeedWithValue: null).ToTask();
                 },
                 store,
-                new RActionInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -191,7 +191,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return Succeed.WithoutValue;
                 },
                 store,
-                new RActionInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),

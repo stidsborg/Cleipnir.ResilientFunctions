@@ -10,13 +10,13 @@ using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
-internal class PostponedWatchdog<TReturn> : IDisposable
+internal class PostponedWatchdog : IDisposable
 {
     private readonly IFunctionStore _functionStore;
-    private readonly RFuncInvoker _rFuncInvoker;
+    private readonly WrapperInnerFuncInvoker _wrapperInnerFuncInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
-    private readonly InnerFunc<TReturn> _func;
+    private readonly WrappedInnerFunc _wrappedInnerFunc;
 
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
@@ -25,9 +25,9 @@ internal class PostponedWatchdog<TReturn> : IDisposable
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId, 
-        InnerFunc<TReturn> func,
+        WrappedInnerFunc wrappedInnerFunc,
         IFunctionStore functionStore, 
-        RFuncInvoker rFuncInvoker,
+        WrapperInnerFuncInvoker wrapperInnerFuncInvoker,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator
@@ -35,9 +35,9 @@ internal class PostponedWatchdog<TReturn> : IDisposable
     {
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
-        _rFuncInvoker = rFuncInvoker;
+        _wrapperInnerFuncInvoker = wrapperInnerFuncInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _func = func;
+        _wrappedInnerFunc = wrappedInnerFunc;
         _checkFrequency = checkFrequency;
         _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
@@ -69,112 +69,13 @@ internal class PostponedWatchdog<TReturn> : IDisposable
 
                     try
                     {
-                        await _rFuncInvoker.ReInvoke(functionId, storedFunction, _func);
+                        await _wrapperInnerFuncInvoker.ReInvoke(functionId, storedFunction, _wrappedInnerFunc);
                     }
                     catch (Exception innerException)
                     {
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
                                 _functionTypeId,
-                                $"{nameof(PostponedWatchdog<TReturn>)} failed while executing: '{functionId}'",
-                                innerException
-                            )
-                        );
-                    }
-                }
-            }
-        }
-        catch (Exception innerException)
-        {
-            _unhandledExceptionHandler.Invoke(
-                new FrameworkException(
-                    _functionTypeId,
-                    $"{nameof(PostponedWatchdog<TReturn>)} failed while executing: '{_functionTypeId}'",
-                    innerException
-                )
-            );
-        }
-        finally
-        {
-            _executing = false;
-        }
-    }
-
-    private Task DisposeAsync()
-    {
-        _disposed = true;
-        return BusyWait.ForeverUntilAsync(() => !_executing);
-    }
-
-    public void Dispose() => DisposeAsync().Wait();
-}
-    
-internal class PostponedWatchdog : IDisposable
-{
-    private readonly IFunctionStore _functionStore;
-    private readonly RActionInvoker _rActionInvoker;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-        
-    private readonly InnerAction _action;
-
-    private readonly TimeSpan _checkFrequency;
-    private readonly FunctionTypeId _functionTypeId;
-    private volatile bool _disposed;
-    private volatile bool _executing;
-
-    public PostponedWatchdog(
-        FunctionTypeId functionTypeId, 
-        InnerAction action,
-        IFunctionStore functionStore, 
-        RActionInvoker rActionInvoker,
-        TimeSpan checkFrequency,
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator
-    )
-    {
-        _functionTypeId = functionTypeId;
-        _functionStore = functionStore;
-        _rActionInvoker = rActionInvoker;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
-        _action = action;
-        _checkFrequency = checkFrequency;
-        _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
-    }
-
-    public async Task Start()
-    {
-        if (_checkFrequency == TimeSpan.Zero) return;
-
-        try
-        {
-            while (!_disposed)
-            {
-                _executing = false;
-                await Task.Delay(_checkFrequency);
-                if (_disposed) return;
-                _executing = true;
-
-                var expires = await _functionStore
-                    .GetFunctionsWithStatus(_functionTypeId, Status.Postponed, DateTime.UtcNow.Ticks)
-                    .RandomlyPermutate();
-
-                foreach (var expired in expires)
-                {
-                    if (_disposed) return;
-
-                    var functionId = new FunctionId(_functionTypeId, expired.InstanceId);
-                    var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction?.Status != Status.Postponed || expired.Epoch != storedFunction.Epoch) continue;
-
-                    try
-                    {
-                        await _rActionInvoker.ReInvoke(functionId, storedFunction, _action);
-                    }
-                    catch (Exception innerException)
-                    {
-                        _unhandledExceptionHandler.Invoke(
-                            new FrameworkException(
-                                functionId.TypeId,
                                 $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
                                 innerException
                             )

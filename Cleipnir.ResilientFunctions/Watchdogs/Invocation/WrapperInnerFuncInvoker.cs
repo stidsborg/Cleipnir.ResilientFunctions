@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
@@ -10,7 +11,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
-internal class RActionInvoker
+internal class WrapperInnerFuncInvoker
 {
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
@@ -18,24 +19,24 @@ internal class RActionInvoker
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
 
-    public RActionInvoker(
-        IFunctionStore functionStore,  
+    public WrapperInnerFuncInvoker(
+        IFunctionStore functionStore, 
         ISerializer serializer,
         ISignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
         UnhandledExceptionHandler unhandledExceptionHandler, 
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionStore = functionStore;
+        _serializer = serializer;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
-        _serializer = serializer;
     }
 
     public async Task ReInvoke(
         FunctionId functionId,
         StoredFunction storedFunction,
-        InnerAction innerAction
+        WrappedInnerFunc wrappedInnerFunc
     )
     {
         _shutdownCoordinator.RegisterRunningRFunc();
@@ -63,10 +64,10 @@ internal class RActionInvoker
                 scrapbook.Initialize(functionId, _functionStore, _serializer, newEpoch);
             }
 
-            Return returned;
+            Return<object?> returned;
             try
             {
-                returned = await innerAction(parameter, scrapbook);
+                returned = await wrappedInnerFunc(parameter, scrapbook);
             }
             catch (Exception exception)
             {
@@ -90,7 +91,12 @@ internal class RActionInvoker
                     functionId,
                     Status.Succeeded,
                     scrapbookJson,
-                    result: null,
+                    result: returned.SucceedWithValue == null 
+                        ? null
+                        : new StoredResult(
+                            ResultJson: _serializer.SerializeResult(returned.SucceedWithValue!),
+                            ResultType: returned.SucceedWithValue.GetType().SimpleQualifiedName()
+                        ),
                     errorJson: null,
                     postponedUntil: null,
                     newEpoch

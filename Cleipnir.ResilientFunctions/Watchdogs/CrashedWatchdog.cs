@@ -12,36 +12,35 @@ using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
-internal class CrashedWatchdog<TReturn> : IDisposable
+internal class CrashedWatchdog : IDisposable
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TReturn> _func;
+    private readonly WrappedInnerFunc _wrappedInnerFunc;
 
     private readonly IFunctionStore _functionStore;
 
     private readonly TimeSpan _checkFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly RFuncInvoker _rFuncInvoker;
+    private readonly WrapperInnerFuncInvoker _wrapperInnerFuncInvoker;
         
     private volatile bool _disposed;
     private volatile bool _executing;
 
     public CrashedWatchdog(
         FunctionTypeId functionTypeId,
-        InnerFunc<TReturn> func,
+        WrappedInnerFunc wrappedInnerFunc,
         IFunctionStore functionStore,
-        RFuncInvoker rFuncInvoker,
+        WrapperInnerFuncInvoker wrapperInnerFuncInvoker,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator
-    )
+        ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
-        _func = func;
+        _wrappedInnerFunc = wrappedInnerFunc;
         _checkFrequency = checkFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _rFuncInvoker = rFuncInvoker;
+        _wrapperInnerFuncInvoker = wrapperInnerFuncInvoker;
         _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
 
@@ -84,122 +83,7 @@ internal class CrashedWatchdog<TReturn> : IDisposable
 
                     try
                     {
-                        await _rFuncInvoker.ReInvoke(functionId, storedFunction, _func);
-                    }
-                    catch (Exception innerException)
-                    {
-                        _unhandledExceptionHandler.Invoke(
-                            new FrameworkException(
-                                _functionTypeId,
-                                $"{nameof(CrashedWatchdog<TReturn>)} failed while executing: '{functionId}'",
-                                innerException
-                            )
-                        );
-                    }
-                }
-
-                prevExecutingFunctions = currExecutingFunctions;
-            }
-        }
-        catch (Exception innerException)
-        {
-            _unhandledExceptionHandler.Invoke(
-                new FrameworkException(
-                    _functionTypeId,
-                    $"{nameof(CrashedWatchdog<TReturn>)} failed while executing: '{_functionTypeId}'",
-                    innerException
-                )
-            );
-        }
-        finally
-        {
-            _executing = false;
-        }
-    }
-
-    private async Task DisposeAsync()
-    {
-        _disposed = true;
-        await BusyWait.ForeverUntilAsync(() => !_executing);
-    }
-
-    public void Dispose() => DisposeAsync().Wait();
-}
-    
-internal class CrashedWatchdog : IDisposable 
-{
-    private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerAction _action;
-
-    private readonly IFunctionStore _functionStore;
-
-    private readonly TimeSpan _checkFrequency;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly RActionInvoker _rActionInvoker;
-
-    private volatile bool _disposed;
-    private volatile bool _executing;
-
-    public CrashedWatchdog(
-        FunctionTypeId functionTypeId,
-        InnerAction action,
-        IFunctionStore functionStore,
-        RActionInvoker rActionInvoker,
-        TimeSpan checkFrequency,
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator
-    )
-    {
-        _functionTypeId = functionTypeId;
-        _functionStore = functionStore;
-        _action = action;
-        _checkFrequency = checkFrequency;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
-        _rActionInvoker = rActionInvoker;
-        _disposed = !shutdownCoordinator.ObserveShutdown(ShutdownGracefully);
-    }
-
-    public async Task Start()
-    {
-        if (_checkFrequency == TimeSpan.Zero) return;
-
-        try
-        {
-            var prevHangingFunctions = new Dictionary<FunctionInstanceId, StoredFunctionStatus>();
-
-            while (!_disposed)
-            {
-                _executing = false;
-                await Task.Delay(_checkFrequency);
-                if (_disposed) return;
-                _executing = true;
-
-                var currHangingFunctions = await _functionStore
-                    .GetFunctionsWithStatus(_functionTypeId, Status.Executing)
-                    .TaskSelect(l =>
-                        l.ToDictionary(
-                            s => s.InstanceId,
-                            s => s
-                        )
-                    );
-
-                var hangingFunctions =
-                    from prev in prevHangingFunctions
-                    join curr in currHangingFunctions
-                        on (prev.Key, prev.Value.SignOfLife) equals (curr.Key, curr.Value.SignOfLife)
-                    select prev.Value;
-
-                foreach (var function in hangingFunctions.RandomlyPermutate())
-                {
-                    if (_disposed) return;
-                        
-                    var functionId = new FunctionId(_functionTypeId, function.InstanceId);
-                    var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction?.Status != Status.Executing || function.Epoch != storedFunction.Epoch) continue;
-
-                    try
-                    {
-                        await _rActionInvoker.ReInvoke(functionId, storedFunction, _action);
+                        await _wrapperInnerFuncInvoker.ReInvoke(functionId, storedFunction, _wrappedInnerFunc);
                     }
                     catch (Exception innerException)
                     {
@@ -213,7 +97,7 @@ internal class CrashedWatchdog : IDisposable
                     }
                 }
 
-                prevHangingFunctions = currHangingFunctions;
+                prevExecutingFunctions = currExecutingFunctions;
             }
         }
         catch (Exception innerException)
@@ -232,11 +116,11 @@ internal class CrashedWatchdog : IDisposable
         }
     }
 
-    private Task ShutdownGracefully()
+    private async Task DisposeAsync()
     {
         _disposed = true;
-        return BusyWait.ForeverUntilAsync(() => !_executing);            
+        await BusyWait.ForeverUntilAsync(() => !_executing);
     }
 
-    public void Dispose() => ShutdownGracefully().Wait();
+    public void Dispose() => DisposeAsync().Wait();
 }

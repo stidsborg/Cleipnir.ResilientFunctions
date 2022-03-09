@@ -33,11 +33,11 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 SetupGetFunctionsWithStatus = (_, _, _) => throw new Exception()
             };
             
-            using var crashedWatchdog = new PostponedWatchdog<string>(
+            using var crashedWatchdog = new PostponedWatchdog(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => Funcs.ToUpper(param.ToString()!),
+                (param, _) => new Return<object?>(param.ToString()!.ToUpper()).ToTask(),
                 storeMock,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -87,11 +87,11 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 SetupSetFunctionState = (_, _, _, _, _, _, _) => throw new Exception(),
             };
 
-            using var crashedWatchdog = new PostponedWatchdog<string>(
+            using var crashedWatchdog = new PostponedWatchdog(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => Funcs.ToUpper(param.ToString()!),
+                (param, _) => new Return<object?>(param.ToString()!.ToUpper()).ToTask(),
                 storeMock,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     storeMock,
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -140,11 +140,11 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                     ).ToNullable().ToTask()
             };
 
-            using var crashedWatchdog = new PostponedWatchdog<string>(
+            using var crashedWatchdog = new PostponedWatchdog(
                 "functionTypeId".ToFunctionTypeId(),
                 (param, _) => throw new NullReferenceException(),
                 storeMock,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -200,11 +200,11 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 }
             };
             
-            using var crashedWatchdog = new PostponedWatchdog<string>(
+            using var crashedWatchdog = new PostponedWatchdog(
                 "functionTypeId".ToFunctionTypeId(),
-                (param, _) => Funcs.ThrowsException(param.ToString()!),
+                (param, _) => new Return<object?>(new NullReferenceException()).ToTask(),
                 storeMock,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),

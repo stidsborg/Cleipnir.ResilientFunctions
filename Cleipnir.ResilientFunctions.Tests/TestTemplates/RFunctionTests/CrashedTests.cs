@@ -42,7 +42,7 @@ public abstract class CrashedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => Funcs.ToUpper(s)
+                    (string s) => Succeed.WithValue(s.ToUpper()).ToTask()
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());

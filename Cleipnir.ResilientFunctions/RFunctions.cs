@@ -86,7 +86,17 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, _) => inner((TParam) param)
+                wrappedInnerFunc: async (param, _) =>
+                {
+                    var @return = await inner((TParam) param);
+                    return @return.Intent switch
+                    {
+                        Intent.Succeed => new Return<object?>(@return.SucceedWithValue),
+                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
+                        Intent.Fail => new Return<object?>(@return.Fail!),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                }
             );
 
             var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
@@ -133,8 +143,17 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, _) => inner((TParam) param)
-            );
+                wrappedInnerFunc: async (param, _) =>
+                {
+                    var @return = await inner((TParam) param);
+                    return @return.Intent switch
+                    {
+                        Intent.Succeed => new Return<object?>(succeedWithValue: null),
+                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
+                        Intent.Fail => new Return<object?>(@return.Fail!),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                });
 
             var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionInvoker<TParam>(
@@ -181,8 +200,17 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, scrapbook) => inner((TParam) param, (TScrapbook) scrapbook!)
-            );
+                wrappedInnerFunc: async (param, scrapbook) =>
+                {
+                    var @return = await inner((TParam) param, (TScrapbook) scrapbook!);
+                    return @return.Intent switch
+                    {
+                        Intent.Succeed => new Return<object?>(@return.SucceedWithValue),
+                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
+                        Intent.Fail => new Return<object?>(@return.Fail!),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                });
 
             var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
@@ -225,11 +253,21 @@ public class RFunctions : IDisposable
             }
             
             serializer ??= DefaultSerializer.Instance;
-                
+
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                (param, scrapbook) => inner((TParam) param, (TScrapbook) scrapbook!)
+                wrappedInnerFunc: async (param, scrapbook) =>
+                {
+                    var @return = await inner((TParam) param, (TScrapbook) scrapbook!);
+                    return @return.Intent switch
+                    {
+                        Intent.Succeed => new Return<object?>(succeedWithValue: null),
+                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
+                        Intent.Fail => new Return<object?>(@return.Fail!),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                }
             );
 
             var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);

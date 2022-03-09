@@ -34,9 +34,9 @@ internal class WatchDogsFactory
         _postponedCheckFrequency = postponedCheckFrequency;
     }
 
-    public void CreateAndStart<TReturn>(FunctionTypeId functionTypeId, ISerializer serializer, InnerFunc<TReturn> innerFunc) 
+    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, WrappedInnerFunc wrappedInnerFunc) 
     {
-        var rFuncInvoker = new RFuncInvoker(
+        var rFuncInvoker = new WrapperInnerFuncInvoker(
             _functionStore,
             serializer,
             _signOfLifeUpdaterFactory,
@@ -44,38 +44,11 @@ internal class WatchDogsFactory
             _shutdownCoordinator
         );
         
-        var crashedWatchdog = new CrashedWatchdog<TReturn>(
-            functionTypeId,
-            innerFunc,
-            _functionStore,
-            rFuncInvoker,
-            _crashedCheckFrequency,
-            _unhandledExceptionHandler,
-            _shutdownCoordinator
-        );
-
-        var postponedWatchdog = new PostponedWatchdog<TReturn>(
-            functionTypeId,
-            innerFunc,
-            _functionStore,
-            rFuncInvoker,
-            _postponedCheckFrequency,
-            _unhandledExceptionHandler,
-            _shutdownCoordinator
-        );
-
-        _ = crashedWatchdog.Start();
-        _ = postponedWatchdog.Start();
-    } 
-    
-    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, InnerAction innerAction)  
-    {
-        var rActionInvoker = new RActionInvoker(_functionStore, serializer, _signOfLifeUpdaterFactory, _unhandledExceptionHandler, _shutdownCoordinator);
         var crashedWatchdog = new CrashedWatchdog(
             functionTypeId,
-            innerAction,
+            wrappedInnerFunc,
             _functionStore,
-            rActionInvoker,
+            rFuncInvoker,
             _crashedCheckFrequency,
             _unhandledExceptionHandler,
             _shutdownCoordinator
@@ -83,9 +56,9 @@ internal class WatchDogsFactory
 
         var postponedWatchdog = new PostponedWatchdog(
             functionTypeId,
-            innerAction,
+            wrappedInnerFunc,
             _functionStore,
-            rActionInvoker,
+            rFuncInvoker,
             _postponedCheckFrequency,
             _unhandledExceptionHandler,
             _shutdownCoordinator
@@ -93,7 +66,5 @@ internal class WatchDogsFactory
 
         _ = crashedWatchdog.Start();
         _ = postponedWatchdog.Start();
-
-        Tuple.Create(crashedWatchdog, postponedWatchdog);
-    } 
+    }
 }

@@ -28,15 +28,15 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
             var syncedScrapbook = new Synced<RScrapbook>();
             
-            using var watchDog = new PostponedWatchdog<string>(
+            using var watchDog = new PostponedWatchdog(
                 _functionTypeId,
                 (param, scrapbook) =>
                 {
                     syncedScrapbook.Value = scrapbook;
-                    return Funcs.ToUpper(param.ToString()!);
+                    return new Return<object?>(param.ToString()!.ToUpper()).ToTask();
                 },
                 store,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -87,16 +87,16 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
             var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
             
-            using var watchDog = new PostponedWatchdog<string>(
+            using var watchDog = new PostponedWatchdog(
                 _functionTypeId,
                 async (param, scrapbook) =>
                 {
                     ((Scrapbook) scrapbook!).Value = 1;
                     await scrapbook.Save();
-                    return new Return<string>(((string) param).ToUpper());
+                    return new Return<object?>(((string) param).ToUpper());
                 },
                 store,
-                new RFuncInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -157,10 +157,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                 {
                     syncedScrapbook.Value = scrapbook;
                     syncedParam.Value = (string) param;
-                    return new Return().ToTask();
+                    return new Return<object?>(succeedWithValue: null).ToTask();
                 },
                 store,
-                new RActionInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -222,10 +222,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     syncedParam.Value = param;
                     ((Scrapbook) scrapbook!).Value = 1;
                     await scrapbook.Save();
-                    return new Return();
+                    return new Return<object?>(succeedWithValue: null);
                 },
                 store,
-                new RActionInvoker(
+                new WrapperInnerFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -293,7 +293,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     if (scrapbook.Value == 1)
                     {
                         syncedList.Add(delay);
-                        return new Return();
+                        return Succeed.WithoutValue;
                     }
 
                     scrapbook.Value = 1;
