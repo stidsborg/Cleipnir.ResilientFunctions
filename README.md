@@ -37,28 +37,24 @@ Allright, not useful, here are a couple of simple, but common, use-cases.
 
 Invoking a HTTP-endpoint and storing the response in a database table:
 ```csharp
-public static async Task Perform(IDbConnection connection)
+public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionStore store)
 {
- var store = new InMemoryFunctionStore();
- var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
- var httpClient = new HttpClient();
+  var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
+  var httpClient = new HttpClient();
 
- var rAction = functions.Register(
-   "SimpleSaga",
-   async (Guid id) =>
-   {
-     var response = await httpClient.PostAsync(URL, new StringContent(id.ToString()));
-     response.EnsureSuccessStatusCode();
-     var content = await response.Content.ReadAsStringAsync();
-     await connection.ExecuteAsync(
-       "UPDATE Entity SET State=@State WHERE Id=@Id", 
-       new {State = content, Id = id}
-     );
-     return Return.Succeed;
-   }).Invoke;
+  var rAction = functions.Register(
+    functionTypeId: "HttpAndDatabaseSaga",
+    inner: async (Guid id) =>
+    {
+      var response = await httpClient.PostAsync(URL, new StringContent(id.ToString()));
+      response.EnsureSuccessStatusCode();
+      var content = await response.Content.ReadAsStringAsync();
+      await connection.ExecuteAsync("UPDATE Entity SET State=@State WHERE Id=@Id", new {State = content, Id = id});
+      return Return.Succeed;
+    }).Invoke;
 
- var id = Guid.NewGuid();
- await rFunc(id.ToString(), id).EnsureSuccess();
+  var id = Guid.NewGuid();
+  await rAction(functionInstanceId: id.ToString(), param: id).EnsureSuccess();
 }
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Samples/Sample.ConsoleApp/Simple/SimpleHttpAndDbExample.cs)
@@ -272,6 +268,15 @@ var rFunctions = new RFunctions(
   postponedCheckFrequency: TimeSpan.FromSeconds(10)
 );
 ```
+
+#### Crashed vs Failed:
+Despite the similarity between the two words they have distinct meanings within the framework.
+* A crashed function is a function which is no longer emitting a heartbeat
+* A failed function is a function which explicitly returned a failed Return-instance
+
+Typically, a function crash occurs on deployments where a process executing a resilient function is taken down. If the process shutdown is not delayed until the framework has been allowed to perform a graceful shutdown, then the function crashes. 
+
+Contrarily, a failed function has been allowed to complete its invocation but is in an erroneous state. This can occur explicitly by returning a Fail-instance or by throwing an unhandled exception. 
   
 ---
 More documentation to be provided soon...
