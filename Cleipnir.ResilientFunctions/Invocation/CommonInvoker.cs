@@ -43,7 +43,7 @@ internal class CommonInvoker
         return created;
     }
     
-    public async Task<RResult<TReturn>> WaitForFunctionResult<TReturn>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
+    public async Task<Result<TReturn>> WaitForFunctionResult<TReturn>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
     {
         while (true)
         {
@@ -57,7 +57,7 @@ internal class CommonInvoker
                     await Task.Delay(100);
                     continue;
                 case Status.Succeeded:
-                    return new RResult<TReturn>(
+                    return new Result<TReturn>(
                         functionId,
                         Outcome.Succeeded,
                         successResult: (TReturn) storedFunction.Result!.Deserialize(_serializer)!,
@@ -66,7 +66,7 @@ internal class CommonInvoker
                     );
                 case Status.Failed:
                     var error = _serializer.DeserializeError(storedFunction.ErrorJson!);
-                    return new RResult<TReturn>(
+                    return new Result<TReturn>(
                         functionId,
                         Outcome.Failed,
                         successResult: default,
@@ -78,7 +78,7 @@ internal class CommonInvoker
                         )
                     );
                 case Status.Postponed:
-                    return new RResult<TReturn>(
+                    return new Result<TReturn>(
                         functionId,
                         Outcome.Postponed,
                         successResult: default,
@@ -91,7 +91,7 @@ internal class CommonInvoker
         }
     }
     
-    public async Task<RResult> WaitForActionResult(FunctionId functionId)
+    public async Task<Result> WaitForActionResult(FunctionId functionId)
     {
         while (true)
         {
@@ -105,7 +105,7 @@ internal class CommonInvoker
                     await Task.Delay(100);
                     continue;
                 case Status.Succeeded:
-                    return new RResult(
+                    return new Result(
                         functionId,
                         Outcome.Succeeded,
                         postponedUntil: null,
@@ -113,7 +113,7 @@ internal class CommonInvoker
                     );
                 case Status.Failed:
                     var error = _serializer.DeserializeError(storedFunction.ErrorJson!);
-                    return new RResult(
+                    return new Result(
                         functionId,
                         Outcome.Failed,
                         postponedUntil: null,
@@ -124,7 +124,7 @@ internal class CommonInvoker
                         )
                     );
                 case Status.Postponed:
-                    return new RResult(
+                    return new Result(
                         functionId,
                         Outcome.Postponed,
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc),
@@ -143,7 +143,7 @@ internal class CommonInvoker
         return scrapbook;
     }
     
-    public async Task<RResult> ProcessReturned(
+    public async Task<Result> ProcessReturned(
         FunctionId functionId, Return returned,
         RScrapbook? scrapbook, int expectedEpoch)
     {
@@ -168,7 +168,7 @@ internal class CommonInvoker
                         functionId,
                         $"Unable to persist function '{functionId}' result due to concurrent modification"
                     );
-                return new RResult(functionId, Outcome.Succeeded, postponedUntil: null, failedException: null);
+                return new Result(functionId, Outcome.Succeeded, postponedUntil: null, failedException: null);
             case Intent.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
@@ -184,7 +184,7 @@ internal class CommonInvoker
                         functionId,
                         $"Unable to persist function '{functionId}' result due to concurrent modification"
                     );
-                return new RResult(functionId, Outcome.Postponed, postponedUntil: returned.Postpone.Value,
+                return new Result(functionId, Outcome.Postponed, postponedUntil: returned.Postpone.Value,
                     failedException: null);
             case Intent.Fail:
                 success = await _functionStore.SetFunctionState(
@@ -201,13 +201,13 @@ internal class CommonInvoker
                         functionId,
                         $"Unable to persist function '{functionId}' result due to concurrent modification"
                     );
-                return new RResult(functionId, Outcome.Failed, postponedUntil: null, failedException: returned.Fail);
+                return new Result(functionId, Outcome.Failed, postponedUntil: null, failedException: returned.Fail);
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
     
-    public async Task<RResult<TReturn>> ProcessReturned<TReturn>(
+    public async Task<Result<TReturn>> ProcessReturned<TReturn>(
         FunctionId functionId, 
         Return<TReturn> returned, 
         RScrapbook? scrapbook,
@@ -240,7 +240,7 @@ internal class CommonInvoker
                         functionId,
                         $"Unable to persist function '{functionId}' result due to concurrent modification"
                     );
-                return new RResult<TReturn>(
+                return new Result<TReturn>(
                     functionId,
                     Outcome.Succeeded,
                     returned.SucceedWithValue,
@@ -262,7 +262,7 @@ internal class CommonInvoker
                         functionId,
                         $"Unable to persist function '{functionId}' result due to concurrent modification"
                     );
-                return new RResult<TReturn>(
+                return new Result<TReturn>(
                     functionId, Outcome.Postponed,
                     successResult: default, postponedUntil: returned.Postpone, failedException: null
                 );
@@ -281,7 +281,7 @@ internal class CommonInvoker
                         functionId,
                         $"Unable to persist function '{functionId}' result due to concurrent modification"
                     );
-                return new RResult<TReturn>(
+                return new Result<TReturn>(
                     functionId, Outcome.Failed,
                     successResult: default, postponedUntil: null, failedException: returned.Fail
                 );

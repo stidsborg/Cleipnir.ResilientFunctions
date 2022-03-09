@@ -38,7 +38,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
-    public async Task<RResult> Invoke(string functionInstanceId, TParam param)
+    public async Task<Result> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
@@ -94,7 +94,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         });
     }
     
-    public async Task<RResult> ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses)
+    public async Task<Result> ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -122,7 +122,7 @@ public class RActionInvoker<TParam> where TParam : notnull
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
-    private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
+    private async Task<Result> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForActionResult(functionId);
 
     private async Task<Tuple<TParam, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
@@ -141,7 +141,7 @@ public class RActionInvoker<TParam> where TParam : notnull
         return new Fail(unhandledException);
     }
 
-    private Task<RResult> ProcessReturned(FunctionId functionId, Return returned, int epoch = 0)
+    private Task<Result> ProcessReturned(FunctionId functionId, Return returned, int epoch = 0)
         => _commonInvoker.ProcessReturned(functionId, returned, scrapbook: null, epoch);
 }
 
@@ -174,7 +174,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
-    public async Task<RResult> Invoke(string functionInstanceId, TParam param)
+    public async Task<Result> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
@@ -233,7 +233,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         });
     }
     
-    public async Task<RResult> ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses)
+    public async Task<Result> ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -264,7 +264,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private TScrapbook CreateScrapbook(FunctionId functionId)
         => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0);
 
-    private async Task<RResult> WaitForFunctionResult(FunctionId functionId)
+    private async Task<Result> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForActionResult(functionId);
 
     private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses) 
@@ -283,7 +283,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         return new Fail(unhandledException);
     }
 
-    private async Task<RResult> ProcessReturned(FunctionId functionId, Return returned, TScrapbook scrapbook, int epoch = 0)
+    private async Task<Result> ProcessReturned(FunctionId functionId, Return returned, TScrapbook scrapbook, int epoch = 0)
         => await _commonInvoker.ProcessReturned(functionId, returned, scrapbook, epoch);
 }
 

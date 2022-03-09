@@ -6,9 +6,9 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RAction
 {
-    public delegate Task<RResult> Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
+    public delegate Task<Result> Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
 
-    public delegate Task<RResult> ReInvoke(
+    public delegate Task<Result> ReInvoke(
         string functionInstanceId,
         IEnumerable<Status> expectedStatuses
     );

@@ -11,7 +11,7 @@ public enum Outcome
     Failed = 3
 }
 
-public class RResult<T>
+public class Result<T>
 {
     public FunctionId FunctionId { get; }
     public Outcome Outcome { get; }
@@ -22,7 +22,7 @@ public class RResult<T>
     public Exception? FailedException { get; }
     public bool Failed => Outcome == Outcome.Failed;
 
-    internal RResult(FunctionId functionId, Outcome outcome, T? successResult, DateTime? postponedUntil, Exception? failedException)
+    internal Result(FunctionId functionId, Outcome outcome, T? successResult, DateTime? postponedUntil, Exception? failedException)
     {
         FunctionId = functionId;
         SuccessResult = successResult;
@@ -88,7 +88,7 @@ public class RResult<T>
     };
 }
 
-public class RResult
+public class Result
 {
     public FunctionId FunctionId { get; }
     public Outcome Outcome { get; }
@@ -98,7 +98,7 @@ public class RResult
     public Exception? FailedException { get; }
     public bool Failed => Outcome == Outcome.Failed;
 
-    internal RResult(FunctionId functionId, Outcome outcome, DateTime? postponedUntil, Exception? failedException)
+    internal Result(FunctionId functionId, Outcome outcome, DateTime? postponedUntil, Exception? failedException)
     {
         FunctionId = functionId;
         FailedException = failedException;

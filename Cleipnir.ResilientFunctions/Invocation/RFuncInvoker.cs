@@ -38,7 +38,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
-    public async Task<RResult<TReturn>> Invoke(string functionInstanceId, TParam param)
+    public async Task<Result<TReturn>> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
@@ -94,7 +94,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         });
     }
     
-    public async Task<RResult<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
+    public async Task<Result<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -122,13 +122,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param)
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
-    private async Task<RResult<TReturn>> WaitForFunctionResult(FunctionId functionId)
+    private async Task<Result<TReturn>> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
     private async Task<Tuple<TParam, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
         => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses);
 
-    private Task<RResult<TReturn>> ProcessReturned(FunctionId functionId, Return<TReturn> returned, int epoch = 0)
+    private Task<Result<TReturn>> ProcessReturned(FunctionId functionId, Return<TReturn> returned, int epoch = 0)
         => _commonInvoker.ProcessReturned(functionId, returned, scrapbook: null, epoch);
     
     private Return<TReturn> DefaultProcessUnhandledException(Exception unhandledException, FunctionInstanceId functionInstanceId, TParam _)
@@ -176,7 +176,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
     }
 
-    public async Task<RResult<TReturn>> Invoke(string functionInstanceId, TParam param)
+    public async Task<Result<TReturn>> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistFunctionInStore(functionId, param);
@@ -233,7 +233,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         });
     }
     
-    public async Task<RResult<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
+    public async Task<Result<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
@@ -264,13 +264,13 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: typeof(TScrapbook));
 
-    private async Task<RResult<TReturn>> WaitForFunctionResult(FunctionId functionId)
+    private async Task<Result<TReturn>> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
     private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
         => await _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(functionId, expectedStatuses);
 
-    private async Task<RResult<TReturn>> ProcessResult(FunctionId functionId, Return<TReturn> result, TScrapbook scrapbook, int epoch = 0)
+    private async Task<Result<TReturn>> ProcessResult(FunctionId functionId, Return<TReturn> result, TScrapbook scrapbook, int epoch = 0)
         => await _commonInvoker.ProcessReturned(functionId, result, scrapbook, epoch);
     
     private Return<TReturn> DefaultProcessUnhandledException(Exception unhandledException, TScrapbook _, FunctionInstanceId functionInstanceId, TParam __)

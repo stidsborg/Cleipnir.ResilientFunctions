@@ -39,7 +39,7 @@ public static class Example
             }
         ).Invoke;
 
-        var tasks = new List<Tuple<int, Task<RResult<string>>>>();
+        var tasks = new List<Tuple<int, Task<Result<string>>>>();
         for (var i = 0; i < 10_000; i++)
         {
             var task = rFunc(i.ToString(), i);
