@@ -113,7 +113,8 @@ public class RFunctions : IDisposable
             var registration = new RFunc<TParam, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleInvocation
+                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
             return registration;
@@ -169,7 +170,8 @@ public class RFunctions : IDisposable
             var registration =  new RAction<TParam>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
-                rActionInvoker.ScheduleInvocation
+                rActionInvoker.ScheduleInvocation,
+                rActionInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
             return registration;
@@ -226,7 +228,8 @@ public class RFunctions : IDisposable
             var registration = new RFunc<TParam, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleInvocation
+                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
             return registration;
@@ -284,7 +287,8 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
-                rActionInvoker.ScheduleInvocation
+                rActionInvoker.ScheduleInvocation,
+                rActionInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
             return registration;

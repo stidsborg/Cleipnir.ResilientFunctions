@@ -118,6 +118,35 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
+    
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
+
+        _ = Task.Run(async () =>
+        {
+            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+            _shutdownCoordinator.RegisterRunningRFunc();
+            try
+            {
+                Return<TReturn> returned;
+                try
+                {
+                    // *** USER FUNCTION INVOCATION *** 
+                    returned = await _inner(param);
+                }
+                catch (Exception exception)
+                {
+                    returned = _exceptionHandler(exception, instanceId, param);
+                }
+
+                await ProcessReturned(functionId, returned, epoch);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
+    }
 
     private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param)
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
@@ -256,6 +285,34 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             return await ProcessResult(functionId, returned, scrapbook, epoch);
         }
         finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+    }
+    
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
+        _ = Task.Run(async () =>
+        {
+            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+            _shutdownCoordinator.RegisterRunningRFunc();
+            try
+            {
+                Return<TReturn> returned;
+                try
+                {
+                    // *** USER FUNCTION INVOCATION *** 
+                    returned = await _inner(param, scrapbook);
+                }
+                catch (Exception exception)
+                {
+                    returned = _exceptionHandler(exception, scrapbook, instanceId, param);
+                }
+
+                await ProcessResult(functionId, returned, scrapbook, epoch);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
     }
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)

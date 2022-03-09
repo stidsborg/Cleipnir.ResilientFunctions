@@ -20,12 +20,16 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.Invoke<TParam, TReturn> Invoke { get; }
     public RFunc.ReInvoke<TReturn> ReInvoke { get; }
     public Schedule<TParam> Schedule { get; }
+    public ScheduleReInvocation ScheduleReInvocation { get; }
     
-    public RFunc(RFunc.Invoke<TParam, TReturn> invoke, RFunc.ReInvoke<TReturn> reInvoke, Schedule<TParam> schedule)
+    public RFunc(
+        RFunc.Invoke<TParam, TReturn> invoke, RFunc.ReInvoke<TReturn> reInvoke, 
+        Schedule<TParam> schedule, ScheduleReInvocation scheduleReInvocation)
     {
         Invoke = invoke;
         ReInvoke = reInvoke;
         Schedule = schedule;
+        ScheduleReInvocation = scheduleReInvocation;
     }
 } 
     

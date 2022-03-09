@@ -19,11 +19,15 @@ public class RAction<TParam> where TParam : notnull
     public RAction.Invoke<TParam> Invoke { get; }
     public RAction.ReInvoke ReInvoke { get; }
     public Schedule<TParam> Schedule { get; }
-    
-    public RAction(RAction.Invoke<TParam> invoke, RAction.ReInvoke reInvoke, Schedule<TParam> schedule)
+    public ScheduleReInvocation ScheduleReInvocation { get; }
+
+    public RAction(
+        RAction.Invoke<TParam> invoke, RAction.ReInvoke reInvoke, 
+        Schedule<TParam> schedule, ScheduleReInvocation scheduleReInvocation)
     {
         Invoke = invoke;
         ReInvoke = reInvoke;
         Schedule = schedule;
+        ScheduleReInvocation = scheduleReInvocation;
     }
 } 
