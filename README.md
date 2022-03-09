@@ -161,12 +161,12 @@ The inner function must return either a ```Task<Return>``` or ```Task<Return<T>>
 * ```Task<Return>> ProcessOrder(Order order)```
 
 Which would result in one of the following resilient function signatures:
-* ```Task<RResult<Booking>> RFunc(string id, Order param)``` 
-* ```Task<RResult> RAction(string id, Order param)```
-* ```Task<RResult<Booking>> RFunc(string id, Order param)```
-* ```Task<RResult> RAction(Order param)```
+* ```Task<Result<Booking>> RFunc(string id, Order param)``` 
+* ```Task<Result> RAction(string id, Order param)```
+* ```Task<Result<Booking>> RFunc(string id, Order param)```
+* ```Task<Result> RAction(Order param)```
 
-It is noted that a resilient function returning a non-generic RResult is also called a *resilient action* and an inner function returning a non-generic Return-type is  called an *inner action*. 
+It is noted that a resilient function returning a non-generic Result is also called a *resilient action* and an inner function returning a non-generic Return-type is  called an *inner action*. 
   
 #### Input parameter
 The first parameter of all inner function types is the input parameter. It is the idempotent and serializable information which is required for the function to perform its task. 
@@ -201,7 +201,7 @@ async Task<Return<string>> Inner(string param) => Fail.WithException(new Timeout
 ```  
 
 #### Result:
-The resilient function created from the inner function returns either RResult or RResult<T>. The Result-type allows determining if the invocation was successful, postponed or failed. Furthermore, if the invocation was successful then the return value can be extracted in the following way:
+The resilient function created from the inner function returns either Result or Result<T>. The Result-type allows determining if the invocation was successful, postponed or failed. Furthermore, if the invocation was successful then the return value can be extracted in the following way:
 ```csharp
 var result = await rFunc(“hello world”);
 var returnValue = result.EnsureSuccess();
