@@ -34,9 +34,9 @@ internal class WatchDogsFactory
         _postponedCheckFrequency = postponedCheckFrequency;
     }
 
-    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, WrappedInnerFunc wrappedInnerFunc) 
+    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, WatchdogFunc watchdogFunc) 
     {
-        var rFuncInvoker = new WrapperInnerFuncInvoker(
+        var rFuncInvoker = new WatchdogFuncInvoker(
             _functionStore,
             serializer,
             _signOfLifeUpdaterFactory,
@@ -46,7 +46,7 @@ internal class WatchDogsFactory
         
         var crashedWatchdog = new CrashedWatchdog(
             functionTypeId,
-            wrappedInnerFunc,
+            watchdogFunc,
             _functionStore,
             rFuncInvoker,
             _crashedCheckFrequency,
@@ -56,7 +56,7 @@ internal class WatchDogsFactory
 
         var postponedWatchdog = new PostponedWatchdog(
             functionTypeId,
-            wrappedInnerFunc,
+            watchdogFunc,
             _functionStore,
             rFuncInvoker,
             _postponedCheckFrequency,

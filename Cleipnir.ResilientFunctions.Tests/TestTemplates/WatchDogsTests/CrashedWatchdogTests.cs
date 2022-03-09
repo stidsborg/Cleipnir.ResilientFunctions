@@ -35,7 +35,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return new Return<object?>(param.ToString()!.ToUpper()).ToTask();
                 },
                 store,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -85,7 +85,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return ((string) param).ToUpper();
                 },
                 store,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -141,7 +141,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return new Return<object?>(succeedWithValue: null).ToTask();
                 },
                 store,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -191,7 +191,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests
                     return Succeed.WithoutValue;
                 },
                 store,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     store, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),

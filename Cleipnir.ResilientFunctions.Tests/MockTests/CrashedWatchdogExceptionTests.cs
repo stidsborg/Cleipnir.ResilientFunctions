@@ -37,7 +37,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 "functionTypeId".ToFunctionTypeId(),
                 (param, _) => new Return<object?>(param.ToString()!.ToUpper()).ToTask(),
                 storeMock,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -91,7 +91,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 "functionTypeId".ToFunctionTypeId(),
                 (param, _) => new Return<object?>(param.ToString()!.ToUpper()).ToTask(),
                 storeMock,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -144,7 +144,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 "functionTypeId".ToFunctionTypeId(),
                 (param, _) => throw new NullReferenceException(),
                 storeMock,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),
@@ -204,7 +204,7 @@ namespace Cleipnir.ResilientFunctions.Tests.MockTests
                 "functionTypeId".ToFunctionTypeId(),
                 (param, _) => new Return<object?>(new NullReferenceException()).ToTask(),
                 storeMock,
-                new WrapperInnerFuncInvoker(
+                new WatchdogFuncInvoker(
                     storeMock, 
                     DefaultSerializer.Instance,
                     new NeverExecutingSignOfLifeUpdaterFactory(),

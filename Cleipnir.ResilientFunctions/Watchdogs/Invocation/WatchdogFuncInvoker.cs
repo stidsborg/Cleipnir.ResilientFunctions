@@ -11,7 +11,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
-internal class WrapperInnerFuncInvoker
+internal class WatchdogFuncInvoker
 {
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
@@ -19,7 +19,7 @@ internal class WrapperInnerFuncInvoker
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
 
-    public WrapperInnerFuncInvoker(
+    public WatchdogFuncInvoker(
         IFunctionStore functionStore, 
         ISerializer serializer,
         ISignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
@@ -36,7 +36,7 @@ internal class WrapperInnerFuncInvoker
     public async Task ReInvoke(
         FunctionId functionId,
         StoredFunction storedFunction,
-        WrappedInnerFunc wrappedInnerFunc
+        WatchdogFunc watchdogFunc
     )
     {
         _shutdownCoordinator.RegisterRunningRFunc();
@@ -67,7 +67,7 @@ internal class WrapperInnerFuncInvoker
             Return<object?> returned;
             try
             {
-                returned = await wrappedInnerFunc(parameter, scrapbook);
+                returned = await watchdogFunc(parameter, scrapbook);
             }
             catch (Exception exception)
             {

@@ -86,7 +86,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                wrappedInnerFunc: async (param, _) =>
+                watchdogFunc: async (param, _) =>
                 {
                     var @return = await inner((TParam) param);
                     return @return.Intent switch
@@ -144,7 +144,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                wrappedInnerFunc: async (param, _) =>
+                watchdogFunc: async (param, _) =>
                 {
                     var @return = await inner((TParam) param);
                     return @return.Intent switch
@@ -202,7 +202,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                wrappedInnerFunc: async (param, scrapbook) =>
+                watchdogFunc: async (param, scrapbook) =>
                 {
                     var @return = await inner((TParam) param, (TScrapbook) scrapbook!);
                     return @return.Intent switch
@@ -260,7 +260,7 @@ public class RFunctions : IDisposable
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
                 serializer,
-                wrappedInnerFunc: async (param, scrapbook) =>
+                watchdogFunc: async (param, scrapbook) =>
                 {
                     var @return = await inner((TParam) param, (TScrapbook) scrapbook!);
                     return @return.Intent switch

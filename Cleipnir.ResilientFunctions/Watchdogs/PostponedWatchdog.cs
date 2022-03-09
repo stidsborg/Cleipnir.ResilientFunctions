@@ -13,10 +13,10 @@ namespace Cleipnir.ResilientFunctions.Watchdogs;
 internal class PostponedWatchdog : IDisposable
 {
     private readonly IFunctionStore _functionStore;
-    private readonly WrapperInnerFuncInvoker _wrapperInnerFuncInvoker;
+    private readonly WatchdogFuncInvoker _watchdogFuncInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
         
-    private readonly WrappedInnerFunc _wrappedInnerFunc;
+    private readonly WatchdogFunc _watchdogFunc;
 
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
@@ -25,9 +25,9 @@ internal class PostponedWatchdog : IDisposable
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId, 
-        WrappedInnerFunc wrappedInnerFunc,
+        WatchdogFunc watchdogFunc,
         IFunctionStore functionStore, 
-        WrapperInnerFuncInvoker wrapperInnerFuncInvoker,
+        WatchdogFuncInvoker watchdogFuncInvoker,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator
@@ -35,9 +35,9 @@ internal class PostponedWatchdog : IDisposable
     {
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
-        _wrapperInnerFuncInvoker = wrapperInnerFuncInvoker;
+        _watchdogFuncInvoker = watchdogFuncInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _wrappedInnerFunc = wrappedInnerFunc;
+        _watchdogFunc = watchdogFunc;
         _checkFrequency = checkFrequency;
         _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
@@ -69,7 +69,7 @@ internal class PostponedWatchdog : IDisposable
 
                     try
                     {
-                        await _wrapperInnerFuncInvoker.ReInvoke(functionId, storedFunction, _wrappedInnerFunc);
+                        await _watchdogFuncInvoker.ReInvoke(functionId, storedFunction, _watchdogFunc);
                     }
                     catch (Exception innerException)
                     {

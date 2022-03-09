@@ -15,32 +15,32 @@ namespace Cleipnir.ResilientFunctions.Watchdogs;
 internal class CrashedWatchdog : IDisposable
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly WrappedInnerFunc _wrappedInnerFunc;
+    private readonly WatchdogFunc _watchdogFunc;
 
     private readonly IFunctionStore _functionStore;
 
     private readonly TimeSpan _checkFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly WrapperInnerFuncInvoker _wrapperInnerFuncInvoker;
+    private readonly WatchdogFuncInvoker _watchdogFuncInvoker;
         
     private volatile bool _disposed;
     private volatile bool _executing;
 
     public CrashedWatchdog(
         FunctionTypeId functionTypeId,
-        WrappedInnerFunc wrappedInnerFunc,
+        WatchdogFunc watchdogFunc,
         IFunctionStore functionStore,
-        WrapperInnerFuncInvoker wrapperInnerFuncInvoker,
+        WatchdogFuncInvoker watchdogFuncInvoker,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
-        _wrappedInnerFunc = wrappedInnerFunc;
+        _watchdogFunc = watchdogFunc;
         _checkFrequency = checkFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _wrapperInnerFuncInvoker = wrapperInnerFuncInvoker;
+        _watchdogFuncInvoker = watchdogFuncInvoker;
         _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
 
@@ -83,7 +83,7 @@ internal class CrashedWatchdog : IDisposable
 
                     try
                     {
-                        await _wrapperInnerFuncInvoker.ReInvoke(functionId, storedFunction, _wrappedInnerFunc);
+                        await _watchdogFuncInvoker.ReInvoke(functionId, storedFunction, _watchdogFunc);
                     }
                     catch (Exception innerException)
                     {
