@@ -20,7 +20,7 @@ public static class HelloWorldExample
         ).Invoke;
 
         var returned = await f("", "hello world").EnsureSuccess();
-        Console.WriteLine($"1: {returned}");
+        Console.WriteLine(returned);
     }
 }
 #pragma warning restore CS1998
