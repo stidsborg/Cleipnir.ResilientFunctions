@@ -1,6 +1,6 @@
 # Cleipnir's Resilient Functions
 
-Resilient Functions is a .NET framework realizing the saga-pattern for .NET funcs / actions. 
+Resilient Functions is a .NET framework realizing the saga-pattern using .NET funcs / actions. 
 
 By registering a function with the framework, it will ensure that the function invocation completes despite: failures, restarts, deployments, data migrations etc. 
 
@@ -15,10 +15,10 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
 * ability to migrate non-completed functions
 * simple testability 
 
-## Getting Started
-A nuget package is coming shortly. However, until then clone our repo to get started: 
-
-```git clone https://github.com/stidsborg/Cleipnir.ResilientFunctions.git```
+## Getting Started 
+```
+Install-Package Cleipnir.ResilientFunctions.SqlServer
+```
 
 ## Elevator Pitch
 Still curious - ok awesome - then here comes our elevator pitch example:
@@ -27,7 +27,8 @@ public static async Task ElevatorPitch(string connectionString)
 {
   var store = new SqlServerFunctionStore(connectionString); //simple to use SqlServer as function storage layer 
                                                             //other stores also exist!
-  await store.Initialize(); //create table in database - btw the invocation is idempotent!
+  await store.Initialize(); //create table in database
+                            //btw the invocation is idempotent!
 
   var rFunctions = new RFunctions( //this is where you register different resilient function types
     store,
@@ -37,7 +38,7 @@ public static async Task ElevatorPitch(string connectionString)
     postponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
   );
 
-  var registration = rFunctions.Register( //making a function resilient is simply a matter of registering it
+  var registration = rFunctions.Register( //just register a function to make it resilient
     functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id 
                                    //instance id is provided on invocation
     inner: async Task<Return<string>>(string url) 
@@ -48,9 +49,9 @@ public static async Task ElevatorPitch(string connectionString)
   var rFunc = registration.Invoke; //you can also re-invoke (useful for manual handling) an existing function 
                                    //or schedule one for invocation
   const string url = "https://google.com";
-  var result = 
-    await rFunc(functionInstanceId: "google", param: url); //invoking the function 
-                                                           //btw you can F11-debug from here into your registered function
+  var result = //invoking the function - btw you can F11-debug from here into your registered function 
+    await rFunc(functionInstanceId: "google", param: url); 
+                                                           
   var responseBody = result.EnsureSuccess(); // you can also check if the invocation failed or was postponed
   Log.Information("Resilient Function getting {Url} completed successfully with {Body}", url, responseBody);
         
@@ -59,7 +60,7 @@ public static async Task ElevatorPitch(string connectionString)
 }
 ```
 
-## Show me more Code
+## Show me more code
 Firstly, the compulsory, ‘*hello world*’-example can be realized as follows:
 
 ### Hello-World
@@ -188,6 +189,82 @@ Using dependency injection may inadvertently delay this registration if the regi
 * ```IRegisterRFunc```
 * ```IRegisterRFuncOnInstantiation```
 
+## Simple Scenarios
+It is simple to start using the framework and reap the rewards. In this chapter common and simple scenarios and their solutions are presented to help you get started.
+
+### Invoking a resilient function
+After a resilient function has been registered invoking it is simply a matter of invoking the registration’s Invoke-delegate. This can be accomplished as follows:
+```csharp
+var registration = rFunctions.Register(functionType, innerFunc);
+var rFunc = registration.Invoke;
+rFunc(instanceId, param);
+```
+
+Please note it is simple to F11-debug into the registered inner function. The inner function invocation happens inside the first layer of framework code. 
+
+### Ensuring a crashed function completes
+When registering a function type the invocation of any crashed function of that type will automatically be restarted by the framework.
+```csharp
+var registration = rFunctions.Register(functionType, innerFunc);
+```
+
+Furthermore, when the same function type has been registered on multiple RFunctions-instances, the framework automatically balances the load among the different instances while ensuring that a crashed function is only invoked on a single instance. 
+
+### Storing rainy-day state
+It is inevitable that a resilient function invocation does not always follow the sunshine path. As such it is often beneficial to have state about previous invocations when invoking a resilient function again. 
+
+The framework has built-in support for a so-called “scrapbook”. A scrapbook is a user-defined type - which inherits from the abstract RScrapbook-type - and as such may be freely designed for the use-case at hand. A scrapbook is an optional second parameter for any registered inner function. 
+
+The framework automatically ensures the scrapbook is stored after the function invocation returns - be that successfully or not. Furthermore, a scrapbook can also be manually stored on the fly using its Save-method. 
+
+See the prior “Sending customer emails”-code for a good example. 
+
+### Postponing an invocation
+Network communication is inherently unreliable. Thus, an executing function must handle unsuccessful communication with an external system. 
+
+A common strategy when facing network communication issues is to try again after a short period of time. As an inner function in the framework is ordinary C#-code the retry logic can reside inside the function itself, using a retry-framework such as Polly (https://github.com/App-vNext/Polly). However, if the delay between retries becomes too large it might be more beneficial to persist the function and fetch it again when it becomes eligible for execution again. This saves resources on the running instance as state is moved from memory to persistent storage. The framework supports this out-of-the-box. A function can be postponed simply by returning the intent from the inner function as follows:
+
+```csharp
+return Postpone.For(TimeSpan.FromHours(1));
+```
+
+#### Back-off strategies:
+It is common to increase the delay between retries using some mathematical function in order to put less pressure on the unresponsive system. E.g. linear or exponential backoff strategies. The simplest approach for using such strategies within the framework is to store a retry counter in a scrapbook associated with the function. For instance:
+
+```csharp
+public static async Task<Return> InnerFunc(string @param, Scrapbook scrapbook)
+{
+  var success = await ExternalCall();
+  if (!success)
+  {
+    scrapbook.RetryCount++;
+    return Postpone.For(CalculateDelay(scrapbook.RetryCount));
+  }
+  return Return.Succeed;
+}
+
+public class Scrapbook : RScrapbook
+{
+  public int RetryCount { get; set; }
+}
+```
+
+### Failing an invocation for manual handling:
+It is often infeasible (especially for distributed systems) to take every possible scenario into account when coding. Thus, it is sometimes simpler to flag an issue for human intervention. A function can be failed simply by returning the intent from the inner function as follows:
+
+```csharp
+return Fail.WithException(new InvalidOperationException(...));
+```
+
+A failed function will not be retried by the framework. However, it is possible to invoke the function again using the function registration’s reinvoke-method. 
+```csharp
+var registration = rFunctions.Register(functionType, innerFunc);
+var reInvokeRFunc = registration.ReInvoke;
+reInvokeRFunc(instanceId);
+```
+
+Please note that if a registered inner function throws an unhandled exception it is failed by the runtime. 
+
 ## Resilient Function Anatomy
 ### Defintion
 A resilient function is simply a wrapped user-specified function (called inner function) with a certain signature. 
@@ -240,7 +317,7 @@ async Task<Return<string>> Inner(string param) => Postpone.For(10_000);
 async Task<Return<string>> Inner(string param) => Fail.WithException(new TimeoutException());
 ```  
 
-#### Result:
+#### Result
 The resilient function created from the inner function returns either Result or Result<T>. The Result-type allows determining if the invocation was successful, postponed or failed. Furthermore, if the invocation was successful then the return value can be extracted in the following way:
 ```csharp
 var result = await rFunc(“hello world”);
@@ -251,14 +328,14 @@ Or using the short-hand:
 ```csharp
 var returnValue = await rFunc(“hello world”).EnsureSuccess();
 ```
-### Identification:
+### Identification
 A resilient function is uniquely identified by two strings:
 * Function Type Id
 * Function Instance Id
 
 We note that a *‘resilient function instance’* refers to a specific function with some unique id.
 
-### Registration:
+### Registration
 In order to make a function *resilient* the function must be registered with the framework. This is done by constructing (or using an already constructed) RFunctions instance and invoking its Register-method. 
 
 ```csharp
@@ -276,11 +353,11 @@ The Register-method returns a registration object allowing the previously specif
   
 Furthermore, registering an inner function enables the framework to re-invoke postponed or crashed functions with the provided function type identifier. 
 
-### Behavior / Semantics:
-#### Resilient Function Result Cache:
+### Behavior / Semantics
+#### Resilient Function Result Cache
 When a resilient function invocation succeeds the result is persisted in the associated function store. If a completed function is invoked after the fact the persisted result is returned and used without actually re-invoking the inner function. 
 
-#### Multiple Invocations vs Re-Invocations:
+#### Multiple Invocations vs Re-Invocations
 There is a distinct difference between multiple invocations of the same resilient function and a re-invocation of a resilient function. 
 
 A somewhat artificial example of invoking the same function multiple times is the following: 
@@ -300,7 +377,7 @@ var reinvokeRFunc = rFunctions.Register(...).ReInvoke;
 var result = await reinvokeRFunc(functionInstanceId, expectedStatuses: new[] { Status.Failed });
 ```
 
-#### Resilient Function Synchronization & Check Frequency:
+#### Resilient Function Synchronization & Check Frequency
 The framework makes a best effort attempt at ensuring that only one resilient function instance is invoked across the cluster at any time. Please note that a resilient function instance is defined by both a function type id and function instance id. Thus, resilient functions with the same type id but different instance id are invoked concurrently by the framework. 
 
 The synchronization mechanism uses a simple counter (called SignOfLife) which is updated as long as the resilient function is invoking. When the counter is not updated in a predefined period of time (called check frequency) the invocation is restarted on another framework instance. The SignOfLife update frequency can be specified when constructing an RFunctions-instance. A high frequency means the function invocation is restarted faster. However, it puts more strain on the system as a whole. As the optimal frequency is affected by the concrete use case and the system infrastructure, the frequency can be specified when constructing a RFunctions-instance. E.g.
@@ -313,7 +390,7 @@ var rFunctions = new RFunctions(
 );
 ```
 
-#### Crashed vs Failed:
+#### Crashed vs Failed
 Despite the similarity between the two words they have distinct meanings within the framework.
 * A crashed function is a function which is no longer emitting a heartbeat
 * A failed function is a function which explicitly returned a failed Return-instance
