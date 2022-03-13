@@ -15,10 +15,23 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly Func<Task<SqlConnection>> _connFunc;
     private readonly string _tablePrefix;
 
+    public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
+        : this(CreateConnection(connectionString), tablePrefix) {}
+    
     public SqlServerFunctionStore(Func<Task<SqlConnection>> connFunc, string tablePrefix = "")
     {
         _connFunc = connFunc;
         _tablePrefix = tablePrefix;
+    }
+
+    private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
+    {
+        return async () =>
+        {
+            var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            return connection;
+        };
     }
 
     public async Task Initialize()
