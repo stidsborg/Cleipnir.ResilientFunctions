@@ -23,14 +23,14 @@ public class SignOfLifeUpdater : IDisposable
         int leader, 
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        TimeSpan? updateFrequency = null)
+        TimeSpan updateFrequency)
     {
         _functionId = functionId;
         _leader = leader;
             
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _updateFrequency = updateFrequency ?? TimeSpan.FromSeconds(1);
+        _updateFrequency = updateFrequency;
     }
 
     public Task Start()

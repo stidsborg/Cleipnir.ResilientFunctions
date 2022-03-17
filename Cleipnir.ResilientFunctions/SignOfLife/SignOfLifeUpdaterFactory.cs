@@ -14,7 +14,7 @@ internal class SignOfLifeUpdaterFactory : ISignOfLifeUpdaterFactory
 {
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly TimeSpan? _updateFrequency;
+    private readonly TimeSpan _updateFrequency;
 
     public SignOfLifeUpdaterFactory(
         IFunctionStore functionStore, 
