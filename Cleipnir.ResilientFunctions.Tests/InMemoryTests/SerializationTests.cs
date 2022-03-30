@@ -38,13 +38,13 @@ public class SerializationTests
         var personCurr = default(PersonCurr);
         _ = rFunctions.Register(
             "typeId".ToFunctionTypeId(),
-            (PersonCurr p) =>
+            Task (PersonCurr p) =>
             {
                 personCurr = p;
                 flag.Raise();
-                return Succeed.WithoutValue.ToTask();
+                return Task.CompletedTask;
             },
-            serializer
+            serializer: serializer
         );
 
         await flag.WaitForRaised();

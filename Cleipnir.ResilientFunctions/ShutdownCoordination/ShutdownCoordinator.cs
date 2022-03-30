@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.ShutdownCoordination;
 
@@ -67,6 +68,12 @@ internal class ShutdownCoordinator
         throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed"); 
     }
     public void RegisterRFuncCompletion() => Interlocked.Decrement(ref _executingRFuncs);
+
+    public IDisposable RegisterRunningRFuncDisposable()
+    {
+        RegisterRunningRFunc();
+        return new ActionDisposable(RegisterRFuncCompletion);
+    }
 
     public bool ObserveShutdown(Func<Task> onShutdown)
     {

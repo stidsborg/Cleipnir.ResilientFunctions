@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.ShutdownCoordination;
-using Cleipnir.ResilientFunctions.SignOfLife;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -16,162 +13,195 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
-    private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly OnFuncException<TParam, TReturn> _exceptionHandler;
+    private readonly RFunc.PreInvoke<TParam> _preInvoke;
+    private readonly RFunc.PostInvoke<TParam, TReturn> _postInvoke;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TReturn> inner,
         CommonInvoker commonInvoker,
-        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
-        ShutdownCoordinator shutdownCoordinator, 
         UnhandledExceptionHandler unhandledExceptionHandler,
-        OnFuncException<TParam, TReturn>? exceptionHandler)
+        RFunc.PreInvoke<TParam>? preInvoke,
+        RFunc.PostInvoke<TParam, TReturn>? postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
-        _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-        _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
+        _preInvoke = preInvoke ?? CommonInvoker.PreInvokeNoOp;
+        _postInvoke = postInvoke ?? CommonInvoker.FunctionPostInvokeNoOp;
     }
 
-    public async Task<Result<TReturn>> Invoke(string functionInstanceId, TParam param)
+    public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistFunctionInStore(functionId, param);
+        var created = await PersistNewFunctionInStore(functionId, param);
         if (!created) return await WaitForFunctionResult(functionId);
+        var metadata = new Metadata<TParam>(functionId, param);
 
-        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-        _shutdownCoordinator.RegisterRunningRFunc();
-        try
+        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
+        while (true)
         {
-            Return<TReturn> returned;
+            Return<TReturn> postInvoked;
             try
             {
+                await _preInvoke(metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                returned = await _inner(param);
+                var returned = await _inner(param);
+                postInvoked = await _postInvoke(returned, metadata);
             }
             catch (Exception exception)
             {
-                returned = _exceptionHandler(exception, functionInstanceId, param);
+                postInvoked = await _postInvoke(new Fail(exception), metadata);
+                if (postInvoked.Fail == exception)
+                {
+                    await PersistPostInvoked(functionId, postInvoked);
+                    throw;
+                }
             }
 
-            return await ProcessReturned(functionId, returned);
+            if (await PersistResultAndEnsureSuccess(functionId, postInvoked) == InProcessWait.DoNotRetryInvocation)
+                return postInvoked.SucceedWithValue!;
         }
-        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
 
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistFunctionInStore(functionId, param);
+        var created = await PersistNewFunctionInStore(functionId, param);
         if (!created) return;
+        var metadata = new Metadata<TParam>(functionId, param);
 
         _ = Task.Run(async () =>
         {
-            _shutdownCoordinator.RegisterRunningRFunc();
+            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
             try
             {
-                using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-                Return<TReturn> returned;
-                try
+                while (true)
                 {
-                    // *** USER FUNCTION INVOCATION *** 
-                    returned = await _inner(param);
-                }
-                catch (Exception exception)
-                {
-                    returned = _exceptionHandler(exception, functionId.InstanceId, param);
-                }
+                    Return<TReturn> postInvoked;
+                    try
+                    {
+                        await _preInvoke(metadata);
+                        // *** USER FUNCTION INVOCATION *** 
+                        var returned = await _inner(param);
+                        postInvoked = await _postInvoke(returned, metadata);
+                    }
+                    catch (Exception exception)
+                    {
+                        postInvoked = await _postInvoke(new Fail(exception), metadata);
+                        if (postInvoked.Fail == exception)
+                        {
+                            await PersistPostInvoked(functionId, postInvoked);
+                            throw;
+                        }
+                    }
 
-                await ProcessReturned(functionId, returned);
-            }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
-        });
-    }
-    
-    public async Task<Result<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
-    {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
-        
-        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-        _shutdownCoordinator.RegisterRunningRFunc();
-        try
-        {
-            Return<TReturn> returned;
-            try
-            {
-                // *** USER FUNCTION INVOCATION *** 
-                returned = await _inner(param);
+                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked) == InProcessWait.DoNotRetryInvocation)
+                        return;
+                }
             }
             catch (Exception exception)
             {
-                returned = _exceptionHandler(exception, instanceId, param);
+                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
             }
-
-            return await ProcessReturned(functionId, returned, epoch);
-        }
-        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
     }
     
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
+    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
+        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var metadata = new Metadata<TParam>(functionId, param);
 
-        _ = Task.Run(async () =>
+        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+        while (true)
         {
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-            _shutdownCoordinator.RegisterRunningRFunc();
+            Return<TReturn> postInvoked;
             try
             {
-                Return<TReturn> returned;
-                try
-                {
-                    // *** USER FUNCTION INVOCATION *** 
-                    returned = await _inner(param);
-                }
-                catch (Exception exception)
-                {
-                    returned = _exceptionHandler(exception, instanceId, param);
-                }
-
-                await ProcessReturned(functionId, returned, epoch);
+                await _preInvoke(metadata);
+                // *** USER FUNCTION INVOCATION *** 
+                var returned = await _inner(param);
+                postInvoked = await _postInvoke(returned, metadata);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+            catch (Exception exception)
+            {
+                postInvoked = await _postInvoke(new Fail(exception), metadata);
+                if (postInvoked.Fail == exception)
+                {
+                    await PersistPostInvoked(functionId, postInvoked, epoch);
+                    throw;
+                }
+            }
+
+            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, epoch) == InProcessWait.DoNotRetryInvocation)
+                return postInvoked.SucceedWithValue!;
+        }
+    }
+    
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var metadata = new Metadata<TParam>(functionId, param);
+            
+        _ = Task.Run(async () =>
+        {
+            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+            try
+            {
+                while (true)
+                {
+                    Return<TReturn> postInvoked;
+                    try
+                    {
+                        await _preInvoke(metadata);
+                        // *** USER FUNCTION INVOCATION *** 
+                        var returned = await _inner(param);
+                        postInvoked = await _postInvoke(returned, metadata);
+                    }
+                    catch (Exception exception)
+                    {
+                        postInvoked = await _postInvoke(new Fail(exception), metadata);
+                        if (postInvoked.Fail == exception)
+                        {
+                            await PersistPostInvoked(functionId, postInvoked, epoch);
+                            throw;
+                        }
+                    }
+
+                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, epoch) == InProcessWait.DoNotRetryInvocation)
+                        return;
+                }
+            }
+            catch (Exception exception)
+            {
+                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
+            }
         });
     }
 
-    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param)
+    private async Task<bool> PersistNewFunctionInStore(FunctionId functionId, TParam param)
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
-    private async Task<Result<TReturn>> WaitForFunctionResult(FunctionId functionId)
+    private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
-    private async Task<Tuple<TParam, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
-        => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses);
+    private async Task<Tuple<TParam, int>> PrepareForReInvocation(
+        FunctionId functionId, 
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch
+    ) => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses, expectedEpoch);
 
-    private Task<Result<TReturn>> ProcessReturned(FunctionId functionId, Return<TReturn> returned, int epoch = 0)
-        => _commonInvoker.ProcessReturned(functionId, returned, scrapbook: null, epoch);
-    
-    private Return<TReturn> DefaultProcessUnhandledException(Exception unhandledException, FunctionInstanceId functionInstanceId, TParam _)
-    {
-        _unhandledExceptionHandler.Invoke(
-            new InnerFunctionUnhandledException(
-                new FunctionId(_functionTypeId, functionInstanceId),
-                $"Function {functionInstanceId} threw unhandled exception",
-                unhandledException
-            )
-        );
+    private async Task PersistPostInvoked(FunctionId functionId, Return<TReturn> returned, int expectedEpoch = 0)
+     => await _commonInvoker.PersistPostInvoked(functionId, returned, scrapbook: null, expectedEpoch);
 
-        return new Fail(unhandledException);
-    }
+    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Return<TReturn> returned, int expectedEpoch = 0)
+        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, returned, scrapbook: null, expectedEpoch);
+
+    private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
+        => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
 }
 
 public class RFuncInvoker<TParam, TScrapbook, TReturn> 
@@ -182,164 +212,205 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private readonly InnerFunc<TParam, TScrapbook, TReturn> _inner;
 
     private readonly CommonInvoker _commonInvoker;
-    private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
-    private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly OnFuncException<TParam, TScrapbook, TReturn> _exceptionHandler;
+    private readonly RFunc.PreInvoke<TParam, TScrapbook> _preInvoke;
+    private readonly RFunc.PostInvoke<TParam, TScrapbook, TReturn> _postInvoke;
+    
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TScrapbook, TReturn> inner,
         CommonInvoker commonInvoker,
-        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory, 
-        ShutdownCoordinator shutdownCoordinator, 
         UnhandledExceptionHandler unhandledExceptionHandler, 
-        OnFuncException<TParam, TScrapbook, TReturn>? exceptionHandler)
+        RFunc.PreInvoke<TParam, TScrapbook>? preInvoke, 
+        RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
-        _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-        _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _exceptionHandler = exceptionHandler ?? DefaultProcessUnhandledException;
+        _preInvoke = preInvoke ?? CommonInvoker.PreInvokeNoOp;
+        _postInvoke = postInvoke ?? CommonInvoker.FunctionPostInvokeNoOp;
     }
 
-    public async Task<Result<TReturn>> Invoke(string functionInstanceId, TParam param)
+    public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistFunctionInStore(functionId, param);
+        var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return await WaitForFunctionResult(functionId);
+        var metadata = new Metadata<TParam>(functionId, param);
 
-        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
+        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
         var scrapbook = CreateScrapbook(functionId);
-        _shutdownCoordinator.RegisterRunningRFunc();
-        try
+        while (true)
         {
-            Return<TReturn> returned;
+            Return<TReturn> postInvoked;
             try
             {
+                await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                returned = await _inner(param, scrapbook);
+                var returned = await _inner(param, scrapbook);
+                postInvoked = await _postInvoke(returned, scrapbook, metadata);
             }
             catch (Exception exception)
             {
-                returned = _exceptionHandler(exception, scrapbook, functionId.InstanceId, param);
+                postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                if (postInvoked.Fail == exception)
+                {
+                    await PersistPostInvoked(functionId, postInvoked, scrapbook);
+                    throw;
+                }
             }
-            
-            return await ProcessResult(functionId, returned, scrapbook);
+
+            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook) == InProcessWait.DoNotRetryInvocation)
+                return postInvoked.SucceedWithValue!;
         }
-        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
     }
 
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        await PersistFunctionInStore(functionId, param);
+        var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
+        if (!created) return;
+        var metadata = new Metadata<TParam>(functionId, param);
 
         _ = Task.Run(async () =>
         {
-            _shutdownCoordinator.RegisterRunningRFunc();
+            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
+            var scrapbook = CreateScrapbook(functionId);
             try
             {
-                using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch: 0);
-                var scrapbook = CreateScrapbook(functionId);
-                Return<TReturn> result;
-                try
+                while (true)
                 {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param, scrapbook);
-                }
-                catch (Exception exception)
-                {
-                    result = _exceptionHandler(exception, scrapbook, functionId.InstanceId, param);
-                }
+                    Return<TReturn> postInvoked;
+                    try
+                    {
+                        await _preInvoke(scrapbook, metadata);
+                        // *** USER FUNCTION INVOCATION *** 
+                        var returned = await _inner(param, scrapbook);
+                        postInvoked = await _postInvoke(returned, scrapbook, metadata);
+                    }
+                    catch (Exception exception)
+                    {
+                        postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                        if (postInvoked.Fail == exception)
+                        {
+                            await PersistPostInvoked(functionId, postInvoked, scrapbook);
+                            throw;
+                        }
+                    }
 
-                await ProcessResult(functionId, result, scrapbook);
-            }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
-        });
-    }
-    
-    public async Task<Result<TReturn>> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
-    {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
-
-        using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-        _shutdownCoordinator.RegisterRunningRFunc();
-        try
-        {
-            Return<TReturn> returned;
-            try
-            {
-                // *** USER FUNCTION INVOCATION *** 
-                returned = await _inner(param, scrapbook);
+                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook) == InProcessWait.DoNotRetryInvocation)
+                        return;
+                }
             }
             catch (Exception exception)
             {
-                returned = _exceptionHandler(exception, scrapbook, instanceId, param);
+                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
             }
-
-            return await ProcessResult(functionId, returned, scrapbook, epoch);
-        }
-        finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+        });
     }
     
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses)
+    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses);
-        _ = Task.Run(async () =>
+        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var metadata = new Metadata<TParam>(functionId, param);
+
+        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+        while (true)
         {
-            using var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-            _shutdownCoordinator.RegisterRunningRFunc();
+            Return<TReturn> postInvoked;
             try
             {
-                Return<TReturn> returned;
-                try
-                {
-                    // *** USER FUNCTION INVOCATION *** 
-                    returned = await _inner(param, scrapbook);
-                }
-                catch (Exception exception)
-                {
-                    returned = _exceptionHandler(exception, scrapbook, instanceId, param);
-                }
-
-                await ProcessResult(functionId, returned, scrapbook, epoch);
+                await _preInvoke(scrapbook, metadata);
+                // *** USER FUNCTION INVOCATION *** 
+                var returned = await _inner(param, scrapbook);
+                postInvoked = await _postInvoke(returned, scrapbook, metadata);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally { _shutdownCoordinator.RegisterRFuncCompletion(); }
+            catch (Exception exception)
+            {
+                postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                if (postInvoked.Fail == exception)
+                {
+                    await PersistPostInvoked(functionId, postInvoked, scrapbook, epoch);
+                    throw;
+                }
+            }
+
+            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
+                return postInvoked.SucceedWithValue!;
+        }
+    }
+    
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var metadata = new Metadata<TParam>(functionId, param);
+            
+        _ = Task.Run(async () =>
+        {
+            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+            try
+            {
+                while (true)
+                {
+                    Return<TReturn> postInvoked;
+                    try
+                    {
+                        await _preInvoke(scrapbook, metadata);
+                        // *** USER FUNCTION INVOCATION *** 
+                        var returned = await _inner(param, scrapbook);
+                        postInvoked = await _postInvoke(returned, scrapbook, metadata);
+                    }
+                    catch (Exception exception)
+                    {
+                        postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                        if (postInvoked.Fail == exception)
+                        {
+                            await PersistPostInvoked(functionId, postInvoked, scrapbook, epoch);
+                            throw;
+                        }
+                    }
+
+                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
+                        return;
+                }
+            }
+            catch (Exception exception)
+            {
+                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
+            }
         });
     }
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
         => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch);
 
-    private async Task<bool> PersistFunctionInStore(FunctionId functionId, TParam param) 
-        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: typeof(TScrapbook));
+    private async Task<bool> PersistNewFunctionInStore(FunctionId functionId, TParam param, Type scrapbookType)
+        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType);
 
-    private async Task<Result<TReturn>> WaitForFunctionResult(FunctionId functionId)
+    private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
-    private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses)
-        => await _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(functionId, expectedStatuses);
-
-    private async Task<Result<TReturn>> ProcessResult(FunctionId functionId, Return<TReturn> result, TScrapbook scrapbook, int epoch = 0)
-        => await _commonInvoker.ProcessReturned(functionId, result, scrapbook, epoch);
-    
-    private Return<TReturn> DefaultProcessUnhandledException(Exception unhandledException, TScrapbook _, FunctionInstanceId functionInstanceId, TParam __)
-    {
-        _unhandledExceptionHandler.Invoke(
-            new InnerFunctionUnhandledException(
-                new FunctionId(_functionTypeId, functionInstanceId),
-                $"Function {functionInstanceId} threw unhandled exception",
-                unhandledException
-            )
+    private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(
+        FunctionId functionId,
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch
+    ) => await _commonInvoker
+        .PrepareForReInvocation<TParam, TScrapbook>(
+            functionId,
+            expectedStatuses,
+            expectedEpoch
         );
 
-        return new Domain.Fail(unhandledException);
-    }
+    private async Task PersistPostInvoked(FunctionId functionId, Return<TReturn> returned, RScrapbook scrapbook, int expectedEpoch = 0)
+        => await _commonInvoker.PersistPostInvoked(functionId, returned, scrapbook, expectedEpoch);
+
+    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Return<TReturn> returned, RScrapbook scrapbook, int expectedEpoch = 0)
+        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, returned, scrapbook, expectedEpoch);
+
+    private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
+        => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
 }

@@ -27,14 +27,13 @@ public static class ElevatorPitchExample
 
         var registration = rFunctions.Register( //making a function resilient is simply a matter of registering it
             functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
-            inner: async Task<Return<string>>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
+            inner: async Task<string>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
         ); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
            //and any crashed invocation of the function type will automatically be picked after this point
 
         var rFunc = registration.Invoke; //you can also re-invoke (useful for manual handling) an existing function or schedule one for invocation
         const string url = "https://google.com";
-        var result = await rFunc(functionInstanceId: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
-        var responseBody = result.EnsureSuccess(); // you can also check if the invocation failed or was postponed
+        var responseBody = await rFunc(functionInstanceId: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
         Log.Information("Resilient Function getting {Url} completed successfully with {Body}", url, responseBody);
         
         await rFunctions.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!

@@ -1,26 +1,21 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
-using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
 internal class WatchDogsFactory
 {
     private readonly IFunctionStore _functionStore;
-    private readonly ISignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly TimeSpan _crashedCheckFrequency;
     private readonly TimeSpan _postponedCheckFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
 
     public WatchDogsFactory(
-        IFunctionStore functionStore, 
-        ISignOfLifeUpdaterFactory signOfLifeUpdaterFactory,
+        IFunctionStore functionStore,
         TimeSpan crashedCheckFrequency, 
         TimeSpan postponedCheckFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler, 
@@ -30,25 +25,15 @@ internal class WatchDogsFactory
         _crashedCheckFrequency = crashedCheckFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
-        _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _postponedCheckFrequency = postponedCheckFrequency;
     }
 
-    public void CreateAndStart(FunctionTypeId functionTypeId, ISerializer serializer, WatchdogFunc watchdogFunc) 
+    public void CreateAndStart(FunctionTypeId functionTypeId, WatchDogReInvokeFunc reInvoke) 
     {
-        var rFuncInvoker = new WatchdogFuncInvoker(
-            _functionStore,
-            serializer,
-            _signOfLifeUpdaterFactory,
-            _unhandledExceptionHandler,
-            _shutdownCoordinator
-        );
-        
         var crashedWatchdog = new CrashedWatchdog(
             functionTypeId,
-            watchdogFunc,
             _functionStore,
-            rFuncInvoker,
+            reInvoke,
             _crashedCheckFrequency,
             _unhandledExceptionHandler,
             _shutdownCoordinator
@@ -56,9 +41,8 @@ internal class WatchDogsFactory
 
         var postponedWatchdog = new PostponedWatchdog(
             functionTypeId,
-            watchdogFunc,
             _functionStore,
-            rFuncInvoker,
+            reInvoke,
             _postponedCheckFrequency,
             _unhandledExceptionHandler,
             _shutdownCoordinator

@@ -31,23 +31,22 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var rFunc = new RFunctions
                 (
-                    store, 
-                    unhandledExceptionHandler.Catch, 
+                    store,
+                    unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
                 .Register(
                     functionTypeId,
                     (string _) =>
-                        throwUnhandledException 
-                            ? throw new Exception() 
-                            : new Return(new Exception()).ToTask()
+                        throwUnhandledException
+                            ? throw new Exception()
+                            : Task.FromException(new Exception())
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(PARAM, PARAM);
-            result.Failed.ShouldBeTrue();
+            await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
         }
         {
             var flag = new SyncedFlag();
@@ -62,7 +61,7 @@ public abstract class FailedTests
                 (string s) =>
                 {
                     flag.Raise();
-                    return new Return<string>(s.ToUpper()).ToTask();
+                    return s.ToUpper().ToTask();
                 }
             ).Invoke;
             await Task.Delay(100);
@@ -73,10 +72,10 @@ public abstract class FailedTests
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            (await rFunc(PARAM, PARAM)).Failed.ShouldBeTrue();
+            await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
         }
             
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
     public abstract Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog();
@@ -108,11 +107,10 @@ public abstract class FailedTests
                     (string _, Scrapbook _) =>
                         throwUnhandledException 
                             ? throw new Exception()
-                            : new Return(new Exception()).ToTask()
+                            : Task.FromException(new Exception())
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(PARAM, PARAM);
-            result.Failed.ShouldBeTrue();
+            await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(PARAM, PARAM));
         }
         {
             var flag = new SyncedFlag();
@@ -127,7 +125,7 @@ public abstract class FailedTests
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
-                    return Succeed.WithoutValue.ToTask();
+                    return Task.CompletedTask;
                 }
             ).Invoke;
                 
@@ -142,26 +140,17 @@ public abstract class FailedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
 
-            (await rAction(PARAM, PARAM)).Failed.ShouldBeTrue();
+            await Should.ThrowAsync<Exception>(() => rAction(PARAM, PARAM));
         }
             
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
     public abstract Task ExceptionThrowingActionIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
-    public abstract Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
-    private async Task ExceptionThrowingActionIsNotCompletedByWatchDog(
-        Task<IFunctionStore> storeTask,
-        bool throwUnhandledException,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
-    )
+    public async Task ExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFunctionTypeId();
+        var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var nonCompletingRFunctions = new RFunctions
@@ -173,14 +162,10 @@ public abstract class FailedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) =>
-                        throwUnhandledException 
-                            ? throw new Exception()
-                            : new Return(new Exception()).ToTask()
+                    (string _) => Task.FromException(new Exception())
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(PARAM, PARAM);
-            result.Failed.ShouldBe(true);
+            await Should.ThrowAsync<Exception>(nonCompletingRFunctions(PARAM, PARAM));
         }
         {
             var flag = new SyncedFlag();
@@ -195,7 +180,7 @@ public abstract class FailedTests
                 (string _) =>
                 {
                     flag.Raise();
-                    return Succeed.WithoutValue.ToTask();
+                    return Task.CompletedTask;
                 }
             ).Invoke;
             await Task.Delay(100);
@@ -205,10 +190,10 @@ public abstract class FailedTests
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            (await rFunc(PARAM, PARAM)).Failed.ShouldBeTrue();
+            await Should.ThrowAsync<Exception>(rFunc(PARAM, PARAM));
         }
             
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
     public abstract Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog();
@@ -236,11 +221,10 @@ public abstract class FailedTests
                     (string _, Scrapbook _) => 
                         throwUnhandledException
                             ? throw new Exception()
-                            : new Return(new Exception()).ToTask()
+                            : Task.FromException(new Exception())
                 ).Invoke;
 
-            var result = await nonCompletingRFunctions(param, param);
-            result.Failed.ShouldBe(true);
+            await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(param, param));
         }
         {
             var flag = new SyncedFlag();
@@ -268,11 +252,11 @@ public abstract class FailedTests
 
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
-            
-            (await rFunc(param, param)).Failed.ShouldBeTrue();
+
+            await Should.ThrowAsync<Exception>(() => rFunc(param, param));
         }
         
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(throwUnhandledException ? 1 : 0);
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         if (throwUnhandledException)
         {
             var errorJson = await store

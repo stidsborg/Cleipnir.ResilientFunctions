@@ -6,13 +6,40 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RFunc
 {
-    public delegate Task<Result<TReturn>> Invoke<in TParam, TReturn>(string functionInstanceId, TParam param)
+    public delegate Task<TReturn> Invoke<in TParam, TReturn>(string functionInstanceId, TParam param)
         where TParam : notnull;
 
-    public delegate Task<Result<TReturn>> ReInvoke<TReturn>(
+    public delegate Task<TReturn> ReInvoke<TReturn>(
         string functionInstanceId,
-        IEnumerable<Status> expectedStatuses
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch = null
     );
+    
+    public delegate void SyncPreInvoke<TParam>(Metadata<TParam> metadata)
+        where TParam : notnull;
+    public delegate void SyncPreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+    
+    public delegate Task PreInvoke<TParam>(Metadata<TParam> metadata)
+        where TParam : notnull;
+    public delegate Task PreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+    
+    public delegate Return<TReturn> SyncPostInvoke<TParam, TReturn>(Return<TReturn> returned, Metadata<TParam> metadata) 
+        where TParam : notnull;
+    public delegate Return<TReturn> SyncPostInvoke<TParam, TScrapbook, TReturn>(
+        Return<TReturn> returned, 
+        TScrapbook scrapbook, 
+        Metadata<TParam> metadata
+    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+    
+    public delegate Task<Return<TReturn>> PostInvoke<TParam, TReturn>(Return<TReturn> returned, Metadata<TParam> metadata) 
+        where TParam : notnull;
+    public delegate Task<Return<TReturn>> PostInvoke<TParam, TScrapbook, TReturn>(
+        Return<TReturn> returned, 
+        TScrapbook scrapbook, 
+        Metadata<TParam> metadata
+    ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RFunc<TParam, TReturn> where TParam : notnull

@@ -33,8 +33,12 @@ public static class Example
         var callApi = functions
             .Register<string, string>(
                 "call.api".ToFunctionTypeId(),
-                new ApiCaller(true, 1).CallApi,
-                onException: (exception, id, s) => Postpone.For(10)
+                s => new ApiCaller(true, 1).CallApi(s),
+                preInvoke: null, 
+                postInvoke: (returned, _) => 
+                    returned.Fail != null 
+                        ? Postpone.For(10, inProcessWait: false) 
+                        : returned
             ).Invoke;
 
         _ = callApi("input", "input"); //will fail

@@ -22,7 +22,7 @@ public static class Example
         ).Invoke;
 
         var offerDate = new DateOnly(2022, 1, 1);
-        var result = await rAction(
+        await rAction(
             functionInstanceId: offerDate.ToString(),
             param: new MailAndRecipients(
                 new[]
@@ -34,8 +34,7 @@ public static class Example
                 Content: "We have found these great offers for you!"
             )
         );
-
-        result.EnsureSuccess();
+        
         Console.WriteLine("Offers sent successfully");
     }
 }

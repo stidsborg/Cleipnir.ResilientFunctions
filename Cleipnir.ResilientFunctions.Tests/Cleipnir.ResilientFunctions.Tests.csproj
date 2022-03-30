@@ -20,4 +20,8 @@
       <ProjectReference Include="..\..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="MockTests" />
+    </ItemGroup>
+
 </Project>

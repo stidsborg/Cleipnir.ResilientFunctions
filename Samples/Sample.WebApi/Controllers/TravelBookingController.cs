@@ -21,8 +21,7 @@ public class TravelBookingController : ControllerBase, IRegisterRFuncOnInstantia
             FlightRequestId: Guid.NewGuid(),
             HotelRequestId: Guid.NewGuid()
         );
-        var result = await _bookingSaga.BookTravel.Invoke(order.Id.ToString(), orderAndRequestIds);
-        var booking = result.EnsureSuccess();
+        var booking = await _bookingSaga.BookTravel.Invoke(order.Id.ToString(), orderAndRequestIds);
         return booking;
     }
 }

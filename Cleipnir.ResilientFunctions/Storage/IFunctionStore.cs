@@ -49,11 +49,11 @@ public interface IFunctionStore
     {
         var sf = await GetFunction(functionId);
         if (sf == null)
-            throw new FunctionInvocationException(functionId, $"Function '{functionId}' not found");
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
         if (sf.Scrapbook == null)
-            throw new FunctionInvocationException(functionId, $"Function '{functionId}' does not have scrapbook");
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' does not have scrapbook");
         if (!expectedStatuses.Contains(sf.Status))
-            throw new FunctionInvocationException(functionId, $"Function '{functionId}' did not have expected status: '{sf.Status}'");
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{sf.Status}'");
         
         serializer ??= DefaultSerializer.Instance;
 
@@ -74,10 +74,7 @@ public interface IFunctionStore
         );
 
         if (!success)
-            throw new FunctionInvocationException(
-                functionId,
-                $"Unable to persist function '{functionId}' scrapbook due to concurrent modification"
-            );
+            throw new ConcurrentModificationException(functionId);
     }
 
     // ** GETTER ** //

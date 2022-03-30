@@ -35,7 +35,7 @@ public static class Example
 
         var firstRFunc = firstRFunctions.Register<int, string>(
             functionTypeId,
-            async Task<Return<string>>(param) =>
+            async Task<string>(param) =>
             {
                 await Task.Delay(1_000_000);
                 return param.ToString();
@@ -52,7 +52,7 @@ public static class Example
 
         var secondRFunc = secondRFunctions.Register<int, string>(
             functionTypeId,
-            Task<Return<string>>(param) => Succeed.WithValue(param.ToString()).ToTask()
+            Task<string>(param) => param.ToString().ToTask()
         ).Invoke;
         
         for (var i = 0; i < testSize; i++)
@@ -62,7 +62,7 @@ public static class Example
         
         for (var i = 0; i < testSize; i++)
         {
-            var result = await secondRFunc(i.ToString(), i).EnsureSuccess();
+            var result = await secondRFunc(i.ToString(), i);
             var success = int.TryParse(result, out var j);
             if (!success || i != j)
                 throw new Exception($"Expected: {i} Actual: {result}");

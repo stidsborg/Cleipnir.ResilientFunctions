@@ -70,10 +70,7 @@ public class Result<T>
         return Outcome switch
         {
             Outcome.Succeeded => SuccessResult!,
-            Outcome.Postponed => throw new PostponedFunctionInvocationException(
-                FunctionId,
-                $"Function '{FunctionId}' has been postponed until: '{PostponedUntil!.Value:O}'"
-            ),
+            Outcome.Postponed => throw new FunctionInvocationPostponedException(FunctionId, PostponedUntil!.Value),
             Outcome.Failed => throw FailedException!,
             _ => throw new ArgumentOutOfRangeException()
         };

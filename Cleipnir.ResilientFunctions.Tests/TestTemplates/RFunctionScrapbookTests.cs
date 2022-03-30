@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
         public async Task SunshineScenario(IFunctionStore store)
         {
             var functionTypeId = nameof(SunshineScenario).ToFunctionTypeId();
-            async Task<Return<string>> ToUpper(string s, Scrapbook scrapbook)
+            async Task<string> ToUpper(string s, Scrapbook scrapbook)
             {
                 var toReturn = s.ToUpper();
                 scrapbook.Scrap = toReturn;
@@ -33,7 +33,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
                     (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
                 ).Invoke;
 
-            var result = await rFunc("hello", "hello").EnsureSuccess();
+            var result = await rFunc("hello", "hello");
             result.ShouldBe("HELLO");
             
             var storedFunction = await store.GetFunction(

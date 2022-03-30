@@ -25,9 +25,6 @@ public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
         => ExceptionThrowingActionIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
-    public override Task UnhandledExceptionThrowingActionIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingActionIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
-
     [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());

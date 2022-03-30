@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
@@ -22,18 +23,31 @@ public abstract class UnhandledFuncExceptionTests
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions.Register<string, string>(
             functionType,
-            _ => throw new Exception("oh no"),
-            onException: (exception, _, _) =>
+            inner: _ => throw new Exception("oh no"),
+            preInvoke: null,
+            postInvoke: (returned, metadata) =>
             {
-                syncedException.Value = exception;
-                return Postpone.Until(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+                syncedException.Value = returned.Fail!;
+                return Postpone.Until(
+                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    inProcessWait: false
+                );
             }
         );
 
-        //invoke
-        var invokedResult = await rFunc.Invoke("1", "1");
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        FunctionInvocationPostponedException? thrownException = null;
+        try
+        {
+            await rFunc.Invoke("1", "1");
+        }
+        catch (FunctionInvocationPostponedException exception)
+        {
+            thrownException = exception;
+        }
+
+        thrownException.ShouldNotBeNull();
+        thrownException.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
 
@@ -46,9 +60,18 @@ public abstract class UnhandledFuncExceptionTests
         );
         
         //re-invoke
-        invokedResult = await rFunc.ReInvoke("1", new[] {Status.Postponed});
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        thrownException = null;
+        try
+        {
+            await rFunc.ReInvoke("1", new[] {Status.Postponed});
+        }
+        catch (FunctionInvocationPostponedException exception)
+        {
+            thrownException = exception;
+        }
+
+        thrownException.ShouldNotBeNull();
+        thrownException.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
     }
@@ -63,18 +86,31 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string, ListScrapbook<string>, string>(
             functionType,
             (_, _) => throw new Exception("oh no"),
-            onException: (exception, scrapbook, _, _) =>
+            preInvoke: null,
+            postInvoke: (returned, scrapbook, metadata) => 
             {
-                syncedException.Value = exception;
+                syncedException.Value = returned.Fail!;
                 scrapbook.List.Add("onException");
-                return Postpone.Until(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+                return Postpone.Until(
+                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    inProcessWait: false
+                );
             }
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1", "1");
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        FunctionInvocationPostponedException? thrownException = null;
+        try
+        {
+            await rFunc.Invoke("1", "1");
+        }
+        catch (FunctionInvocationPostponedException exception)
+        {
+            thrownException = exception;
+        }
+
+        thrownException.ShouldNotBeNull();
+        thrownException.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
@@ -100,9 +136,18 @@ public abstract class UnhandledFuncExceptionTests
             .ShouldBe("onException");
         
         //re-invoke
-        invokedResult = await rFunc.ReInvoke("1", new[] {Status.Postponed});
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        thrownException = null;
+        try
+        {
+            await rFunc.ReInvoke("1", new[] {Status.Postponed});
+        }
+        catch (FunctionInvocationPostponedException exception)
+        {
+            thrownException = exception;
+        }
+
+        thrownException.ShouldNotBeNull();
+        thrownException.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
@@ -123,17 +168,30 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string>(
             functionType,
             _ => throw new Exception("oh no"),
-            onException: (exception, _, _) =>
+            preInvoke: null,
+            postInvoke: (returned, metadata) =>
             {
-                syncedException.Value = exception;
-                return Postpone.Until(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+                syncedException.Value = returned.Fail!;
+                return Postpone.Until(
+                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    inProcessWait: false
+                );
             }
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1", "1");
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        var thrown = false;
+        try
+        {
+            await rFunc.Invoke("1", "1");
+        }
+        catch (FunctionInvocationPostponedException e)
+        {
+            e.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+            thrown = true;
+        } 
+        thrown.ShouldBeTrue();
+
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
 
@@ -146,9 +204,18 @@ public abstract class UnhandledFuncExceptionTests
         );
         
         //re-invoke
-        invokedResult = await rFunc.ReInvoke("1", new[] {Status.Postponed});
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        thrown = false;
+        try
+        {
+            await rFunc.ReInvoke("1", new[] {Status.Postponed});
+        }
+        catch (FunctionInvocationPostponedException e)
+        {
+            e.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+            thrown = true;
+        } 
+        thrown.ShouldBeTrue();
+        
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
     }
@@ -163,18 +230,31 @@ public abstract class UnhandledFuncExceptionTests
         var rFunc = rFunctions.Register<string, ListScrapbook<string>>(
             functionType,
             (_, _) => throw new Exception("oh no"),
-            onException: (exception, scrapbook, _, _) =>
+            preInvoke: null,
+            postInvoke: (returned, scrapbook, metadata) => 
             {
-                syncedException.Value = exception;
+                syncedException.Value = returned.Fail!;
                 scrapbook.List.Add("onException");
-                return Postpone.Until(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+                return Postpone.Until(
+                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    inProcessWait: false
+                );
             }
         );
 
         //invoke
-        var invokedResult = await rFunc.Invoke("1", "1");
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        var thrown = false;
+        try
+        {
+            await rFunc.Invoke("1", "1");
+        }
+        catch (FunctionInvocationPostponedException e)
+        {
+            e.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+            thrown = true;
+        }
+        thrown.ShouldBeTrue();
+        
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
@@ -200,9 +280,18 @@ public abstract class UnhandledFuncExceptionTests
             .ShouldBe("onException");
         
         //re-invoke
-        invokedResult = await rFunc.ReInvoke("1", new[] {Status.Postponed});
-        invokedResult.Postponed.ShouldBeTrue();
-        invokedResult.PostponedUntil!.Value.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        thrown = false;
+        try
+        {
+            await rFunc.ReInvoke("1", new[] {Status.Postponed});
+        }
+        catch (FunctionInvocationPostponedException e)
+        {
+            thrown = true;
+            e.PostponedUntil.ShouldBe(new DateTime(3000,1,1, 0, 0, 0, DateTimeKind.Utc));
+        }
+        thrown.ShouldBeTrue();
+        
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!

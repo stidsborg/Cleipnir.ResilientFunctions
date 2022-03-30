@@ -32,14 +32,14 @@ public static class Example
 
         var rFunc = rFunctions.Register<int, string>(
             functionTypeId: "stresstest",
-            inner: async Task<Return<string>>(int param) =>
+            inner: async Task<string>(int param) =>
             {
                 await Task.Delay(1);
                 return param.ToString();
             }
         ).Invoke;
 
-        var tasks = new List<Tuple<int, Task<Result<string>>>>();
+        var tasks = new List<Tuple<int, Task<string>>>();
         for (var i = 0; i < 10_000; i++)
         {
             var task = rFunc(i.ToString(), i);

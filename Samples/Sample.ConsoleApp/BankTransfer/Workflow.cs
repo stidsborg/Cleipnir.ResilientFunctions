@@ -18,7 +18,6 @@ public static class Workflow
             Guid.NewGuid(),
             100
         ); 
-        var result = await transferSaga.Perform(Guid.NewGuid().ToString(), transfer);
-        result.EnsureSuccess();
+        await transferSaga.Perform(Guid.NewGuid().ToString(), transfer);
     }
 }

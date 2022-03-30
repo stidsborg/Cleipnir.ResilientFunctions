@@ -37,21 +37,19 @@ public abstract class ScheduleReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
 
                 syncedParameter.Value = s;
-                return Succeed.WithoutValue;
             }
         );
 
-        var result = await rFunc.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
         await rFunc.ScheduleReInvocation(
-            "something",
-            new[] {Status.Failed}
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Failed},
+            expectedEpoch: null
         );
 
         var functionId = new FunctionId(functionType, "something");
@@ -91,17 +89,14 @@ public abstract class ScheduleReInvocationTests
                     scrapbook.List.Add("hello");
                     await scrapbook.Save();
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
                 scrapbook.List.Add("world");
-                return Succeed.WithoutValue;
             }
         );
 
-        var result = await rAction.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
+
         var syncedListFromScrapbook = new Synced<List<string>>();
         await store.UpdateScrapbook<ListScrapbook<string>>(
             new FunctionId(functionType, "something"),
@@ -114,8 +109,9 @@ public abstract class ScheduleReInvocationTests
         );
         
         await rAction.ScheduleReInvocation(
-            "something",
-            new[] {Status.Failed}
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Failed},
+            expectedEpoch: null
         ); 
         
         var functionId = new FunctionId(functionType, "something");
@@ -154,19 +150,18 @@ public abstract class ScheduleReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
                 return s;
             }
         );
 
-        var result = await rFunc.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
         await rFunc.ScheduleReInvocation(
-            "something",
-            new[] {Status.Failed}
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Failed},
+            expectedEpoch: null
         );
 
         var functionId = new FunctionId(functionType, "something");
@@ -205,17 +200,15 @@ public abstract class ScheduleReInvocationTests
                     scrapbook.List.Add("hello");
                     await scrapbook.Save();
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
                 scrapbook.List.Add("world");
                 return param;
             }
         );
 
-        var result = await rFunc.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
         var scrapbookList = new Synced<List<string>>();
 
         await store.UpdateScrapbook<ListScrapbook<string>>(
@@ -229,8 +222,9 @@ public abstract class ScheduleReInvocationTests
         );
             
         await rFunc.ScheduleReInvocation(
-            "something",
-            new[] {Status.Failed}
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Failed},
+            expectedEpoch: null
         );
 
         var functionId = new FunctionId(functionType, "something");
@@ -262,13 +256,17 @@ public abstract class ScheduleReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Return(new Exception("oh no")).ToTask()
+            _ => Task.FromException(new Exception("oh no"))
         );
-        
-        await rFunc.Invoke("something", "something");
 
-        await Should.ThrowAsync<FunctionInvocationException>(() =>
-            rFunc.ScheduleReInvocation("something", new[] {Status.Executing})
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
+        await Should.ThrowAsync<UnexpectedFunctionState>(() =>
+            rFunc.ScheduleReInvocation(
+                functionInstanceId: "something", 
+                expectedStatuses: new[] {Status.Executing},
+                expectedEpoch: null
+            )
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -289,11 +287,15 @@ public abstract class ScheduleReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Return(new Exception("oh no")).ToTask()
+            _ => Task.FromException(new Exception("oh no"))
         );
 
-        await Should.ThrowAsync<FunctionInvocationException>(() =>
-            rFunc.ScheduleReInvocation("something", new[] {Status.Executing})
+        await Should.ThrowAsync<UnexpectedFunctionState>(() =>
+            rFunc.ScheduleReInvocation(
+                functionInstanceId: "something", 
+                expectedStatuses: new[] {Status.Executing},
+                expectedEpoch: null
+            )
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

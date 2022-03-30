@@ -35,7 +35,7 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 (Param p) =>
                 {
-                    paramTcs.TrySetResult(p);
+                    Task.Run(() => paramTcs.TrySetResult(p));
                     return NeverCompletingTask.OfType<Return<string>>();
                 }
             ).Invoke;
@@ -65,9 +65,11 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 (Param p) =>
                 {
-                    paramTcs.TrySetResult(p);
-                    return new Return<string>(new DateTime().ToUniversalTime().AddMilliseconds(10)).ToTask();
-                }
+                    Task.Run(() => paramTcs.TrySetResult(p));
+                    return "".ToTask();
+                }, 
+                preInvoke: null,
+                postInvoke: (returned, metadata) => Postpone.For(10, inProcessWait: false)
             );
 
             await afterNextSetFunctionState;
@@ -88,7 +90,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return NeverCompletingTask.OfType<Return<string>>();
+                    return NeverCompletingTask.OfType<string>();
                 }
             );
 
@@ -106,7 +108,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = rFunctions.Register(
                 functionTypeId,
-                (Param p) => Succeed.WithValue($"{p.Id}-{p.Value}").ToTask()
+                (Param p) => $"{p.Id}-{p.Value}".ToTask()
             );
 
             await BusyWait.Until(async () =>
@@ -137,14 +139,12 @@ public abstract class WatchdogCompoundTests
             );
             var rFunc = rFunctions.Register(
                 functionTypeId,
-                (Param p, Scrapbook scrapbook) =>
+                async (Param p, Scrapbook scrapbook) =>
                 {
                     scrapbook.Scraps.Add(1);
-                    return scrapbook
-                        .Save()
-                        .ContinueWith(_ => paramTcs.TrySetResult(p))
-                        .ContinueWith(_ => NeverCompletingTask.OfType<Return<string>>())
-                        .Unwrap();
+                    await scrapbook.Save();
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
+                    await NeverCompletingTask.OfType<string>();
                 }
             ).Invoke;
 
@@ -174,11 +174,12 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
-                    paramTcs.TrySetResult(p);
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
-                    return Postpone.For(10);
-                }
+                }, 
+                preInvoke: null,
+                postInvoke: (_, _, _) => Postpone.For(10, inProcessWait: false)
             );
             
             await afterNextPostponedSetFunctionState;
@@ -197,15 +198,12 @@ public abstract class WatchdogCompoundTests
             );
             _ = rFunctions.Register(
                 functionTypeId,
-                (Param p, Scrapbook scrapbook) =>
+                async (Param p, Scrapbook scrapbook) =>
                 {
                     scrapbook.Scraps.Add(3);
-                    var savedTask = scrapbook.Save();
-                    return savedTask.ContinueWith(_ =>
-                    {
-                        Task.Run(() => paramTcs.TrySetResult(p));
-                        return NeverCompletingTask.OfType<Return<string>>();
-                    }).Unwrap();
+                    await scrapbook.Save();
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
+                    await NeverCompletingTask.OfType<string>();
                 }
             );
 
@@ -226,7 +224,7 @@ public abstract class WatchdogCompoundTests
                 {
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
-                    return Succeed.WithValue($"{p.Id}-{p.Value}");
+                    return $"{p.Id}-{p.Value}";
                 }
             );
 
@@ -268,7 +266,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     tcs.TrySetResult(p);
-                    return NeverCompletingTask.OfType<Return>();
+                    return NeverCompletingTask.OfVoidType();
                 }
             ).Invoke;
             
@@ -295,9 +293,11 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 (Param p) =>
                 {
-                    paramTcs.TrySetResult(p);
-                    return new Return(DateTime.UtcNow.AddMilliseconds(10)).ToTask();
-                }
+                    Task.Run(() => paramTcs.TrySetResult(p));
+                    return Task.CompletedTask;
+                },
+                preInvoke: null,
+                postInvoke: (_, _) => Postpone.For(10, inProcessWait: false)
             );
 
             await afterSetFunctionState;
@@ -318,9 +318,9 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 (Param p) =>
                 {
-                    paramTcs.TrySetResult(p);
+                    Task.Run(() => paramTcs.TrySetResult(p));
                     Task.Run(invocationStarted.SetResult);
-                    return NeverCompletingTask.OfType<Return>();
+                    return NeverCompletingTask.OfVoidType();
                 }
             );
 
@@ -341,8 +341,8 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 (Param p) =>
                 {
-                    paramTcs.TrySetResult(p);
-                    return Succeed.WithoutValue.ToTask();
+                    Task.Run(() => paramTcs.TrySetResult(p));
+                    return Task.CompletedTask;
                 }
             );
             
@@ -376,14 +376,12 @@ public abstract class WatchdogCompoundTests
             );
             var rFunc = rFunctions.Register(
                 functionTypeId,
-                (Param p, Scrapbook scrapbook) =>
+                async (Param p, Scrapbook scrapbook) =>
                 {
                     scrapbook.Scraps.Add(1);
-                    return scrapbook
-                        .Save()
-                        .ContinueWith(_ => Task.Run(() => paramTcs.TrySetResult(p)))
-                        .ContinueWith(_ => NeverCompletingTask.OfType<Return>())
-                        .Unwrap();
+                    await scrapbook.Save();
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
+                    await NeverCompletingTask.OfVoidType();
                 }
             ).Invoke;
 
@@ -412,11 +410,12 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
-                    paramTcs.TrySetResult(p);
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
-                    return Postpone.For(10);
-                }
+                }, 
+                preInvoke: null,
+                postInvoke: (_, _, _) => Postpone.For(10, inProcessWait: false)
             );
             
             await afterNextPostponed;
@@ -436,16 +435,14 @@ public abstract class WatchdogCompoundTests
             );
             _ = rFunctions.Register(
                 functionTypeId,
-                (Param p, Scrapbook scrapbook) =>
+                async (Param p, Scrapbook scrapbook) =>
                 {
                     scrapbook.Scraps.Add(3);
                     var savedTask = scrapbook.Save();
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    return savedTask.ContinueWith(_ =>
-                    {
-                        Task.Run(invocationStarted.SetResult);
-                        return NeverCompletingTask.OfType<Return>();
-                    }).Unwrap();
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
+                    _ = Task.Run(() => invocationStarted.SetResult());
+                    await savedTask;
+                    await NeverCompletingTask.OfVoidType();
                 }
             );
             
@@ -465,10 +462,9 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
-                    paramTcs.TrySetResult(p);
+                    _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
-                    return Succeed.WithoutValue;
                 }
             );
 

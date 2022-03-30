@@ -14,7 +14,7 @@ public class MonitorExample
     {
         await using var @lock = await Monitor.Acquire(lockId: nameof(UpdateSubscription), keyId: rFuncId);
         if (@lock == null)
-            return Postpone.For(10_000);
+            return Postpone.For(10_000, inProcessWait: true);
 
         await ResourceApi1.SetValue(resourceId, value);
         await ResourceApi2.SetValue(resourceId, value);

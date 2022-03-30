@@ -6,12 +6,33 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RAction
 {
-    public delegate Task<Result> Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
+    public delegate Task Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
 
-    public delegate Task<Result> ReInvoke(
+    public delegate Task ReInvoke(
         string functionInstanceId,
-        IEnumerable<Status> expectedStatuses
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch = null
     );
+
+    public delegate void SyncPreInvoke<TParam>(Metadata<TParam> metadata)
+        where TParam : notnull;
+    public delegate void SyncPreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+    
+    public delegate Task PreInvoke<TParam>(Metadata<TParam> metadata)
+        where TParam : notnull;
+    public delegate Task PreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+
+    public delegate Return SyncPostInvoke<TParam>(Return returned, Metadata<TParam> metadata)
+        where TParam : notnull;
+    public delegate Return SyncPostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+    
+    public delegate Task<Return> PostInvoke<TParam>(Return returned, Metadata<TParam> metadata)
+        where TParam : notnull;
+    public delegate Task<Return> PostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RAction<TParam> where TParam : notnull

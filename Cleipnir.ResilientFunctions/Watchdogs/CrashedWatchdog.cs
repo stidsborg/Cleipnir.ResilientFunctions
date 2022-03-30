@@ -8,39 +8,32 @@ using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
 internal class CrashedWatchdog : IDisposable
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly WatchdogFunc _watchdogFunc;
-
+    private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly IFunctionStore _functionStore;
-
     private readonly TimeSpan _checkFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly WatchdogFuncInvoker _watchdogFuncInvoker;
-        
     private volatile bool _disposed;
     private volatile bool _executing;
 
     public CrashedWatchdog(
         FunctionTypeId functionTypeId,
-        WatchdogFunc watchdogFunc,
         IFunctionStore functionStore,
-        WatchdogFuncInvoker watchdogFuncInvoker,
+        WatchDogReInvokeFunc reInvoke,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
-        _watchdogFunc = watchdogFunc;
+        _reInvoke = reInvoke;
         _checkFrequency = checkFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _watchdogFuncInvoker = watchdogFuncInvoker;
         _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
 
@@ -76,17 +69,19 @@ internal class CrashedWatchdog : IDisposable
                 foreach (var function in hangingFunctions.RandomlyPermutate())
                 {
                     if (_disposed) return;
-                        
-                    var functionId = new FunctionId(_functionTypeId, function.InstanceId);
-                    var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction?.Status != Status.Executing || function.Epoch != storedFunction.Epoch) continue;
 
                     try
                     {
-                        await _watchdogFuncInvoker.ReInvoke(functionId, storedFunction, _watchdogFunc);
+                        await _reInvoke(
+                            function.InstanceId,
+                            expectedStatuses: new[] { Status.Executing },
+                            expectedEpoch: function.Epoch
+                        );
                     }
-                    catch (Exception innerException)
+                    catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
+                    catch (Exception innerException) 
                     {
+                        var functionId = new FunctionId(_functionTypeId, function.InstanceId);
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
                                 _functionTypeId,
@@ -100,13 +95,13 @@ internal class CrashedWatchdog : IDisposable
                 prevExecutingFunctions = currExecutingFunctions;
             }
         }
-        catch (Exception innerException)
+        catch (Exception thrownException)
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
                     $"{nameof(CrashedWatchdog)} failed while executing: '{_functionTypeId}'",
-                    innerException
+                    innerException: thrownException
                 )
             );
         }

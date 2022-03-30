@@ -6,38 +6,31 @@ using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Watchdogs.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
 internal class PostponedWatchdog : IDisposable
 {
     private readonly IFunctionStore _functionStore;
-    private readonly WatchdogFuncInvoker _watchdogFuncInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-        
-    private readonly WatchdogFunc _watchdogFunc;
-
+    private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
     private volatile bool _disposed;
     private volatile bool _executing;
 
     public PostponedWatchdog(
-        FunctionTypeId functionTypeId, 
-        WatchdogFunc watchdogFunc,
-        IFunctionStore functionStore, 
-        WatchdogFuncInvoker watchdogFuncInvoker,
+        FunctionTypeId functionTypeId,
+        IFunctionStore functionStore,
+        WatchDogReInvokeFunc reInvoke,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator
-    )
+        ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
-        _watchdogFuncInvoker = watchdogFuncInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _watchdogFunc = watchdogFunc;
+        _reInvoke = reInvoke;
         _checkFrequency = checkFrequency;
         _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
@@ -63,16 +56,18 @@ internal class PostponedWatchdog : IDisposable
                 {
                     if (_disposed) return;
 
-                    var functionId = new FunctionId(_functionTypeId, expired.InstanceId);
-                    var storedFunction = await _functionStore.GetFunction(functionId);
-                    if (storedFunction?.Status != Status.Postponed || expired.Epoch != storedFunction.Epoch) continue;
-
                     try
                     {
-                        await _watchdogFuncInvoker.ReInvoke(functionId, storedFunction, _watchdogFunc);
+                        await _reInvoke(
+                            expired.InstanceId,
+                            expectedStatuses: new[] {Status.Postponed},
+                            expectedEpoch: expired.Epoch
+                        );
                     }
+                    catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
                     catch (Exception innerException)
                     {
+                        var functionId = new FunctionId(_functionTypeId, expired.InstanceId);
                         _unhandledExceptionHandler.Invoke(
                             new FrameworkException(
                                 _functionTypeId,

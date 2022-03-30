@@ -37,24 +37,20 @@ public abstract class ReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
 
                 syncedParameter.Value = s;
-                return Succeed.WithoutValue;
             }
         );
 
-        var result = await rFunc.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
-        result = await rFunc.ReInvoke(
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
+        await rFunc.ReInvoke(
             "something",
             new[] {Status.Failed}
         );
-
-        result.EnsureSuccess();
+        
         syncedParameter.Value.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
@@ -87,17 +83,14 @@ public abstract class ReInvocationTests
                     scrapbook.List.Add("hello");
                     await scrapbook.Save();
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
                 scrapbook.List.Add("world");
-                return Succeed.WithoutValue;
             }
         );
 
-        var result = await rAction.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
+
         var syncedListFromScrapbook = new Synced<List<string>>();
         await store.UpdateScrapbook<ListScrapbook<string>>(
             new FunctionId(functionType, "something"),
@@ -109,12 +102,10 @@ public abstract class ReInvocationTests
             expectedStatuses: new [] {Status.Failed}
         );
         
-        result = await rAction.ReInvoke(
+        await rAction.ReInvoke(
             "something",
             new[] {Status.Failed}
         );
-
-        result.EnsureSuccess();
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -147,22 +138,18 @@ public abstract class ReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
                 return s;
             }
         );
 
-        var result = await rFunc.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
         
-        result = await rFunc.ReInvoke(
+        await rFunc.ReInvoke(
             "something",
             new[] {Status.Failed}
         );
-
-        result.EnsureSuccess().ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -195,17 +182,15 @@ public abstract class ReInvocationTests
                     scrapbook.List.Add("hello");
                     await scrapbook.Save();
                     flag.Raise();
-                    return Fail.WithException(new Exception("oh no"));
+                    throw new Exception("oh no");
                 }
                 scrapbook.List.Add("world");
                 return param;
             }
         );
 
-        var result = await rFunc.Invoke("something", "something");
-        result.FailedException.ShouldNotBeNull();
-        result.FailedException.ShouldBeOfType<Exception>();
-        
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
         var scrapbookList = new Synced<List<string>>();
 
         await store.UpdateScrapbook<ListScrapbook<string>>(
@@ -218,12 +203,12 @@ public abstract class ReInvocationTests
             new [] {Status.Failed}
         );
             
-        result = await rFunc.ReInvoke(
+        var result = await rFunc.ReInvoke(
             "something",
             new[] {Status.Failed}
         );
-
-        result.EnsureSuccess().ShouldBe("something");
+        
+        result.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -250,12 +235,12 @@ public abstract class ReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Return(new Exception("oh no")).ToTask()
+            _ => Task.FromException(new Exception("oh no"))
         );
-        
-        await rFunc.Invoke("something", "something");
 
-        await Should.ThrowAsync<FunctionInvocationException>(() =>
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
+        await Should.ThrowAsync<Exception>(() =>
             rFunc.ReInvoke("something", new[] {Status.Executing})
         );
 
@@ -277,10 +262,10 @@ public abstract class ReInvocationTests
 
         var rFunc = rFunctions.Register<string>(
             functionType,
-            _ => new Return(new Exception("oh no")).ToTask()
+            _ => Task.FromException(new Exception("oh no"))
         );
 
-        await Should.ThrowAsync<FunctionInvocationException>(() =>
+        await Should.ThrowAsync<Exception>(() =>
             rFunc.ReInvoke("something", new[] {Status.Executing})
         );
 

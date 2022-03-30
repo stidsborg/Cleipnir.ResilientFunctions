@@ -22,13 +22,9 @@ public abstract class ExceptionHandlingTests
             "typeId".ToFunctionTypeId(),
             param => throw new ArithmeticException("Division by zero")
         ).Invoke;
-
-        var result = await rFunc("instanceId", "hello");
-        Should.Throw<ArithmeticException>(result.EnsureSuccess);
-
-        result = await rFunc("instanceId", "hello");
-
-        Should.Throw<PreviousFunctionInvocationException>(result.EnsureSuccess);
+        
+        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook();
@@ -42,13 +38,9 @@ public abstract class ExceptionHandlingTests
             "typeId".ToFunctionTypeId(),
             (param, scrapbook) => throw new ArithmeticException("Division by zero")
         ).Invoke;
-
-        var result = await rFunc("instanceId", "hello");
-        Should.Throw<ArithmeticException>(result.EnsureSuccess);
-
-        result = await rFunc("instanceId", "hello");
-
-        Should.Throw<PreviousFunctionInvocationException>(result.EnsureSuccess);
+        
+        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction();
@@ -62,13 +54,9 @@ public abstract class ExceptionHandlingTests
             "typeId".ToFunctionTypeId(),
             param => throw new ArithmeticException("Division by zero")
         ).Invoke;
-
-        var result = await rFunc("instanceId", "hello");
-        Should.Throw<ArithmeticException>(result.EnsureSuccess);
-
-        result = await rFunc("instanceId", "hello");
-
-        Should.Throw<PreviousFunctionInvocationException>(result.EnsureSuccess);
+        
+        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook();
@@ -82,12 +70,8 @@ public abstract class ExceptionHandlingTests
             "typeId".ToFunctionTypeId(),
             param => throw new ArithmeticException("Division by zero")
         ).Invoke;
-
-        var result = await rFunc("instanceId", "hello");
-        Should.Throw<ArithmeticException>(result.EnsureSuccess);
-
-        result = await rFunc("instanceId", "hello");
-
-        Should.Throw<PreviousFunctionInvocationException>(result.EnsureSuccess);
+        
+        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 }

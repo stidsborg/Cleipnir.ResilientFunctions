@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -27,11 +29,12 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => new Return<string>(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
+                    (string _) => _.ToTask(),
+                    preInvoke: null,
+                    postInvoke: (_, _) => Postpone.For(1, inProcessWait: false)
                 ).Invoke;
 
-            var result = await rFunc(param, param);
-            result.Postponed.ShouldBeTrue();
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -45,12 +48,12 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => Succeed.WithValue(s.ToUpper()).ToTask()
+                    (string s) => s.ToUpper().ToTask()
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
-            await rFunc(param, param).EnsureSuccess().ShouldBeAsync("TEST");
+            await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
@@ -72,11 +75,12 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => new Return<string>(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
+                    (string p, Scrapbook _) => p.ToTask(),
+                    preInvoke: null,
+                    postInvoke: (_, _, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), false)
                 ).Invoke;
 
-            var result = await rFunc(param, param);
-            result.Postponed.ShouldBeTrue();
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -94,7 +98,7 @@ public abstract class PostponedTests
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
-                        return Succeed.WithValue(s.ToUpper());
+                        return s.ToUpper();
                     }
                 ).Invoke;
 
@@ -106,7 +110,7 @@ public abstract class PostponedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             
-            await rFunc(param, param).EnsureSuccess().ShouldBeAsync("TEST");
+            await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
@@ -128,11 +132,12 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _) => new Return(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
+                    (string _) => Task.CompletedTask,
+                    preInvoke: null,
+                    postInvoke: (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false)
                 ).Invoke;
 
-            var result = await rAction(param, param);
-            result.Postponed.ShouldBeTrue();
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -146,13 +151,12 @@ public abstract class PostponedTests
             var rFunc = rFunctions
                 .Register(
                     functionTypeId,
-                    (string s) => Succeed.WithValue(s.ToUpper()).ToTask()
+                    (string s) => s.ToUpper().ToTask()
                 ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
-            var result = await rFunc(param, param);
-            result.Succeeded.ShouldBeTrue();
+            await rFunc(param, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
@@ -174,11 +178,12 @@ public abstract class PostponedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => new Return(DateTime.UtcNow.AddMilliseconds(1)).ToTask()
+                    (string _, Scrapbook _) => Task.CompletedTask, 
+                    preInvoke: null,
+                    postInvoke: (_, _, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false)
                 ).Invoke;
 
-            var result = await rFunc(param, param);
-            result.Postponed.ShouldBeTrue();
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -196,7 +201,6 @@ public abstract class PostponedTests
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
-                        return Succeed.WithoutValue;
                     }
                 ).Invoke;
 
@@ -208,8 +212,7 @@ public abstract class PostponedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
 
-            var result = await rFunc(param, param);
-            result.Succeeded.ShouldBe(true);
+            await rFunc(param, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }

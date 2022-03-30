@@ -18,7 +18,7 @@ public class RFunctions : IDisposable
 {
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
 
-    private readonly IFunctionStore _functionStore;
+    private readonly IFunctionStore _functionFunctionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly WatchDogsFactory _watchDogsFactory;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -29,7 +29,7 @@ public class RFunctions : IDisposable
     private readonly object _sync = new();
     
     public RFunctions(
-        IFunctionStore store,
+        IFunctionStore functionStore,
         Action<RFunctionException>? unhandledExceptionHandler = null,
         TimeSpan? crashedCheckFrequency = null,
         TimeSpan? postponedCheckFrequency = null
@@ -41,21 +41,20 @@ public class RFunctions : IDisposable
         var shutdownCoordinator = new ShutdownCoordinator();
             
         var signOfLifeUpdaterFactory = new SignOfLifeUpdaterFactory(
-            store,
+            functionStore,
             exceptionHandler,
             crashedCheckFrequency.Value
         );
 
         var watchdogsFactory = new WatchDogsFactory(
-            store,
-            signOfLifeUpdaterFactory,
+            functionStore,
             crashedCheckFrequency.Value,
             postponedCheckFrequency.Value,
             exceptionHandler,
             shutdownCoordinator
         );
 
-        _functionStore = store;
+        _functionFunctionStore = functionStore;
         _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
         _watchDogsFactory = watchdogsFactory;
         _unhandledExceptionHandler = exceptionHandler;
@@ -63,10 +62,37 @@ public class RFunctions : IDisposable
     }
 
     public RFunc<TParam, TReturn> Register<TParam, TReturn>(
+        FunctionTypeId functionTypeId, InnerFunc<TParam, TReturn> inner
+    ) where TParam : notnull 
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    
+    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TReturn> inner,
-        ISerializer? serializer = null,
-        OnFuncException<TParam, TReturn>? onException = null
+        ISerializer? serializer
+    ) where TParam : notnull
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
+
+    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TReturn> inner,
+        RFunc.SyncPreInvoke<TParam>? preInvoke,
+        RFunc.SyncPostInvoke<TParam, TReturn>? postInvoke,
+        ISerializer? serializer = null
+    ) where TParam : notnull => Register(
+        functionTypeId,
+        inner,
+        CommonInvoker.SyncedFuncPreInvoke(preInvoke),
+        CommonInvoker.SyncedFuncPostInvoke(postInvoke),
+        serializer
+    );
+    
+    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TReturn> inner,
+        RFunc.PreInvoke<TParam>? preInvoke,
+        RFunc.PostInvoke<TParam, TReturn>? postInvoke,
+        ISerializer? serializer = null
     ) where TParam : notnull
     {
         if (_disposed)
@@ -82,32 +108,26 @@ public class RFunctions : IDisposable
             }
 
             serializer ??= DefaultSerializer.Instance;
-                
-            _watchDogsFactory.CreateAndStart(
-                functionTypeId,
-                serializer,
-                watchdogFunc: async (param, _) =>
-                {
-                    var @return = await inner((TParam) param);
-                    return @return.Intent switch
-                    {
-                        Intent.Succeed => new Return<object?>(@return.SucceedWithValue),
-                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
-                        Intent.Fail => new Return<object?>(@return.Fail!),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
-            );
 
-            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(
+                serializer,
+                _functionFunctionStore,
+                _shutdownCoordinator,
+                _signOfLifeUpdaterFactory
+            );
+            
             var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _signOfLifeUpdaterFactory, 
-                _shutdownCoordinator,
                 _unhandledExceptionHandler,
-                onException
+                preInvoke,
+                postInvoke
+            );
+            
+            _watchDogsFactory.CreateAndStart(
+                functionTypeId,
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch)
             );
 
             var registration = new RFunc<TParam, TReturn>(
@@ -120,12 +140,39 @@ public class RFunctions : IDisposable
             return registration;
         }
     }
+
+    public RAction<TParam> Register<TParam>(FunctionTypeId functionTypeId, InnerAction<TParam> inner) 
+        where TParam : notnull
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    
+    public RAction<TParam> Register<TParam>(
+        FunctionTypeId functionTypeId,
+        InnerAction<TParam> inner,
+        ISerializer? serializer
+    ) where TParam : notnull
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
+
+    public RAction<TParam> Register<TParam>(
+        FunctionTypeId functionTypeId,
+        InnerAction<TParam> inner,
+        RAction.SyncPreInvoke<TParam>? preInvoke,
+        RAction.SyncPostInvoke<TParam>? postInvoke,
+        ISerializer? serializer = null
+    ) where TParam : notnull
+        => Register(
+            functionTypeId,
+            inner,
+            CommonInvoker.SyncedActionPreInvoke(preInvoke),
+            CommonInvoker.SyncedActionPostInvoke(postInvoke),
+            serializer
+        );
         
     public RAction<TParam> Register<TParam>(
         FunctionTypeId functionTypeId,
         InnerAction<TParam> inner,
-        ISerializer? serializer = null,
-        OnActionException<TParam>? onException = null
+        RAction.PreInvoke<TParam>? preInvoke,
+        RAction.PostInvoke<TParam>? postInvoke,
+        ISerializer? serializer = null
     ) where TParam : notnull 
     {
         if (_disposed)
@@ -140,33 +187,27 @@ public class RFunctions : IDisposable
                 return r;
             }
             serializer ??= DefaultSerializer.Instance;
-                
-            _watchDogsFactory.CreateAndStart(
-                functionTypeId,
-                serializer,
-                watchdogFunc: async (param, _) =>
-                {
-                    var @return = await inner((TParam) param);
-                    return @return.Intent switch
-                    {
-                        Intent.Succeed => new Return<object?>(succeedWithValue: null),
-                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
-                        Intent.Fail => new Return<object?>(@return.Fail!),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                });
 
-            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(
+                serializer,
+                _functionFunctionStore,
+                _shutdownCoordinator,
+                _signOfLifeUpdaterFactory
+            );
             var rActionInvoker = new RActionInvoker<TParam>(
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _signOfLifeUpdaterFactory,
-                _shutdownCoordinator,
-                _unhandledExceptionHandler, 
-                onException
+                _unhandledExceptionHandler,
+                preInvoke,
+                postInvoke
             );
-                
+
+            _watchDogsFactory.CreateAndStart(
+                functionTypeId,
+                reInvoke: (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch)
+            );
+
             var registration =  new RAction<TParam>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
@@ -179,10 +220,38 @@ public class RFunctions : IDisposable
     }
 
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId, InnerFunc<TParam, TScrapbook, TReturn> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    
+    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TScrapbook, TReturn> inner,
-        ISerializer? serializer = null,
-        OnFuncException<TParam, TScrapbook, TReturn>? onException = null
+        ISerializer? serializer
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
+    
+    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TScrapbook, TReturn> inner,
+        RFunc.SyncPreInvoke<TParam, TScrapbook>? preInvoke,
+        RFunc.SyncPostInvoke<TParam, TScrapbook, TReturn>? postInvoke,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(
+            functionTypeId,
+            inner,
+            CommonInvoker.SyncedFuncPreInvoke(preInvoke),
+            CommonInvoker.SyncedFuncPostInvoke(postInvoke),
+            serializer
+        );
+    
+    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TScrapbook, TReturn> inner,
+        RFunc.PreInvoke<TParam, TScrapbook>? preInvoke,
+        RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke,
+        ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
@@ -198,33 +267,27 @@ public class RFunctions : IDisposable
             }
 
             serializer ??= DefaultSerializer.Instance;
-                
-            _watchDogsFactory.CreateAndStart(
-                functionTypeId,
-                serializer,
-                watchdogFunc: async (param, scrapbook) =>
-                {
-                    var @return = await inner((TParam) param, (TScrapbook) scrapbook!);
-                    return @return.Intent switch
-                    {
-                        Intent.Succeed => new Return<object?>(@return.SucceedWithValue),
-                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
-                        Intent.Fail => new Return<object?>(@return.Fail!),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                });
 
-            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(
+                serializer,
+                _functionFunctionStore,
+                _shutdownCoordinator,
+                _signOfLifeUpdaterFactory
+            );
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _signOfLifeUpdaterFactory, 
-                _shutdownCoordinator,
                 _unhandledExceptionHandler,
-                onException
+                preInvoke,
+                postInvoke
             );
-                
+
+            _watchDogsFactory.CreateAndStart(
+                functionTypeId,
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch)
+            );
+
             var registration = new RFunc<TParam, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
@@ -235,12 +298,40 @@ public class RFunctions : IDisposable
             return registration;
         }
     }
-        
+    
+    public RAction<TParam> Register<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId, InnerAction<TParam, TScrapbook> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    
     public RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         InnerAction<TParam, TScrapbook> inner,
-        ISerializer? serializer = null,
-        OnActionException<TParam, TScrapbook>? onException = null
+        ISerializer? serializer
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
+
+    public RAction<TParam> Register<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        InnerAction<TParam, TScrapbook> inner,
+        RAction.SyncPreInvoke<TParam, TScrapbook>? preInvoke,
+        RAction.SyncPostInvoke<TParam, TScrapbook>? postInvoke,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(
+            functionTypeId,
+            inner,
+            CommonInvoker.SyncedActionPreInvoke(preInvoke),
+            CommonInvoker.SyncedActionPostInvoke(postInvoke),
+            serializer
+        );
+    
+    public RAction<TParam> Register<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        InnerAction<TParam, TScrapbook> inner,
+        RAction.PreInvoke<TParam, TScrapbook>? preInvoke,
+        RAction.PostInvoke<TParam, TScrapbook>? postInvoke,
+        ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
@@ -257,33 +348,26 @@ public class RFunctions : IDisposable
             
             serializer ??= DefaultSerializer.Instance;
 
-            _watchDogsFactory.CreateAndStart(
-                functionTypeId,
+            var commonInvoker = new CommonInvoker(
                 serializer,
-                watchdogFunc: async (param, scrapbook) =>
-                {
-                    var @return = await inner((TParam) param, (TScrapbook) scrapbook!);
-                    return @return.Intent switch
-                    {
-                        Intent.Succeed => new Return<object?>(succeedWithValue: null),
-                        Intent.Postpone => new Return<object?>(@return.Postpone!.Value),
-                        Intent.Fail => new Return<object?>(@return.Fail!),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
+                _functionFunctionStore,
+                _shutdownCoordinator,
+                _signOfLifeUpdaterFactory
             );
-
-            var commonInvoker = new CommonInvoker(serializer, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _signOfLifeUpdaterFactory, 
-                _shutdownCoordinator,
                 _unhandledExceptionHandler, 
-                onException
+                preInvoke,
+                postInvoke
             );
-                
+            
+            _watchDogsFactory.CreateAndStart(
+                functionTypeId,
+                (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch)
+            );
+
             var registration = new RAction<TParam>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,

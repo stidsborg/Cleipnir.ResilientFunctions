@@ -19,7 +19,7 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioFunc).ToFunctionTypeId();
-        async Task<Return<string>> ToUpper(string s)
+        async Task<string> ToUpper(string s)
         {
             await Task.Delay(10);
             return s.ToUpper();
@@ -35,8 +35,7 @@ public abstract class SunshineTests
                 (string s) => ToUpper(s)
             ).Invoke;
 
-        var rResult = await rFunc("hello", "hello");
-        var result = rResult.SuccessResult;
+        var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
             
         var storedFunction = await store.GetFunction(
@@ -59,7 +58,7 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioFuncWithScrapbook).ToFunctionTypeId();
-        async Task<Return<string>> ToUpper(string s, Scrapbook scrapbook)
+        async Task<string> ToUpper(string s, Scrapbook scrapbook)
         {
             await scrapbook.Save();
             return s.ToUpper();
@@ -74,8 +73,7 @@ public abstract class SunshineTests
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
             ).Invoke;
 
-        var rResult = await rFunc("hello", "hello");
-        var result = rResult.SuccessResult;
+        var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
             
         var storedFunction = await store.GetFunction(
@@ -98,24 +96,17 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioAction).ToFunctionTypeId();
-        async Task<Return> ToUpper(string _)
-        {
-            await Task.Delay(10);
-            return Succeed.WithoutValue;
-        }
-
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rAction = rFunctions
             .Register(
                 functionTypeId,
-                (string s) => ToUpper(s)
+                (string _) => Task.Delay(10)
             ).Invoke;
 
-        var rResult = await rAction("hello", "hello");
-        rResult.Succeeded.ShouldBeTrue();
-
+        await rAction("hello", "hello");
+        
         var storedFunction = await store.GetFunction(
             new FunctionId(
                 functionTypeId, 
@@ -132,11 +123,6 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioActionWithScrapbook).ToFunctionTypeId();
-        async Task<Return> ToUpper(string _, Scrapbook scrapbook)
-        {
-            await scrapbook.Save();
-            return Succeed.WithoutValue;
-        }
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
@@ -144,11 +130,10 @@ public abstract class SunshineTests
         var rFunc = rFunctions
             .Register(
                 functionTypeId,
-                (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
+                (string s, Scrapbook scrapbook) => scrapbook.Save()
             ).Invoke;
 
-        var rResult = await rFunc("hello", "hello");
-        rResult.Succeeded.ShouldBeTrue();
+        await rFunc("hello", "hello");
 
         var storedFunction = await store.GetFunction(
             new FunctionId(
@@ -174,10 +159,10 @@ public abstract class SunshineTests
 
         var rFunc = rFunctions.Register(
             functionTypeId,
-            (string s) => Succeed.WithValue(default(string)).ToTask()
+            (string s) => default(string).ToTask()
         ).Invoke;
 
-        var result = await rFunc("hello world", "hello world").EnsureSuccess();
+        var result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();
     }
 
@@ -197,11 +182,11 @@ public abstract class SunshineTests
             (string _, ListScrapbook<string> scrapbook) =>
             {
                 scrapbook.List.Add("hello world");
-                return Succeed.WithValue(default(string)).ToTask();
+                return default(string).ToTask();
             }
         ).Invoke;
 
-        var result = await rFunc("hello world", "hello world").EnsureSuccess();
+        var result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();
 
         var storedFunction = await store

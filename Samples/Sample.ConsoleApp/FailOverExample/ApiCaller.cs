@@ -15,7 +15,7 @@ public class ApiCaller
         _service = service;
     }
 
-    public async Task<Return<string>> CallApi(string input)
+    public async Task<string> CallApi(string input)
     {
         Console.WriteLine($"[SERVICE{_service}] Executing CallApi");
         await Task.Delay(1_000);
