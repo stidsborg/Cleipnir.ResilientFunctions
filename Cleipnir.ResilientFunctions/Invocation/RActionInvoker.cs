@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.ShutdownCoordination;
-using Cleipnir.ResilientFunctions.SignOfLife;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
