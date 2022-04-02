@@ -216,6 +216,55 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
+    
+    public abstract Task InMemoryPostponedActionIsNotCompletedByWatchDog();
+    protected async Task InMemoryPostponedActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = nameof(InMemoryPostponedActionIsNotCompletedByWatchDog).ToFunctionTypeId();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        const string param = "test";
+        {
+            var rAction = new RFunctions
+                (
+                    store,
+                    unhandledExceptionHandler.Catch,
+                    crashedCheckFrequency: TimeSpan.Zero,
+                    postponedCheckFrequency: TimeSpan.Zero
+                )
+                .Register(
+                    functionTypeId,
+                    (string _) => Task.CompletedTask,
+                    preInvoke: null,
+                    postInvoke: (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000), inProcessWait: true)
+                ).Invoke;
+
+            _ = rAction(param, param);
+        }
+        {
+            using var rFunctions = new RFunctions(
+                store,
+                unhandledExceptionHandler.Catch,
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+            );
+
+            var _ = rFunctions
+                .Register(
+                    functionTypeId,
+                    (string s) => s.ToUpper().ToTask()
+                );
+
+            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            await Task.Delay(500);
+            await store
+                .GetFunction(functionId)
+                .Map(s => s?.Status)
+                .ShouldBeAsync(Status.Executing);
+            
+            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        }
+    }
 
     private class Scrapbook : RScrapbook
     {

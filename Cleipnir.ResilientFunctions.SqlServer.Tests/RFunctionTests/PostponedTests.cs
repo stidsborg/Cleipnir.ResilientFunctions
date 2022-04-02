@@ -21,4 +21,8 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
         => PostponedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task InMemoryPostponedActionIsNotCompletedByWatchDog()
+        => InMemoryPostponedActionIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 }

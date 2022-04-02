@@ -115,67 +115,7 @@ internal class CommonInvoker
         scrapbook.Initialize(functionId, _functionStore, _serializer, expectedEpoch);
         return scrapbook;
     }
-
-    public Task ProcessSuccess(FunctionId functionId, RScrapbook? scrapbook, int expectedEpoch)
-        => Persist(functionId, Return.Succeed, scrapbook, expectedEpoch);
-
-    public Task ProcessSuccess<TReturn>(
-        FunctionId functionId,
-        TReturn returned,
-        RScrapbook? scrapbook,
-        int expectedEpoch
-    ) => PersistPostInvoked(functionId, Succeed.WithValue(returned), scrapbook, expectedEpoch);
-
-    public async Task Persist(
-        FunctionId functionId, Return returned,
-        RScrapbook? scrapbook, int expectedEpoch)
-    {
-        var scrapbookJson = scrapbook == null
-            ? null
-            : _serializer.SerializeScrapbook(scrapbook);
-        switch (returned.Intent)
-        {
-            case Intent.Succeed:
-                var success = await _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Succeeded,
-                    scrapbookJson,
-                    result: null,
-                    errorJson: null,
-                    postponedUntil: null,
-                    expectedEpoch
-                );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
-            case Intent.Postpone:
-                success = await _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Postponed,
-                    scrapbookJson,
-                    result: null,
-                    errorJson: null,
-                    returned.Postpone!.DateTime.Ticks,
-                    expectedEpoch
-                );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
-            case Intent.Fail:
-                success = await _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Failed,
-                    scrapbookJson,
-                    result: null,
-                    errorJson: _serializer.SerializeError(returned.Fail!.ToError()),
-                    postponedUntil: null,
-                    expectedEpoch
-                );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
-
+    
     public async Task PersistPostInvoked(
         FunctionId functionId,
         Return returned,
@@ -203,7 +143,7 @@ internal class CommonInvoker
             case Intent.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
-                    Status.Postponed,
+                    returned.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
                     scrapbookJson,
                     result: null,
                     errorJson: null,
@@ -261,7 +201,7 @@ internal class CommonInvoker
             case Intent.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
-                    Status.Postponed,
+                    returned.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
                     scrapbookJson,
                     result: null,
                     errorJson: null,
