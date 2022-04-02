@@ -61,10 +61,23 @@ public class RFunctions : IDisposable
         _shutdownCoordinator = shutdownCoordinator;
     }
 
+    public RFunc<TParam, TReturn> RegisterWithExplicitReturn<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, Return<TReturn>> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull
+        => Register(
+            functionTypeId,
+            inner: CommonInvoker.DefaultInnerFunc<TParam, TReturn>(),
+            preInvoke: null,
+            postInvoke: CommonInvoker.ConvertInnerFuncToPostInvoke(inner),
+            serializer
+        );
+
     public Builder.RFunc.BuilderWithInner<TParam, TReturn> CreateBuilder<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TReturn> inner
-    ) where TParam : notnull => new(this, functionTypeId, inner); 
+    ) where TParam : notnull => new(this, functionTypeId, inner);
 
     public RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
@@ -120,6 +133,19 @@ public class RFunctions : IDisposable
         }
     }
 
+    public RAction<TParam> RegisterWithExplicitReturn<TParam>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, Return> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull
+        => Register(
+            functionTypeId,
+            inner: CommonInvoker.DefaultInnerAction<TParam>(),
+            preInvoke: null,
+            postInvoke: CommonInvoker.ConvertInnerActionToPostInvoke(inner),
+            serializer
+        );
+    
     public Builder.RAction.BuilderWithInner<TParam> CreateBuilder<TParam>(
         FunctionTypeId functionTypeId,
         InnerAction<TParam> inner
@@ -176,6 +202,19 @@ public class RFunctions : IDisposable
             return registration;
         }
     }
+    
+    public RFunc<TParam, TReturn> RegisterWithExplicitReturn<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TScrapbook, Return<TReturn>> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(
+            functionTypeId,
+            inner: CommonInvoker.DefaultInnerFunc<TParam, TScrapbook, TReturn>(),
+            preInvoke: null,
+            postInvoke: CommonInvoker.ConvertInnerFuncToPostInvoke(inner),
+            serializer
+        );
 
     public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> CreateBuilder<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
@@ -234,6 +273,19 @@ public class RFunctions : IDisposable
             return registration;
         }
     }
+    
+    public RAction<TParam> RegisterWithExplicitReturn<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TScrapbook, Return> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => Register(
+            functionTypeId,
+            inner: CommonInvoker.DefaultInnerAction<TParam, TScrapbook>(),
+            preInvoke: null,
+            postInvoke: CommonInvoker.ConvertInnerActionToPostInvoke(inner),
+            serializer
+        );
     
     public Builder.RAction.BuilderWithInner<TParam, TScrapbook> CreateBuilder<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,

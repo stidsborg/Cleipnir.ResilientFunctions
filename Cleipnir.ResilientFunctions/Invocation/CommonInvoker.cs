@@ -421,7 +421,40 @@ internal class CommonInvoker
         if (postInvoke == null) return null;
         
         return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
-    } 
+    }
+
+    public static InnerAction<TParam> DefaultInnerAction<TParam>() where TParam : notnull
+        => _ => default!;
+    
+    public static InnerAction<TParam, TScrapbook> DefaultInnerAction<TParam, TScrapbook>()
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+        => (_,_) => default!;
+
+    public static InnerFunc<TParam, TReturn> DefaultInnerFunc<TParam, TReturn>()
+        where TParam : notnull
+        => _ => default!; 
+
+    public static InnerFunc<TParam, TScrapbook, TReturn> DefaultInnerFunc<TParam, TScrapbook, TReturn>()
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+        => (_, _) => default!; 
+    
+    public static RFunc.PostInvoke<TParam, TReturn> ConvertInnerFuncToPostInvoke<TParam, TReturn>(
+        InnerFunc<TParam, Return<TReturn>> inner
+    ) where TParam : notnull => (_, metadata) => inner(metadata.Param);
+    
+    public static RFunc.PostInvoke<TParam, TScrapbook, TReturn> ConvertInnerFuncToPostInvoke<TParam, TScrapbook, TReturn>(
+        InnerFunc<TParam, TScrapbook, Return<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
+    
+    public static RAction.PostInvoke<TParam> ConvertInnerActionToPostInvoke<TParam>(
+        InnerFunc<TParam, Return> inner
+    ) where TParam : notnull => (_, metadata) => inner(metadata.Param);
+    
+    public static RAction.PostInvoke<TParam, TScrapbook> ConvertInnerActionToPostInvoke<TParam, TScrapbook>(
+        InnerFunc<TParam, TScrapbook, Return> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
 
     public static Task<Return<TReturn>> FunctionPostInvokeNoOp<TParam, TReturn>(
         Return<TReturn> returned,
