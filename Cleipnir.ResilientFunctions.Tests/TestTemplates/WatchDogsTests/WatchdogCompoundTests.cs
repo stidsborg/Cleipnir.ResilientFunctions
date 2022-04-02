@@ -69,8 +69,11 @@ public abstract class WatchdogCompoundTests
                     return "".ToTask();
                 }, 
                 preInvoke: null,
-                postInvoke: (returned, metadata) => Postpone.For(10, inProcessWait: false)
-            );
+                postInvoke: async (returned, metadata) =>
+                {
+                    await Task.CompletedTask;
+                    return Postpone.For(10, inProcessWait: false);
+                });
 
             await afterNextSetFunctionState;
             crashableStore.Crash();
@@ -179,8 +182,11 @@ public abstract class WatchdogCompoundTests
                     await scrapbook.Save();
                 }, 
                 preInvoke: null,
-                postInvoke: (_, _, _) => Postpone.For(10, inProcessWait: false)
-            );
+                postInvoke: async (_, _, _) =>
+                {
+                    await Task.CompletedTask;
+                    return Postpone.For(10, inProcessWait: false);
+                });
             
             await afterNextPostponedSetFunctionState;
             crashableStore.Crash();
@@ -297,8 +303,11 @@ public abstract class WatchdogCompoundTests
                     return Task.CompletedTask;
                 },
                 preInvoke: null,
-                postInvoke: (_, _) => Postpone.For(10, inProcessWait: false)
-            );
+                postInvoke: async (_, _) =>
+                {
+                    await Task.CompletedTask;
+                    return Postpone.For(10, inProcessWait: false);
+                });
 
             await afterSetFunctionState;
             crashableStore.Crash();
@@ -415,8 +424,11 @@ public abstract class WatchdogCompoundTests
                     await scrapbook.Save();
                 }, 
                 preInvoke: null,
-                postInvoke: (_, _, _) => Postpone.For(10, inProcessWait: false)
-            );
+                postInvoke: async (_, _, _) =>
+                {
+                    await Task.CompletedTask;
+                    return Postpone.For(10, inProcessWait: false);
+                });
             
             await afterNextPostponed;
             crashableStore.Crash();

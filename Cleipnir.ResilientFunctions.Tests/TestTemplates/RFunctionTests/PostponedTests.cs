@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -31,8 +30,11 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _) => _.ToTask(),
                     preInvoke: null,
-                    postInvoke: (_, _) => Postpone.For(1, inProcessWait: false)
-                ).Invoke;
+                    postInvoke: async (_, _) =>
+                    {
+                        await Task.CompletedTask;
+                        return Postpone.For(1, inProcessWait: false);
+                    }).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -77,8 +79,11 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string p, Scrapbook _) => p.ToTask(),
                     preInvoke: null,
-                    postInvoke: (_, _, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), false)
-                ).Invoke;
+                    postInvoke: async (_, _, _) =>
+                    {
+                        await Task.CompletedTask;
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), false);
+                    }).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -134,8 +139,11 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _) => Task.CompletedTask,
                     preInvoke: null,
-                    postInvoke: (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false)
-                ).Invoke;
+                    postInvoke: async (_, _) =>
+                    {
+                        await Task.CompletedTask;
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false);
+                    }).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -180,8 +188,11 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _, Scrapbook _) => Task.CompletedTask, 
                     preInvoke: null,
-                    postInvoke: (_, _, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false)
-                ).Invoke;
+                    postInvoke: async (_, _, _) =>
+                    {
+                        await Task.CompletedTask;
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false);
+                    }).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -236,8 +247,11 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string _) => Task.CompletedTask,
                     preInvoke: null,
-                    postInvoke: (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000), inProcessWait: true)
-                ).Invoke;
+                    postInvoke: async (_, _) =>
+                    {
+                        await Task.CompletedTask;
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000), inProcessWait: true);
+                    }).Invoke;
 
             _ = rAction(param, param);
         }

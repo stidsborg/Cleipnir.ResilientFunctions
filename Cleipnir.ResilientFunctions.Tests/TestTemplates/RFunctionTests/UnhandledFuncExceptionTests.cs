@@ -25,8 +25,9 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             inner: _ => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: (returned, metadata) =>
+            postInvoke: async (returned, metadata) =>
             {
+                await Task.CompletedTask;
                 syncedException.Value = returned.Fail!;
                 return Postpone.Until(
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -87,8 +88,9 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             (_, _) => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: (returned, scrapbook, metadata) => 
+            postInvoke: async (returned, scrapbook, metadata) =>
             {
+                await Task.CompletedTask;
                 syncedException.Value = returned.Fail!;
                 scrapbook.List.Add("onException");
                 return Postpone.Until(
@@ -169,8 +171,9 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             _ => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: (returned, metadata) =>
+            postInvoke: async (returned, metadata) =>
             {
+                await Task.CompletedTask;
                 syncedException.Value = returned.Fail!;
                 return Postpone.Until(
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -231,8 +234,9 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             (_, _) => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: (returned, scrapbook, metadata) => 
+            postInvoke: async (returned, scrapbook, metadata) =>
             {
+                await Task.CompletedTask;
                 syncedException.Value = returned.Fail!;
                 scrapbook.List.Add("onException");
                 return Postpone.Until(

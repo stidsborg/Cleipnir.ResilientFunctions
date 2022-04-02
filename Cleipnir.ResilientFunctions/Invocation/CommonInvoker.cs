@@ -332,7 +332,7 @@ internal class CommonInvoker
         return Tuple.Create(param, epoch, (RScrapbook?) scrapbook);
     }
 
-    public static RFunc.PreInvoke<TParam>? SyncedFuncPreInvoke<TParam>(RFunc.SyncPreInvoke<TParam>? postInvoke) 
+    public static RFunc.PreInvoke<TParam>? AsyncFuncPreInvoke<TParam>(RFunc.SyncPreInvoke<TParam>? postInvoke) 
         where TParam : notnull
     {
         if (postInvoke == null) return null;
@@ -344,7 +344,7 @@ internal class CommonInvoker
         };
     }
     
-    public static RFunc.PreInvoke<TParam, TScrapbook>? SyncedFuncPreInvoke<TParam, TScrapbook>(
+    public static RFunc.PreInvoke<TParam, TScrapbook>? AsyncFuncPreInvoke<TParam, TScrapbook>(
         RFunc.SyncPreInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -357,19 +357,19 @@ internal class CommonInvoker
         };
     }
     
-    public static RAction.PreInvoke<TParam>? SyncedActionPreInvoke<TParam>(RAction.SyncPreInvoke<TParam>? postInvoke) 
+    public static RAction.PreInvoke<TParam>? SyncActionPreInvoke<TParam>(RAction.SyncPreInvoke<TParam>? preInvoke) 
         where TParam : notnull
     {
-        if (postInvoke == null) return null;
+        if (preInvoke == null) return null;
         
         return metadata =>
         {
-            postInvoke(metadata);
+            preInvoke(metadata);
             return Task.CompletedTask;
         };
     }
     
-    public static RAction.PreInvoke<TParam, TScrapbook>? SyncedActionPreInvoke<TParam, TScrapbook>(
+    public static RAction.PreInvoke<TParam, TScrapbook>? SyncActionPreInvoke<TParam, TScrapbook>(
         RAction.SyncPreInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -387,7 +387,7 @@ internal class CommonInvoker
         where TParam : notnull where TScrapbook : RScrapbook, new()
         => Task.CompletedTask;
 
-    public static RFunc.PostInvoke<TParam, TReturn>? SyncedFuncPostInvoke<TParam, TReturn>(
+    public static RFunc.PostInvoke<TParam, TReturn>? AsyncFuncPostInvoke<TParam, TReturn>(
         RFunc.SyncPostInvoke<TParam, TReturn>? postInvoke
     ) where TParam : notnull
     {
@@ -396,7 +396,7 @@ internal class CommonInvoker
         return (returned, metadata) => postInvoke(returned, metadata).ToTask();  
     } 
     
-    public static RFunc.PostInvoke<TParam, TScrapbook, TReturn>? SyncedFuncPostInvoke<TParam, TScrapbook, TReturn>(
+    public static RFunc.PostInvoke<TParam, TScrapbook, TReturn>? AsyncFuncPostInvoke<TParam, TScrapbook, TReturn>(
         RFunc.SyncPostInvoke<TParam, TScrapbook, TReturn>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -405,7 +405,7 @@ internal class CommonInvoker
         return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
     } 
     
-    public static RAction.PostInvoke<TParam>? SyncedActionPostInvoke<TParam>(
+    public static RAction.PostInvoke<TParam>? AsyncActionPostInvoke<TParam>(
         RAction.SyncPostInvoke<TParam>? postInvoke
     ) where TParam : notnull
     {
@@ -414,7 +414,7 @@ internal class CommonInvoker
         return (returned, metadata) => postInvoke(returned, metadata).ToTask();  
     } 
     
-    public static RAction.PostInvoke<TParam, TScrapbook>? SyncedActionPostInvoke<TParam, TScrapbook>(
+    public static RAction.PostInvoke<TParam, TScrapbook>? AsyncActionPostInvoke<TParam, TScrapbook>(
         RAction.SyncPostInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {

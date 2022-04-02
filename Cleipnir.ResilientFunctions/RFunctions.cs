@@ -61,37 +61,16 @@ public class RFunctions : IDisposable
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
-        FunctionTypeId functionTypeId, InnerFunc<TParam, TReturn> inner
-    ) where TParam : notnull 
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
-    
-    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
+    public Builder.RFunc.BuilderWithInner<TParam, TReturn> CreateBuilder<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TReturn> inner,
-        ISerializer? serializer
-    ) where TParam : notnull
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
+        InnerFunc<TParam, TReturn> inner
+    ) where TParam : notnull => new(this, functionTypeId, inner); 
 
     public RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TReturn> inner,
-        RFunc.SyncPreInvoke<TParam>? preInvoke,
-        RFunc.SyncPostInvoke<TParam, TReturn>? postInvoke,
-        ISerializer? serializer = null
-    ) where TParam : notnull => Register(
-        functionTypeId,
-        inner,
-        CommonInvoker.SyncedFuncPreInvoke(preInvoke),
-        CommonInvoker.SyncedFuncPostInvoke(postInvoke),
-        serializer
-    );
-    
-    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TReturn> inner,
-        RFunc.PreInvoke<TParam>? preInvoke,
-        RFunc.PostInvoke<TParam, TReturn>? postInvoke,
+        RFunc.PreInvoke<TParam>? preInvoke = null,
+        RFunc.PostInvoke<TParam, TReturn>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull
     {
@@ -141,37 +120,16 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RAction<TParam> Register<TParam>(FunctionTypeId functionTypeId, InnerAction<TParam> inner) 
-        where TParam : notnull
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    public Builder.RAction.BuilderWithInner<TParam> CreateBuilder<TParam>(
+        FunctionTypeId functionTypeId,
+        InnerAction<TParam> inner
+    ) where TParam : notnull => new(this, functionTypeId, inner); 
     
     public RAction<TParam> Register<TParam>(
         FunctionTypeId functionTypeId,
         InnerAction<TParam> inner,
-        ISerializer? serializer
-    ) where TParam : notnull
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
-
-    public RAction<TParam> Register<TParam>(
-        FunctionTypeId functionTypeId,
-        InnerAction<TParam> inner,
-        RAction.SyncPreInvoke<TParam>? preInvoke,
-        RAction.SyncPostInvoke<TParam>? postInvoke,
-        ISerializer? serializer = null
-    ) where TParam : notnull
-        => Register(
-            functionTypeId,
-            inner,
-            CommonInvoker.SyncedActionPreInvoke(preInvoke),
-            CommonInvoker.SyncedActionPostInvoke(postInvoke),
-            serializer
-        );
-        
-    public RAction<TParam> Register<TParam>(
-        FunctionTypeId functionTypeId,
-        InnerAction<TParam> inner,
-        RAction.PreInvoke<TParam>? preInvoke,
-        RAction.PostInvoke<TParam>? postInvoke,
+        RAction.PreInvoke<TParam>? preInvoke = null,
+        RAction.PostInvoke<TParam>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull 
     {
@@ -219,38 +177,16 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
-        FunctionTypeId functionTypeId, InnerFunc<TParam, TScrapbook, TReturn> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> CreateBuilder<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        InnerFunc<TParam, TScrapbook, TReturn> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() => new(this, functionTypeId, inner); 
     
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TScrapbook, TReturn> inner,
-        ISerializer? serializer
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
-    
-    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
-        FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TScrapbook, TReturn> inner,
-        RFunc.SyncPreInvoke<TParam, TScrapbook>? preInvoke,
-        RFunc.SyncPostInvoke<TParam, TScrapbook, TReturn>? postInvoke,
-        ISerializer? serializer = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => Register(
-            functionTypeId,
-            inner,
-            CommonInvoker.SyncedFuncPreInvoke(preInvoke),
-            CommonInvoker.SyncedFuncPostInvoke(postInvoke),
-            serializer
-        );
-    
-    public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
-        FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TScrapbook, TReturn> inner,
-        RFunc.PreInvoke<TParam, TScrapbook>? preInvoke,
-        RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke,
+        RFunc.PreInvoke<TParam, TScrapbook>? preInvoke = null,
+        RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -299,38 +235,16 @@ public class RFunctions : IDisposable
         }
     }
     
-    public RAction<TParam> Register<TParam, TScrapbook>(
-        FunctionTypeId functionTypeId, InnerAction<TParam, TScrapbook> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer: null);
+    public Builder.RAction.BuilderWithInner<TParam, TScrapbook> CreateBuilder<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        InnerAction<TParam, TScrapbook> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() => new(this, functionTypeId, inner);
     
     public RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         InnerAction<TParam, TScrapbook> inner,
-        ISerializer? serializer
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => Register(functionTypeId, inner, preInvoke: null, postInvoke: null, serializer);
-
-    public RAction<TParam> Register<TParam, TScrapbook>(
-        FunctionTypeId functionTypeId,
-        InnerAction<TParam, TScrapbook> inner,
-        RAction.SyncPreInvoke<TParam, TScrapbook>? preInvoke,
-        RAction.SyncPostInvoke<TParam, TScrapbook>? postInvoke,
-        ISerializer? serializer = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => Register(
-            functionTypeId,
-            inner,
-            CommonInvoker.SyncedActionPreInvoke(preInvoke),
-            CommonInvoker.SyncedActionPostInvoke(postInvoke),
-            serializer
-        );
-    
-    public RAction<TParam> Register<TParam, TScrapbook>(
-        FunctionTypeId functionTypeId,
-        InnerAction<TParam, TScrapbook> inner,
-        RAction.PreInvoke<TParam, TScrapbook>? preInvoke,
-        RAction.PostInvoke<TParam, TScrapbook>? postInvoke,
+        RAction.PreInvoke<TParam, TScrapbook>? preInvoke = null,
+        RAction.PostInvoke<TParam, TScrapbook>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {

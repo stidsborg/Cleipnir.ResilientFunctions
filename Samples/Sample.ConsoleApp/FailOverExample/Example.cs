@@ -35,10 +35,13 @@ public static class Example
                 "call.api".ToFunctionTypeId(),
                 s => new ApiCaller(true, 1).CallApi(s),
                 preInvoke: null, 
-                postInvoke: (returned, _) => 
-                    returned.Fail != null 
+                postInvoke: async (returned, _) =>
+                {
+                    await Task.CompletedTask;
+                    return returned.Fail != null 
                         ? Postpone.For(10, inProcessWait: false) 
-                        : returned
+                        : returned;
+                }
             ).Invoke;
 
         _ = callApi("input", "input"); //will fail
