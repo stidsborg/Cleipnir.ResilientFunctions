@@ -17,7 +17,7 @@ public class RFuncWithScrapbookBuilderTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        var rFunctions = CreateRFunctions();
+        using var rFunctions = CreateRFunctions();
         var rFunc = rFunctions
             .CreateBuilder<string, Scrapbook, string>(
                 _functionTypeId,
@@ -33,7 +33,7 @@ public class RFuncWithScrapbookBuilderTests
     [TestMethod]
     public async Task ConstructedFuncWithPreAndPostInvokeCanBeCreatedAndInvoked()
     {
-        var rFunctions = CreateRFunctions();
+        using var rFunctions = CreateRFunctions();
         var preInvokeFlag = new SyncedFlag();
         var postInvokeFlag = new SyncedFlag();
         var rFunc = rFunctions
@@ -55,7 +55,7 @@ public class RFuncWithScrapbookBuilderTests
     [TestMethod]
     public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
     {
-        var rFunctions = CreateRFunctions();
+        using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rFunc = rFunctions
             .CreateBuilder<string, Scrapbook, string>(
