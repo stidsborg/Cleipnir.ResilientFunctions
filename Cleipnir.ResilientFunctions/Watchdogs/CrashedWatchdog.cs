@@ -70,6 +70,9 @@ internal class CrashedWatchdog : IDisposable
                 {
                     if (_disposed) return;
 
+                    if (function.PostponedUntil != null && DateTime.UtcNow.Ticks < function.PostponedUntil)
+                        continue;
+                    
                     try
                     {
                         await _reInvoke(

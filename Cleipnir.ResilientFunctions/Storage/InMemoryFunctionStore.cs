@@ -96,7 +96,7 @@ public class InMemoryFunctionStore : IFunctionStore
                         s.Epoch,
                         s.SignOfLife,
                         s.Status,
-                        PostponedUntil: null //todo tss is this correct?
+                        s.PostponeUntil
                     )
                 )
                 .ToList()
