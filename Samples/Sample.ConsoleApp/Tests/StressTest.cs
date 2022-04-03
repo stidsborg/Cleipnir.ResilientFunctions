@@ -2,18 +2,17 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Microsoft.Data.SqlClient;
 
-namespace ConsoleApp.Tests.Stress;
+namespace ConsoleApp.Tests;
 
-public static class Example
+public static class StressTest
 {
     private static readonly object Sync = new();
     public static async Task Perform()
     {
-        var store = new SqlServerFunctionStore(CreateConnection, "stress_test");
+        var store = new SqlServerFunctionStore(CreateConnection, nameof(StressTest));
         await store.DropIfExists();
         await store.Initialize();
 
@@ -46,8 +45,13 @@ public static class Example
             tasks.Add(Tuple.Create(i, task));
         }
 
-        foreach (var (_, task) in tasks)
-            await task;
+        foreach (var (i, task) in tasks)
+        {
+            var str = await task;
+            if (int.Parse(str) != i)
+                Console.WriteLine("OH NO");
+        }
+            
 
         Console.WriteLine("COMPLETED");
         Console.WriteLine($"EXCEPTIONS: {exceptions.Count}");

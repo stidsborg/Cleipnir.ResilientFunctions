@@ -6,7 +6,7 @@ namespace ConsoleApp
     {
         private static async Task Main()
         {
-            await FailOverExample.Example.Execute();
+            await Tests.PostponedTest.Perform();
         }
     }
 }
