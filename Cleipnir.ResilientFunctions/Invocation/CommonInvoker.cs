@@ -423,6 +423,28 @@ internal class CommonInvoker
         return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
     }
 
+    public static Func<TScrapbook, Task> AsyncJobPreInvoke<TScrapbook>(
+        Action<TScrapbook> preInvoke
+    ) where TScrapbook : RScrapbook, new()
+    {
+        return scrapbook =>
+        {
+            preInvoke(scrapbook);
+            return Task.CompletedTask;
+        };
+    }
+    
+    public static Func<Return, TScrapbook, Task<Return>> AsyncJobPostInvoke<TScrapbook>(
+        Func<Return, TScrapbook, Return> postInvoke
+    ) where TScrapbook : RScrapbook, new()
+    {
+        return (returned, scrapbook) =>
+        {
+            var toReturn = postInvoke(returned, scrapbook);
+            return Task.FromResult(toReturn);
+        };
+    }
+
     public static InnerAction<TParam> DefaultInnerAction<TParam>() where TParam : notnull
         => _ => default!;
     
@@ -500,7 +522,7 @@ internal class CommonInvoker
         return true;
     }
 
-    private static TimeSpan CalculateDelay(Postpone postpone)
+    public static TimeSpan CalculateDelay(Postpone postpone)
     {
         var delay = postpone.DateTime - DateTime.UtcNow;
         if (delay < TimeSpan.Zero)

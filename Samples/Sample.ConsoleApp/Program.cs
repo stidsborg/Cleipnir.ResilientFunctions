@@ -6,7 +6,7 @@ namespace ConsoleApp
     {
         private static async Task Main()
         {
-            await Tests.PostponedTest.Perform();
+            await Job.Example.RegisterAndStart();
         }
     }
 }

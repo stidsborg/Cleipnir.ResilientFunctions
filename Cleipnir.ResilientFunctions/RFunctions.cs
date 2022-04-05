@@ -17,10 +17,12 @@ namespace Cleipnir.ResilientFunctions;
 public class RFunctions : IDisposable 
 {
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
+    private readonly Dictionary<string, RJob> _jobs = new();
 
     private readonly IFunctionStore _functionFunctionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly WatchDogsFactory _watchDogsFactory;
+    private readonly JobWatchdog _jobWatchdog;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -49,6 +51,13 @@ public class RFunctions : IDisposable
         var watchdogsFactory = new WatchDogsFactory(
             functionStore,
             crashedCheckFrequency.Value,
+            postponedCheckFrequency.Value,
+            exceptionHandler,
+            shutdownCoordinator
+        );
+
+        _jobWatchdog = new JobWatchdog(
+            functionStore,
             postponedCheckFrequency.Value,
             exceptionHandler,
             shutdownCoordinator
@@ -341,6 +350,59 @@ public class RFunctions : IDisposable
                 rActionInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
+            return registration;
+        }
+    }
+
+    public Builder.RJob.Builder<TScrapbook> RegisterJob<TScrapbook>(string jobId) 
+        where TScrapbook : RScrapbook, new() => new(this, jobId);
+
+    internal RJob RegisterJob<TScrapbook>(
+        string jobId,
+        Func<TScrapbook, Task<Return>> inner,
+        Func<TScrapbook, Task>? preInvoke = null,
+        Func<Return, TScrapbook, Task<Return>>? postInvoke = null,
+        ISerializer? serializer = null
+    ) where TScrapbook : RScrapbook, new()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+        
+        lock (_sync)
+        {
+            if (_jobs.ContainsKey(jobId))
+                return _jobs[jobId];
+            
+            serializer ??= DefaultSerializer.Instance;
+
+            var commonInvoker = new CommonInvoker(
+                serializer,
+                _functionFunctionStore,
+                _shutdownCoordinator,
+                _signOfLifeUpdaterFactory
+            );
+
+            var rJobInvoker = new RJobInvoker<TScrapbook>(
+                jobId,
+                inner,
+                preInvoke,
+                postInvoke,
+                commonInvoker,
+                _unhandledExceptionHandler
+            );
+
+            _jobWatchdog.AddJob(
+                jobId,
+                (_, statuses, epoch) => rJobInvoker.ForceContinuation(statuses, epoch)
+            );
+
+            var registration = new RJob(
+                rJobInvoker.Start,
+                rJobInvoker.ForceContinuation
+            );
+
+            _jobs[jobId] = registration;
+            
             return registration;
         }
     }
