@@ -381,7 +381,7 @@ internal class CommonInvoker
     }
 
     public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? AsyncActionPostInvoke<TParam, TScrapbook>(
-        RAction.SyncPostInvoke<TParam, TScrapbook>? postInvoke
+        Func<Return, TScrapbook, Metadata<TParam>, Return>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (postInvoke == null) return null;

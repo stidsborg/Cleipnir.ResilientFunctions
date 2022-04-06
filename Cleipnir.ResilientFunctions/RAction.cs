@@ -13,9 +13,6 @@ public static class RAction
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null
     );
-
-    public delegate Return SyncPostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
-        where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RAction<TParam> where TParam : notnull

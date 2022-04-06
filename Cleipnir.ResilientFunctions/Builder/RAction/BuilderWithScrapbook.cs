@@ -35,7 +35,7 @@ public class BuilderWithInner<TParam, TScrapbook> where TParam : notnull where T
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, preInvoke: CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(), postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(ResilientFunctions.RAction.SyncPostInvoke<TParam, TScrapbook> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Return> postInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
@@ -77,7 +77,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook> where TParam : no
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, _preInvoke, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(ResilientFunctions.RAction.SyncPostInvoke<TParam, TScrapbook> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Return> postInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
