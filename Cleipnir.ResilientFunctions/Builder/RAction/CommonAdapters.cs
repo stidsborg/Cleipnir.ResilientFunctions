@@ -40,6 +40,12 @@ public static class CommonAdapters
     {
         return _ => Task.CompletedTask;
     }
+    
+    public static Func<TScrapbook, Metadata<TParam>, Task> NoOpPreInvoke<TParam, TScrapbook>() 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (_,_) => Task.CompletedTask;
+    }
 
     public static Func<Return, Metadata<TParam>, Task<Return>> ToPostInvoke<TParam>(
         Func<Return, Metadata<TParam>, Return> postInvoke

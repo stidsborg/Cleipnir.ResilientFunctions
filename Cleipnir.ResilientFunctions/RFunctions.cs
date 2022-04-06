@@ -300,7 +300,7 @@ public class RFunctions : IDisposable
     public RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         InnerAction<TParam, TScrapbook> inner,
-        RAction.PreInvoke<TParam, TScrapbook>? preInvoke = null,
+        Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
         RAction.PostInvoke<TParam, TScrapbook>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()

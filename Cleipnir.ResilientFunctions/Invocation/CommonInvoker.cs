@@ -357,12 +357,10 @@ internal class CommonInvoker
         };
     }
 
-    public static RAction.PreInvoke<TParam, TScrapbook>? SyncActionPreInvoke<TParam, TScrapbook>(
-        RAction.SyncPreInvoke<TParam, TScrapbook>? postInvoke
+    public static Func<TScrapbook, Metadata<TParam>, Task> SyncActionPreInvoke<TParam, TScrapbook>(
+        RAction.SyncPreInvoke<TParam, TScrapbook> postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        if (postInvoke == null) return null;
-        
         return (scrapbook, metadata) =>
         {
             postInvoke(scrapbook, metadata);
