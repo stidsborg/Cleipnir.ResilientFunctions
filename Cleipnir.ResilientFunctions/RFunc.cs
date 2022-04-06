@@ -19,9 +19,6 @@ public static class RFunc
         where TParam : notnull;
     public delegate void SyncPreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
-    
-    public delegate Task PreInvoke<TParam>(Metadata<TParam> metadata)
-        where TParam : notnull;
     public delegate Task PreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
     

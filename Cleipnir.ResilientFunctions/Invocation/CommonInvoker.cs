@@ -332,7 +332,7 @@ internal class CommonInvoker
         return Tuple.Create(param, epoch, (RScrapbook?) scrapbook);
     }
 
-    public static RFunc.PreInvoke<TParam>? AsyncFuncPreInvoke<TParam>(RFunc.SyncPreInvoke<TParam>? postInvoke) 
+    public static Func<Metadata<TParam>, Task>? AsyncFuncPreInvoke<TParam>(RFunc.SyncPreInvoke<TParam>? postInvoke) 
         where TParam : notnull
     {
         if (postInvoke == null) return null;

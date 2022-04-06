@@ -13,7 +13,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly RFunc.PreInvoke<TParam> _preInvoke;
+    private readonly Func<Metadata<TParam>, Task> _preInvoke;
     private readonly RFunc.PostInvoke<TParam, TReturn> _postInvoke;
 
     internal RFuncInvoker(
@@ -21,7 +21,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         InnerFunc<TParam, TReturn> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        RFunc.PreInvoke<TParam>? preInvoke,
+        Func<Metadata<TParam>, Task>? preInvoke,
         RFunc.PostInvoke<TParam, TReturn>? postInvoke)
     {
         _functionTypeId = functionTypeId;
