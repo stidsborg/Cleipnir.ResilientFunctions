@@ -24,6 +24,18 @@ public class Builder
 
     public BuilderWithInner<TParam> WithInner<TParam>(Func<TParam, Task<Return>> inner) where TParam : notnull 
         => new(_rFunctions, _functionTypeId, inner);
+    
+    public BuilderWithInner<TParam, TScrapbook> WithInner<TParam, TScrapbook>(Action<TParam, TScrapbook> inner) 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+        => WithInner(CommonAdapters.ToInnerAction(inner));
+
+    public BuilderWithInner<TParam, TScrapbook> WithInner<TParam, TScrapbook>(Func<TParam, TScrapbook, Task> inner) 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+        => WithInner(CommonAdapters.ToInnerAction(inner));
+
+    public BuilderWithInner<TParam, TScrapbook> WithInner<TParam, TScrapbook>(Func<TParam, TScrapbook, Task<Return>> inner) 
+        where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => new(_rFunctions, _functionTypeId, inner);
 }
 
 public class BuilderWithInner<TParam> where TParam : notnull

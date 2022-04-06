@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Builder.RAction;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
@@ -284,19 +283,19 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => new(this, functionTypeId, CommonAdapters.ToInnerAction(inner));
+        => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
 
     public Builder.RAction.BuilderWithInner<TParam, TScrapbook> ActionWithScrapbook<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => new(this, functionTypeId, CommonAdapters.ToInnerAction(inner));
+        => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
     
     public Builder.RAction.BuilderWithInner<TParam, TScrapbook> ActionWithScrapbook<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Return>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => new(this, functionTypeId, inner);
+        => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
 
     internal RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
