@@ -345,14 +345,14 @@ internal class CommonInvoker
     }
     
     public static Func<TScrapbook, Metadata<TParam>, Task>? AsyncFuncPreInvoke<TParam, TScrapbook>(
-        RFunc.SyncPreInvoke<TParam, TScrapbook>? postInvoke
+        Action<TScrapbook, Metadata<TParam>>? preInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        if (postInvoke == null) return null;
+        if (preInvoke == null) return null;
         
         return (scrapbook, metadata) =>
         {
-            postInvoke(scrapbook, metadata);
+            preInvoke(scrapbook, metadata);
             return Task.CompletedTask;
         };
     }
