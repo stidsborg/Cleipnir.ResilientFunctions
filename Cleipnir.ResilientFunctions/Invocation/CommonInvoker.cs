@@ -401,15 +401,6 @@ internal class CommonInvoker
             return Task.FromResult(toReturn);
         };
     }
-    
-    public static InnerFunc<TParam, TScrapbook, TReturn> DefaultInnerFunc<TParam, TScrapbook, TReturn>()
-        where TParam : notnull where TScrapbook : RScrapbook, new()
-        => (_, _) => default!;
-
-    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> ConvertInnerFuncToPostInvoke<TParam, TScrapbook, TReturn>(
-        InnerFunc<TParam, TScrapbook, Return<TReturn>> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
 
     public static Task<Return<TReturn>> FunctionPostInvokeNoOp<TParam, TReturn>(
         Return<TReturn> returned,

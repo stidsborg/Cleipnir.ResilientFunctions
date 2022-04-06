@@ -209,7 +209,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TParam, TScrapbook, TReturn> _inner;
+    private readonly Func<TParam, TScrapbook, Task<Return<TReturn>>> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -219,7 +219,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TScrapbook, TReturn> inner,
+        Func<TParam, TScrapbook, Task<Return<TReturn>>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler, 
         Func<TScrapbook, Metadata<TParam>, Task>? preInvoke, 

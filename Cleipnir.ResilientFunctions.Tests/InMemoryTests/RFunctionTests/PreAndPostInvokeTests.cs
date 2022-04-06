@@ -153,21 +153,24 @@ public class PreAndPostInvokeTests
         var rFunctions = new RFunctions(store);
         var syncedPreInvoke = new Synced<Tuple<Scrapbook, Metadata<string>>>();
         var syncedPostInvoke = new Synced<Tuple<Return<string>, Scrapbook, Metadata<string>>>();
-        var rFunc = rFunctions.Register<string, Scrapbook, string>(
-            FunctionId.TypeId,
-            inner: (param , _) => param.ToUpper().ToTask(),
-            preInvoke: (scrapbook, metadata) =>
-            {
-                syncedPreInvoke.Value = Tuple.Create(scrapbook.Clone(), metadata);
-                scrapbook.Value = "PreInvoked";
-                return Task.CompletedTask;
-            },
-            postInvoke: (returned, scrapbook, metadata) =>
+        var rFunc = rFunctions.FuncWithScrapbook<string, Scrapbook, string>(
+                FunctionId.TypeId,
+                inner: (param, _) => param.ToUpper().ToTask()
+            ).WithPreInvoke(
+                (scrapbook, metadata) =>
+                {
+                    syncedPreInvoke.Value = Tuple.Create(scrapbook.Clone(), metadata);
+                    scrapbook.Value = "PreInvoked";
+                    return Task.CompletedTask;
+                })
+            .WithPostInvoke((returned, scrapbook, metadata) =>
             {
                 syncedPostInvoke.Value = Tuple.Create(returned, scrapbook.Clone(), metadata);
                 scrapbook.Value = "PostInvoked";
                 return new Return<string>("post invoked").ToTask();
-            }).Invoke;
+            })
+            .Register()
+            .Invoke;
 
         var returned = await rFunc(FunctionId.InstanceId.ToString(), "hello world");
         returned.ShouldBe("post invoked");

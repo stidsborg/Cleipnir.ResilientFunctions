@@ -32,6 +32,39 @@ public static class CommonAdapters
             return Task.FromResult(returned);
         };
     }
+    
+    public static Func<TParam, TScrapbook, Task<Return<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, TReturn> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (param, scrapbook) =>
+        {
+            var returned = inner(param, scrapbook);
+            return Task.FromResult(new Return<TReturn>(returned));
+        };
+    }
+    
+    public static Func<TParam, TScrapbook, Task<Return<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, Task<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return async (param, scrapbook) =>
+        {
+            var returned = await inner(param, scrapbook);
+            return Succeed.WithValue(returned);
+        };
+    }
+    
+    public static Func<TParam, TScrapbook, Task<Return<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, Return<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (param, scrapbook) =>
+        {
+            var returned = inner(param, scrapbook);
+            return Task.FromResult(returned);
+        };
+    }
 
     public static Func<Metadata<TParam>, Task> NoOpPreInvoke<TParam>() where TParam : notnull
     {

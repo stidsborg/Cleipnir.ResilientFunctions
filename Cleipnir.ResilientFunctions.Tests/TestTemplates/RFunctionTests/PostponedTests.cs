@@ -76,15 +76,17 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
+                .FuncWithScrapbook(
                     functionTypeId,
-                    (string p, Scrapbook _) => p.ToTask(),
-                    preInvoke: null,
+                    (string p, Scrapbook _) => p.ToTask()
+                ).WithPostInvoke(
                     postInvoke: async (_, _, _) =>
                     {
                         await Task.CompletedTask;
                         return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), false);
-                    }).Invoke;
+                    })
+                .Register()
+                .Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -98,7 +100,7 @@ public abstract class PostponedTests
             );
 
             var rFunc = rFunctions
-                .Register(
+                .FuncWithScrapbook(
                     functionTypeId,
                     async (string s, Scrapbook scrapbook) =>
                     {
@@ -106,7 +108,7 @@ public abstract class PostponedTests
                         await scrapbook.Save();
                         return s.ToUpper();
                     }
-                ).Invoke;
+                ).Register().Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);

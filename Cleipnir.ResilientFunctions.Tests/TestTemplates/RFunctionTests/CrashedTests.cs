@@ -90,7 +90,7 @@ public abstract class CrashedTests
             );
 
             var rFunc = rFunctions
-                .Register(
+                .FuncWithScrapbook(
                     functionTypeId,
                     async (string s, Scrapbook scrapbook) =>
                     {
@@ -98,7 +98,7 @@ public abstract class CrashedTests
                         await scrapbook.Save();
                         return s.ToUpper();
                     }
-                ).Invoke;
+                ).Register().Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(

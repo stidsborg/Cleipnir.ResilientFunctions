@@ -209,28 +209,34 @@ public class RFunctions : IDisposable
             return registration;
         }
     }
-    
-    public RFunc<TParam, TReturn> RegisterWithExplicitReturn<TParam, TScrapbook, TReturn>(
-        FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TScrapbook, Return<TReturn>> inner,
-        ISerializer? serializer = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => Register(
-            functionTypeId,
-            inner: CommonInvoker.DefaultInnerFunc<TParam, TScrapbook, TReturn>(),
-            preInvoke: null,
-            postInvoke: CommonInvoker.ConvertInnerFuncToPostInvoke(inner),
-            serializer
-        );
 
-    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> CreateBuilder<TParam, TScrapbook, TReturn>(
+    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TScrapbook, TReturn> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() => new(this, functionTypeId, inner); 
+        Func<TParam, TScrapbook, TReturn> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
+    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, TScrapbook, Task<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+
+    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, TScrapbook, Return<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+    
+    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, TScrapbook, Task<Return<TReturn>>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TScrapbook, TReturn> inner,
+        Func<TParam, TScrapbook, Task<Return<TReturn>>> inner,
         Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
         Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null

@@ -224,7 +224,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.FuncWithScrapbook(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -232,7 +232,7 @@ public abstract class WatchdogCompoundTests
                     await scrapbook.Save();
                     return $"{p.Id}-{p.Value}";
                 }
-            );
+            ).Register();
 
             await BusyWait.Until(async () =>
                 await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded

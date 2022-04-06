@@ -25,10 +25,10 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
     {
         _logger = logger;
         
-        BookTravel = rFunctions.Register<OrderAndRequestIds, BookingScrapbook, Booking>(
+        BookTravel = rFunctions.FuncWithScrapbook<OrderAndRequestIds, BookingScrapbook, Booking>(
             nameof(BookingSaga).ToFunctionTypeId(),
             _BookTravel
-        ).Invoke;
+        ).Register().Invoke;
     }
 
     private async Task<Booking> _BookTravel(OrderAndRequestIds param, BookingScrapbook scrapbook)
