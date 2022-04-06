@@ -24,7 +24,7 @@ public class BuilderWithInner<TParam, TReturn> where TParam : notnull
     public BuilderWithInnerWithPreInvoke<TParam, TReturn> WithPreInvoke(Func<Metadata<TParam>, Task> preInvoke)
         => new(_rFunctions, _functionTypeId, _inner, preInvoke);
 
-    public BuilderWithInnerWithPreInvoke<TParam, TReturn> WithPreInvoke(ResilientFunctions.RFunc.SyncPreInvoke<TParam> preInvoke)
+    public BuilderWithInnerWithPreInvoke<TParam, TReturn> WithPreInvoke(Action<Metadata<TParam>> preInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
