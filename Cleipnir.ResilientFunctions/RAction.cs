@@ -16,9 +16,6 @@ public static class RAction
 
     public delegate Return SyncPostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
-    
-    public delegate Task<Return> PostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
-        where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RAction<TParam> where TParam : notnull

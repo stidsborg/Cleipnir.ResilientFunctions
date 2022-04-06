@@ -380,7 +380,7 @@ internal class CommonInvoker
         return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
     }
 
-    public static RAction.PostInvoke<TParam, TScrapbook>? AsyncActionPostInvoke<TParam, TScrapbook>(
+    public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? AsyncActionPostInvoke<TParam, TScrapbook>(
         RAction.SyncPostInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -435,7 +435,7 @@ internal class CommonInvoker
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
 
-    public static RAction.PostInvoke<TParam, TScrapbook> ConvertInnerActionToPostInvoke<TParam, TScrapbook>(
+    public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> ConvertInnerActionToPostInvoke<TParam, TScrapbook>(
         InnerFunc<TParam, TScrapbook, Return> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);

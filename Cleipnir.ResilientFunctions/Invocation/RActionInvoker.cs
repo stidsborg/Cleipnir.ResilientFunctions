@@ -213,7 +213,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly RAction.PostInvoke<TParam, TScrapbook> _postInvoke;
+    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> _postInvoke;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
@@ -221,7 +221,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
         Func<TScrapbook, Metadata<TParam>, Task>? preInvoke,
-        RAction.PostInvoke<TParam, TScrapbook>? postInvoke)
+        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
