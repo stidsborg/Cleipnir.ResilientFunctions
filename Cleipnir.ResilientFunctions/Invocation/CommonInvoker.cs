@@ -363,7 +363,7 @@ internal class CommonInvoker
         => Task.CompletedTask;
 
     public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? AsyncFuncPostInvoke<TParam, TReturn>(
-        RFunc.SyncPostInvoke<TParam, TReturn>? postInvoke
+        Func<Return<TReturn>, Metadata<TParam>, Return<TReturn>>? postInvoke
     ) where TParam : notnull
     {
         if (postInvoke == null) return null;

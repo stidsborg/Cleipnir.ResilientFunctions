@@ -20,8 +20,6 @@ public static class RFunc
     public delegate Task PreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
     
-    public delegate Return<TReturn> SyncPostInvoke<TParam, TReturn>(Return<TReturn> returned, Metadata<TParam> metadata) 
-        where TParam : notnull;
     public delegate Return<TReturn> SyncPostInvoke<TParam, TScrapbook, TReturn>(
         Return<TReturn> returned, 
         TScrapbook scrapbook, 
