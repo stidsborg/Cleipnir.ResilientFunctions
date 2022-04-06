@@ -29,7 +29,7 @@ public class BuilderWithInner<TParam, TScrapbook, TReturn> where TParam : notnul
             _rFunctions,
             _functionTypeId,
             _inner,
-            CommonInvoker.AsyncFuncPreInvoke(preInvoke)
+            CommonAdapters.ToAsyncPreInvoke(preInvoke)
         );
     
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
@@ -41,7 +41,7 @@ public class BuilderWithInner<TParam, TScrapbook, TReturn> where TParam : notnul
             _functionTypeId,
             _inner,
             preInvoke: null,
-            CommonInvoker.AsyncFuncPostInvoke(postInvoke)
+            CommonAdapters.ToAsyncPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TScrapbook, TReturn> WithSerializer(ISerializer serializer)
@@ -83,7 +83,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook, TReturn> where TP
             _functionTypeId,
             _inner,
             _preInvoke,
-            CommonInvoker.AsyncFuncPostInvoke(postInvoke)
+            CommonAdapters.ToAsyncPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TScrapbook, TReturn> WithSerializer(ISerializer serializer)

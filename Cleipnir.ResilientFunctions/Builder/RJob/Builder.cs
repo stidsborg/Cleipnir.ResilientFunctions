@@ -78,7 +78,7 @@ public class BuilderWithInner<TScrapbook> where TScrapbook : RScrapbook, new()
             _rFunctions,
             _jobId,
             _inner,
-            CommonInvoker.AsyncJobPreInvoke(preInvoke)
+            CommonAdapters.ToAsyncPreInvoke(preInvoke)
         );
     
     public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Task<Return>> postInvoke)
@@ -90,7 +90,7 @@ public class BuilderWithInner<TScrapbook> where TScrapbook : RScrapbook, new()
             _jobId,
             _inner,
             preInvoke: null,
-            CommonInvoker.AsyncJobPostInvoke(postInvoke)
+            CommonAdapters.ToAsyncPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TScrapbook> WithSerializer(ISerializer serializer)
@@ -128,7 +128,7 @@ public class BuilderWithInnerWithPreInvoke<TScrapbook> where TScrapbook : RScrap
             _jobId,
             _inner,
             _preInvoke,
-            CommonInvoker.AsyncJobPostInvoke(postInvoke)
+            CommonAdapters.ToAsyncPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TScrapbook> WithSerializer(ISerializer serializer)

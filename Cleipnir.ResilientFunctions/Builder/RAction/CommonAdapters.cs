@@ -83,8 +83,8 @@ public static class CommonAdapters
     {
         return (returned, metadata) =>
         {
-            var postInvoked = postInvoke(returned, metadata);
-            return Task.FromResult(postInvoked);
+            returned = postInvoke(returned, metadata);
+            return Task.FromResult(returned);
         };
     }
     
@@ -94,8 +94,8 @@ public static class CommonAdapters
     {
         return (returned, scrapbook, metadata) =>
         {
-            var postInvoked = postInvoke(returned, scrapbook, metadata);
-            return Task.FromResult(postInvoked);
+            returned = postInvoke(returned, scrapbook, metadata);
+            return Task.FromResult(returned);
         };
     }
 

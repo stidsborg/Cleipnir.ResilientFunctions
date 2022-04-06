@@ -66,6 +66,26 @@ public static class CommonAdapters
         };
     }
 
+    public static Func<TScrapbook, Metadata<TParam>, Task> ToAsyncPreInvoke<TParam, TScrapbook>(Action<TScrapbook, Metadata<TParam>> preInvoke)
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (scrapbook, metadata) =>
+        {
+            preInvoke(scrapbook, metadata);
+            return Task.CompletedTask;
+        };
+    } 
+
+    public static Func<Metadata<TParam>, Task> ToAsyncPreInvoke<TParam>(Action<Metadata<TParam>> preInvoke)
+        where TParam : notnull
+    {
+        return metadata =>
+        {
+            preInvoke(metadata);
+            return Task.CompletedTask;
+        };
+    } 
+    
     public static Func<Metadata<TParam>, Task> NoOpPreInvoke<TParam>() where TParam : notnull
     {
         return _ => Task.CompletedTask;
@@ -77,19 +97,36 @@ public static class CommonAdapters
         return (_,_) => Task.CompletedTask;
     }
 
-    public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> ToPostInvoke<TParam, TReturn>(
+    public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> ToAsyncPostInvoke<TParam, TReturn>(
         Func<Return<TReturn>, Metadata<TParam>, Return<TReturn>> postInvoke
     ) where TParam : notnull
     {
         return (returned, metadata) =>
         {
-            var postInvoked = postInvoke(returned, metadata);
-            return Task.FromResult(postInvoked);
+            returned = postInvoke(returned, metadata);
+            return Task.FromResult(returned);
+        };
+    }
+
+    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> ToAsyncPostInvoke<TParam, TScrapbook, TReturn>(
+        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Return<TReturn>> postInvoke
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (returned, scrapbook, metadata) =>
+        {
+            returned = postInvoke(returned, scrapbook, metadata);
+            return Task.FromResult(returned);
         };
     }
 
     public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> NoOpPostInvoke<TParam, TReturn>() where TParam : notnull
     {
         return (returned, _) => Task.FromResult(returned);
+    }
+    
+    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> NoOpPostInvoke<TParam, TScrapbook, TReturn>() 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (returned, _, _) => Task.FromResult(returned);
     }
 }

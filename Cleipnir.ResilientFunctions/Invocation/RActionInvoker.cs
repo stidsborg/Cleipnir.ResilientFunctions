@@ -220,15 +220,15 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         Func<TParam, TScrapbook, Task<Return>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Func<TScrapbook, Metadata<TParam>, Task>? preInvoke,
-        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? postInvoke)
+        Func<TScrapbook, Metadata<TParam>, Task> preInvoke,
+        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _preInvoke = preInvoke ?? CommonInvoker.PreInvokeNoOp;
-        _postInvoke = postInvoke ?? CommonInvoker.ActionPostInvokeNoOp;
+        _preInvoke = preInvoke;
+        _postInvoke = postInvoke;
     }
 
     public async Task Invoke(string functionInstanceId, TParam param)

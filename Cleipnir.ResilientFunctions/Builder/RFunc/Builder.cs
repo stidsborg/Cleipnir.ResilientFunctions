@@ -69,7 +69,7 @@ public class BuilderWithInner<TParam, TReturn> where TParam : notnull
             _rFunctions,
             _functionTypeId,
             _inner,
-            CommonInvoker.AsyncFuncPreInvoke(preInvoke)!
+            CommonAdapters.ToAsyncPreInvoke(preInvoke)
         );
     
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
@@ -81,7 +81,7 @@ public class BuilderWithInner<TParam, TReturn> where TParam : notnull
             _functionTypeId,
             _inner,
             preInvoke: null,
-            CommonInvoker.AsyncFuncPostInvoke(postInvoke)
+            CommonAdapters.ToAsyncPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TReturn> WithSerializer(ISerializer serializer)
@@ -123,7 +123,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TReturn> where TParam : notnu
             _functionTypeId,
             _inner,
             _preInvoke,
-            CommonInvoker.AsyncFuncPostInvoke(postInvoke)!
+            CommonAdapters.ToAsyncPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TReturn> WithSerializer(ISerializer serializer)

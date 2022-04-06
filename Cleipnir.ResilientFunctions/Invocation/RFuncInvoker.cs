@@ -21,15 +21,15 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         Func<TParam, Task<Return<TReturn>>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Func<Metadata<TParam>, Task>? preInvoke,
-        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke)
+        Func<Metadata<TParam>, Task> preInvoke,
+        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _preInvoke = preInvoke ?? CommonInvoker.PreInvokeNoOp;
-        _postInvoke = postInvoke ?? CommonInvoker.FunctionPostInvokeNoOp;
+        _preInvoke = preInvoke;
+        _postInvoke = postInvoke;
     }
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
@@ -222,15 +222,15 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         Func<TParam, TScrapbook, Task<Return<TReturn>>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler, 
-        Func<TScrapbook, Metadata<TParam>, Task>? preInvoke, 
-        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke)
+        Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
+        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _preInvoke = preInvoke ?? CommonInvoker.PreInvokeNoOp;
-        _postInvoke = postInvoke ?? CommonInvoker.FunctionPostInvokeNoOp;
+        _preInvoke = preInvoke;
+        _postInvoke = postInvoke;
     }
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)

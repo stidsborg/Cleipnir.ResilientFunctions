@@ -124,8 +124,8 @@ public class RFunctions : IDisposable
                 inner, 
                 commonInvoker,
                 _unhandledExceptionHandler,
-                preInvoke,
-                postInvoke
+                preInvoke ?? Builder.RFunc.CommonAdapters.NoOpPreInvoke<TParam>(),
+                postInvoke ?? Builder.RFunc.CommonAdapters.NoOpPostInvoke<TParam, TReturn>()
             );
             
             _watchDogsFactory.CreateAndStart(
@@ -267,8 +267,8 @@ public class RFunctions : IDisposable
                 inner, 
                 commonInvoker,
                 _unhandledExceptionHandler,
-                preInvoke,
-                postInvoke
+                preInvoke ?? Builder.RFunc.CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
+                postInvoke ?? Builder.RFunc.CommonAdapters.NoOpPostInvoke<TParam, TScrapbook, TReturn>()
             );
 
             _watchDogsFactory.CreateAndStart(
@@ -338,8 +338,8 @@ public class RFunctions : IDisposable
                 inner, 
                 commonInvoker,
                 _unhandledExceptionHandler, 
-                preInvoke,
-                postInvoke
+                preInvoke ?? Builder.RAction.CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
+                postInvoke ?? Builder.RAction.CommonAdapters.NoOpPostInvoke<TParam, TScrapbook>()
             );
             
             _watchDogsFactory.CreateAndStart(
