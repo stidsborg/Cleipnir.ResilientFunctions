@@ -362,7 +362,7 @@ internal class CommonInvoker
         where TParam : notnull where TScrapbook : RScrapbook, new()
         => Task.CompletedTask;
 
-    public static RFunc.PostInvoke<TParam, TReturn>? AsyncFuncPostInvoke<TParam, TReturn>(
+    public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? AsyncFuncPostInvoke<TParam, TReturn>(
         RFunc.SyncPostInvoke<TParam, TReturn>? postInvoke
     ) where TParam : notnull
     {
@@ -419,7 +419,7 @@ internal class CommonInvoker
         where TParam : notnull where TScrapbook : RScrapbook, new()
         => (_, _) => default!; 
     
-    public static RFunc.PostInvoke<TParam, TReturn> ConvertInnerFuncToPostInvoke<TParam, TReturn>(
+    public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> ConvertInnerFuncToPostInvoke<TParam, TReturn>(
         InnerFunc<TParam, Return<TReturn>> inner
     ) where TParam : notnull => (_, metadata) => inner(metadata.Param);
     

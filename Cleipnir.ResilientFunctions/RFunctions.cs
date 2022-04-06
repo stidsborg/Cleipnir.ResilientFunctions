@@ -92,7 +92,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TReturn> inner,
         Func<Metadata<TParam>, Task>? preInvoke = null,
-        RFunc.PostInvoke<TParam, TReturn>? postInvoke = null,
+        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull
     {

@@ -32,7 +32,7 @@ public class BuilderWithInner<TParam, TReturn> where TParam : notnull
             CommonInvoker.AsyncFuncPreInvoke(preInvoke)!
         );
     
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(ResilientFunctions.RFunc.PostInvoke<TParam, TReturn> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, preInvoke: null, postInvoke);
 
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(ResilientFunctions.RFunc.SyncPostInvoke<TParam, TReturn> postInvoke)
@@ -74,7 +74,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TReturn> where TParam : notnu
         _rFunctions = rFunctions;
     }
     
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(ResilientFunctions.RFunc.PostInvoke<TParam, TReturn> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, _preInvoke, postInvoke);
 
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> WithPostInvoke(ResilientFunctions.RFunc.SyncPostInvoke<TParam, TReturn> postInvoke)
@@ -109,14 +109,14 @@ public class BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> where TParam 
     private readonly FunctionTypeId _functionTypeId;
     private readonly InnerFunc<TParam, TReturn> _inner;
     private readonly Func<Metadata<TParam>, Task>? _preInvoke;
-    private readonly ResilientFunctions.RFunc.PostInvoke<TParam, TReturn>? _postInvoke;
+    private readonly Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? _postInvoke;
 
     public BuilderWithInnerWithPreAndPostInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
         InnerFunc<TParam, TReturn> inner, 
         Func<Metadata<TParam>, Task>? preInvoke, 
-        ResilientFunctions.RFunc.PostInvoke<TParam, TReturn>? postInvoke)
+        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -149,7 +149,7 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TReturn> 
     private readonly FunctionTypeId _functionTypeId;
     private readonly InnerFunc<TParam, TReturn> _inner;
     private readonly Func<Metadata<TParam>, Task>? _preInvoke;
-    private readonly ResilientFunctions.RFunc.PostInvoke<TParam, TReturn>? _postInvoke;
+    private readonly Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? _postInvoke;
     private readonly ISerializer? _serializer;
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer(
@@ -157,7 +157,7 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TReturn> 
         FunctionTypeId functionTypeId, 
         InnerFunc<TParam, TReturn> inner, 
         Func<Metadata<TParam>, Task>? preInvoke, 
-        ResilientFunctions.RFunc.PostInvoke<TParam, TReturn>? postInvoke, 
+        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke, 
         ISerializer? serializer)
     {
         _rFunctions = rFunctions;
