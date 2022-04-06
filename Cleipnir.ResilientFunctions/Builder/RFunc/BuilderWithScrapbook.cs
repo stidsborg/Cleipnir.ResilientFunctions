@@ -35,7 +35,7 @@ public class BuilderWithInner<TParam, TScrapbook, TReturn> where TParam : notnul
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, preInvoke: null, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(ResilientFunctions.RFunc.SyncPostInvoke<TParam, TScrapbook, TReturn> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Return<TReturn>> postInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
@@ -77,7 +77,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook, TReturn> where TP
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, _preInvoke, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(ResilientFunctions.RFunc.SyncPostInvoke<TParam, TScrapbook, TReturn> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook, TReturn> WithPostInvoke(Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Return<TReturn>> postInvoke)
         => new(
             _rFunctions,
             _functionTypeId,

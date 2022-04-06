@@ -14,12 +14,6 @@ public static class RFunc
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null
     );
-
-    public delegate Return<TReturn> SyncPostInvoke<TParam, TScrapbook, TReturn>(
-        Return<TReturn> returned, 
-        TScrapbook scrapbook, 
-        Metadata<TParam> metadata
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RFunc<TParam, TReturn> where TParam : notnull
