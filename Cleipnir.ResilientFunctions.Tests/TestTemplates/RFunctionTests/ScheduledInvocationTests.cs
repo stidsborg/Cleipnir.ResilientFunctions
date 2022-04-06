@@ -70,10 +70,10 @@ public abstract class ScheduledInvocationTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
-        var schedule = rFunctions.Register(
+        var schedule = rFunctions.ActionWithScrapbook(
             functionTypeId,
             (string _, Scrapbook _) => NeverCompletingTask.OfType<Return>()
-        ).Schedule;
+        ).Register().Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
         

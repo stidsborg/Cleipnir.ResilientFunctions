@@ -19,7 +19,7 @@ public class RActionWithScrapbookBuilderTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .CreateBuilder<string, Scrapbook>(
+            .ActionWithScrapbook<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction
             )
@@ -36,7 +36,7 @@ public class RActionWithScrapbookBuilderTests
         var preInvokeFlag = new SyncedFlag();
         var postInvokeFlag = new SyncedFlag();
         var rAction = rFunctions
-            .CreateBuilder<string, Scrapbook>(
+            .ActionWithScrapbook<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction
             )
@@ -56,7 +56,7 @@ public class RActionWithScrapbookBuilderTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rAction = rFunctions
-            .CreateBuilder<string, Scrapbook>(
+            .ActionWithScrapbook<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction
             )

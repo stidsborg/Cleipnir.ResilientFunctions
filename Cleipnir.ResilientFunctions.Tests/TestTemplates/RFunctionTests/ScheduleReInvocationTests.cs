@@ -81,7 +81,7 @@ public abstract class ScheduleReInvocationTests
             postponedCheckFrequency: TimeSpan.Zero
         );
 
-        var rAction = rFunctions.Register<string, ListScrapbook<string>>(
+        var rAction = rFunctions.ActionWithScrapbook<string, ListScrapbook<string>>(
             functionType,
             async (param, scrapbook) =>
             {
@@ -94,7 +94,7 @@ public abstract class ScheduleReInvocationTests
                 }
                 scrapbook.List.Add("world");
             }
-        );
+        ).Register();
 
         await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
 

@@ -140,7 +140,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 unhandledExceptionCatcher.Catch
             );
-            var rFunc = rFunctions.Register(
+            var rFunc = rFunctions.ActionWithScrapbook(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -149,7 +149,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     await NeverCompletingTask.OfType<string>();
                 }
-            ).Invoke;
+            ).Register().Invoke;
 
             _ = rFunc(param.Id, param);
             var actualParam = await paramTcs.Task;
@@ -173,20 +173,20 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
-                functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
-                {
-                    _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    scrapbook.Scraps.Add(2);
-                    await scrapbook.Save();
-                }, 
-                preInvoke: null,
-                postInvoke: async (_, _, _) =>
+            _ = rFunctions.ActionWithScrapbook(
+                    functionTypeId,
+                    async (Param p, Scrapbook scrapbook) =>
+                    {
+                        _ = Task.Run(() => paramTcs.TrySetResult(p));
+                        scrapbook.Scraps.Add(2);
+                        await scrapbook.Save();
+                    })
+                .WithPostInvoke(async (_, _, _) =>
                 {
                     await Task.CompletedTask;
                     return Postpone.For(10, inProcessWait: false);
-                });
+                })
+                .Register();
             
             await afterNextPostponedSetFunctionState;
             crashableStore.Crash();
@@ -202,7 +202,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.ActionWithScrapbook(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -211,7 +211,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     await NeverCompletingTask.OfType<string>();
                 }
-            );
+            ).Register();
 
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
@@ -377,7 +377,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 unhandledExceptionCatcher.Catch
             );
-            var rFunc = rFunctions.Register(
+            var rFunc = rFunctions.ActionWithScrapbook(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -386,7 +386,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     await NeverCompletingTask.OfVoidType();
                 }
-            ).Invoke;
+            ).Register().Invoke;
 
             _ = rFunc(param.Id, param);
             var actualParam = await paramTcs.Task;
@@ -409,20 +409,21 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
-                functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
-                {
-                    _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    scrapbook.Scraps.Add(2);
-                    await scrapbook.Save();
-                }, 
-                preInvoke: null,
-                postInvoke: async (_, _, _) =>
+            _ = rFunctions
+                .ActionWithScrapbook(
+                    functionTypeId,
+                    async (Param p, Scrapbook scrapbook) =>
+                    {
+                        _ = Task.Run(() => paramTcs.TrySetResult(p));
+                        scrapbook.Scraps.Add(2);
+                        await scrapbook.Save();
+                    })
+                .WithPostInvoke(async (_, _, _) =>
                 {
                     await Task.CompletedTask;
                     return Postpone.For(10, inProcessWait: false);
-                });
+                })
+                .Register();
             
             await afterNextPostponed;
             crashableStore.Crash();
@@ -439,7 +440,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.ActionWithScrapbook(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -450,7 +451,7 @@ public abstract class WatchdogCompoundTests
                     await savedTask;
                     await NeverCompletingTask.OfVoidType();
                 }
-            );
+            ).Register();
             
             await invocationStarted.Task;
             crashableStore.Crash();
@@ -464,7 +465,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.ActionWithScrapbook(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -472,7 +473,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(4);
                     await scrapbook.Save();
                 }
-            );
+            ).Register();
 
             await BusyWait.Until(async () =>
                 await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded

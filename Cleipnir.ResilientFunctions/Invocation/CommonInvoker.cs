@@ -411,13 +411,6 @@ internal class CommonInvoker
         };
     }
 
-    public static InnerAction<TParam> DefaultInnerAction<TParam>() where TParam : notnull
-        => _ => default!;
-    
-    public static InnerAction<TParam, TScrapbook> DefaultInnerAction<TParam, TScrapbook>()
-        where TParam : notnull where TScrapbook : RScrapbook, new()
-        => (_,_) => default!;
-
     public static InnerFunc<TParam, TReturn> DefaultInnerFunc<TParam, TReturn>()
         where TParam : notnull
         => _ => default!; 
@@ -435,11 +428,6 @@ internal class CommonInvoker
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
 
-    public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> ConvertInnerActionToPostInvoke<TParam, TScrapbook>(
-        InnerFunc<TParam, TScrapbook, Return> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
-
     public static Task<Return<TReturn>> FunctionPostInvokeNoOp<TParam, TReturn>(
         Return<TReturn> returned,
         Metadata<TParam> metadata
@@ -450,12 +438,7 @@ internal class CommonInvoker
         TScrapbook scrapbook,
         Metadata<TParam> metadata
     ) where TParam : notnull => Task.FromResult(returned);
-    
-    public static Task<Return> ActionPostInvokeNoOp<TParam>(
-        Return returned,
-        Metadata<TParam> metadata
-    ) where TParam : notnull => Task.FromResult(returned);
-    
+
     public static Task<Return> ActionPostInvokeNoOp<TParam, TScrapbook>(
         Return returned,
         TScrapbook scrapbook,

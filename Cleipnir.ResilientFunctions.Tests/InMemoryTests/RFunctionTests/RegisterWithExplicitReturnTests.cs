@@ -74,14 +74,17 @@ public class RegisterWithExplicitReturnTests
     {
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rAction = rFunctions.RegisterWithExplicitReturn<string, Scrapbook>(
-            "FunctionTypeId".ToFunctionTypeId(),
-            inner: async (param, scrapbook) =>
-            {
-                await Task.CompletedTask;
-                syncedParam.Value = param;
-                return Succeed.WithoutValue;
-            }).Invoke;
+        var rAction = rFunctions
+            .ActionWithScrapbook<string, Scrapbook>(
+                "FunctionTypeId".ToFunctionTypeId(),
+                inner: async (param, scrapbook) =>
+                {
+                    await Task.CompletedTask;
+                    syncedParam.Value = param;
+                    return Succeed.WithoutValue;
+                })
+            .Register()
+            .Invoke;
 
         await rAction("", "hello world");
         syncedParam.Value.ShouldBe("hello world");

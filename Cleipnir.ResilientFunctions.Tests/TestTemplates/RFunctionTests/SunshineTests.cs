@@ -131,10 +131,10 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
-            .Register(
+            .ActionWithScrapbook(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => scrapbook.Save()
-            ).Invoke;
+            ).Register().Invoke;
 
         await rFunc("hello", "hello");
 

@@ -15,6 +15,26 @@ public static class CommonAdapters
         };
     }
     
+    public static Func<TParam, TScrapbook, Task<Return>> ToInnerAction<TParam, TScrapbook>(Func<TParam, TScrapbook, Task> inner)
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return async (param, scrapbook) =>
+        {
+            await inner(param, scrapbook);
+            return Return.Succeed;
+        };
+    }
+    
+    public static Func<TParam, TScrapbook, Task<Return>> ToInnerAction<TParam, TScrapbook>(Action<TParam, TScrapbook> inner) 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (param, scrapbook) =>
+        {
+            inner(param, scrapbook);
+            return Task.FromResult(Return.Succeed);
+        };
+    }
+    
     public static Func<TParam, Task<Return>> ToInnerAction<TParam>(Func<TParam, Task> inner) where TParam : notnull
     {
         return async param =>
