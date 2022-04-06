@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -100,10 +101,12 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rAction = rFunctions
-            .Register(
+            .Action(
                 functionTypeId,
                 (string _) => Task.Delay(10)
-            ).Invoke;
+            )
+            .Register()
+            .Invoke;
 
         await rAction("hello", "hello");
         

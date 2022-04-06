@@ -267,14 +267,16 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 unhandledExceptionCatcher.Catch
             );
-            var rAction = rFunctions.Register(
-                functionTypeId,
-                (Param p) =>
-                {
-                    tcs.TrySetResult(p);
-                    return NeverCompletingTask.OfVoidType();
-                }
-            ).Invoke;
+            var rAction = rFunctions
+                .Action(
+                    functionTypeId,
+                    inner: (Param p) =>
+                    {
+                        tcs.TrySetResult(p);
+                        return NeverCompletingTask.OfVoidType();
+                    })
+                .Register()
+                .Invoke;
             
             _ = rAction(param.Id, param);
             var actualParam = await tcs.Task;
@@ -295,19 +297,13 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
-                functionTypeId,
-                (Param p) =>
-                {
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    return Task.CompletedTask;
-                },
-                preInvoke: null,
-                postInvoke: async (_, _) =>
-                {
-                    await Task.CompletedTask;
-                    return Postpone.For(10, inProcessWait: false);
-                });
+            _ = rFunctions
+                .Action(
+                    functionTypeId,
+                    inner: (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
+                )
+                .WithPostInvoke((_, _) => Postpone.For(10, inProcessWait: false))
+                .Register();
 
             await afterSetFunctionState;
             crashableStore.Crash();
@@ -323,7 +319,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.Action(
                 functionTypeId,
                 (Param p) =>
                 {
@@ -331,7 +327,7 @@ public abstract class WatchdogCompoundTests
                     Task.Run(invocationStarted.SetResult);
                     return NeverCompletingTask.OfVoidType();
                 }
-            );
+            ).Register();
 
             await invocationStarted.Task;
             crashableStore.Crash();
@@ -346,14 +342,12 @@ public abstract class WatchdogCompoundTests
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
-                functionTypeId,
-                (Param p) =>
-                {
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    return Task.CompletedTask;
-                }
-            );
+            _ = rFunctions
+                .Action(
+                    functionTypeId,
+                (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
+                )
+                .Register();
             
             await BusyWait.Until(async () =>
                 await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded

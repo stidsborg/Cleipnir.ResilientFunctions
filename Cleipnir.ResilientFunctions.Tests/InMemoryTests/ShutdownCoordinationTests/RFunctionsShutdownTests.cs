@@ -27,7 +27,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        var rAction = rFunctions.Register(
+        var rAction = rFunctions.Register<string, Return>(
             functionTypeId,
             async (string _) =>
             {
@@ -67,7 +67,7 @@ public class RFunctionsShutdownTests
 
         var insideRFuncFlag = new SyncedFlag();
 
-        var rFunc = rFunctions.Register(
+        var rFunc = rFunctions.Register<string, Return>(
             functionTypeId,
              (string _) =>
             {
@@ -110,7 +110,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        rFunctions.Register(
+        rFunctions.Register<string, Return>(
             functionId.TypeId,
             async (string _) =>
             {
@@ -167,7 +167,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        rFunctions.Register(
+        rFunctions.Register<string, Return>(
             functionId.TypeId,
             async (string _) =>
             {

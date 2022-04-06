@@ -18,13 +18,13 @@ public static class TaskExtensions
         
     public static T? ToNullable<T>(this T t) => (T?) t;
 
-    public static async Task<T> EnsureSuccess<T>(this Task<Result<T>> task)
+    public static async Task<T> EnsureSuccess<T>(this Task<Result2<T>> task)
     {
         var result = await task;
         return result.EnsureSuccess();
     }
     
-    public static async Task EnsureSuccess(this Task<Result> task)
+    public static async Task EnsureSuccess(this Task<Result2> task)
     {
         var result = await task;
         result.EnsureSuccess();

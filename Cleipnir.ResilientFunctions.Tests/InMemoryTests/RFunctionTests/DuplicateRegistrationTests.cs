@@ -49,13 +49,13 @@ public class DuplicateRegistrationTests
     public void ReRegistrationRActionWithIncompatibleTypeThrowsInArgumentException()
     {
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
-        _ = rFunctions.Register(
+        _ = rFunctions.Register<string, Return>(
             "SomeFunctionType",
             Task<Return>(string _) => Succeed.WithoutValue.ToTask()
         );
 
         Should.Throw<ArgumentException>(() =>
-            _ = rFunctions.Register(
+            _ = rFunctions.Register<int, Return>(
                 "SomeFunctionType",
                 Task<Return>(int _) => Succeed.WithoutValue.ToTask()
             )
@@ -66,12 +66,12 @@ public class DuplicateRegistrationTests
     public void ReRegistrationRActionWithSameTypeThrowsInArgumentException()
     {
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
-        var rFunc1 = rFunctions.Register(
+        var rFunc1 = rFunctions.Register<string, Return>(
             "SomeFunctionType",
             Task<Return>(string param) => Succeed.WithoutValue.ToTask()
         );
 
-        var rFunc2 = rFunctions.Register(
+        var rFunc2 = rFunctions.Register<string, Return>(
             "SomeFunctionType",
             Task<Return>(string param) => Succeed.WithoutValue.ToTask()
         );

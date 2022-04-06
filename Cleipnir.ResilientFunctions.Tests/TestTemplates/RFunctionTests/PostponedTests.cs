@@ -135,15 +135,13 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
+                .Action(
                     functionTypeId,
-                    (string _) => Task.CompletedTask,
-                    preInvoke: null,
-                    postInvoke: async (_, _) =>
-                    {
-                        await Task.CompletedTask;
-                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false);
-                    }).Invoke;
+                    (string _) => Task.CompletedTask
+                )
+                .WithPostInvoke((_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false))
+                .Register()
+                .Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -243,15 +241,10 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
-                    functionTypeId,
-                    (string _) => Task.CompletedTask,
-                    preInvoke: null,
-                    postInvoke: async (_, _) =>
-                    {
-                        await Task.CompletedTask;
-                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000), inProcessWait: true);
-                    }).Invoke;
+                .Action(functionTypeId, (string _) => Task.CompletedTask)
+                .WithPostInvoke((_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000), inProcessWait: true))
+                .Register()
+                .Invoke;
 
             _ = rAction(param, param);
         }

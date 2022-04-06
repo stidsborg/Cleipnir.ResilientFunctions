@@ -167,11 +167,11 @@ public abstract class UnhandledFuncExceptionTests
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions.Register<string>(
-            functionType,
-            _ => throw new Exception("oh no"),
-            preInvoke: null,
-            postInvoke: async (returned, metadata) =>
+        var rFunc = rFunctions
+            .Action<string>(
+                functionType,
+                inner: _ => throw new Exception("oh no")
+            ).WithPostInvoke(async (returned, metadata) =>
             {
                 await Task.CompletedTask;
                 syncedException.Value = returned.Fail!;
@@ -179,8 +179,8 @@ public abstract class UnhandledFuncExceptionTests
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     inProcessWait: false
                 );
-            }
-        );
+            })
+            .Register();
 
         //invoke
         var thrown = false;

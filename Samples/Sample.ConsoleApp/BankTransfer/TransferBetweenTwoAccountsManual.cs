@@ -12,10 +12,13 @@ public sealed class TransferSaga
     public TransferSaga(RFunctions rFunctions, IBankClient bankClient)
     {
         BankClient = bankClient;
-        Perform = rFunctions.Register<Transfer>(
-            "Transfers".ToFunctionTypeId(),
-            _Perform
-        ).Invoke;
+        Perform = rFunctions
+            .Action<Transfer>(
+                "Transfers".ToFunctionTypeId(),
+                _Perform
+            )
+            .Register()
+            .Invoke;
     }
     
     public RAction.Invoke<Transfer> Perform { get; }

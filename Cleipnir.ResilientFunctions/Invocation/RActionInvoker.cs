@@ -9,27 +9,27 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public class RActionInvoker<TParam> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerAction<TParam> _inner;
+    private readonly Func<TParam, Task<Return>> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly RAction.PreInvoke<TParam> _preInvoke;
-    private readonly RAction.PostInvoke<TParam> _postInvoke;
+    private readonly Func<Metadata<TParam>, Task> _preInvoke;
+    private readonly Func<Return, Metadata<TParam>, Task<Return>> _postInvoke;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
-        InnerAction<TParam> inner,
+        Func<TParam, Task<Return>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        RAction.PreInvoke<TParam>? preInvoke,
-        RAction.PostInvoke<TParam>? postInvoke)
+        Func<Metadata<TParam>, Task> preInvoke,
+        Func<Return, Metadata<TParam>, Task<Return>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _preInvoke = preInvoke ?? CommonInvoker.PreInvokeNoOp;
-        _postInvoke = postInvoke ?? CommonInvoker.ActionPostInvokeNoOp;
+        _preInvoke = preInvoke;
+        _postInvoke = postInvoke;
     }
 
     public async Task Invoke(string functionInstanceId, TParam param)
@@ -42,25 +42,25 @@ public class RActionInvoker<TParam> where TParam : notnull
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
         while (true)
         {
-            Return postInvoked;
+            Return returned;
             try
             {
                 await _preInvoke(metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                await _inner(param);
-                postInvoked = await _postInvoke(Return.Succeed, metadata);
+                returned = await _inner(param);
+                returned = await _postInvoke(returned, metadata);
             }
             catch (Exception exception)
             {
-                postInvoked = await _postInvoke(new Fail(exception), metadata);
-                if (postInvoked.Fail == exception)
+                returned = await _postInvoke(new Fail(exception), metadata);
+                if (returned.Fail == exception)
                 {
-                    await PersistPostInvoked(functionId, postInvoked);
+                    await PersistPostInvoked(functionId, returned);
                     throw;
                 }
             }
 
-            if (await PersistResultAndEnsureSuccess(functionId, postInvoked) == InProcessWait.DoNotRetryInvocation)
+            if (await PersistResultAndEnsureSuccess(functionId, returned) == InProcessWait.DoNotRetryInvocation)
                 return;
         }
     }
@@ -79,25 +79,25 @@ public class RActionInvoker<TParam> where TParam : notnull
             {
                 while (true)
                 {
-                    Return postInvoked;
+                    Return returned;
                     try
                     {
                         await _preInvoke(metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        await _inner(param);
-                        postInvoked = await _postInvoke(Return.Succeed, metadata);
+                        returned = await _inner(param);
+                        returned = await _postInvoke(returned, metadata);
                     }
                     catch (Exception exception)
                     {
-                        postInvoked = await _postInvoke(new Fail(exception), metadata);
-                        if (postInvoked.Fail == exception)
+                        returned = await _postInvoke(new Fail(exception), metadata);
+                        if (returned.Fail == exception)
                         {
-                            await PersistPostInvoked(functionId, postInvoked);
+                            await PersistPostInvoked(functionId, returned);
                             throw;
                         }
                     }
 
-                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked) == InProcessWait.DoNotRetryInvocation)
+                    if (await PersistResultAndEnsureSuccess(functionId, returned) == InProcessWait.DoNotRetryInvocation)
                         return;
                 }
             }
@@ -117,25 +117,25 @@ public class RActionInvoker<TParam> where TParam : notnull
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
         while (true)
         {
-            Return postInvoked;
+            Return returned;
             try
             {
                 await _preInvoke(metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                await _inner(param);
-                postInvoked = await _postInvoke(Return.Succeed, metadata);
+                returned = await _inner(param);
+                returned = await _postInvoke(returned, metadata);
             }
             catch (Exception exception)
             {
-                postInvoked = await _postInvoke(new Fail(exception), metadata);
-                if (postInvoked.Fail == exception)
+                returned = await _postInvoke(new Fail(exception), metadata);
+                if (returned.Fail == exception)
                 {
-                    await PersistPostInvoked(functionId, postInvoked, epoch);
+                    await PersistPostInvoked(functionId, returned, epoch);
                     throw;
                 }
             }
 
-            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, epoch) == InProcessWait.DoNotRetryInvocation) 
+            if (await PersistResultAndEnsureSuccess(functionId, returned, epoch) == InProcessWait.DoNotRetryInvocation) 
                 return;
         }
     }
@@ -153,25 +153,25 @@ public class RActionInvoker<TParam> where TParam : notnull
             {
                 while (true)
                 {
-                    Return postInvoked;
+                    Return returned;
                     try
                     {
                         await _preInvoke(metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        await _inner(param);
-                        postInvoked = await _postInvoke(Return.Succeed, metadata);
+                        returned = await _inner(param);
+                        returned = await _postInvoke(returned, metadata);
                     }
                     catch (Exception exception)
                     {
-                        postInvoked = await _postInvoke(new Fail(exception), metadata);
-                        if (postInvoked.Fail == exception)
+                        returned = await _postInvoke(new Fail(exception), metadata);
+                        if (returned.Fail == exception)
                         {
-                            await PersistPostInvoked(functionId, postInvoked, epoch);
+                            await PersistPostInvoked(functionId, returned, epoch);
                             throw;
                         }
                     }
 
-                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, epoch) == InProcessWait.DoNotRetryInvocation)
+                    if (await PersistResultAndEnsureSuccess(functionId, returned, epoch) == InProcessWait.DoNotRetryInvocation)
                         return;
                 }
             }

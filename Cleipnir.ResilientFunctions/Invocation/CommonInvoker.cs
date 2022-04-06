@@ -356,19 +356,7 @@ internal class CommonInvoker
             return Task.CompletedTask;
         };
     }
-    
-    public static RAction.PreInvoke<TParam>? SyncActionPreInvoke<TParam>(RAction.SyncPreInvoke<TParam>? preInvoke) 
-        where TParam : notnull
-    {
-        if (preInvoke == null) return null;
-        
-        return metadata =>
-        {
-            preInvoke(metadata);
-            return Task.CompletedTask;
-        };
-    }
-    
+
     public static RAction.PreInvoke<TParam, TScrapbook>? SyncActionPreInvoke<TParam, TScrapbook>(
         RAction.SyncPreInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -403,17 +391,8 @@ internal class CommonInvoker
         if (postInvoke == null) return null;
         
         return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
-    } 
-    
-    public static RAction.PostInvoke<TParam>? AsyncActionPostInvoke<TParam>(
-        RAction.SyncPostInvoke<TParam>? postInvoke
-    ) where TParam : notnull
-    {
-        if (postInvoke == null) return null;
-        
-        return (returned, metadata) => postInvoke(returned, metadata).ToTask();  
-    } 
-    
+    }
+
     public static RAction.PostInvoke<TParam, TScrapbook>? AsyncActionPostInvoke<TParam, TScrapbook>(
         RAction.SyncPostInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -468,11 +447,7 @@ internal class CommonInvoker
         InnerFunc<TParam, TScrapbook, Return<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
-    
-    public static RAction.PostInvoke<TParam> ConvertInnerActionToPostInvoke<TParam>(
-        InnerFunc<TParam, Return> inner
-    ) where TParam : notnull => (_, metadata) => inner(metadata.Param);
-    
+
     public static RAction.PostInvoke<TParam, TScrapbook> ConvertInnerActionToPostInvoke<TParam, TScrapbook>(
         InnerFunc<TParam, TScrapbook, Return> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 

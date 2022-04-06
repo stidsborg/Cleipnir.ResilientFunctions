@@ -13,24 +13,16 @@ public static class RAction
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null
     );
-
-    public delegate void SyncPreInvoke<TParam>(Metadata<TParam> metadata)
-        where TParam : notnull;
+    
     public delegate void SyncPreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
     
-    public delegate Task PreInvoke<TParam>(Metadata<TParam> metadata)
-        where TParam : notnull;
     public delegate Task PreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
-
-    public delegate Return SyncPostInvoke<TParam>(Return returned, Metadata<TParam> metadata)
-        where TParam : notnull;
+    
     public delegate Return SyncPostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
     
-    public delegate Task<Return> PostInvoke<TParam>(Return returned, Metadata<TParam> metadata)
-        where TParam : notnull;
     public delegate Task<Return> PostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();
 }

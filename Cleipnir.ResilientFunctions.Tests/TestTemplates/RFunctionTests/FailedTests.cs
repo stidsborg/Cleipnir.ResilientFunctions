@@ -38,13 +38,15 @@ public abstract class FailedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
+                .Action(
                     functionTypeId,
                     (string _) =>
                         throwUnhandledException
                             ? throw new Exception()
                             : Task.FromException(new Exception())
-                ).Invoke;
+                )
+                .Register()
+                .Invoke;
 
             await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
         }
@@ -160,10 +162,12 @@ public abstract class FailedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
+                .Action(
                     functionTypeId,
                     (string _) => Task.FromException(new Exception())
-                ).Invoke;
+                )
+                .Register()
+                .Invoke;
 
             await Should.ThrowAsync<Exception>(nonCompletingRFunctions(PARAM, PARAM));
         }
@@ -175,14 +179,13 @@ public abstract class FailedTests
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
             );
-            var rFunc = rFunctions.Register(
-                functionTypeId,
-                (string _) =>
-                {
-                    flag.Raise();
-                    return Task.CompletedTask;
-                }
-            ).Invoke;
+            var rFunc = rFunctions
+                .Action(
+                    functionTypeId,
+                    inner: (string _) => flag.Raise()
+                )
+                .Register()
+                .Invoke;
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
             

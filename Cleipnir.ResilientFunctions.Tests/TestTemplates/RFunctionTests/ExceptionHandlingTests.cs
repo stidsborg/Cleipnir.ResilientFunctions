@@ -50,10 +50,13 @@ public abstract class ExceptionHandlingTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
-        var rFunc = rFunctions.Register<string>(
-            "typeId".ToFunctionTypeId(),
-            param => throw new ArithmeticException("Division by zero")
-        ).Invoke;
+        var rFunc = rFunctions
+            .Action<string>(
+                "typeId".ToFunctionTypeId(),
+                _ => throw new ArithmeticException("Division by zero")
+            )
+            .Register()
+            .Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
@@ -66,11 +69,14 @@ public abstract class ExceptionHandlingTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
-        var rFunc = rFunctions.Register<string>(
-            "typeId".ToFunctionTypeId(),
-            param => throw new ArithmeticException("Division by zero")
-        ).Invoke;
-        
+        var rFunc = rFunctions
+            .Action<string>(
+                "typeId".ToFunctionTypeId(),
+                param => throw new ArithmeticException("Division by zero")
+            )
+            .Register()
+            .Invoke;
+
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }

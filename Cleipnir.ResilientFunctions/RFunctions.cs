@@ -142,30 +142,27 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RAction<TParam> RegisterWithExplicitReturn<TParam>(
+    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, Return> inner,
-        ISerializer? serializer = null
-    ) where TParam : notnull
-        => Register(
-            functionTypeId,
-            inner: CommonInvoker.DefaultInnerAction<TParam>(),
-            preInvoke: null,
-            postInvoke: CommonInvoker.ConvertInnerActionToPostInvoke(inner),
-            serializer
-        );
+        Action<TParam> inner
+    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
     
-    public Builder.RAction.BuilderWithInner<TParam> CreateBuilder<TParam>(
+    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
         FunctionTypeId functionTypeId,
-        InnerAction<TParam> inner
-    ) where TParam : notnull => new(this, functionTypeId, inner); 
+        Func<TParam, Task> inner
+    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
     
-    public RAction<TParam> Register<TParam>(
+    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
         FunctionTypeId functionTypeId,
-        InnerAction<TParam> inner,
-        RAction.PreInvoke<TParam>? preInvoke = null,
-        RAction.PostInvoke<TParam>? postInvoke = null,
-        ISerializer? serializer = null
+        Func<TParam, Task<Return>> inner
+    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+    
+    internal RAction<TParam> Register<TParam>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, Task<Return>> inner,
+        Func<Metadata<TParam>, Task> preInvoke,
+        Func<Return, Metadata<TParam>, Task<Return>> postInvoke,
+        ISerializer serializer
     ) where TParam : notnull 
     {
         if (_disposed)
@@ -179,7 +176,6 @@ public class RFunctions : IDisposable
                     throw new ArgumentException($"{typeof(RAction<TParam>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
-            serializer ??= DefaultSerializer.Instance;
 
             var commonInvoker = new CommonInvoker(
                 serializer,

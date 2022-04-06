@@ -29,20 +29,19 @@ public abstract class ReInvocationTests
         );
         var syncedParameter = new Synced<string>();
 
-        var rFunc = rFunctions.Register<string>(
-            functionType,
-            async s =>
-            {
-                await Task.CompletedTask;
-                if (flag.Position == FlagPosition.Lowered)
+        var rFunc = rFunctions
+            .Action(
+                functionType, (string s) =>
                 {
-                    flag.Raise();
-                    throw new Exception("oh no");
-                }
+                    if (flag.Position == FlagPosition.Lowered)
+                    {
+                        flag.Raise();
+                        throw new Exception("oh no");
+                    }
 
-                syncedParameter.Value = s;
-            }
-        );
+                    syncedParameter.Value = s;
+                }
+            ).Register();
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
@@ -233,10 +232,10 @@ public abstract class ReInvocationTests
             postponedCheckFrequency: TimeSpan.Zero
         );
 
-        var rFunc = rFunctions.Register<string>(
+        var rFunc = rFunctions.Action(
             functionType,
-            _ => Task.FromException(new Exception("oh no"))
-        );
+            (string _) => Task.FromException(new Exception("oh no"))
+        ).Register();
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
@@ -260,10 +259,10 @@ public abstract class ReInvocationTests
             postponedCheckFrequency: TimeSpan.Zero
         );
 
-        var rFunc = rFunctions.Register<string>(
+        var rFunc = rFunctions.Action(
             functionType,
-            _ => Task.FromException(new Exception("oh no"))
-        );
+            (string _) => Task.FromException(new Exception("oh no"))
+        ).Register();
 
         await Should.ThrowAsync<Exception>(() =>
             rFunc.ReInvoke("something", new[] {Status.Executing})

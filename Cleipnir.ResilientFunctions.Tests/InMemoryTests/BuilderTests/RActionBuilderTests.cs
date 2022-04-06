@@ -19,10 +19,7 @@ public class RActionBuilderTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .CreateBuilder<string>(
-                _functionTypeId,
-                InnerAction
-            )
+            .Action<string>(_functionTypeId, InnerAction)
             .Register()
             .Invoke;
 
@@ -36,10 +33,7 @@ public class RActionBuilderTests
         var preInvokeFlag = new SyncedFlag();
         var postInvokeFlag = new SyncedFlag();
         var rAction = rFunctions
-            .CreateBuilder<string>(
-                _functionTypeId,
-                InnerAction
-            )
+            .Action<string>(_functionTypeId, InnerAction)
             .WithPreInvoke(_ => preInvokeFlag.Raise())
             .WithPostInvoke((returned, _) => { postInvokeFlag.Raise(); return returned; })
             .Register()
@@ -56,10 +50,7 @@ public class RActionBuilderTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rAction = rFunctions
-            .CreateBuilder<string>(
-                _functionTypeId,
-                InnerAction
-            )
+            .Action<string>(_functionTypeId, InnerAction)
             .WithSerializer(serializer)
             .Register()
             .Invoke;
