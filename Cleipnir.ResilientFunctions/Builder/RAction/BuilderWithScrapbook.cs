@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 
 namespace Cleipnir.ResilientFunctions.Builder.RAction;
@@ -41,7 +40,7 @@ public class BuilderWithInner<TParam, TScrapbook> where TParam : notnull where T
             _functionTypeId,
             _inner,
             preInvoke: CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
-            CommonInvoker.AsyncActionPostInvoke(postInvoke)
+            CommonAdapters.ToPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TScrapbook> WithSerializer(ISerializer serializer)
@@ -50,7 +49,7 @@ public class BuilderWithInner<TParam, TScrapbook> where TParam : notnull where T
             _functionTypeId,
             _inner,
             preInvoke: CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
-            postInvoke: null,
+            postInvoke: CommonAdapters.NoOpPostInvoke<TParam, TScrapbook>(),
             serializer
         );
 }
@@ -83,7 +82,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook> where TParam : no
             _functionTypeId,
             _inner,
             _preInvoke,
-            CommonInvoker.AsyncActionPostInvoke(postInvoke)
+            CommonAdapters.ToPostInvoke(postInvoke)
         );
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TScrapbook> WithSerializer(ISerializer serializer)
@@ -92,7 +91,7 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook> where TParam : no
             _functionTypeId,
             _inner,
             _preInvoke,
-            postInvoke: null,
+            postInvoke: CommonAdapters.NoOpPostInvoke<TParam, TScrapbook>(),
             serializer
         );
 
@@ -109,14 +108,14 @@ public class BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> where TPar
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, TScrapbook, Task<Return>> _inner;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? _postInvoke;
+    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> _postInvoke;
 
     public BuilderWithInnerWithPreAndPostInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
         Func<TParam, TScrapbook, Task<Return>> inner, 
         Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
-        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? postInvoke)
+        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -149,16 +148,16 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TScrapboo
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, TScrapbook, Task<Return>> _inner;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? _postInvoke;
-    private readonly ISerializer? _serializer;
+    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> _postInvoke;
+    private readonly ISerializer _serializer;
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
         Func<TParam, TScrapbook, Task<Return>> inner, 
         Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
-        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? postInvoke, 
-        ISerializer? serializer)
+        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke, 
+        ISerializer serializer)
     {
         _rFunctions = rFunctions;
         _functionTypeId = functionTypeId;

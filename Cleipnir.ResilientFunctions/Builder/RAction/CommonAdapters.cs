@@ -87,9 +87,26 @@ public static class CommonAdapters
             return Task.FromResult(postInvoked);
         };
     }
+    
+    public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> ToPostInvoke<TParam, TScrapbook>(
+        Func<Return, TScrapbook, Metadata<TParam>, Return> postInvoke
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (returned, scrapbook, metadata) =>
+        {
+            var postInvoked = postInvoke(returned, scrapbook, metadata);
+            return Task.FromResult(postInvoked);
+        };
+    }
 
     public static Func<Return, Metadata<TParam>, Task<Return>> NoOpPostInvoke<TParam>() where TParam : notnull
     {
         return (returned, _) => Task.FromResult(returned);
+    }
+    
+    public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> NoOpPostInvoke<TParam, TScrapbook>() 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (returned, _, _) => Task.FromResult(returned);
     }
 }

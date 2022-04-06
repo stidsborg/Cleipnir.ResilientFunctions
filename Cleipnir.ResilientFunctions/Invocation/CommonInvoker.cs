@@ -379,16 +379,7 @@ internal class CommonInvoker
         
         return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
     }
-
-    public static Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? AsyncActionPostInvoke<TParam, TScrapbook>(
-        Func<Return, TScrapbook, Metadata<TParam>, Return>? postInvoke
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
-    {
-        if (postInvoke == null) return null;
-        
-        return (returned, scrapbook, metadata) => postInvoke(returned, scrapbook, metadata).ToTask();
-    }
-
+    
     public static Func<TScrapbook, Task> AsyncJobPreInvoke<TScrapbook>(
         Action<TScrapbook> preInvoke
     ) where TScrapbook : RScrapbook, new()
