@@ -4,7 +4,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class Result
 {
-    public Intent Intent { get; }
+    public Outcome Outcome { get; }
     public Postpone? Postpone { get; }
     public Exception? Fail { get; }
 
@@ -15,11 +15,11 @@ public class Result
     private Result(bool succeed, Postpone? postpone, Exception? fail)
     {
         if (succeed)
-            Intent = Intent.Succeed;
+            Outcome = Outcome.Succeed;
         else if (postpone != null)
-            Intent = Intent.Postpone;
+            Outcome = Outcome.Postpone;
         else
-            Intent = Intent.Fail;
+            Outcome = Outcome.Fail;
         
         Postpone = postpone;
         Fail = fail;
@@ -67,7 +67,7 @@ public class Postpone
 
 public class Result<T>
 {
-    public Intent Intent { get; }
+    public Outcome Outcome { get; }
     public bool Succeed { get; }
     public T? SucceedWithValue { get; }
     public Postpone? Postpone { get; }
@@ -86,11 +86,11 @@ public class Result<T>
     private Result(bool succeed, T? succeedWithValue, Postpone? postpone, Exception? fail)
     {
         if (succeed)
-            Intent = Intent.Succeed;
+            Outcome = Outcome.Succeed;
         else if (postpone != null)
-            Intent = Intent.Postpone;
+            Outcome = Outcome.Postpone;
         else
-            Intent = Intent.Fail;
+            Outcome = Outcome.Fail;
         
         Succeed = succeed;
         SucceedWithValue = succeedWithValue;
@@ -103,7 +103,7 @@ public class Result<T>
     public static implicit operator Result<T>(Postpone postpone) => new Result<T>(postpone);
 }
 
-public enum Intent
+public enum Outcome
 {
     Succeed = 1,
     Postpone = 2,

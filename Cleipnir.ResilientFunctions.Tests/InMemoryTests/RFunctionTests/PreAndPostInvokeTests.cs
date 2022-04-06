@@ -47,7 +47,7 @@ public class PreAndPostInvokeTests
 
         syncedPostInvoke.Value.ShouldNotBeNull();
         var (postInvokeReturn, postInvokeMetadata) = syncedPostInvoke.Value;
-        postInvokeReturn.Intent.ShouldBe(Intent.Succeed);
+        postInvokeReturn.Outcome.ShouldBe(Outcome.Succeed);
         postInvokeMetadata.Param.ShouldBe("hello world");
         postInvokeMetadata.FunctionId.ShouldBe(FunctionId);
     }
@@ -96,7 +96,7 @@ public class PreAndPostInvokeTests
         var (postInvokeReturn, postInvokeScrapbook, postInvokeMetadata) = syncedPostInvoke.Value;
         postInvokeScrapbook.ShouldNotBeNull();
         postInvokeScrapbook.Value.ShouldBe("PreInvoked");
-        postInvokeReturn.Intent.ShouldBe(Intent.Succeed);
+        postInvokeReturn.Outcome.ShouldBe(Outcome.Succeed);
         postInvokeMetadata.Param.ShouldBe("hello world");
         postInvokeMetadata.FunctionId.ShouldBe(FunctionId);
 
@@ -140,7 +140,7 @@ public class PreAndPostInvokeTests
 
         syncedPostInvoke.Value.ShouldNotBeNull();
         var (postInvokeReturn, postInvokeMetadata) = syncedPostInvoke.Value;
-        postInvokeReturn.Intent.ShouldBe(Intent.Succeed);
+        postInvokeReturn.Outcome.ShouldBe(Outcome.Succeed);
         postInvokeReturn.SucceedWithValue.ShouldBe("HELLO WORLD");
         postInvokeMetadata.Param.ShouldBe("hello world");
         postInvokeMetadata.FunctionId.ShouldBe(FunctionId);
@@ -189,7 +189,7 @@ public class PreAndPostInvokeTests
         var (postInvokeReturn, postInvokeScrapbook, postInvokeMetadata) = syncedPostInvoke.Value;
         postInvokeScrapbook.ShouldNotBeNull();
         postInvokeScrapbook.Value.ShouldBe("PreInvoked");
-        postInvokeReturn.Intent.ShouldBe(Intent.Succeed);
+        postInvokeReturn.Outcome.ShouldBe(Outcome.Succeed);
         postInvokeReturn.SucceedWithValue.ShouldBe("HELLO WORLD");
         postInvokeMetadata.Param.ShouldBe("hello world");
         postInvokeMetadata.FunctionId.ShouldBe(FunctionId);

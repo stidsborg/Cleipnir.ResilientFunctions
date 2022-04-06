@@ -126,9 +126,9 @@ internal class CommonInvoker
             ? null
             : _serializer.SerializeScrapbook(scrapbook);
 
-        switch (result.Intent)
+        switch (result.Outcome)
         {
-            case Intent.Succeed:
+            case Outcome.Succeed:
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
@@ -140,7 +140,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Intent.Postpone:
+            case Outcome.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     result.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
@@ -152,7 +152,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Intent.Fail:
+            case Outcome.Fail:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
@@ -179,9 +179,9 @@ internal class CommonInvoker
             ? null
             : _serializer.SerializeScrapbook(scrapbook);
         
-        switch (result.Intent)
+        switch (result.Outcome)
         {
-            case Intent.Succeed:
+            case Outcome.Succeed:
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
@@ -198,7 +198,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Intent.Postpone:
+            case Outcome.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     result.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
@@ -210,7 +210,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Intent.Fail:
+            case Outcome.Fail:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
@@ -229,13 +229,13 @@ internal class CommonInvoker
 
     public static void EnsureSuccess(FunctionId functionId, Result result)
     {
-        switch (result.Intent)
+        switch (result.Outcome)
         {
-            case Intent.Succeed:
+            case Outcome.Succeed:
                 return;
-            case Intent.Postpone:
+            case Outcome.Postpone:
                 throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
-            case Intent.Fail:
+            case Outcome.Fail:
                 throw result.Fail!;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -244,13 +244,13 @@ internal class CommonInvoker
 
     private static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result)
     {
-        switch (result.Intent)
+        switch (result.Outcome)
         {
-            case Intent.Succeed:
+            case Outcome.Succeed:
                 return;
-            case Intent.Postpone:
+            case Outcome.Postpone:
                 throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
-            case Intent.Fail:
+            case Outcome.Fail:
                 throw result.Fail!;
             default:
                 throw new ArgumentOutOfRangeException();
