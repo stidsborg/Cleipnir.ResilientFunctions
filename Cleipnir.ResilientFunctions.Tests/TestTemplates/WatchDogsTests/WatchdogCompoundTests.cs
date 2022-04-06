@@ -61,19 +61,19 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.Func(
                 functionTypeId,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
                     return "".ToTask();
-                }, 
-                preInvoke: null,
+                })
+                .WithPostInvoke(
                 postInvoke: async (returned, metadata) =>
                 {
                     await Task.CompletedTask;
                     return Postpone.For(10, inProcessWait: false);
-                });
+                }).Register();
 
             await afterNextSetFunctionState;
             crashableStore.Crash();
@@ -88,14 +88,14 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.Func(
                 functionTypeId,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
                     return NeverCompletingTask.OfType<string>();
                 }
-            );
+            ).Register();
 
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
@@ -109,10 +109,10 @@ public abstract class WatchdogCompoundTests
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.Register(
+            _ = rFunctions.Func(
                 functionTypeId,
                 (Param p) => $"{p.Id}-{p.Value}".ToTask()
-            );
+            ).Register();
 
             await BusyWait.Until(async () =>
                 await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded

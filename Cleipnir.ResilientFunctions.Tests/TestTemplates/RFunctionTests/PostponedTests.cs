@@ -26,15 +26,16 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
+                .Func(
                     functionTypeId,
-                    (string _) => _.ToTask(),
-                    preInvoke: null,
+                    (string _) => _.ToTask()
+                ).WithPostInvoke(
                     postInvoke: async (_, _) =>
                     {
                         await Task.CompletedTask;
                         return Postpone.For(1, inProcessWait: false);
-                    }).Invoke;
+                    }
+                ).Register().Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -48,10 +49,10 @@ public abstract class PostponedTests
             );
 
             var rFunc = rFunctions
-                .Register(
+                .Func(
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
-                ).Invoke;
+                ).Register().Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
@@ -155,10 +156,10 @@ public abstract class PostponedTests
             );
 
             var rFunc = rFunctions
-                .Register(
+                .Func(
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
-                ).Invoke;
+                ).Register().Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
@@ -257,10 +258,10 @@ public abstract class PostponedTests
             );
 
             var _ = rFunctions
-                .Register(
+                .Func(
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
-                );
+                ).Register();
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await Task.Delay(500);

@@ -33,7 +33,7 @@ public static class PostponedTest
             );
 
         var schedule = firstRFunctions
-            .CreateBuilder(
+            .Func(
                 functionTypeId,
                 inner: Task<string>(int param) => param.ToString().ToTask()
             ).WithPostInvoke((_, _) => Postpone.For(2000, inProcessWait: false))
@@ -46,11 +46,11 @@ public static class PostponedTest
                 unhandledExceptionHandler: e => { lock (Sync) exceptions.Add(e); },
                 crashedCheckFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(500)
-            ).Register<int, string>(
+            ).Func<int, string>(
             functionTypeId,
             Task<string>(param) => 
                 param.ToString().ToTask()
-        );
+        ).Register();
 
         await Task.WhenAll(
             Enumerable

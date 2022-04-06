@@ -19,7 +19,7 @@ public class RFuncBuilderTests
     {
         using var rFunctions = CreateRFunctions();
         var rFunc = rFunctions
-            .CreateBuilder<string, string>(
+            .Func<string, string>(
                 _functionTypeId,
                 InnerFunc
             )
@@ -37,7 +37,7 @@ public class RFuncBuilderTests
         var preInvokeFlag = new SyncedFlag();
         var postInvokeFlag = new SyncedFlag();
         var rFunc = rFunctions
-            .CreateBuilder<string, string>(
+            .Func<string, string>(
                 _functionTypeId,
                 InnerFunc
             )
@@ -58,7 +58,7 @@ public class RFuncBuilderTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rFunc = rFunctions
-            .CreateBuilder<string, string>(
+            .Func<string, string>(
                 _functionTypeId,
                 InnerFunc
             )

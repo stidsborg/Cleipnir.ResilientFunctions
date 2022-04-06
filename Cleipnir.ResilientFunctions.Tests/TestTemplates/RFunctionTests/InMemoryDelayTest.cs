@@ -24,7 +24,7 @@ public abstract class InMemoryDelayTest
             using var rFunctions = new RFunctions(crashableStore);
             
             var rFunc = rFunctions
-                .CreateBuilder(FunctionId.TypeId,
+                .Func(FunctionId.TypeId,
                     async Task<string>(string param) =>
                     {
                         await Task.CompletedTask;
@@ -46,7 +46,7 @@ public abstract class InMemoryDelayTest
             var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(5));
             disposables.Add(rFunctions);
             rFunctions
-                .CreateBuilder(FunctionId.TypeId,
+                .Func(FunctionId.TypeId,
                     inner: async Task<string>(string param) =>
                     {
                         await Task.CompletedTask;
@@ -72,7 +72,7 @@ public abstract class InMemoryDelayTest
             var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(50));
             disposables.Add(rFunctions);
             rFunctions
-                .CreateBuilder(FunctionId.TypeId,
+                .Func(FunctionId.TypeId,
                     inner: async Task<string>(string param) =>
                     {
                         await Task.CompletedTask;
@@ -88,7 +88,7 @@ public abstract class InMemoryDelayTest
             using var rFunctions = new RFunctions(crashableStore);
             
             var rFunc = rFunctions
-                .CreateBuilder(FunctionId.TypeId,
+                .Func(FunctionId.TypeId,
                     async Task<string>(string param) =>
                     {
                         await Task.CompletedTask;

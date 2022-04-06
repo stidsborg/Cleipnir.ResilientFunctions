@@ -58,14 +58,14 @@ public abstract class FailedTests
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
             );
-            var rFunc = rFunctions.Register(
+            var rFunc = rFunctions.Func(
                 functionTypeId,
                 (string s) =>
                 {
                     flag.Raise();
                     return s.ToUpper().ToTask();
                 }
-            ).Invoke;
+            ).Register().Invoke;
             await Task.Delay(100);
             
             flag.Position.ShouldBe(Lowered);

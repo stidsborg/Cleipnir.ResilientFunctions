@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TParam, TReturn> _inner;
+    private readonly Func<TParam, Task<Return<TReturn>>> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -18,7 +18,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TReturn> inner,
+        Func<TParam, Task<Return<TReturn>>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
         Func<Metadata<TParam>, Task>? preInvoke,

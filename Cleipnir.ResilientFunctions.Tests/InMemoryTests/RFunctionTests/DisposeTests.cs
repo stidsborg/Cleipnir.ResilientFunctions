@@ -17,10 +17,10 @@ public class DisposeTests
         rFunctions.Dispose();
 
         Should.Throw<ObjectDisposedException>(() =>
-            _ = rFunctions.Register<string, Return>(
+            _ = rFunctions.Func(
                 "id".ToFunctionTypeId(),
                 (string _) => Succeed.WithoutValue.ToTask()
-            )
+            ).Register()
         );
     }
 }

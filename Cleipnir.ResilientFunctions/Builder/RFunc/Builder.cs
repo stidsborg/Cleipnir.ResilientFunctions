@@ -6,13 +6,37 @@ using Cleipnir.ResilientFunctions.ParameterSerialization;
 
 namespace Cleipnir.ResilientFunctions.Builder.RFunc;
 
+public class Builder
+{
+    private readonly RFunctions _rFunctions;
+    private readonly FunctionTypeId _functionTypeId;
+
+    public Builder(RFunctions rFunctions, FunctionTypeId functionTypeId)
+    {
+        _rFunctions = rFunctions;
+        _functionTypeId = functionTypeId;
+    }
+
+    public BuilderWithInner<TParam, TReturn> WithInner<TParam, TReturn>(Func<TParam, TReturn> inner) where TParam : notnull
+        => WithInner(CommonAdapters.ToInnerFunc(inner));
+
+    public BuilderWithInner<TParam, TReturn> WithInner<TParam, TReturn>(Func<TParam, Return<TReturn>> inner) where TParam : notnull
+        => WithInner(CommonAdapters.ToInnerFunc(inner));
+
+    public BuilderWithInner<TParam, TReturn> WithInner<TParam, TReturn>(Func<TParam, Task<TReturn>> inner) where TParam : notnull 
+        => WithInner(CommonAdapters.ToInnerFunc(inner));
+    
+    public BuilderWithInner<TParam, TReturn> WithInner<TParam, TReturn>(Func<TParam, Task<Return<TReturn>>> inner) where TParam : notnull 
+        => new(_rFunctions, _functionTypeId, inner);
+}
+
 public class BuilderWithInner<TParam, TReturn> where TParam : notnull
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TParam, TReturn> _inner;
+    private readonly Func<TParam, Task<Return<TReturn>>> _inner;
 
-    public BuilderWithInner(RFunctions rFunctions, FunctionTypeId functionTypeId, InnerFunc<TParam, TReturn> inner)
+    public BuilderWithInner(RFunctions rFunctions, FunctionTypeId functionTypeId, Func<TParam, Task<Return<TReturn>>> inner)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -59,13 +83,13 @@ public class BuilderWithInnerWithPreInvoke<TParam, TReturn> where TParam : notnu
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TParam, TReturn> _inner;
+    private readonly Func<TParam, Task<Return<TReturn>>> _inner;
     private readonly Func<Metadata<TParam>, Task> _preInvoke;
 
     public BuilderWithInnerWithPreInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        InnerFunc<TParam, TReturn> inner, 
+        Func<TParam, Task<Return<TReturn>>> inner, 
         Func<Metadata<TParam>, Task> preInvoke)
     {
         _functionTypeId = functionTypeId;
@@ -107,14 +131,14 @@ public class BuilderWithInnerWithPreAndPostInvoke<TParam, TReturn> where TParam 
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TParam, TReturn> _inner;
+    private readonly Func<TParam, Task<Return<TReturn>>> _inner;
     private readonly Func<Metadata<TParam>, Task>? _preInvoke;
     private readonly Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? _postInvoke;
 
     public BuilderWithInnerWithPreAndPostInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        InnerFunc<TParam, TReturn> inner, 
+        Func<TParam, Task<Return<TReturn>>> inner, 
         Func<Metadata<TParam>, Task>? preInvoke, 
         Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke)
     {
@@ -147,7 +171,7 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TReturn> 
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly InnerFunc<TParam, TReturn> _inner;
+    private readonly Func<TParam, Task<Return<TReturn>>> _inner;
     private readonly Func<Metadata<TParam>, Task>? _preInvoke;
     private readonly Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? _postInvoke;
     private readonly ISerializer? _serializer;
@@ -155,7 +179,7 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TReturn> 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        InnerFunc<TParam, TReturn> inner, 
+        Func<TParam, Task<Return<TReturn>>> inner, 
         Func<Metadata<TParam>, Task>? preInvoke, 
         Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke, 
         ISerializer? serializer)

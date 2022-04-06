@@ -67,14 +67,14 @@ public class RFunctionsShutdownTests
 
         var insideRFuncFlag = new SyncedFlag();
 
-        var rFunc = rFunctions.Register<string, Return>(
+        var rFunc = rFunctions.Func(
             functionTypeId,
              (string _) =>
             {
                 insideRFuncFlag.Raise();
                 return NeverCompletingTask.OfType<Return>();
             }
-        ).Invoke;
+        ).Register().Invoke;
 
         _ = rFunc("1", "1");
 

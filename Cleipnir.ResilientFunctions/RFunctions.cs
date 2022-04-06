@@ -69,28 +69,30 @@ public class RFunctions : IDisposable
         _unhandledExceptionHandler = exceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
-
-    public RFunc<TParam, TReturn> RegisterWithExplicitReturn<TParam, TReturn>(
+    
+    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, Return<TReturn>> inner,
-        ISerializer? serializer = null
-    ) where TParam : notnull
-        => Register(
-            functionTypeId,
-            inner: CommonInvoker.DefaultInnerFunc<TParam, TReturn>(),
-            preInvoke: null,
-            postInvoke: CommonInvoker.ConvertInnerFuncToPostInvoke(inner),
-            serializer
-        );
-
-    public Builder.RFunc.BuilderWithInner<TParam, TReturn> CreateBuilder<TParam, TReturn>(
+        Func<TParam, TReturn> inner
+    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+    
+    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TReturn> inner
-    ) where TParam : notnull => new(this, functionTypeId, inner);
-
-    public RFunc<TParam, TReturn> Register<TParam, TReturn>(
+        Func<TParam, Task<TReturn>> inner
+    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+    
+    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        InnerFunc<TParam, TReturn> inner,
+        Func<TParam, Return<TReturn>> inner
+    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+    
+    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, Task<Return<TReturn>>> inner
+    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
+
+    internal RFunc<TParam, TReturn> Register<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, Task<Return<TReturn>>> inner,
         Func<Metadata<TParam>, Task>? preInvoke = null,
         Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null

@@ -116,19 +116,19 @@ public class PreAndPostInvokeTests
         var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedPreInvoke = new Synced<Metadata<string>>();
         var syncedPostInvoke = new Synced<Tuple<Return<string>, Metadata<string>>>();
-        var rFunc = rFunctions.Register<string, string>(
+        var rFunc = rFunctions.Func<string, string>(
             FunctionId.TypeId,
-            inner: param => param.ToUpper().ToTask(),
-            preInvoke: metadata =>
+            inner: param => param.ToUpper().ToTask()
+            ).WithPreInvoke(metadata =>
             {
                 syncedPreInvoke.Value = metadata;
                 return Task.CompletedTask;
-            },
-            postInvoke: (returned, metadata) =>
+            }).WithPostInvoke(
+            (returned, metadata) =>
             {
                 syncedPostInvoke.Value = Tuple.Create(returned, metadata);
                 return new Return<string>("post invoked").ToTask();
-            }).Invoke;
+            }).Register().Invoke;
 
         var returned = await rFunc(FunctionId.InstanceId.ToString(), "hello world");
         returned.ShouldBe("post invoked");

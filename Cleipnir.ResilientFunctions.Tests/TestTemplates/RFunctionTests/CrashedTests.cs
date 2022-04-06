@@ -25,10 +25,10 @@ public abstract class CrashedTests
                     crashedCheckFrequency: TimeSpan.Zero, 
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Register(
+                .Func(
                     functionTypeId,
                     (string _) => NeverCompletingTask.OfType<string>()
-                ).Invoke;
+                ).Register().Invoke;
 
             _ = nonCompletingRFunctions(param, param);
         }
@@ -40,10 +40,10 @@ public abstract class CrashedTests
             );
 
             var rFunc = rFunctions
-                .Register(
+                .Func(
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
-                ).Invoke;
+                ).Register().Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(

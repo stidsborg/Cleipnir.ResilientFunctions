@@ -31,10 +31,10 @@ public static class Example
         );
 
         var callApi = functions
-            .Register<string, string>(
+            .Func<string, string>(
                 "call.api".ToFunctionTypeId(),
-                s => new ApiCaller(true, 1).CallApi(s),
-                preInvoke: null, 
+                s => new ApiCaller(true, 1).CallApi(s)
+                ).WithPostInvoke(
                 postInvoke: async (returned, _) =>
                 {
                     await Task.CompletedTask;
@@ -42,7 +42,7 @@ public static class Example
                         ? Postpone.For(10, inProcessWait: false) 
                         : returned;
                 }
-            ).Invoke;
+            ).Register().Invoke;
 
         _ = callApi("input", "input"); //will fail
         await Task.Delay(2_000);
@@ -61,10 +61,10 @@ public static class Example
         );
 
         var callApi = functions
-            .Register<string, string>(
+            .Func<string, string>(
                 "call.api".ToFunctionTypeId(),
                 new ApiCaller(false, 2).CallApi
-            ).Invoke;
+            ).Register().Invoke;
 
         await Task.Delay(2_000);
 
