@@ -21,7 +21,7 @@ public class PreAndPostInvokeTests
     {
         var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedPreInvoke = new Synced<Metadata<string>>();
-        var syncedPostInvoke = new Synced<Tuple<Return, Metadata<string>>>();
+        var syncedPostInvoke = new Synced<Tuple<Result, Metadata<string>>>();
         var rAction = rFunctions
             .Action(
                 FunctionId.TypeId,
@@ -29,10 +29,10 @@ public class PreAndPostInvokeTests
             )
             .WithPreInvoke(metadata => syncedPreInvoke.Value = metadata)
             .WithPostInvoke(
-                (returned, metadata) =>
+                (result, metadata) =>
                 {
-                    syncedPostInvoke.Value = Tuple.Create(returned, metadata);
-                    return returned;
+                    syncedPostInvoke.Value = Tuple.Create(result, metadata);
+                    return result;
                 }
             )
             .Register()
@@ -58,7 +58,7 @@ public class PreAndPostInvokeTests
         var store = new InMemoryFunctionStore();
         var rFunctions = new RFunctions(store);
         var syncedPreInvoke = new Synced<Tuple<Scrapbook, Metadata<string>>>();
-        var syncedPostInvoke = new Synced<Tuple<Return, Scrapbook, Metadata<string>>>();
+        var syncedPostInvoke = new Synced<Tuple<Result, Scrapbook, Metadata<string>>>();
         var rAction = rFunctions
             .ActionWithScrapbook<string, Scrapbook>(
                 FunctionId.TypeId,
@@ -71,11 +71,11 @@ public class PreAndPostInvokeTests
                     scrapbook.Value = "PreInvoked";
                     return Task.CompletedTask;
                 })
-            .WithPostInvoke((returned, scrapbook, metadata) =>
+            .WithPostInvoke((result, scrapbook, metadata) =>
             {
-                syncedPostInvoke.Value = Tuple.Create(returned, scrapbook.Clone(), metadata);
+                syncedPostInvoke.Value = Tuple.Create(result, scrapbook.Clone(), metadata);
                 scrapbook.Value = "PostInvoked";
-                return returned.ToTask();
+                return result.ToTask();
             })
             .Register()
             .Invoke;
@@ -115,7 +115,7 @@ public class PreAndPostInvokeTests
     {
         var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedPreInvoke = new Synced<Metadata<string>>();
-        var syncedPostInvoke = new Synced<Tuple<Return<string>, Metadata<string>>>();
+        var syncedPostInvoke = new Synced<Tuple<Result<string>, Metadata<string>>>();
         var rFunc = rFunctions.Func<string, string>(
             FunctionId.TypeId,
             inner: param => param.ToUpper().ToTask()
@@ -124,14 +124,14 @@ public class PreAndPostInvokeTests
                 syncedPreInvoke.Value = metadata;
                 return Task.CompletedTask;
             }).WithPostInvoke(
-            (returned, metadata) =>
+            (result, metadata) =>
             {
-                syncedPostInvoke.Value = Tuple.Create(returned, metadata);
-                return new Return<string>("post invoked").ToTask();
+                syncedPostInvoke.Value = Tuple.Create(result, metadata);
+                return new Result<string>("post invoked").ToTask();
             }).Register().Invoke;
 
-        var returned = await rFunc(FunctionId.InstanceId.ToString(), "hello world");
-        returned.ShouldBe("post invoked");
+        var result = await rFunc(FunctionId.InstanceId.ToString(), "hello world");
+        result.ShouldBe("post invoked");
 
         var preInvokeMetadata = syncedPreInvoke.Value;
         preInvokeMetadata.ShouldNotBeNull();
@@ -152,7 +152,7 @@ public class PreAndPostInvokeTests
         var store = new InMemoryFunctionStore();
         var rFunctions = new RFunctions(store);
         var syncedPreInvoke = new Synced<Tuple<Scrapbook, Metadata<string>>>();
-        var syncedPostInvoke = new Synced<Tuple<Return<string>, Scrapbook, Metadata<string>>>();
+        var syncedPostInvoke = new Synced<Tuple<Result<string>, Scrapbook, Metadata<string>>>();
         var rFunc = rFunctions.FuncWithScrapbook<string, Scrapbook, string>(
                 FunctionId.TypeId,
                 inner: (param, _) => param.ToUpper().ToTask()
@@ -163,17 +163,17 @@ public class PreAndPostInvokeTests
                     scrapbook.Value = "PreInvoked";
                     return Task.CompletedTask;
                 })
-            .WithPostInvoke((returned, scrapbook, metadata) =>
+            .WithPostInvoke((result, scrapbook, metadata) =>
             {
-                syncedPostInvoke.Value = Tuple.Create(returned, scrapbook.Clone(), metadata);
+                syncedPostInvoke.Value = Tuple.Create(result, scrapbook.Clone(), metadata);
                 scrapbook.Value = "PostInvoked";
-                return new Return<string>("post invoked").ToTask();
+                return new Result<string>("post invoked").ToTask();
             })
             .Register()
             .Invoke;
 
-        var returned = await rFunc(FunctionId.InstanceId.ToString(), "hello world");
-        returned.ShouldBe("post invoked");
+        var result = await rFunc(FunctionId.InstanceId.ToString(), "hello world");
+        result.ShouldBe("post invoked");
 
         syncedPreInvoke.Value.ShouldNotBeNull();
         var (preInvokeScrapbook, preInvokeMetadata) = syncedPreInvoke.Value;

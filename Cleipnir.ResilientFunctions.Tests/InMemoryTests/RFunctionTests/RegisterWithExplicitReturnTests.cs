@@ -24,9 +24,9 @@ public class RegisterWithExplicitReturnTests
                 return Succeed.WithValue(param.ToUpper());
             }).Register().Invoke;
 
-        var returned = await rFunc("", "hello world");
+        var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
-        returned.ShouldBe("HELLO WORLD");
+        result.ShouldBe("HELLO WORLD");
     }
     
     [TestMethod]
@@ -43,9 +43,9 @@ public class RegisterWithExplicitReturnTests
                 return Succeed.WithValue(param.ToUpper());
             }).Register().Invoke;
 
-        var returned = await rFunc("", "hello world");
+        var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
-        returned.ShouldBe("HELLO WORLD");
+        result.ShouldBe("HELLO WORLD");
     }
     
     [TestMethod]

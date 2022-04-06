@@ -27,7 +27,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        var rAction = rFunctions.Register<string, Return>(
+        var rAction = rFunctions.Register<string, Result>(
             functionTypeId,
             async (string _) =>
             {
@@ -72,7 +72,7 @@ public class RFunctionsShutdownTests
              (string _) =>
             {
                 insideRFuncFlag.Raise();
-                return NeverCompletingTask.OfType<Return>();
+                return NeverCompletingTask.OfType<Result>();
             }
         ).Register().Invoke;
 
@@ -110,7 +110,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        rFunctions.Register<string, Return>(
+        rFunctions.Register<string, Result>(
             functionId.TypeId,
             async (string _) =>
             {
@@ -167,7 +167,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        rFunctions.Register<string, Return>(
+        rFunctions.Register<string, Result>(
             functionId.TypeId,
             async (string _) =>
             {

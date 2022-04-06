@@ -22,7 +22,7 @@ public class Builder
     public BuilderWithInner<TParam> WithInner<TParam>(Func<TParam, Task> inner) where TParam : notnull
         => WithInner(CommonAdapters.ToInnerAction(inner));
 
-    public BuilderWithInner<TParam> WithInner<TParam>(Func<TParam, Task<Return>> inner) where TParam : notnull 
+    public BuilderWithInner<TParam> WithInner<TParam>(Func<TParam, Task<Result>> inner) where TParam : notnull 
         => new(_rFunctions, _functionTypeId, inner);
     
     public BuilderWithInner<TParam, TScrapbook> WithInner<TParam, TScrapbook>(Action<TParam, TScrapbook> inner) 
@@ -33,7 +33,7 @@ public class Builder
         where TParam : notnull where TScrapbook : RScrapbook, new()
         => WithInner(CommonAdapters.ToInnerAction(inner));
 
-    public BuilderWithInner<TParam, TScrapbook> WithInner<TParam, TScrapbook>(Func<TParam, TScrapbook, Task<Return>> inner) 
+    public BuilderWithInner<TParam, TScrapbook> WithInner<TParam, TScrapbook>(Func<TParam, TScrapbook, Task<Result>> inner) 
         where TParam : notnull where TScrapbook : RScrapbook, new() 
         => new(_rFunctions, _functionTypeId, inner);
 }
@@ -42,9 +42,9 @@ public class BuilderWithInner<TParam> where TParam : notnull
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<Return>> _inner;
+    private readonly Func<TParam, Task<Result>> _inner;
 
-    public BuilderWithInner(RFunctions rFunctions, FunctionTypeId functionTypeId, Func<TParam, Task<Return>> inner)
+    public BuilderWithInner(RFunctions rFunctions, FunctionTypeId functionTypeId, Func<TParam, Task<Result>> inner)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -65,10 +65,10 @@ public class BuilderWithInner<TParam> where TParam : notnull
     public BuilderWithInnerWithPreInvoke<TParam> WithPreInvoke(Action<Metadata<TParam>> preInvoke)
         => WithPreInvoke(CommonAdapters.ToPreInvoke(preInvoke));
     
-    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Return, Metadata<TParam>, Task<Return>> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Result, Metadata<TParam>, Task<Result>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, CommonAdapters.NoOpPreInvoke<TParam>(), postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Return, Metadata<TParam>, Return> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Result, Metadata<TParam>, Result> postInvoke)
         => WithPostInvoke(CommonAdapters.ToPostInvoke(postInvoke));
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam> WithSerializer(ISerializer serializer)
@@ -86,13 +86,13 @@ public class BuilderWithInnerWithPreInvoke<TParam> where TParam : notnull
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<Return>> _inner;
+    private readonly Func<TParam, Task<Result>> _inner;
     private readonly Func<Metadata<TParam>, Task> _preInvoke;
 
     public BuilderWithInnerWithPreInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        Func<TParam, Task<Return>> inner, 
+        Func<TParam, Task<Result>> inner, 
         Func<Metadata<TParam>, Task> preInvoke)
     {
         _functionTypeId = functionTypeId;
@@ -101,10 +101,10 @@ public class BuilderWithInnerWithPreInvoke<TParam> where TParam : notnull
         _rFunctions = rFunctions;
     }
     
-    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Return, Metadata<TParam>, Task<Return>> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Result, Metadata<TParam>, Task<Result>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, _preInvoke, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Return, Metadata<TParam>, Return> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam> WithPostInvoke(Func<Result, Metadata<TParam>, Result> postInvoke)
         => WithPostInvoke(CommonAdapters.ToPostInvoke(postInvoke));
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam> WithSerializer(ISerializer serializer)
@@ -130,16 +130,16 @@ public class BuilderWithInnerWithPreAndPostInvoke<TParam> where TParam : notnull
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<Return>> _inner;
+    private readonly Func<TParam, Task<Result>> _inner;
     private readonly Func<Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return, Metadata<TParam>, Task<Return>> _postInvoke;
+    private readonly Func<Result, Metadata<TParam>, Task<Result>> _postInvoke;
 
     public BuilderWithInnerWithPreAndPostInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        Func<TParam, Task<Return>> inner, 
+        Func<TParam, Task<Result>> inner, 
         Func<Metadata<TParam>, Task> preInvoke, 
-        Func<Return, Metadata<TParam>, Task<Return>> postInvoke)
+        Func<Result, Metadata<TParam>, Task<Result>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -171,17 +171,17 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam> where TPa
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<Return>> _inner;
+    private readonly Func<TParam, Task<Result>> _inner;
     private readonly Func<Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return, Metadata<TParam>, Task<Return>> _postInvoke;
+    private readonly Func<Result, Metadata<TParam>, Task<Result>> _postInvoke;
     private readonly ISerializer _serializer;
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        Func<TParam, Task<Return>> inner, 
+        Func<TParam, Task<Result>> inner, 
         Func<Metadata<TParam>, Task> preInvoke, 
-        Func<Return, Metadata<TParam>, Task<Return>> postInvoke, 
+        Func<Result, Metadata<TParam>, Task<Result>> postInvoke, 
         ISerializer serializer)
     {
         _rFunctions = rFunctions;

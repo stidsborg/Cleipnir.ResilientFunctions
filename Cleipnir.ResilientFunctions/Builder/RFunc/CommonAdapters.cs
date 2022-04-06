@@ -6,63 +6,63 @@ namespace Cleipnir.ResilientFunctions.Builder.RFunc;
 
 public static class CommonAdapters
 {
-    public static Func<TParam, Task<Return<TReturn>>> ToInnerFunc<TParam, TReturn>(Func<TParam, TReturn> inner) where TParam : notnull
+    public static Func<TParam, Task<Result<TReturn>>> ToInnerFunc<TParam, TReturn>(Func<TParam, TReturn> inner) where TParam : notnull
     {
         return param =>
         {
-            var returned = inner(param);
-            return Task.FromResult(new Return<TReturn>(returned));
+            var result = inner(param);
+            return Task.FromResult(new Result<TReturn>(result));
         };
     }
     
-    public static Func<TParam, Task<Return<TReturn>>> ToInnerFunc<TParam, TReturn>(Func<TParam, Task<TReturn>> inner) where TParam : notnull
+    public static Func<TParam, Task<Result<TReturn>>> ToInnerFunc<TParam, TReturn>(Func<TParam, Task<TReturn>> inner) where TParam : notnull
     {
         return async param =>
         {
-            var returned = await inner(param);
-            return Succeed.WithValue(returned);
+            var result = await inner(param);
+            return Succeed.WithValue(result);
         };
     }
     
-    public static Func<TParam, Task<Return<TReturn>>> ToInnerFunc<TParam, TReturn>(Func<TParam, Return<TReturn>> inner) where TParam : notnull
+    public static Func<TParam, Task<Result<TReturn>>> ToInnerFunc<TParam, TReturn>(Func<TParam, Result<TReturn>> inner) where TParam : notnull
     {
         return param =>
         {
-            var returned = inner(param);
-            return Task.FromResult(returned);
+            var result = inner(param);
+            return Task.FromResult(result);
         };
     }
     
-    public static Func<TParam, TScrapbook, Task<Return<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
+    public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, TReturn> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook) =>
         {
-            var returned = inner(param, scrapbook);
-            return Task.FromResult(new Return<TReturn>(returned));
+            var result = inner(param, scrapbook);
+            return Task.FromResult(new Result<TReturn>(result));
         };
     }
     
-    public static Func<TParam, TScrapbook, Task<Return<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
+    public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, Task<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return async (param, scrapbook) =>
         {
-            var returned = await inner(param, scrapbook);
-            return Succeed.WithValue(returned);
+            var result = await inner(param, scrapbook);
+            return Succeed.WithValue(result);
         };
     }
     
-    public static Func<TParam, TScrapbook, Task<Return<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
-        Func<TParam, TScrapbook, Return<TReturn>> inner
+    public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerFunc<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, Result<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook) =>
         {
-            var returned = inner(param, scrapbook);
-            return Task.FromResult(returned);
+            var result = inner(param, scrapbook);
+            return Task.FromResult(result);
         };
     }
 
@@ -97,36 +97,36 @@ public static class CommonAdapters
         return (_,_) => Task.CompletedTask;
     }
 
-    public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> ToAsyncPostInvoke<TParam, TReturn>(
-        Func<Return<TReturn>, Metadata<TParam>, Return<TReturn>> postInvoke
+    public static Func<Result<TReturn>, Metadata<TParam>, Task<Result<TReturn>>> ToAsyncPostInvoke<TParam, TReturn>(
+        Func<Result<TReturn>, Metadata<TParam>, Result<TReturn>> postInvoke
     ) where TParam : notnull
     {
-        return (returned, metadata) =>
+        return (result, metadata) =>
         {
-            returned = postInvoke(returned, metadata);
-            return Task.FromResult(returned);
+            result = postInvoke(result, metadata);
+            return Task.FromResult(result);
         };
     }
 
-    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> ToAsyncPostInvoke<TParam, TScrapbook, TReturn>(
-        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Return<TReturn>> postInvoke
+    public static Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>> ToAsyncPostInvoke<TParam, TScrapbook, TReturn>(
+        Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Result<TReturn>> postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        return (returned, scrapbook, metadata) =>
+        return (result, scrapbook, metadata) =>
         {
-            returned = postInvoke(returned, scrapbook, metadata);
-            return Task.FromResult(returned);
+            result = postInvoke(result, scrapbook, metadata);
+            return Task.FromResult(result);
         };
     }
 
-    public static Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> NoOpPostInvoke<TParam, TReturn>() where TParam : notnull
+    public static Func<Result<TReturn>, Metadata<TParam>, Task<Result<TReturn>>> NoOpPostInvoke<TParam, TReturn>() where TParam : notnull
     {
-        return (returned, _) => Task.FromResult(returned);
+        return (result, _) => Task.FromResult(result);
     }
     
-    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> NoOpPostInvoke<TParam, TScrapbook, TReturn>() 
+    public static Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>> NoOpPostInvoke<TParam, TScrapbook, TReturn>() 
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        return (returned, _, _) => Task.FromResult(returned);
+        return (result, _, _) => Task.FromResult(result);
     }
 }

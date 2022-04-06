@@ -16,12 +16,12 @@ public static class CommonAdapters
             return Task.CompletedTask;
         };
     }
-    public static Func<Return, TScrapbook, Task<Return>> ToAsyncPostInvoke<TScrapbook>(
-        Func<Return, TScrapbook, Return> postInvoke) where TScrapbook : RScrapbook, new()
+    public static Func<Result, TScrapbook, Task<Result>> ToAsyncPostInvoke<TScrapbook>(
+        Func<Result, TScrapbook, Result> postInvoke) where TScrapbook : RScrapbook, new()
     {
-        return (returned, scrapbook) =>
+        return (result, scrapbook) =>
         {
-            var postInvoked = postInvoke(returned, scrapbook);
+            var postInvoked = postInvoke(result, scrapbook);
             return Task.FromResult(postInvoked);
         };
     }

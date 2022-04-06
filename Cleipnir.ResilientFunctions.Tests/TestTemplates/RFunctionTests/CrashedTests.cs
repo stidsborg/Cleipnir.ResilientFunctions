@@ -77,7 +77,7 @@ public abstract class CrashedTests
                 )
                 .Register(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<Return<string>>()
+                    (string _, Scrapbook _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);

@@ -13,18 +13,18 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     
-    private readonly Func<TScrapbook, Task<Return>> _inner;
+    private readonly Func<TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Task> _preInvoke;
-    private readonly Func<Return, TScrapbook, Task<Return>> _postInvoke;
+    private readonly Func<Result, TScrapbook, Task<Result>> _postInvoke;
     
     private readonly FunctionId _functionId;
     private readonly string _jobId;
 
     internal RJobInvoker(
         string jobId,
-        Func<TScrapbook, Task<Return>> inner,
+        Func<TScrapbook, Task<Result>> inner,
         Func<TScrapbook, Task>? preInvoke,
-        Func<Return, TScrapbook, Task<Return>>? postInvoke,
+        Func<Result, TScrapbook, Task<Result>>? postInvoke,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
@@ -66,13 +66,13 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
 
             while (true)
             {
-                Return postInvoked;
+                Result postInvoked;
                 try
                 {
                     await _preInvoke(scrapbook);
                     // *** USER FUNCTION INVOCATION *** 
-                    var returned = await _inner(scrapbook);
-                    postInvoked = await _postInvoke(returned, scrapbook);
+                    var result = await _inner(scrapbook);
+                    postInvoked = await _postInvoke(result, scrapbook);
                 }
                 catch (Exception exception)
                 {
@@ -96,7 +96,7 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
     }
 
     private static Task NoOpPreInvoke(TScrapbook scrapbook) => Task.CompletedTask;
-    private static Task<Return> NoOpPostInvoke(Return returned, TScrapbook scrapbook) => returned.ToTask();
+    private static Task<Result> NoOpPostInvoke(Result result, TScrapbook scrapbook) => result.ToTask();
 
     private async Task<Tuple<TScrapbook, int>> PrepareForReInvocation(
         FunctionId functionId,
@@ -107,8 +107,8 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
         return Tuple.Create(scrapbook, epoch);
     }
 
-    private async Task PersistPostInvoked(FunctionId functionId, Return returned, TScrapbook scrapbook, int expectedEpoch)
-        => await _commonInvoker.PersistPostInvoked(functionId, returned, scrapbook, expectedEpoch);
+    private async Task PersistPostInvoked(FunctionId functionId, Result result, TScrapbook scrapbook, int expectedEpoch)
+        => await _commonInvoker.PersistPostInvoked(functionId, result, scrapbook, expectedEpoch);
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);

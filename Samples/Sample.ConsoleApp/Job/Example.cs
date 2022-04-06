@@ -27,7 +27,7 @@ public class Example
         Console.ReadLine();
     }
 
-    private static Return Job(Scrapbook scrapbook)
+    private static Result Job(Scrapbook scrapbook)
     {
         Console.WriteLine("Executing Job with scrapbook: " + Environment.NewLine + scrapbook.ToJson());
         var now = DateTime.UtcNow;

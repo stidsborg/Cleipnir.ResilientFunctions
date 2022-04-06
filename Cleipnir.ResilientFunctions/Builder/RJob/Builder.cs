@@ -20,21 +20,21 @@ public class Builder<TScrapbook> where TScrapbook : RScrapbook, new()
 
     public BuilderWithInner<TScrapbook> WithInner(Action<TScrapbook> inner)
     {
-        Task<Return> AsyncInner(TScrapbook scrapbook)
+        Task<Result> AsyncInner(TScrapbook scrapbook)
         {
             inner(scrapbook);
-            return Return.Succeed.ToTask();
+            return Result.Succeed.ToTask();
         }
 
         return WithInner(AsyncInner);
     }
 
-    public BuilderWithInner<TScrapbook> WithInner(Func<TScrapbook, Return> inner)
+    public BuilderWithInner<TScrapbook> WithInner(Func<TScrapbook, Result> inner)
     {
-        Task<Return> AsyncInner(TScrapbook scrapbook)
+        Task<Result> AsyncInner(TScrapbook scrapbook)
         {
-            var returned = inner(scrapbook);
-            return returned.ToTask();
+            var result = inner(scrapbook);
+            return result.ToTask();
         }
 
         return WithInner(AsyncInner);
@@ -42,16 +42,16 @@ public class Builder<TScrapbook> where TScrapbook : RScrapbook, new()
 
     public BuilderWithInner<TScrapbook> WithInner(Func<TScrapbook, Task> inner)
     {
-        async Task<Return> AsyncInner(TScrapbook scrapbook)
+        async Task<Result> AsyncInner(TScrapbook scrapbook)
         {
             await inner(scrapbook);
-            return Return.Succeed;
+            return Result.Succeed;
         }
 
         return WithInner(AsyncInner);
     }
     
-    public BuilderWithInner<TScrapbook> WithInner(Func<TScrapbook, Task<Return>> inner) 
+    public BuilderWithInner<TScrapbook> WithInner(Func<TScrapbook, Task<Result>> inner) 
         => new(_rFunctions, _jobId, inner);
 }
 
@@ -59,9 +59,9 @@ public class BuilderWithInner<TScrapbook> where TScrapbook : RScrapbook, new()
 {
     private readonly RFunctions _rFunctions;
     private readonly string _jobId;
-    private readonly Func<TScrapbook, Task<Return>> _inner;
+    private readonly Func<TScrapbook, Task<Result>> _inner;
 
-    public BuilderWithInner(RFunctions rFunctions, string jobId, Func<TScrapbook, Task<Return>> inner)
+    public BuilderWithInner(RFunctions rFunctions, string jobId, Func<TScrapbook, Task<Result>> inner)
     {
         _inner = inner;
         _rFunctions = rFunctions;
@@ -81,10 +81,10 @@ public class BuilderWithInner<TScrapbook> where TScrapbook : RScrapbook, new()
             CommonAdapters.ToAsyncPreInvoke(preInvoke)
         );
     
-    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Task<Return>> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Task<Result>> postInvoke)
         => new(_rFunctions, _jobId, _inner, preInvoke: null, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Return> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Result> postInvoke)
         => new(
             _rFunctions,
             _jobId,
@@ -108,10 +108,10 @@ public class BuilderWithInnerWithPreInvoke<TScrapbook> where TScrapbook : RScrap
 {
     private readonly RFunctions _rFunctions;
     private readonly string _jobId;
-    private readonly Func<TScrapbook, Task<Return>> _inner;
+    private readonly Func<TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Task>? _preInvoke;
 
-    public BuilderWithInnerWithPreInvoke(RFunctions rFunctions, string jobId, Func<TScrapbook, Task<Return>> inner, Func<TScrapbook, Task>? preInvoke)
+    public BuilderWithInnerWithPreInvoke(RFunctions rFunctions, string jobId, Func<TScrapbook, Task<Result>> inner, Func<TScrapbook, Task>? preInvoke)
     {
         _rFunctions = rFunctions;
         _jobId = jobId;
@@ -119,10 +119,10 @@ public class BuilderWithInnerWithPreInvoke<TScrapbook> where TScrapbook : RScrap
         _preInvoke = preInvoke;
     }
 
-    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Task<Return>> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Task<Result>> postInvoke)
         => new(_rFunctions, _jobId, _inner, _preInvoke, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Return> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Result> postInvoke)
         => new(
             _rFunctions,
             _jobId,
@@ -153,16 +153,16 @@ public class BuilderWithInnerWithPreAndPostInvoke<TScrapbook> where TScrapbook :
 {
     private readonly RFunctions _rFunctions;
     private readonly string _jobId;
-    private readonly Func<TScrapbook, Task<Return>> _inner;
+    private readonly Func<TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Task>? _preInvoke;
-    private readonly Func<Return, TScrapbook, Task<Return>>? _postInvoke;
+    private readonly Func<Result, TScrapbook, Task<Result>>? _postInvoke;
 
     public BuilderWithInnerWithPreAndPostInvoke(
         RFunctions rFunctions, 
         string jobId, 
-        Func<TScrapbook, Task<Return>> inner, 
+        Func<TScrapbook, Task<Result>> inner, 
         Func<TScrapbook, Task>? preInvoke, 
-        Func<Return, TScrapbook, Task<Return>>? postInvoke)
+        Func<Result, TScrapbook, Task<Result>>? postInvoke)
     {
         _rFunctions = rFunctions;
         _jobId = jobId;
@@ -187,17 +187,17 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TScrapbook> where
 {
     private readonly RFunctions _rFunctions;
     private readonly string _jobId;
-    private readonly Func<TScrapbook, Task<Return>> _inner;
+    private readonly Func<TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Task>? _preInvoke;
-    private readonly Func<Return, TScrapbook, Task<Return>>? _postInvoke;
+    private readonly Func<Result, TScrapbook, Task<Result>>? _postInvoke;
     private readonly ISerializer? _serializer;
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer(
         RFunctions rFunctions, 
         string jobId, 
-        Func<TScrapbook, Task<Return>> inner, 
+        Func<TScrapbook, Task<Result>> inner, 
         Func<TScrapbook, Task>? preInvoke, 
-        Func<Return, TScrapbook, Task<Return>>? postInvoke, 
+        Func<Result, TScrapbook, Task<Result>>? postInvoke, 
         ISerializer? serializer)
     {
         _rFunctions = rFunctions;

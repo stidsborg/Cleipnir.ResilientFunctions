@@ -35,7 +35,7 @@ public class RActionBuilderTests
         var rAction = rFunctions
             .Action<string>(_functionTypeId, InnerAction)
             .WithPreInvoke(_ => preInvokeFlag.Raise())
-            .WithPostInvoke((returned, _) => { postInvokeFlag.Raise(); return returned; })
+            .WithPostInvoke((result, _) => { postInvokeFlag.Raise(); return result; })
             .Register()
             .Invoke;
 

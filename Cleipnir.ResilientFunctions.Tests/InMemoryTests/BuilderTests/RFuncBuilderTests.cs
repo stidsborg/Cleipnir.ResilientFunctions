@@ -42,7 +42,7 @@ public class RFuncBuilderTests
                 InnerFunc
             )
             .WithPreInvoke(_ => preInvokeFlag.Raise())
-            .WithPostInvoke((returned, _) => { postInvokeFlag.Raise(); return returned; })
+            .WithPostInvoke((result, _) => { postInvokeFlag.Raise(); return result; })
             .Register()
             .Invoke;
 

@@ -36,7 +36,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return NeverCompletingTask.OfType<Return<string>>();
+                    return NeverCompletingTask.OfType<Result<string>>();
                 }
             ).Invoke;
 
@@ -69,7 +69,7 @@ public abstract class WatchdogCompoundTests
                     return "".ToTask();
                 })
                 .WithPostInvoke(
-                postInvoke: async (returned, metadata) =>
+                postInvoke: async (result, metadata) =>
                 {
                     await Task.CompletedTask;
                     return Postpone.For(10, inProcessWait: false);

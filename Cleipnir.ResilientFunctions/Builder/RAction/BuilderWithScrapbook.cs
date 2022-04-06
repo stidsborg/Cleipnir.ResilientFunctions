@@ -9,9 +9,9 @@ public class BuilderWithInner<TParam, TScrapbook> where TParam : notnull where T
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<Return>> _inner;
+    private readonly Func<TParam, TScrapbook, Task<Result>> _inner;
 
-    public BuilderWithInner(RFunctions rFunctions, FunctionTypeId functionTypeId, Func<TParam, TScrapbook, Task<Return>> inner)
+    public BuilderWithInner(RFunctions rFunctions, FunctionTypeId functionTypeId, Func<TParam, TScrapbook, Task<Result>> inner)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -31,10 +31,10 @@ public class BuilderWithInner<TParam, TScrapbook> where TParam : notnull where T
             CommonAdapters.ToPreInvoke(preInvoke)
         );
     
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, preInvoke: CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(), postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Return> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Metadata<TParam>, Result> postInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
@@ -58,13 +58,13 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook> where TParam : no
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<Return>> _inner;
+    private readonly Func<TParam, TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
 
     public BuilderWithInnerWithPreInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        Func<TParam, TScrapbook, Task<Return>> inner, 
+        Func<TParam, TScrapbook, Task<Result>> inner, 
         Func<TScrapbook, Metadata<TParam>, Task> preInvoke)
     {
         _functionTypeId = functionTypeId;
@@ -73,10 +73,10 @@ public class BuilderWithInnerWithPreInvoke<TParam, TScrapbook> where TParam : no
         _rFunctions = rFunctions;
     }
     
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> postInvoke)
         => new(_rFunctions, _functionTypeId, _inner, _preInvoke, postInvoke);
 
-    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Return, TScrapbook, Metadata<TParam>, Return> postInvoke)
+    public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(Func<Result, TScrapbook, Metadata<TParam>, Result> postInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
@@ -106,16 +106,16 @@ public class BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> where TPar
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<Return>> _inner;
+    private readonly Func<TParam, TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> _postInvoke;
+    private readonly Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> _postInvoke;
 
     public BuilderWithInnerWithPreAndPostInvoke(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        Func<TParam, TScrapbook, Task<Return>> inner, 
+        Func<TParam, TScrapbook, Task<Result>> inner, 
         Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
-        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke)
+        Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -146,17 +146,17 @@ public class BuilderWithInnerWithPreAndPostInvokeAndSerializer<TParam, TScrapboo
 {
     private readonly RFunctions _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<Return>> _inner;
+    private readonly Func<TParam, TScrapbook, Task<Result>> _inner;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> _postInvoke;
+    private readonly Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> _postInvoke;
     private readonly ISerializer _serializer;
 
     public BuilderWithInnerWithPreAndPostInvokeAndSerializer(
         RFunctions rFunctions, 
         FunctionTypeId functionTypeId, 
-        Func<TParam, TScrapbook, Task<Return>> inner, 
+        Func<TParam, TScrapbook, Task<Result>> inner, 
         Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
-        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>> postInvoke, 
+        Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> postInvoke, 
         ISerializer serializer)
     {
         _rFunctions = rFunctions;

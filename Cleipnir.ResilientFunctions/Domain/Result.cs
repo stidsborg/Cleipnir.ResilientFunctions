@@ -2,17 +2,17 @@
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class Return
+public class Result
 {
     public Intent Intent { get; }
     public Postpone? Postpone { get; }
     public Exception? Fail { get; }
 
-    public Return() : this(succeed: true, postpone: null, fail: null) {}
-    public Return(Postpone postpone) : this(succeed: false, postpone, fail: null) {}
-    public Return(Exception exception) : this(succeed: false, postpone: null, fail: exception) {}
+    public Result() : this(succeed: true, postpone: null, fail: null) {}
+    public Result(Postpone postpone) : this(succeed: false, postpone, fail: null) {}
+    public Result(Exception exception) : this(succeed: false, postpone: null, fail: exception) {}
 
-    private Return(bool succeed, Postpone? postpone, Exception? fail)
+    private Result(bool succeed, Postpone? postpone, Exception? fail)
     {
         if (succeed)
             Intent = Intent.Succeed;
@@ -26,15 +26,15 @@ public class Return
         Postpone = postpone;
     }
 
-    public static Return Succeed { get; } = new Return();
-    public static implicit operator Return(Fail fail) => new Return(fail.Exception);
-    public static implicit operator Return(Postpone postpone) => new Return(postpone);
+    public static Result Succeed { get; } = new Result();
+    public static implicit operator Result(Fail fail) => new Result(fail.Exception);
+    public static implicit operator Result(Postpone postpone) => new Result(postpone);
 }
 
 public static class Succeed
 {
-    public static Return WithoutValue { get; } = new Return();
-    public static Return<T> WithValue<T>(T value) => new Return<T>(value);
+    public static Result WithoutValue { get; } = new Result();
+    public static Result<T> WithValue<T>(T value) => new Result<T>(value);
 }
 
 public class Fail
@@ -65,7 +65,7 @@ public class Postpone
         => new Postpone(DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)), inProcessWait);
 }
 
-public class Return<T>
+public class Result<T>
 {
     public Intent Intent { get; }
     public bool Succeed { get; }
@@ -73,17 +73,17 @@ public class Return<T>
     public Postpone? Postpone { get; }
     public Exception? Fail { get; }
 
-    public Return(T succeedWithValue) : this(succeed: true, succeedWithValue, postpone: null, fail: null) {}
-    public Return(Postpone postpone) : this(
+    public Result(T succeedWithValue) : this(succeed: true, succeedWithValue, postpone: null, fail: null) {}
+    public Result(Postpone postpone) : this(
         succeed: false, 
         succeedWithValue: default, 
         postpone, 
         fail: null
     ) {}
     
-    public Return(Exception failWith) : this(succeed: false, succeedWithValue: default, postpone: null, fail: failWith) {}
+    public Result(Exception failWith) : this(succeed: false, succeedWithValue: default, postpone: null, fail: failWith) {}
     
-    private Return(bool succeed, T? succeedWithValue, Postpone? postpone, Exception? fail)
+    private Result(bool succeed, T? succeedWithValue, Postpone? postpone, Exception? fail)
     {
         if (succeed)
             Intent = Intent.Succeed;
@@ -98,9 +98,9 @@ public class Return<T>
         Fail = fail;
     }
 
-    public static implicit operator Return<T>(T succeedWithValue) => new Return<T>(succeedWithValue);
-    public static implicit operator Return<T>(Fail fail) => new Return<T>(fail.Exception);
-    public static implicit operator Return<T>(Postpone postpone) => new Return<T>(postpone);
+    public static implicit operator Result<T>(T succeedWithValue) => new Result<T>(succeedWithValue);
+    public static implicit operator Result<T>(Fail fail) => new Result<T>(fail.Exception);
+    public static implicit operator Result<T>(Postpone postpone) => new Result<T>(postpone);
 }
 
 public enum Intent

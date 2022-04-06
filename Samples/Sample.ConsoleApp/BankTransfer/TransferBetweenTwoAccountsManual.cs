@@ -22,7 +22,7 @@ public sealed class TransferSaga
     }
     
     public RAction.Invoke<Transfer> Perform { get; }
-    private async Task<Return> _Perform(Transfer transfer)
+    private async Task<Result> _Perform(Transfer transfer)
     {
         try
         {

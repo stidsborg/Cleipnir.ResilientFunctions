@@ -9,20 +9,20 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, Task<Return<TReturn>>> _inner;
+    private readonly Func<TParam, Task<Result<TReturn>>> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Func<Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> _postInvoke;
+    private readonly Func<Result<TReturn>, Metadata<TParam>, Task<Result<TReturn>>> _postInvoke;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Return<TReturn>>> inner,
+        Func<TParam, Task<Result<TReturn>>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler,
         Func<Metadata<TParam>, Task> preInvoke,
-        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
+        Func<Result<TReturn>, Metadata<TParam>, Task<Result<TReturn>>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -42,13 +42,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
         while (true)
         {
-            Return<TReturn> postInvoked;
+            Result<TReturn> postInvoked;
             try
             {
                 await _preInvoke(metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                var returned = await _inner(param);
-                postInvoked = await _postInvoke(returned, metadata);
+                var result = await _inner(param);
+                postInvoked = await _postInvoke(result, metadata);
             }
             catch (Exception exception)
             {
@@ -79,13 +79,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             {
                 while (true)
                 {
-                    Return<TReturn> postInvoked;
+                    Result<TReturn> postInvoked;
                     try
                     {
                         await _preInvoke(metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        var returned = await _inner(param);
-                        postInvoked = await _postInvoke(returned, metadata);
+                        var result = await _inner(param);
+                        postInvoked = await _postInvoke(result, metadata);
                     }
                     catch (Exception exception)
                     {
@@ -117,13 +117,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
         while (true)
         {
-            Return<TReturn> postInvoked;
+            Result<TReturn> postInvoked;
             try
             {
                 await _preInvoke(metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                var returned = await _inner(param);
-                postInvoked = await _postInvoke(returned, metadata);
+                var result = await _inner(param);
+                postInvoked = await _postInvoke(result, metadata);
             }
             catch (Exception exception)
             {
@@ -153,13 +153,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             {
                 while (true)
                 {
-                    Return<TReturn> postInvoked;
+                    Result<TReturn> postInvoked;
                     try
                     {
                         await _preInvoke(metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        var returned = await _inner(param);
-                        postInvoked = await _postInvoke(returned, metadata);
+                        var result = await _inner(param);
+                        postInvoked = await _postInvoke(result, metadata);
                     }
                     catch (Exception exception)
                     {
@@ -194,11 +194,11 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         int? expectedEpoch
     ) => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses, expectedEpoch);
 
-    private async Task PersistPostInvoked(FunctionId functionId, Return<TReturn> returned, int expectedEpoch = 0)
-     => await _commonInvoker.PersistPostInvoked(functionId, returned, scrapbook: null, expectedEpoch);
+    private async Task PersistPostInvoked(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
+     => await _commonInvoker.PersistPostInvoked(functionId, result, scrapbook: null, expectedEpoch);
 
-    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Return<TReturn> returned, int expectedEpoch = 0)
-        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, returned, scrapbook: null, expectedEpoch);
+    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
+        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook: null, expectedEpoch);
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
@@ -209,21 +209,21 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Task<Return<TReturn>>> _inner;
+    private readonly Func<TParam, TScrapbook, Task<Result<TReturn>>> _inner;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> _postInvoke;
+    private readonly Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>> _postInvoke;
     
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Return<TReturn>>> inner,
+        Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler, 
         Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
-        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> postInvoke)
+        Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>> postInvoke)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -244,13 +244,13 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         var scrapbook = CreateScrapbook(functionId);
         while (true)
         {
-            Return<TReturn> postInvoked;
+            Result<TReturn> postInvoked;
             try
             {
                 await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                var returned = await _inner(param, scrapbook);
-                postInvoked = await _postInvoke(returned, scrapbook, metadata);
+                var result = await _inner(param, scrapbook);
+                postInvoked = await _postInvoke(result, scrapbook, metadata);
             }
             catch (Exception exception)
             {
@@ -282,13 +282,13 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             {
                 while (true)
                 {
-                    Return<TReturn> postInvoked;
+                    Result<TReturn> postInvoked;
                     try
                     {
                         await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        var returned = await _inner(param, scrapbook);
-                        postInvoked = await _postInvoke(returned, scrapbook, metadata);
+                        var result = await _inner(param, scrapbook);
+                        postInvoked = await _postInvoke(result, scrapbook, metadata);
                     }
                     catch (Exception exception)
                     {
@@ -320,13 +320,13 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
         while (true)
         {
-            Return<TReturn> postInvoked;
+            Result<TReturn> postInvoked;
             try
             {
                 await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                var returned = await _inner(param, scrapbook);
-                postInvoked = await _postInvoke(returned, scrapbook, metadata);
+                var result = await _inner(param, scrapbook);
+                postInvoked = await _postInvoke(result, scrapbook, metadata);
             }
             catch (Exception exception)
             {
@@ -356,13 +356,13 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             {
                 while (true)
                 {
-                    Return<TReturn> postInvoked;
+                    Result<TReturn> postInvoked;
                     try
                     {
                         await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        var returned = await _inner(param, scrapbook);
-                        postInvoked = await _postInvoke(returned, scrapbook, metadata);
+                        var result = await _inner(param, scrapbook);
+                        postInvoked = await _postInvoke(result, scrapbook, metadata);
                     }
                     catch (Exception exception)
                     {
@@ -405,11 +405,11 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             expectedEpoch
         );
 
-    private async Task PersistPostInvoked(FunctionId functionId, Return<TReturn> returned, RScrapbook scrapbook, int expectedEpoch = 0)
-        => await _commonInvoker.PersistPostInvoked(functionId, returned, scrapbook, expectedEpoch);
+    private async Task PersistPostInvoked(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
+        => await _commonInvoker.PersistPostInvoked(functionId, result, scrapbook, expectedEpoch);
 
-    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Return<TReturn> returned, RScrapbook scrapbook, int expectedEpoch = 0)
-        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, returned, scrapbook, expectedEpoch);
+    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
+        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook, expectedEpoch);
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);

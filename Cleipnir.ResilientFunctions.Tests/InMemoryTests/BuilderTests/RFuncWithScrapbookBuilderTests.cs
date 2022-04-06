@@ -42,7 +42,7 @@ public class RFuncWithScrapbookBuilderTests
                 InnerFunc
             )
             .WithPreInvoke((_, _) => preInvokeFlag.Raise())
-            .WithPostInvoke((returned, _, _) => { postInvokeFlag.Raise(); return returned; })
+            .WithPostInvoke((result, _, _) => { postInvokeFlag.Raise(); return result; })
             .Register()
             .Invoke;
 

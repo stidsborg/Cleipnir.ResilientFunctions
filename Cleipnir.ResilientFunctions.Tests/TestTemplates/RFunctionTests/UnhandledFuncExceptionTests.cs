@@ -25,10 +25,10 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             inner: _ => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: async (returned, metadata) =>
+            postInvoke: async (result, metadata) =>
             {
                 await Task.CompletedTask;
-                syncedException.Value = returned.Fail!;
+                syncedException.Value = result.Fail!;
                 return Postpone.Until(
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     inProcessWait: false
@@ -88,10 +88,10 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             (_, _) => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: async (returned, scrapbook, metadata) =>
+            postInvoke: async (result, scrapbook, metadata) =>
             {
                 await Task.CompletedTask;
-                syncedException.Value = returned.Fail!;
+                syncedException.Value = result.Fail!;
                 scrapbook.List.Add("onException");
                 return Postpone.Until(
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -171,10 +171,10 @@ public abstract class UnhandledFuncExceptionTests
             .Action<string>(
                 functionType,
                 inner: _ => throw new Exception("oh no")
-            ).WithPostInvoke(async (returned, metadata) =>
+            ).WithPostInvoke(async (result, metadata) =>
             {
                 await Task.CompletedTask;
-                syncedException.Value = returned.Fail!;
+                syncedException.Value = result.Fail!;
                 return Postpone.Until(
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     inProcessWait: false
@@ -234,10 +234,10 @@ public abstract class UnhandledFuncExceptionTests
             functionType,
             (_, _) => throw new Exception("oh no"),
             preInvoke: null,
-            postInvoke: async (returned, scrapbook, metadata) =>
+            postInvoke: async (result, scrapbook, metadata) =>
             {
                 await Task.CompletedTask;
-                syncedException.Value = returned.Fail!;
+                syncedException.Value = result.Fail!;
                 scrapbook.List.Add("onException");
                 return Postpone.Until(
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),

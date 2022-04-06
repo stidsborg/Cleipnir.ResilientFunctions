@@ -118,7 +118,7 @@ internal class CommonInvoker
     
     public async Task PersistPostInvoked(
         FunctionId functionId,
-        Return returned,
+        Result result,
         RScrapbook? scrapbook,
         int expectedEpoch)
     {
@@ -126,7 +126,7 @@ internal class CommonInvoker
             ? null
             : _serializer.SerializeScrapbook(scrapbook);
 
-        switch (returned.Intent)
+        switch (result.Intent)
         {
             case Intent.Succeed:
                 var success = await _functionStore.SetFunctionState(
@@ -143,11 +143,11 @@ internal class CommonInvoker
             case Intent.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
-                    returned.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
+                    result.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
                     scrapbookJson,
                     result: null,
                     errorJson: null,
-                    postponedUntil: returned.Postpone!.DateTime.Ticks,
+                    postponedUntil: result.Postpone!.DateTime.Ticks,
                     expectedEpoch
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
@@ -158,7 +158,7 @@ internal class CommonInvoker
                     Status.Failed,
                     scrapbookJson,
                     result: null,
-                    errorJson: _serializer.SerializeError(returned.Fail!.ToError()),
+                    errorJson: _serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
                     expectedEpoch
                 );
@@ -171,7 +171,7 @@ internal class CommonInvoker
 
     public async Task PersistPostInvoked<TReturn>(
         FunctionId functionId, 
-        Return<TReturn> returned, 
+        Result<TReturn> result, 
         RScrapbook? scrapbook,
         int expectedEpoch)
     {
@@ -179,7 +179,7 @@ internal class CommonInvoker
             ? null
             : _serializer.SerializeScrapbook(scrapbook);
         
-        switch (returned.Intent)
+        switch (result.Intent)
         {
             case Intent.Succeed:
                 var success = await _functionStore.SetFunctionState(
@@ -187,10 +187,10 @@ internal class CommonInvoker
                     Status.Succeeded,
                     scrapbookJson,
                     result: new StoredResult(
-                        ResultJson: returned.SucceedWithValue == null
+                        ResultJson: result.SucceedWithValue == null
                             ? null
-                            : _serializer.SerializeResult(returned.SucceedWithValue),
-                        ResultType: returned.SucceedWithValue?.GetType().SimpleQualifiedName()
+                            : _serializer.SerializeResult(result.SucceedWithValue),
+                        ResultType: result.SucceedWithValue?.GetType().SimpleQualifiedName()
                     ),
                     errorJson: null,
                     postponedUntil: null,
@@ -201,11 +201,11 @@ internal class CommonInvoker
             case Intent.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
-                    returned.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
+                    result.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
                     scrapbookJson,
                     result: null,
                     errorJson: null,
-                    postponedUntil: returned.Postpone!.DateTime.Ticks,
+                    postponedUntil: result.Postpone!.DateTime.Ticks,
                     expectedEpoch
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
@@ -216,7 +216,7 @@ internal class CommonInvoker
                     Status.Failed,
                     scrapbookJson,
                     result: null,
-                    errorJson: _serializer.SerializeError(returned.Fail!.ToError()),
+                    errorJson: _serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
                     expectedEpoch
                 );
@@ -227,31 +227,31 @@ internal class CommonInvoker
         }
     }
 
-    public static void EnsureSuccess(FunctionId functionId, Return returned)
+    public static void EnsureSuccess(FunctionId functionId, Result result)
     {
-        switch (returned.Intent)
+        switch (result.Intent)
         {
             case Intent.Succeed:
                 return;
             case Intent.Postpone:
-                throw new FunctionInvocationPostponedException(functionId, returned.Postpone!.DateTime);
+                throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
             case Intent.Fail:
-                throw returned.Fail!;
+                throw result.Fail!;
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
 
-    private static void EnsureSuccess<TReturn>(FunctionId functionId, Return<TReturn> returned)
+    private static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result)
     {
-        switch (returned.Intent)
+        switch (result.Intent)
         {
             case Intent.Succeed:
                 return;
             case Intent.Postpone:
-                throw new FunctionInvocationPostponedException(functionId, returned.Postpone!.DateTime);
+                throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
             case Intent.Fail:
-                throw returned.Fail!;
+                throw result.Fail!;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -332,23 +332,23 @@ internal class CommonInvoker
         return Tuple.Create(param, epoch, (RScrapbook?) scrapbook);
     }
 
-    private async Task<bool> WaitForInProcessDelay(Return returned)
+    private async Task<bool> WaitForInProcessDelay(Result result)
     {
-        if (returned.Postpone?.InProcessWait != true) return false;
+        if (result.Postpone?.InProcessWait != true) return false;
 
         _shutdownCoordinator.RegisterRFuncCompletion();
-        var delay = CalculateDelay(returned.Postpone);
+        var delay = CalculateDelay(result.Postpone);
         await Task.Delay(delay);
         _shutdownCoordinator.RegisterRunningRFunc();
         return true;
     }
 
-    private async Task<bool> WaitForInProcessDelay<TReturn>(Return<TReturn> returned)
+    private async Task<bool> WaitForInProcessDelay<TReturn>(Result<TReturn> result)
     {
-        if (returned.Postpone?.InProcessWait != true) return false;
+        if (result.Postpone?.InProcessWait != true) return false;
 
         _shutdownCoordinator.RegisterRFuncCompletion();
-        var delay = CalculateDelay(returned.Postpone);
+        var delay = CalculateDelay(result.Postpone);
         await Task.Delay(delay);
         _shutdownCoordinator.RegisterRunningRFunc();
         return true;
@@ -372,25 +372,25 @@ internal class CommonInvoker
 
     public async Task<InProcessWait> PersistResultAndEnsureSuccess<TReturn>(
         FunctionId functionId, 
-        Return<TReturn> returned, 
+        Result<TReturn> result, 
         RScrapbook? scrapbook, 
         int expectedEpoch)
     {
-        await PersistPostInvoked(functionId, returned, scrapbook: scrapbook, expectedEpoch);
-        if (await WaitForInProcessDelay(returned)) return InProcessWait.RetryInvocation;
-        EnsureSuccess(functionId, returned);
+        await PersistPostInvoked(functionId, result, scrapbook: scrapbook, expectedEpoch);
+        if (await WaitForInProcessDelay(result)) return InProcessWait.RetryInvocation;
+        EnsureSuccess(functionId, result);
         return InProcessWait.DoNotRetryInvocation;
     }
     
     public async Task<InProcessWait> PersistResultAndEnsureSuccess(
         FunctionId functionId, 
-        Return returned, 
+        Result result, 
         RScrapbook? scrapbook, 
         int expectedEpoch)
     {
-        await PersistPostInvoked(functionId, returned, scrapbook: scrapbook, expectedEpoch);
-        if (await WaitForInProcessDelay(returned)) return InProcessWait.RetryInvocation;
-        EnsureSuccess(functionId, returned);
+        await PersistPostInvoked(functionId, result, scrapbook: scrapbook, expectedEpoch);
+        if (await WaitForInProcessDelay(result)) return InProcessWait.RetryInvocation;
+        EnsureSuccess(functionId, result);
         return InProcessWait.DoNotRetryInvocation;
     }
 }

@@ -17,13 +17,13 @@ public class DuplicateRegistrationTests
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         _ = rFunctions.Register(
             "SomeFunctionType",
-            Task<Return<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
+            Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
         );
 
         Should.Throw<ArgumentException>(() =>
             _ = rFunctions.Register(
                 "SomeFunctionType",
-                Task<Return<int>>(string param) => Succeed.WithValue(int.Parse(param)).ToTask()
+                Task<Result<int>>(string param) => Succeed.WithValue(int.Parse(param)).ToTask()
             )
         );
     }
@@ -34,12 +34,12 @@ public class DuplicateRegistrationTests
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var rFunc1 = rFunctions.Register(
             "SomeFunctionType",
-            Task<Return<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
+            Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
         );
 
         var rFunc2 = rFunctions.Register(
             "SomeFunctionType",
-            Task<Return<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
+            Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
         );
 
         ReferenceEquals(rFunc1, rFunc2).ShouldBeTrue();
@@ -51,13 +51,13 @@ public class DuplicateRegistrationTests
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         _ = rFunctions.Func(
             "SomeFunctionType",
-            Task<Return>(string _) => Succeed.WithoutValue.ToTask()
+            Task<Result>(string _) => Succeed.WithoutValue.ToTask()
         ).Register();
 
         Should.Throw<ArgumentException>(() =>
             _ = rFunctions.Func(
                 "SomeFunctionType",
-                Task<Return>(int _) => Succeed.WithoutValue.ToTask()
+                Task<Result>(int _) => Succeed.WithoutValue.ToTask()
             ).Register()
         );
     }
@@ -68,12 +68,12 @@ public class DuplicateRegistrationTests
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var rFunc1 = rFunctions.Func(
             "SomeFunctionType",
-            Task<Return>(string param) => Succeed.WithoutValue.ToTask()
+            Task<Result>(string param) => Succeed.WithoutValue.ToTask()
         ).Register();
 
         var rFunc2 = rFunctions.Func(
             "SomeFunctionType",
-            Task<Return>(string param) => Succeed.WithoutValue.ToTask()
+            Task<Result>(string param) => Succeed.WithoutValue.ToTask()
         ).Register();
 
         ReferenceEquals(rFunc1, rFunc2).ShouldBeTrue();

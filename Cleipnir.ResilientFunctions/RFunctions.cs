@@ -82,19 +82,19 @@ public class RFunctions : IDisposable
     
     public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Return<TReturn>> inner
+        Func<TParam, Result<TReturn>> inner
     ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
     public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Return<TReturn>>> inner
+        Func<TParam, Task<Result<TReturn>>> inner
     ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
 
     internal RFunc<TParam, TReturn> Register<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Return<TReturn>>> inner,
+        Func<TParam, Task<Result<TReturn>>> inner,
         Func<Metadata<TParam>, Task>? preInvoke = null,
-        Func<Return<TReturn>, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke = null,
+        Func<Result<TReturn>, Metadata<TParam>, Task<Result<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull
     {
@@ -156,14 +156,14 @@ public class RFunctions : IDisposable
     
     public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Return>> inner
+        Func<TParam, Task<Result>> inner
     ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
     
     internal RAction<TParam> Register<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Return>> inner,
+        Func<TParam, Task<Result>> inner,
         Func<Metadata<TParam>, Task> preInvoke,
-        Func<Return, Metadata<TParam>, Task<Return>> postInvoke,
+        Func<Result, Metadata<TParam>, Task<Result>> postInvoke,
         ISerializer serializer
     ) where TParam : notnull 
     {
@@ -224,21 +224,21 @@ public class RFunctions : IDisposable
 
     public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Return<TReturn>> inner
+        Func<TParam, TScrapbook, Result<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
     public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Return<TReturn>>> inner
+        Func<TParam, TScrapbook, Task<Result<TReturn>>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
 
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Return<TReturn>>> inner,
+        Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
-        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke = null,
+        Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -301,15 +301,15 @@ public class RFunctions : IDisposable
     
     public Builder.RAction.BuilderWithInner<TParam, TScrapbook> ActionWithScrapbook<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Return>> inner
+        Func<TParam, TScrapbook, Task<Result>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
 
     internal RAction<TParam> Register<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Return>> inner,
+        Func<TParam, TScrapbook, Task<Result>> inner,
         Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
-        Func<Return, TScrapbook, Metadata<TParam>, Task<Return>>? postInvoke = null,
+        Func<Result, TScrapbook, Metadata<TParam>, Task<Result>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -363,9 +363,9 @@ public class RFunctions : IDisposable
 
     internal RJob RegisterJob<TScrapbook>(
         string jobId,
-        Func<TScrapbook, Task<Return>> inner,
+        Func<TScrapbook, Task<Result>> inner,
         Func<TScrapbook, Task>? preInvoke = null,
-        Func<Return, TScrapbook, Task<Return>>? postInvoke = null,
+        Func<Result, TScrapbook, Task<Result>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TScrapbook : RScrapbook, new()
     {

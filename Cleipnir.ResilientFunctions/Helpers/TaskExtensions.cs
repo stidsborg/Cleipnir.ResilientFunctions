@@ -17,16 +17,4 @@ public static class TaskExtensions
     public static List<T> ToList<T>(this T t) => new List<T> {t};
         
     public static T? ToNullable<T>(this T t) => (T?) t;
-
-    public static async Task<T> EnsureSuccess<T>(this Task<Result2<T>> task)
-    {
-        var result = await task;
-        return result.EnsureSuccess();
-    }
-    
-    public static async Task EnsureSuccess(this Task<Result2> task)
-    {
-        var result = await task;
-        result.EnsureSuccess();
-    }
 }

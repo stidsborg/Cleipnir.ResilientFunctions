@@ -79,7 +79,7 @@ public class RJobBuilderTests
             .WithInner(scrapbook =>
             {
                 scrapbook.Value = "invoked";
-                return Return.Succeed.ToTask();
+                return Result.Succeed.ToTask();
             })
             .Create()
             .Start();
@@ -108,7 +108,7 @@ public class RJobBuilderTests
             .WithInner(scrapbook =>
             {
                 scrapbook.Value = "invoked";
-                return Return.Succeed;
+                return Result.Succeed;
             })
             .Create()
             .Start();
@@ -140,10 +140,10 @@ public class RJobBuilderTests
             .RegisterJob<Scrapbook>(JobId)
             .WithInner(_ => { })
             .WithPreInvoke(_ => preInvokeFlag.Raise())
-            .WithPostInvoke((returned, _) =>
+            .WithPostInvoke((result, _) =>
             {
                 postInvokeFlag.Raise();
-                return returned;
+                return result;
             })
             .WithSerializer(serializer)
             .Register()
