@@ -213,7 +213,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly RFunc.PreInvoke<TParam, TScrapbook> _preInvoke;
+    private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
     private readonly RFunc.PostInvoke<TParam, TScrapbook, TReturn> _postInvoke;
     
 
@@ -222,7 +222,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         InnerFunc<TParam, TScrapbook, TReturn> inner,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler, 
-        RFunc.PreInvoke<TParam, TScrapbook>? preInvoke, 
+        Func<TScrapbook, Metadata<TParam>, Task>? preInvoke, 
         RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke)
     {
         _functionTypeId = functionTypeId;

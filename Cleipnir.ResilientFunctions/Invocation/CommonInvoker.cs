@@ -344,7 +344,7 @@ internal class CommonInvoker
         };
     }
     
-    public static RFunc.PreInvoke<TParam, TScrapbook>? AsyncFuncPreInvoke<TParam, TScrapbook>(
+    public static Func<TScrapbook, Metadata<TParam>, Task>? AsyncFuncPreInvoke<TParam, TScrapbook>(
         RFunc.SyncPreInvoke<TParam, TScrapbook>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {

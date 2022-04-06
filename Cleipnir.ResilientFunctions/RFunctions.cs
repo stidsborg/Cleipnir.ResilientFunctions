@@ -231,7 +231,7 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TReturn> Register<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TScrapbook, TReturn> inner,
-        RFunc.PreInvoke<TParam, TScrapbook>? preInvoke = null,
+        Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
         RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
