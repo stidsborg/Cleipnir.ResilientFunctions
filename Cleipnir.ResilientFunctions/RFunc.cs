@@ -20,12 +20,6 @@ public static class RFunc
         TScrapbook scrapbook, 
         Metadata<TParam> metadata
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
-    
-    public delegate Task<Return<TReturn>> PostInvoke<TParam, TScrapbook, TReturn>(
-        Return<TReturn> returned, 
-        TScrapbook scrapbook, 
-        Metadata<TParam> metadata
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RFunc<TParam, TReturn> where TParam : notnull

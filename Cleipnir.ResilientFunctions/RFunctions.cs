@@ -232,7 +232,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         InnerFunc<TParam, TScrapbook, TReturn> inner,
         Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
-        RFunc.PostInvoke<TParam, TScrapbook, TReturn>? postInvoke = null,
+        Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {

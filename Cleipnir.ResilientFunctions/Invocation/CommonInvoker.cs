@@ -371,7 +371,7 @@ internal class CommonInvoker
         return (returned, metadata) => postInvoke(returned, metadata).ToTask();  
     } 
     
-    public static RFunc.PostInvoke<TParam, TScrapbook, TReturn>? AsyncFuncPostInvoke<TParam, TScrapbook, TReturn>(
+    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>>? AsyncFuncPostInvoke<TParam, TScrapbook, TReturn>(
         RFunc.SyncPostInvoke<TParam, TScrapbook, TReturn>? postInvoke
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -406,7 +406,7 @@ internal class CommonInvoker
         where TParam : notnull where TScrapbook : RScrapbook, new()
         => (_, _) => default!;
 
-    public static RFunc.PostInvoke<TParam, TScrapbook, TReturn> ConvertInnerFuncToPostInvoke<TParam, TScrapbook, TReturn>(
+    public static Func<Return<TReturn>, TScrapbook, Metadata<TParam>, Task<Return<TReturn>>> ConvertInnerFuncToPostInvoke<TParam, TScrapbook, TReturn>(
         InnerFunc<TParam, TScrapbook, Return<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => (_, scrapbook, metadata) => inner(metadata.Param, scrapbook);
