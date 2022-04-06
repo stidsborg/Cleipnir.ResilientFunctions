@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -14,9 +13,6 @@ public static class RAction
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null
     );
-    
-    public delegate void SyncPreInvoke<TParam, TScrapbook>(TScrapbook scrapbook, Metadata<TParam> metadata)
-        where TParam : notnull where TScrapbook : RScrapbook, new();
 
     public delegate Return SyncPostInvoke<TParam, TScrapbook>(Return returned, TScrapbook scrapbook, Metadata<TParam> metadata)
         where TParam : notnull where TScrapbook : RScrapbook, new();

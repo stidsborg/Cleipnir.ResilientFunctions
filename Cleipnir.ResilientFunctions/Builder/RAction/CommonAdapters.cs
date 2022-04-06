@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -32,6 +31,17 @@ public static class CommonAdapters
         return metadata =>
         {
             preInvoke(metadata);
+            return Task.CompletedTask;
+        };
+    }
+    
+    public static Func<TScrapbook, Metadata<TParam>, Task> ToPreInvoke<TParam, TScrapbook>(
+        Action<TScrapbook, Metadata<TParam>> preInvoke
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (scrapbook, metadata) =>
+        {
+            preInvoke(scrapbook, metadata);
             return Task.CompletedTask;
         };
     }

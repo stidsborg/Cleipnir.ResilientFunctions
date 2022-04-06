@@ -24,12 +24,12 @@ public class BuilderWithInner<TParam, TScrapbook> where TParam : notnull where T
     public BuilderWithInnerWithPreInvoke<TParam, TScrapbook> WithPreInvoke(Func<TScrapbook, Metadata<TParam>, Task> preInvoke)
         => new(_rFunctions, _functionTypeId, _inner, preInvoke);
 
-    public BuilderWithInnerWithPreInvoke<TParam, TScrapbook> WithPreInvoke(ResilientFunctions.RAction.SyncPreInvoke<TParam, TScrapbook> preInvoke)
+    public BuilderWithInnerWithPreInvoke<TParam, TScrapbook> WithPreInvoke(Action<TScrapbook, Metadata<TParam>> preInvoke)
         => new(
             _rFunctions,
             _functionTypeId,
             _inner,
-            CommonInvoker.SyncActionPreInvoke(preInvoke)
+            CommonAdapters.ToPreInvoke(preInvoke)
         );
     
     public BuilderWithInnerWithPreAndPostInvoke<TParam, TScrapbook> WithPostInvoke(ResilientFunctions.RAction.PostInvoke<TParam, TScrapbook> postInvoke)
