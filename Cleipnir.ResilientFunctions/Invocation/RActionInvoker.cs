@@ -242,25 +242,25 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         var scrapbook = CreateScrapbook(functionId);
         while (true)
         {
-            Result postInvoked;
+            Result result;
             try
             {
                 await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                await _inner(param, scrapbook);
-                postInvoked = await _postInvoke(Result.Succeed, scrapbook, metadata);
+                result = await _inner(param, scrapbook);
+                result = await _postInvoke(result, scrapbook, metadata);
             }
             catch (Exception exception)
             {
-                postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                if (postInvoked.Fail == exception)
+                result = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                if (result.Fail == exception)
                 {
-                    await PersistPostInvoked(functionId, postInvoked, scrapbook);
+                    await PersistPostInvoked(functionId, result, scrapbook);
                     throw;
                 }
             }
 
-            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook) == InProcessWait.DoNotRetryInvocation)
+            if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
                 return;
         }
     }
@@ -280,25 +280,25 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             {
                 while (true)
                 {
-                    Result postInvoked;
+                    Result result;
                     try
                     {
                         await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        await _inner(param, scrapbook);
-                        postInvoked = await _postInvoke(Result.Succeed, scrapbook, metadata);
+                        result = await _inner(param, scrapbook);
+                        result = await _postInvoke(result, scrapbook, metadata);
                     }
                     catch (Exception exception)
                     {
-                        postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                        if (postInvoked.Fail == exception)
+                        result = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                        if (result.Fail == exception)
                         {
-                            await PersistPostInvoked(functionId, postInvoked, scrapbook);
+                            await PersistPostInvoked(functionId, result, scrapbook);
                             throw;
                         }
                     }
 
-                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook) == InProcessWait.DoNotRetryInvocation)
+                    if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
                         return;
                 }
             }
@@ -318,25 +318,25 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
         while (true)
         {
-            Result postInvoked;
+            Result result;
             try
             {
                 await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                await _inner(param, scrapbook);
-                postInvoked = await _postInvoke(Result.Succeed, scrapbook, metadata);
+                result = await _inner(param, scrapbook);
+                result = await _postInvoke(result, scrapbook, metadata);
             }
             catch (Exception exception)
             {
-                postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                if (postInvoked.Fail == exception)
+                result = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                if (result.Fail == exception)
                 {
-                    await PersistPostInvoked(functionId, postInvoked, scrapbook, epoch);
+                    await PersistPostInvoked(functionId, result, scrapbook, epoch);
                     throw;
                 }
             }
 
-            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
+            if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
                 return;
         }
     }
@@ -354,25 +354,25 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             {
                 while (true)
                 {
-                    Result postInvoked;
+                    Result result;
                     try
                     {
                         await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        await _inner(param, scrapbook);
-                        postInvoked = await _postInvoke(Result.Succeed, scrapbook, metadata);
+                        result = await _inner(param, scrapbook);
+                        result = await _postInvoke(result, scrapbook, metadata);
                     }
                     catch (Exception exception)
                     {
-                        postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                        if (postInvoked.Fail == exception)
+                        result = await _postInvoke(new Fail(exception), scrapbook, metadata);
+                        if (result.Fail == exception)
                         {
-                            await PersistPostInvoked(functionId, postInvoked, scrapbook, epoch);
+                            await PersistPostInvoked(functionId, result, scrapbook, epoch);
                             throw;
                         }
                     }
 
-                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
+                    if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
                         return;
                 }
             }
