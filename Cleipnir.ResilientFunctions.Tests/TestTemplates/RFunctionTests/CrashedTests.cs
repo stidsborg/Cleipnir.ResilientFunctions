@@ -133,11 +133,10 @@ public abstract class CrashedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Action(
+                .RegisterAction(
                     functionTypeId,
                     (string _) => NeverCompletingTask.OfVoidType()
                 )
-                .Register()
                 .Invoke;
 
             _ = nonCompletingRFunctions(param, param);
@@ -150,11 +149,10 @@ public abstract class CrashedTests
             );
 
             var rAction = rFunctions
-                .Action(
+                .RegisterAction(
                     functionTypeId,
                     (string _) => Task.CompletedTask
                 )
-                .Register()
                 .Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());

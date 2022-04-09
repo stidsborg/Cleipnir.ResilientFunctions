@@ -51,11 +51,10 @@ public abstract class ExceptionHandlingTests
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions
-            .Action(
+            .RegisterAction(
                 "typeId".ToFunctionTypeId(),
                 void (string _) => throw new ArithmeticException("Division by zero")
             )
-            .Register()
             .Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
@@ -70,11 +69,10 @@ public abstract class ExceptionHandlingTests
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions
-            .Action(
+            .RegisterAction(
                 "typeId".ToFunctionTypeId(),
                 void (string _) => throw new ArithmeticException("Division by zero")
             )
-            .Register()
             .Invoke;
 
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));

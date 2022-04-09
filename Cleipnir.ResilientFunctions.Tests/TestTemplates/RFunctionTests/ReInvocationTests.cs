@@ -30,7 +30,7 @@ public abstract class ReInvocationTests
         var syncedParameter = new Synced<string>();
 
         var rFunc = rFunctions
-            .Action(
+            .RegisterAction(
                 functionType, (string s) =>
                 {
                     if (flag.Position == FlagPosition.Lowered)
@@ -41,7 +41,7 @@ public abstract class ReInvocationTests
 
                     syncedParameter.Value = s;
                 }
-            ).Register();
+            );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
@@ -232,10 +232,10 @@ public abstract class ReInvocationTests
             postponedCheckFrequency: TimeSpan.Zero
         );
 
-        var rFunc = rFunctions.Action(
+        var rFunc = rFunctions.RegisterAction(
             functionType,
             (string _) => Task.FromException(new Exception("oh no"))
-        ).Register();
+        );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
@@ -259,10 +259,10 @@ public abstract class ReInvocationTests
             postponedCheckFrequency: TimeSpan.Zero
         );
 
-        var rFunc = rFunctions.Action(
+        var rFunc = rFunctions.RegisterAction(
             functionType,
             (string _) => Task.FromException(new Exception("oh no"))
-        ).Register();
+        );
 
         await Should.ThrowAsync<Exception>(() =>
             rFunc.ReInvoke("something", new[] {Status.Executing})

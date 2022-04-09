@@ -195,7 +195,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     ) => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses, expectedEpoch);
 
     private async Task PersistPostInvoked(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
-     => await _commonInvoker.PersistPostInvoked(functionId, result, scrapbook: null, expectedEpoch);
+     => await _commonInvoker.PersistResult(functionId, result, scrapbook: null, expectedEpoch);
 
     private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
         => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook: null, expectedEpoch);
@@ -406,7 +406,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         );
 
     private async Task PersistPostInvoked(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
-        => await _commonInvoker.PersistPostInvoked(functionId, result, scrapbook, expectedEpoch);
+        => await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
 
     private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook, expectedEpoch);

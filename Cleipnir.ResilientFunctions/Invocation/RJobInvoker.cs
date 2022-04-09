@@ -108,7 +108,7 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
     }
 
     private async Task PersistPostInvoked(FunctionId functionId, Result result, TScrapbook scrapbook, int expectedEpoch)
-        => await _commonInvoker.PersistPostInvoked(functionId, result, scrapbook, expectedEpoch);
+        => await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);

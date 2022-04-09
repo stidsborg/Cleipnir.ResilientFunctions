@@ -19,47 +19,13 @@ public class RActionBuilderTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .Action<string>(_functionTypeId, InnerAction)
-            .Register()
+            .RegisterAction<string>(_functionTypeId, InnerAction)
             .Invoke;
 
         await rAction(FunctionInstanceId, "hello world");
     }
     
-    [TestMethod]
-    public async Task ConstructedFuncWithPreAndPostInvokeCanBeCreatedAndInvoked()
-    {
-        using var rFunctions = CreateRFunctions();
-        var preInvokeFlag = new SyncedFlag();
-        var postInvokeFlag = new SyncedFlag();
-        var rAction = rFunctions
-            .Action<string>(_functionTypeId, InnerAction)
-            .WithPreInvoke(_ => preInvokeFlag.Raise())
-            .WithPostInvoke((result, _) => { postInvokeFlag.Raise(); return result; })
-            .Register()
-            .Invoke;
-
-        await rAction(FunctionInstanceId, "hello world");
-        preInvokeFlag.Position.ShouldBe(FlagPosition.Raised);
-        postInvokeFlag.Position.ShouldBe(FlagPosition.Raised);
-    }
-    
-    [TestMethod]
-    public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
-    {
-        using var rFunctions = CreateRFunctions();
-        var serializer = new Serializer();
-        var rAction = rFunctions
-            .Action<string>(_functionTypeId, InnerAction)
-            .WithSerializer(serializer)
-            .Register()
-            .Invoke;
-
-        await rAction(FunctionInstanceId, "hello world");
-        serializer.Invoked.ShouldBeTrue();
-    }
-
-    private async Task InnerAction(string param) => await Task.CompletedTask;
+    private Task InnerAction(string param) => Task.CompletedTask;
     private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer

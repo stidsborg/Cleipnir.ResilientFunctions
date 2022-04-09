@@ -37,16 +37,16 @@ public class SerializationTests
 
         var personCurr = default(PersonCurr);
         _ = rFunctions
-            .Action(
+            .RegisterAction(
                 "typeId".ToFunctionTypeId(),
                 Task (PersonCurr p) =>
                 {
                     personCurr = p;
                     flag.Raise();
                     return Task.CompletedTask;
-                })
-            .WithSerializer(serializer)
-            .Register();
+                },
+                serializer
+            );
 
         await flag.WaitForRaised();
         personCurr.ShouldNotBeNull();

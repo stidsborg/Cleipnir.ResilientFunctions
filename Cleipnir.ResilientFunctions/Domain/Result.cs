@@ -57,6 +57,9 @@ public class Postpone
         InProcessWait = inProcessWait;
     }
 
+    public Result ToResult() => new(this);
+    public Result<T> ToResult<T>() => new(this);
+
     public static Postpone Until(DateTime dateTime, bool? inProcessWait = null)
         => new Postpone(
             dateTime.ToUniversalTime(),

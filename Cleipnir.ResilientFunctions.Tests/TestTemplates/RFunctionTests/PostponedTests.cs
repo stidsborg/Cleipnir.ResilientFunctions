@@ -138,12 +138,10 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Action(
+                .RegisterAction(
                     functionTypeId,
-                    (string _) => Task.CompletedTask
+                    (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false)
                 )
-                .WithPostInvoke((_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false))
-                .Register()
                 .Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
@@ -244,9 +242,7 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .Action(functionTypeId, (string _) => Task.CompletedTask)
-                .WithPostInvoke((_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000)))
-                .Register()
+                .RegisterAction(functionTypeId, (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000)))
                 .Invoke;
 
             _ = rAction(param, param);
@@ -281,10 +277,10 @@ public abstract class PostponedTests
     {
         var store = await storeTask;
         using var rFunctions = new RFunctions(store);
-        var rAction = rFunctions.Action(
+        var rAction = rFunctions.RegisterAction(
             "FunctionType",
             (string _) => Postpone.For(10_000)
-        ).Register().Invoke;
+        ).Invoke;
         
         await Should.ThrowAsync<FunctionInvocationPostponedException>(
             () => 

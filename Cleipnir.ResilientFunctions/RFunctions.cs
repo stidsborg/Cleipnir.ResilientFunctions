@@ -144,32 +144,43 @@ public class RFunctions : IDisposable
         }
     }
 
-    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
+    public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Action<TParam> inner
-    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+        Func<TParam, Task> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull
+        => RegisterAction(
+            functionTypeId,
+            InnerDecorators.InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
     
-    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
+    public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task> inner
-    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+        Action<TParam> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull
+        => RegisterAction(
+            functionTypeId,
+            InnerDecorators.InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
     
-    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
+    public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Result>> inner
-    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+        Func<TParam, Result> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull
+        => RegisterAction(
+            functionTypeId,
+            InnerDecorators.InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
     
-    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
-        FunctionTypeId functionTypeId,
-        Func<TParam, Result> inner
-    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
-    
-    internal RAction<TParam> Register<TParam>(
+    public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result>> inner,
-        Func<Metadata<TParam>, Task> preInvoke,
-        Func<Result, Metadata<TParam>, Task<Result>> postInvoke,
-        ISerializer serializer
+        ISerializer? serializer = null
     ) where TParam : notnull 
     {
         if (_disposed)
@@ -185,7 +196,7 @@ public class RFunctions : IDisposable
             }
 
             var commonInvoker = new CommonInvoker(
-                serializer,
+                serializer ?? DefaultSerializer.Instance,
                 _functionFunctionStore,
                 _shutdownCoordinator,
                 _signOfLifeUpdaterFactory
@@ -194,9 +205,7 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _unhandledExceptionHandler,
-                preInvoke,
-                postInvoke
+                _unhandledExceptionHandler
             );
 
             _watchDogsFactory.CreateAndStart(

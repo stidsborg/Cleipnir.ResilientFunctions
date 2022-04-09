@@ -30,7 +30,7 @@ public abstract class ScheduleReInvocationTests
         var syncedParameter = new Synced<string>();
 
         var rFunc = rFunctions
-            .Action(
+            .RegisterAction(
                 functionType,
                 inner: async (string s) =>
                 {
@@ -43,7 +43,7 @@ public abstract class ScheduleReInvocationTests
 
                     syncedParameter.Value = s;
                 }
-            ).Register();
+            );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
@@ -256,10 +256,10 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rFunc = rFunctions
-            .Action<string>(
+            .RegisterAction(
                 functionType,
-                _ => Task.FromException(new Exception("oh no"))
-            ).Register();
+                (string _) => Task.FromException(new Exception("oh no"))
+            );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
@@ -288,10 +288,10 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rFunc = rFunctions
-            .Action<string>(
+            .RegisterAction(
                 functionType,
-                _ => Task.FromException(new Exception("oh no"))
-            ).Register();
+                (string _) => Task.FromException(new Exception("oh no"))
+            );
 
         await Should.ThrowAsync<UnexpectedFunctionState>(() =>
             rFunc.ScheduleReInvocation(

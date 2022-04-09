@@ -103,11 +103,10 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rAction = rFunctions
-            .Action(
+            .RegisterAction(
                 functionTypeId,
                 (string _) => Task.Delay(10)
             )
-            .Register()
             .Invoke;
 
         await rAction("hello", "hello");

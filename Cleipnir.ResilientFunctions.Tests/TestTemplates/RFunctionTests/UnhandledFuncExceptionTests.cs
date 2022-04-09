@@ -3,7 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -167,26 +169,21 @@ public abstract class UnhandledFuncExceptionTests
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions
-            .Action(
+        var rAction = rFunctions
+            .RegisterAction(
                 functionType,
-                inner: void (string _) => throw new Exception("oh no")
-            ).WithPostInvoke(async (result, metadata) =>
-            {
-                await Task.CompletedTask;
-                syncedException.Value = result.Fail!;
-                return Postpone.Until(
+                OnFailure.PostponeUntil(
+                    void (string param) => throw new Exception("oh no"),
                     new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    inProcessWait: false
-                );
-            })
-            .Register();
+                    onException: exception => syncedException.Value = exception
+                )
+            );
 
         //invoke
         var thrown = false;
         try
         {
-            await rFunc.Invoke("1", "1");
+            await rAction.Invoke("1", "1");
         }
         catch (FunctionInvocationPostponedException e)
         {
@@ -199,7 +196,7 @@ public abstract class UnhandledFuncExceptionTests
         sf.PostponedUntil.ShouldNotBeNull();
 
         //schedule
-        await rFunc.Schedule("2", "2");
+        await rAction.Schedule("2", "2");
         await BusyWait.Until(
             () => store
                 .GetFunction(new FunctionId(functionType, "2"))
@@ -210,7 +207,7 @@ public abstract class UnhandledFuncExceptionTests
         thrown = false;
         try
         {
-            await rFunc.ReInvoke("1", new[] {Status.Postponed});
+            await rAction.ReInvoke("1", new[] {Status.Postponed});
         }
         catch (FunctionInvocationPostponedException e)
         {

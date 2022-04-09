@@ -11,6 +11,6 @@ public static class RErrorExtensions
         => new RError(
             exception.Message,
             exception.StackTrace ?? "",
-            exception.GetType().SimpleQualifiedName()
+            ErrorType: exception.GetType().SimpleQualifiedName()
         );
 }

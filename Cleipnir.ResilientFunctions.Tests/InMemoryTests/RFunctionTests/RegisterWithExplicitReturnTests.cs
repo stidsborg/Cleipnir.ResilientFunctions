@@ -54,7 +54,7 @@ public class RegisterWithExplicitReturnTests
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
-            .Action<string>(
+            .RegisterAction<string>(
                 "FunctionTypeId".ToFunctionTypeId(),
                 inner: async param =>
                 {
@@ -62,7 +62,6 @@ public class RegisterWithExplicitReturnTests
                     syncedParam.Value = param;
                     return Succeed.WithoutValue;
                 })
-            .Register()
             .Invoke;
 
         await rAction("", "hello world");

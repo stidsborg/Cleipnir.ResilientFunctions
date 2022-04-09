@@ -115,8 +115,26 @@ internal class CommonInvoker
         scrapbook.Initialize(functionId, _functionStore, _serializer, expectedEpoch);
         return scrapbook;
     }
+
+    public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook? scrapbook, int expectedEpoch)
+    {
+        var scrapbookJson = scrapbook == null
+            ? null
+            : _serializer.SerializeScrapbook(scrapbook);
+        
+        var success = await _functionStore.SetFunctionState(
+            functionId,
+            Status.Failed,
+            scrapbookJson,
+            result: null,
+            errorJson: _serializer.SerializeError(exception.ToError()),
+            postponedUntil: null,
+            expectedEpoch
+        );
+        if (!success) throw new ConcurrentModificationException(functionId);
+    }
     
-    public async Task PersistPostInvoked(
+    public async Task PersistResult(
         FunctionId functionId,
         Result result,
         RScrapbook? scrapbook,
@@ -169,7 +187,7 @@ internal class CommonInvoker
         }
     }
 
-    public async Task PersistPostInvoked<TReturn>(
+    public async Task PersistResult<TReturn>(
         FunctionId functionId, 
         Result<TReturn> result, 
         RScrapbook? scrapbook,
@@ -376,7 +394,7 @@ internal class CommonInvoker
         RScrapbook? scrapbook, 
         int expectedEpoch)
     {
-        await PersistPostInvoked(functionId, result, scrapbook: scrapbook, expectedEpoch);
+        await PersistResult(functionId, result, scrapbook: scrapbook, expectedEpoch);
         if (await WaitForInProcessDelay(result)) return InProcessWait.RetryInvocation;
         EnsureSuccess(functionId, result);
         return InProcessWait.DoNotRetryInvocation;
@@ -388,7 +406,7 @@ internal class CommonInvoker
         RScrapbook? scrapbook, 
         int expectedEpoch)
     {
-        await PersistPostInvoked(functionId, result, scrapbook: scrapbook, expectedEpoch);
+        await PersistResult(functionId, result, scrapbook: scrapbook, expectedEpoch);
         if (await WaitForInProcessDelay(result)) return InProcessWait.RetryInvocation;
         EnsureSuccess(functionId, result);
         return InProcessWait.DoNotRetryInvocation;
