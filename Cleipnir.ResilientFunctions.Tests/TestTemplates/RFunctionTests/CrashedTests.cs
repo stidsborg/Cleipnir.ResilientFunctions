@@ -185,10 +185,10 @@ public abstract class CrashedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .ActionWithScrapbook(
+                .RegisterActionWithScrapbook(
                     functionTypeId,
                     (string _, Scrapbook _) => NeverCompletingTask.OfVoidType()
-                ).Register().Invoke;
+                ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
         }
@@ -200,14 +200,14 @@ public abstract class CrashedTests
             );
 
             var rAction = rFunctions
-                .ActionWithScrapbook(
+                .RegisterActionWithScrapbook(
                     functionTypeId,
                     async (string _, Scrapbook scrapbook) =>
                     {
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                     }
-                ).Register().Invoke;
+                ).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(

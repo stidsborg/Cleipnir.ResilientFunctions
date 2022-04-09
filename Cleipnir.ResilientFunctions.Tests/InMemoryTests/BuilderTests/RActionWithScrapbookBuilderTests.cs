@@ -19,35 +19,13 @@ public class RActionWithScrapbookBuilderTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .ActionWithScrapbook<string, Scrapbook>(
+            .RegisterActionWithScrapbook<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction
             )
-            .Register()
             .Invoke;
 
         await rAction(FunctionInstanceId, "hello world");
-    }
-    
-    [TestMethod]
-    public async Task ConstructedFuncWithPreAndPostInvokeCanBeCreatedAndInvoked()
-    {
-        using var rFunctions = CreateRFunctions();
-        var preInvokeFlag = new SyncedFlag();
-        var postInvokeFlag = new SyncedFlag();
-        var rAction = rFunctions
-            .ActionWithScrapbook<string, Scrapbook>(
-                _functionTypeId,
-                InnerAction
-            )
-            .WithPreInvoke((_, _) => preInvokeFlag.Raise())
-            .WithPostInvoke((result, _, _) => { postInvokeFlag.Raise(); return result; })
-            .Register()
-            .Invoke;
-
-        await rAction(FunctionInstanceId, "hello world");
-        preInvokeFlag.Position.ShouldBe(FlagPosition.Raised);
-        postInvokeFlag.Position.ShouldBe(FlagPosition.Raised);
     }
     
     [TestMethod]
@@ -56,12 +34,11 @@ public class RActionWithScrapbookBuilderTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rAction = rFunctions
-            .ActionWithScrapbook<string, Scrapbook>(
+            .RegisterActionWithScrapbook<string, Scrapbook>(
                 _functionTypeId,
-                InnerAction
+                InnerAction,
+                serializer
             )
-            .WithSerializer(serializer)
-            .Register()
             .Invoke;
 
         await rAction(FunctionInstanceId, "hello world");

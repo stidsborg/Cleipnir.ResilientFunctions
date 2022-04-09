@@ -16,10 +16,11 @@ public static class Example
             unhandledExceptionHandler: Console.WriteLine
         );
 
-        var rAction = functions.ActionWithScrapbook<MailAndRecipients, EmailSenderSaga.Scrapbook>(
-            "OffersMailSender",
-            EmailSenderSaga.Start
-        ).Register().Invoke;
+        var rAction = functions
+            .RegisterActionWithScrapbook<MailAndRecipients, EmailSenderSaga.Scrapbook>(
+             "OffersMailSender",
+                EmailSenderSaga.Start
+            ).Invoke;
 
         var offerDate = new DateOnly(2022, 1, 1);
         await rAction(

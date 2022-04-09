@@ -103,14 +103,13 @@ public abstract class FailedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .ActionWithScrapbook(
+                .RegisterActionWithScrapbook(
                     functionTypeId,
                     (string _, Scrapbook _) =>
                         throwUnhandledException 
                             ? throw new Exception()
                             : Task.FromException(new Exception())
                 )
-                .Register()
                 .Invoke;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(PARAM, PARAM));
@@ -124,13 +123,13 @@ public abstract class FailedTests
                     crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 );
-            var rAction = rFunctions.ActionWithScrapbook(functionTypeId,
+            var rAction = rFunctions.RegisterActionWithScrapbook(functionTypeId,
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
                     return Task.CompletedTask;
                 }
-            ).Register().Invoke;
+            ).Invoke;
                 
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);
@@ -218,13 +217,13 @@ public abstract class FailedTests
         {
             var nonCompletingRFunctions = new RFunctions
                 (store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
-                .ActionWithScrapbook(
+                .RegisterActionWithScrapbook(
                     functionTypeId,
                     (string _, Scrapbook _) => 
                         throwUnhandledException
                             ? throw new Exception()
                             : Task.FromException(new Exception())
-                ).Register().Invoke;
+                ).Invoke;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(param, param));
         }
@@ -235,14 +234,14 @@ public abstract class FailedTests
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
             );
-            var rFunc = rFunctions.ActionWithScrapbook(
+            var rFunc = rFunctions.RegisterActionWithScrapbook(
                 functionTypeId,
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
                     return Succeed.WithoutValue.ToTask();
                 }
-            ).Register().Invoke;
+            ).Invoke;
                 
             await Task.Delay(100);
             flag.Position.ShouldBe(Lowered);

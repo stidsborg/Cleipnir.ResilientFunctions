@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.InnerDecorators;
 
@@ -22,6 +23,16 @@ public static class InnerToAsyncResultAdapters
         {
             await inner(param, scrapbook);
             return Result.Succeed;
+        };
+    }
+    
+    public static Func<TParam, TScrapbook, Task<Result>> ToInnerWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Result> inner)
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (param, scrapbook) =>
+        {
+            var result = inner(param, scrapbook);
+            return result.ToTask();
         };
     }
     

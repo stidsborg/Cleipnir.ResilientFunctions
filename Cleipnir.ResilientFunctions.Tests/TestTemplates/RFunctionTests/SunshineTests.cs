@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -132,10 +131,10 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
-            .ActionWithScrapbook(
+            .RegisterActionWithScrapbook(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => scrapbook.Save()
-            ).Register().Invoke;
+            ).Invoke;
 
         await rFunc("hello", "hello");
 

@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
@@ -300,30 +301,43 @@ public class RFunctions : IDisposable
             return registration;
         }
     }
-    
-    public Builder.RAction.BuilderWithInner<TParam, TScrapbook> ActionWithScrapbook<TParam, TScrapbook>(
-        FunctionTypeId functionTypeId,
-        Action<TParam, TScrapbook> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
 
-    public Builder.RAction.BuilderWithInner<TParam, TScrapbook> ActionWithScrapbook<TParam, TScrapbook>(
+    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+        Action<TParam, TScrapbook> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => RegisterActionWithScrapbook(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
     
-    public Builder.RAction.BuilderWithInner<TParam, TScrapbook> ActionWithScrapbook<TParam, TScrapbook>(
+    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Result>> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+        Func<TParam, TScrapbook, Result> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => RegisterActionWithScrapbook(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
 
-    internal RAction<TParam> Register<TParam, TScrapbook>(
+    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, TScrapbook, Task> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+        => RegisterActionWithScrapbook(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
+
+    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
-        Func<TScrapbook, Metadata<TParam>, Task>? preInvoke = null,
-        Func<Result, TScrapbook, Metadata<TParam>, Task<Result>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -351,9 +365,7 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _unhandledExceptionHandler, 
-                preInvoke ?? Builder.RAction.CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
-                postInvoke ?? Builder.RAction.CommonAdapters.NoOpPostInvoke<TParam, TScrapbook>()
+                _unhandledExceptionHandler
             );
             
             _watchDogsFactory.CreateAndStart(

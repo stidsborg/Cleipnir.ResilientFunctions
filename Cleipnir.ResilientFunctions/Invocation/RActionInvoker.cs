@@ -178,23 +178,17 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> _postInvoke;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         CommonInvoker commonInvoker,
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        Func<TScrapbook, Metadata<TParam>, Task> preInvoke,
-        Func<Result, TScrapbook, Metadata<TParam>, Task<Result>> postInvoke)
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _preInvoke = preInvoke;
-        _postInvoke = postInvoke;
     }
 
     public async Task Invoke(string functionInstanceId, TParam param)
@@ -202,7 +196,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) { await WaitForActionCompletion(functionId); return; }
-        var metadata = new Metadata<TParam>(functionId, param);
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
         var scrapbook = CreateScrapbook(functionId);
@@ -211,19 +204,13 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             Result result;
             try
             {
-                await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
                 result = await _inner(param, scrapbook);
-                result = await _postInvoke(result, scrapbook, metadata);
             }
             catch (Exception exception)
             {
-                result = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                if (result.Fail == exception)
-                {
-                    await PersistPostInvoked(functionId, result, scrapbook);
-                    throw;
-                }
+                await PersistFailure(functionId, exception, scrapbook);
+                throw;
             }
 
             if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
@@ -236,7 +223,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return;
-        var metadata = new Metadata<TParam>(functionId, param);
 
         _ = Task.Run(async () =>
         {
@@ -249,19 +235,13 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                     Result result;
                     try
                     {
-                        await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
                         result = await _inner(param, scrapbook);
-                        result = await _postInvoke(result, scrapbook, metadata);
                     }
                     catch (Exception exception)
                     {
-                        result = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                        if (result.Fail == exception)
-                        {
-                            await PersistPostInvoked(functionId, result, scrapbook);
-                            throw;
-                        }
+                        await PersistFailure(functionId, exception, scrapbook);
+                        throw;
                     }
 
                     if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
@@ -279,7 +259,6 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-        var metadata = new Metadata<TParam>(functionId, param);
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
         while (true)
@@ -287,19 +266,13 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             Result result;
             try
             {
-                await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
                 result = await _inner(param, scrapbook);
-                result = await _postInvoke(result, scrapbook, metadata);
             }
             catch (Exception exception)
             {
-                result = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                if (result.Fail == exception)
-                {
-                    await PersistPostInvoked(functionId, result, scrapbook, epoch);
-                    throw;
-                }
+                await PersistFailure(functionId, exception, scrapbook, epoch);
+                throw;
             }
 
             if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
@@ -323,19 +296,13 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                     Result result;
                     try
                     {
-                        await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
                         result = await _inner(param, scrapbook);
-                        result = await _postInvoke(result, scrapbook, metadata);
                     }
                     catch (Exception exception)
                     {
-                        result = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                        if (result.Fail == exception)
-                        {
-                            await PersistPostInvoked(functionId, result, scrapbook, epoch);
-                            throw;
-                        }
+                        await PersistFailure(functionId, exception, scrapbook, epoch);
+                        throw;
                     }
 
                     if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
@@ -361,8 +328,8 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
         => await _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(functionId, expectedStatuses, expectedEpoch ?? 0);
 
-    private async Task PersistPostInvoked(FunctionId functionId, Result result, RScrapbook scrapbook, int expectedEpoch = 0)
-        => await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
+    private async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch = 0)
+        => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
     private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result result, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook, expectedEpoch);

@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
@@ -227,21 +226,17 @@ public abstract class UnhandledFuncExceptionTests
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions.Register<string, ListScrapbook<string>>(
+        var rFunc = rFunctions.RegisterActionWithScrapbook(
             functionType,
-            (_, _) => throw new Exception("oh no"),
-            preInvoke: null,
-            postInvoke: async (result, scrapbook, metadata) =>
-            {
-                await Task.CompletedTask;
-                syncedException.Value = result.Fail!;
-                scrapbook.List.Add("onException");
-                return Postpone.Until(
-                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    inProcessWait: false
-                );
-            }
-        );
+            OnFailure.PostponeUntil<string, ListScrapbook<string>>(
+                (_, _) => throw new Exception("on no"),
+                new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                (exception, scrapbook) =>
+                {
+                    syncedException.Value = exception;
+                    scrapbook.List.Add("onException");
+                }
+            ));
 
         //invoke
         var thrown = false;
