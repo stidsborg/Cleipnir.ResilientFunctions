@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Builder.RFunc;
+using Cleipnir.ResilientFunctions.Builder.RJob;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
@@ -12,6 +14,7 @@ using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Watchdogs;
+using CommonAdapters = Cleipnir.ResilientFunctions.Builder.RFunc.CommonAdapters;
 
 namespace Cleipnir.ResilientFunctions;
 
@@ -71,22 +74,22 @@ public class RFunctions : IDisposable
         _shutdownCoordinator = shutdownCoordinator;
     }
     
-    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
+    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TReturn> inner
     ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
-    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
+    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<TReturn>> inner
     ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
-    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
+    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result<TReturn>> inner
     ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
-    public Builder.RFunc.BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
+    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result<TReturn>>> inner
     ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
@@ -125,8 +128,8 @@ public class RFunctions : IDisposable
                 inner, 
                 commonInvoker,
                 _unhandledExceptionHandler,
-                preInvoke ?? Builder.RFunc.CommonAdapters.NoOpPreInvoke<TParam>(),
-                postInvoke ?? Builder.RFunc.CommonAdapters.NoOpPostInvoke<TParam, TReturn>()
+                preInvoke ?? CommonAdapters.NoOpPreInvoke<TParam>(),
+                postInvoke ?? CommonAdapters.NoOpPostInvoke<TParam, TReturn>()
             );
             
             _watchDogsFactory.CreateAndStart(
@@ -152,7 +155,7 @@ public class RFunctions : IDisposable
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
-            InnerDecorators.InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
     
@@ -163,7 +166,7 @@ public class RFunctions : IDisposable
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
-            InnerDecorators.InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
     
@@ -174,7 +177,7 @@ public class RFunctions : IDisposable
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
-            InnerDecorators.InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
     
@@ -225,25 +228,25 @@ public class RFunctions : IDisposable
         }
     }
 
-    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
-    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
 
-    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
     
-    public Builder.RFunc.BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public BuilderWithInner<TParam, TScrapbook, TReturn> FuncWithScrapbook<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -282,8 +285,8 @@ public class RFunctions : IDisposable
                 inner, 
                 commonInvoker,
                 _unhandledExceptionHandler,
-                preInvoke ?? Builder.RFunc.CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
-                postInvoke ?? Builder.RFunc.CommonAdapters.NoOpPostInvoke<TParam, TScrapbook, TReturn>()
+                preInvoke ?? CommonAdapters.NoOpPreInvoke<TParam, TScrapbook>(),
+                postInvoke ?? CommonAdapters.NoOpPostInvoke<TParam, TScrapbook, TReturn>()
             );
 
             _watchDogsFactory.CreateAndStart(
@@ -384,7 +387,7 @@ public class RFunctions : IDisposable
         }
     }
 
-    public Builder.RJob.Builder<TScrapbook> RegisterJob<TScrapbook>(string jobId) 
+    public Builder<TScrapbook> RegisterJob<TScrapbook>(string jobId) 
         where TScrapbook : RScrapbook, new() => new(this, jobId);
 
     internal RJob RegisterJob<TScrapbook>(

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -24,7 +25,7 @@ public abstract class FailedTests
     private async Task ExceptionThrowingFuncIsNotCompletedByWatchDog(
         Task<IFunctionStore> storeTask, 
         bool throwUnhandledException,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
+        [CallerMemberName] string callerMemberName = ""
     )
     {
         var store = await storeTask;
@@ -89,7 +90,7 @@ public abstract class FailedTests
     private async Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(
         Task<IFunctionStore> storeTask,
         bool throwUnhandledException, 
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
+        [CallerMemberName] string callerMemberName = ""
     )
     {
         var store = await storeTask;
@@ -207,7 +208,7 @@ public abstract class FailedTests
     private async Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(
         Task<IFunctionStore> storeTask,
         bool throwUnhandledException,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = ""
+        [CallerMemberName] string callerMemberName = ""
     )
     {
         var store = await storeTask;

@@ -1,5 +1,5 @@
-﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
+﻿using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.SqlServer.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -40,7 +40,7 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
         await arbitrator.Initialize();
     }
     
-    private async Task<IArbitrator> CreateArbitrator([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
+    private async Task<IArbitrator> CreateArbitrator([CallerMemberName] string memberName = "")
     {
         var arbitrator = new Arbitrator(Sql.ConnFunc, tablePrefix: memberName);
         await arbitrator.Initialize();

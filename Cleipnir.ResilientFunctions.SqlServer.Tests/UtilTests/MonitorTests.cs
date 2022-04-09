@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.SqlServer.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Dapper;
@@ -44,14 +45,14 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
         await monitor.Initialize();
     }
     
-    private async Task<IMonitor> CreateAndInitializeMonitor([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
+    private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
         var monitor = new Monitor(Sql.ConnFunc, tablePrefix: memberName);
         await monitor.Initialize();
         return monitor;
     }
 
-    protected override async Task<int> LockCount([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
+    protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
     {
         await using var conn = await Sql.ConnFunc();
         return await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {memberName}Monitor");

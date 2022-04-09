@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
@@ -40,7 +41,7 @@ public class MonitorTests : TestTemplates.UtilsTests.MonitorTests
     public override Task WhenALockIsReleasedActiveAcquireShouldGetTheLock()
         => WhenALockIsReleasedActiveAcquireShouldGetTheLock(CreateInMemoryMonitor());
 
-    private Task<IMonitor> CreateInMemoryMonitor([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
+    private Task<IMonitor> CreateInMemoryMonitor([CallerMemberName] string memberName = "")
     {
         var monitor = new InMemoryMonitor();
         lock (_sync)

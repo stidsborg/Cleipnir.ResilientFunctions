@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -55,8 +56,8 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         }
 
         public static Task<IFunctionStore> AutoCreateAndInitializeStore(
-            [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = "",
-            [System.Runtime.CompilerServices.CallerMemberName] string callMemberName = ""
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerMemberName] string callMemberName = ""
         )
         {
             var sourceFileName = sourceFilePath

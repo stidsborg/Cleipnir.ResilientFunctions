@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
@@ -126,5 +127,5 @@ public abstract class MonitorTests
         lock2.ShouldNotBeNull();
     }
 
-    protected abstract Task<int> LockCount([System.Runtime.CompilerServices.CallerMemberName] string memberName = "");
+    protected abstract Task<int> LockCount([CallerMemberName] string memberName = "");
 }

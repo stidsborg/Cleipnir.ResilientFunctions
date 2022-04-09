@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 
 namespace ConsoleApp.FailOverExample;
 

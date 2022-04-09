@@ -2,7 +2,6 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Serilog;
 
