@@ -57,12 +57,23 @@ public class Postpone
         InProcessWait = inProcessWait;
     }
 
-    public static Postpone Until(DateTime dateTime, bool inProcessWait) 
-        => new Postpone(dateTime.ToUniversalTime(), inProcessWait);
-    public static Postpone For(TimeSpan timeSpan, bool inProcessWait) 
-        => new Postpone(DateTime.UtcNow.Add(timeSpan), inProcessWait);
-    public static Postpone For(int ms, bool inProcessWait) 
-        => new Postpone(DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)), inProcessWait);
+    public static Postpone Until(DateTime dateTime, bool? inProcessWait = null)
+        => new Postpone(
+            dateTime.ToUniversalTime(),
+            inProcessWait ?? dateTime.ToUniversalTime() <= DateTime.UtcNow + TimeSpan.FromSeconds(2) 
+        );
+
+    public static Postpone For(TimeSpan timeSpan, bool? inProcessWait = null)
+        => new Postpone(
+            DateTime.UtcNow.Add(timeSpan),
+            inProcessWait ?? timeSpan <= TimeSpan.FromSeconds(2)
+        );
+
+    public static Postpone For(int ms, bool? inProcessWait = null)
+        => new Postpone(
+            DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)),
+            inProcessWait ?? ms <= 2_000
+        );
 }
 
 public class Result<T>

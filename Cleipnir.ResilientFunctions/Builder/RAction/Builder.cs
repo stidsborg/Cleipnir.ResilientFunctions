@@ -19,6 +19,9 @@ public class Builder
     public BuilderWithInner<TParam> WithInner<TParam>(Action<TParam> inner) where TParam : notnull
         => WithInner(CommonAdapters.ToInnerAction(inner));
 
+    public BuilderWithInner<TParam> WithInner<TParam>(Func<TParam, Result> inner) where TParam : notnull
+        => WithInner(CommonAdapters.ToInnerAction(inner));
+    
     public BuilderWithInner<TParam> WithInner<TParam>(Func<TParam, Task> inner) where TParam : notnull
         => WithInner(CommonAdapters.ToInnerAction(inner));
 

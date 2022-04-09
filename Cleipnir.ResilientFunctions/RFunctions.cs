@@ -159,6 +159,11 @@ public class RFunctions : IDisposable
         Func<TParam, Task<Result>> inner
     ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
     
+    public Builder.RAction.BuilderWithInner<TParam> Action<TParam>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, Result> inner
+    ) where TParam : notnull => new Builder.RAction.Builder(this, functionTypeId).WithInner(inner);
+    
     internal RAction<TParam> Register<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result>> inner,

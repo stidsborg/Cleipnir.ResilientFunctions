@@ -245,7 +245,7 @@ public abstract class PostponedTests
                     postponedCheckFrequency: TimeSpan.Zero
                 )
                 .Action(functionTypeId, (string _) => Task.CompletedTask)
-                .WithPostInvoke((_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000), inProcessWait: true))
+                .WithPostInvoke((_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000)))
                 .Register()
                 .Invoke;
 
@@ -274,6 +274,26 @@ public abstract class PostponedTests
             
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
+    }
+
+    public abstract Task ImplicitlyPostponedFunctionAboveTwoSecondsIsNotPostponedInMemory();
+    protected async Task ImplicitlyPostponedFunctionAboveTwoSecondsIsNotPostponedInMemory(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var rFunctions = new RFunctions(store);
+        var rAction = rFunctions.Action(
+            "FunctionType",
+            (string _) => Postpone.For(10_000)
+        ).Register().Invoke;
+        
+        await Should.ThrowAsync<FunctionInvocationPostponedException>(
+            () => 
+                rAction("InstanceId", "hello world")
+        );
+
+        var function = await store.GetFunction(new FunctionId("FunctionType", "InstanceId"));
+        function.ShouldNotBeNull();
+        function.Status.ShouldBe(Status.Postponed);
     }
 
     private class Scrapbook : RScrapbook

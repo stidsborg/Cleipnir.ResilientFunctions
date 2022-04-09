@@ -51,9 +51,9 @@ public abstract class ExceptionHandlingTests
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions
-            .Action<string>(
+            .Action(
                 "typeId".ToFunctionTypeId(),
-                _ => throw new ArithmeticException("Division by zero")
+                void (string _) => throw new ArithmeticException("Division by zero")
             )
             .Register()
             .Invoke;
@@ -70,9 +70,9 @@ public abstract class ExceptionHandlingTests
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions
-            .Action<string>(
+            .Action(
                 "typeId".ToFunctionTypeId(),
-                param => throw new ArithmeticException("Division by zero")
+                void (string _) => throw new ArithmeticException("Division by zero")
             )
             .Register()
             .Invoke;

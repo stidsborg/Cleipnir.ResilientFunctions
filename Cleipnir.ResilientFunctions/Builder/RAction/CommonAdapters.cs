@@ -35,6 +35,15 @@ public static class CommonAdapters
         };
     }
     
+    public static Func<TParam, Task<Result>> ToInnerAction<TParam>(Func<TParam, Result> inner) where TParam : notnull
+    {
+        return param =>
+        {
+            var result = inner(param);
+            return Task.FromResult(result);
+        };
+    }
+    
     public static Func<TParam, Task<Result>> ToInnerAction<TParam>(Func<TParam, Task> inner) where TParam : notnull
     {
         return async param =>

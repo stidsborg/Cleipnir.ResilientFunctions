@@ -168,9 +168,9 @@ public abstract class UnhandledFuncExceptionTests
         var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions
-            .Action<string>(
+            .Action(
                 functionType,
-                inner: _ => throw new Exception("oh no")
+                inner: void (string _) => throw new Exception("oh no")
             ).WithPostInvoke(async (result, metadata) =>
             {
                 await Task.CompletedTask;
