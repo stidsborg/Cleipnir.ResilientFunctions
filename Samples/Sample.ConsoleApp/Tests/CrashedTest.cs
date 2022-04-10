@@ -32,14 +32,14 @@ public static class CrashedTest
                 postponedCheckFrequency: TimeSpan.Zero
             );
 
-        var firstRFunc = firstRFunctions.Func<int, string>(
+        var firstRFunc = firstRFunctions.RegisterFunc<int, string>(
             functionTypeId,
             async Task<string>(param) =>
             {
                 await Task.Delay(1_000_000);
                 return param.ToString();
             }
-        ).Register().Invoke;
+        ).Invoke;
         
         var secondRFunctions = new RFunctions
             (
@@ -49,10 +49,10 @@ public static class CrashedTest
                 postponedCheckFrequency: TimeSpan.Zero
             );
 
-        var secondRFunc = secondRFunctions.Func<int, string>(
+        var secondRFunc = secondRFunctions.RegisterFunc<int, string>(
             functionTypeId,
             Task<string>(param) => param.ToString().ToTask()
-        ).Register().Invoke;
+        ).Invoke;
         
         for (var i = 0; i < testSize; i++)
             _ = firstRFunc(i.ToString(), i);

@@ -73,32 +73,40 @@ public class RFunctions : IDisposable
         _unhandledExceptionHandler = exceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
-    
-    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
-        Func<TParam, TReturn> inner
-    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
-    
-    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
-        Func<TParam, Task<TReturn>> inner
-    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
-    
-    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
-        Func<TParam, Result<TReturn>> inner
-    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
-    
-    public BuilderWithInner<TParam, TReturn> Func<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
-        Func<TParam, Task<Result<TReturn>>> inner
-    ) where TParam : notnull => new Builder.RFunc.Builder(this, functionTypeId).WithInner(inner);
 
-    internal RFunc<TParam, TReturn> Register<TParam, TReturn>(
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, TReturn> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull => RegisterFunc(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+        serializer
+    );
+    
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, Task<TReturn>> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull => RegisterFunc(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+        serializer
+    );
+    
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, Result<TReturn>> inner,
+        ISerializer? serializer = null
+    ) where TParam : notnull => RegisterFunc(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+        serializer
+    );
+    
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result<TReturn>>> inner,
-        Func<Metadata<TParam>, Task>? preInvoke = null,
-        Func<Result<TReturn>, Metadata<TParam>, Task<Result<TReturn>>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TParam : notnull
     {
@@ -127,9 +135,7 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 inner, 
                 commonInvoker,
-                _unhandledExceptionHandler,
-                preInvoke ?? CommonAdapters.NoOpPreInvoke<TParam>(),
-                postInvoke ?? CommonAdapters.NoOpPostInvoke<TParam, TReturn>()
+                _unhandledExceptionHandler
             );
             
             _watchDogsFactory.CreateAndStart(

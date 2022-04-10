@@ -143,7 +143,7 @@ public abstract class ScheduleReInvocationTests
             postponedCheckFrequency: TimeSpan.Zero
         );
 
-        var rFunc = rFunctions.Register<string, string>(
+        var rFunc = rFunctions.RegisterFunc<string, string>(
             functionType,
             async s =>
             {

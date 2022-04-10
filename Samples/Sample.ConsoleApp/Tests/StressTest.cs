@@ -29,14 +29,14 @@ public static class StressTest
                 postponedCheckFrequency: TimeSpan.Zero
             );
 
-        var rFunc = rFunctions.Func<int, string>(
+        var rFunc = rFunctions.RegisterFunc<int, string>(
             functionTypeId: "stresstest",
             inner: async Task<string>(int param) =>
             {
                 await Task.Delay(1);
                 return param.ToString();
             }
-        ).Register().Invoke;
+        ).Invoke;
 
         var tasks = new List<Tuple<int, Task<string>>>();
         for (var i = 0; i < 10_000; i++)

@@ -24,10 +24,10 @@ public static class ElevatorPitchExample
             postponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
         );
 
-        var registration = rFunctions.Func( //making a function resilient is simply a matter of registering it
+        var registration = rFunctions.RegisterFunc( //making a function resilient is simply a matter of registering it
             functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
             inner: async Task<string>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
-        ).Register(); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
+        ); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
            //and any crashed invocation of the function type will automatically be picked after this point
 
         var rFunc = registration.Invoke; //you can also re-invoke (useful for manual handling) an existing function or schedule one for invocation

@@ -22,19 +22,13 @@ public abstract class UnhandledFuncExceptionTests
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions.Register<string, string>(
+        var rFunc = rFunctions.RegisterFunc(
             functionType,
-            inner: _ => throw new Exception("oh no"),
-            preInvoke: null,
-            postInvoke: async (result, metadata) =>
-            {
-                await Task.CompletedTask;
-                syncedException.Value = result.Fail!;
-                return Postpone.Until(
-                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    inProcessWait: false
-                );
-            }
+            OnFailure.PostponeUntil<string, string>(
+                string (string _) => throw new Exception("oh no"),
+                new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                exception => syncedException.Value = exception
+            )
         );
 
         FunctionInvocationPostponedException? thrownException = null;

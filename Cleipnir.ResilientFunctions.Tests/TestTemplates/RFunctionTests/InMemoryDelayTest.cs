@@ -22,17 +22,12 @@ public abstract class InMemoryDelayTest
         {
             var crashableStore = new CrashableFunctionStore(store);
             using var rFunctions = new RFunctions(crashableStore);
-            
+
             var rFunc = rFunctions
-                .Func(FunctionId.TypeId,
-                    async Task<string>(string param) =>
-                    {
-                        await Task.CompletedTask;
-                        return param.ToUpper();
-                    }
-                ).WithPostInvoke(
-                    (_, _) => Postpone.For(TimeSpan.FromMinutes(1), inProcessWait: true)
-                ).Register()
+                .RegisterFunc(
+                    FunctionId.TypeId,
+                    Result<string>(string param) => Postpone.For(TimeSpan.FromMinutes(1), inProcessWait: true)
+                )
                 .Invoke;
             
             _ = rFunc(FunctionId.InstanceId.Value, "hello world");
@@ -46,15 +41,14 @@ public abstract class InMemoryDelayTest
             var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(5));
             disposables.Add(rFunctions);
             rFunctions
-                .Func(FunctionId.TypeId,
+                .RegisterFunc(FunctionId.TypeId,
                     inner: async Task<string>(string param) =>
                     {
                         await Task.CompletedTask;
                         fallbackInvoked.Raise();
                         return param.ToUpper();
                     }
-                )
-                .Register();
+                );
         }
         
         await Task.Delay(100);
@@ -72,15 +66,15 @@ public abstract class InMemoryDelayTest
             var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(50));
             disposables.Add(rFunctions);
             rFunctions
-                .Func(FunctionId.TypeId,
+                .RegisterFunc(
+                    FunctionId.TypeId,
                     inner: async Task<string>(string param) =>
                     {
                         await Task.CompletedTask;
                         fallbackInvoked.Raise();
                         return param.ToUpper();
                     }
-                )
-                .Register();
+                );
         }
         //set up invoking rfunctions instance and call
         {
@@ -88,16 +82,13 @@ public abstract class InMemoryDelayTest
             using var rFunctions = new RFunctions(crashableStore);
             
             var rFunc = rFunctions
-                .Func(FunctionId.TypeId,
-                    async Task<string>(string param) =>
+                .RegisterFunc(FunctionId.TypeId,
+                    async Task<Result<string>>(string param) =>
                     {
                         await Task.CompletedTask;
-                        return param.ToUpper();
+                        return Postpone.For(TimeSpan.FromMilliseconds(10), inProcessWait: true);
                     }
-                ).WithPostInvoke(
-                    (_, _) => Postpone.For(TimeSpan.FromMilliseconds(10), inProcessWait: true)
-                ).Register()
-                .Invoke;
+                ).Invoke;
             
             _ = rFunc(FunctionId.InstanceId.Value, "hello world");
             

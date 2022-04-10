@@ -18,9 +18,9 @@ public abstract class ExceptionHandlingTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
-        var rFunc = rFunctions.Register<string, string>(
+        var rFunc = rFunctions.RegisterFunc(
             "typeId".ToFunctionTypeId(),
-            param => throw new ArithmeticException("Division by zero")
+            string (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));

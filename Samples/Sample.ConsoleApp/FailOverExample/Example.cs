@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Microsoft.Data.SqlClient;
 
@@ -31,18 +32,13 @@ public static class Example
         );
 
         var callApi = functions
-            .Func<string, string>(
+            .RegisterFunc(
                 "call.api".ToFunctionTypeId(),
-                s => new ApiCaller(true, 1).CallApi(s)
-                ).WithPostInvoke(
-                postInvoke: async (result, _) =>
-                {
-                    await Task.CompletedTask;
-                    return result.Fail != null 
-                        ? Postpone.For(10, inProcessWait: false) 
-                        : result;
-                }
-            ).Register().Invoke;
+                OnFailure.PostponeFor(
+                    Task<string> (string s) => new ApiCaller(true, 1).CallApi(s),
+                    10
+                    )
+                ).Invoke;
 
         _ = callApi("input", "input"); //will fail
         await Task.Delay(2_000);
@@ -61,10 +57,10 @@ public static class Example
         );
 
         var callApi = functions
-            .Func<string, string>(
+            .RegisterFunc<string, string>(
                 "call.api".ToFunctionTypeId(),
                 new ApiCaller(false, 2).CallApi
-            ).Register().Invoke;
+            ).Invoke;
 
         await Task.Delay(2_000);
 

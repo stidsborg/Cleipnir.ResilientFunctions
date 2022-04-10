@@ -7,6 +7,33 @@ namespace Cleipnir.ResilientFunctions.InnerDecorators;
 
 public static class InnerToAsyncResultAdapters
 {
+    public static Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(Func<TParam, TReturn> inner) where TParam : notnull
+    {
+        return param =>
+        {
+            var result = inner(param);
+            return Task.FromResult(new Result<TReturn>(result));
+        };
+    }
+    
+    public static Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(Func<TParam, Task<TReturn>> inner) where TParam : notnull
+    {
+        return async param =>
+        {
+            var result = await inner(param);
+            return Succeed.WithValue(result);
+        };
+    }
+    
+    public static Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(Func<TParam, Result<TReturn>> inner) where TParam : notnull
+    {
+        return param =>
+        {
+            var result = inner(param);
+            return Task.FromResult(result);
+        };
+    }
+    
     public static Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
     {
         return param =>

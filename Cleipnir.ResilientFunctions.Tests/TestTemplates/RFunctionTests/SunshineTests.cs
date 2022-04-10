@@ -30,10 +30,10 @@ public abstract class SunshineTests
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
 
         var rFunc = rFunctions
-            .Func(
+            .RegisterFunc(
                 functionTypeId,
                 (string s) => ToUpper(s)
-            ).Register().Invoke;
+            ).Invoke;
 
         var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
@@ -160,10 +160,10 @@ public abstract class SunshineTests
             unhandledExceptionCatcher.Catch
         );
 
-        var rFunc = rFunctions.Func(
+        var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             (string s) => default(string).ToTask()
-        ).Register().Invoke;
+        ).Invoke;
 
         var result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();

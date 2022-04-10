@@ -33,24 +33,25 @@ public static class PostponedTest
             );
 
         var schedule = firstRFunctions
-            .Func(
+            .RegisterFunc(
                 functionTypeId,
-                inner: Task<string>(int param) => param.ToString().ToTask()
-            ).WithPostInvoke((_, _) => Postpone.For(2000, inProcessWait: false))
-            .Register()
-            .Schedule;
-        
+                inner: Result<string>(int param) => Postpone.For(2000, inProcessWait: false)
+            ).Schedule;
+
         _ = new RFunctions
-            (
-                store,
-                unhandledExceptionHandler: e => { lock (Sync) exceptions.Add(e); },
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(500)
-            ).Func<int, string>(
+        (
+            store,
+            unhandledExceptionHandler: e =>
+            {
+                lock (Sync) exceptions.Add(e);
+            },
+            crashedCheckFrequency: TimeSpan.Zero,
+            postponedCheckFrequency: TimeSpan.FromMilliseconds(500)
+        ).RegisterFunc<int, string>(
             functionTypeId,
-            Task<string>(param) => 
+            Task<string>(param) =>
                 param.ToString().ToTask()
-        ).Register();
+        );
 
         await Task.WhenAll(
             Enumerable

@@ -15,14 +15,14 @@ public class RegisterWithExplicitReturnTests
     {
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rFunc = rFunctions.Func<string, string>(
+        var rFunc = rFunctions.RegisterFunc<string, string>(
             "FunctionTypeId".ToFunctionTypeId(),
             inner: async param =>
             {
                 await Task.CompletedTask;
                 syncedParam.Value = param;
                 return Succeed.WithValue(param.ToUpper());
-            }).Register().Invoke;
+            }).Invoke;
 
         var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
