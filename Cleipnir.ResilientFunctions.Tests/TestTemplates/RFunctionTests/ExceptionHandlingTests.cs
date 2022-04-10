@@ -18,7 +18,7 @@ public abstract class ExceptionHandlingTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = rFunctions.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
             string (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
@@ -34,7 +34,7 @@ public abstract class ExceptionHandlingTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
-        var rFunc = rFunctions.RegisterFuncWithScrapbook(
+        var rFunc = rFunctions.RegisterFuncWithScrapbook<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
             string (string param, ListScrapbook<string> scrapbook) => throw new ArithmeticException("Division by zero")
         ).Invoke;

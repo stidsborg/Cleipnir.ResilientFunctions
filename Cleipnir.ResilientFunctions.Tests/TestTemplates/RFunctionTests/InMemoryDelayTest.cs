@@ -82,7 +82,8 @@ public abstract class InMemoryDelayTest
             using var rFunctions = new RFunctions(crashableStore);
             
             var rFunc = rFunctions
-                .RegisterFunc(FunctionId.TypeId,
+                .RegisterFunc<string, string>(  //explicit generic parameters to satisfy Rider-ide
+                    FunctionId.TypeId,
                     async Task<Result<string>>(string param) =>
                     {
                         await Task.CompletedTask;

@@ -167,7 +167,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.RegisterFuncWithScrapbook(
+            _ = rFunctions.RegisterFuncWithScrapbook<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
                 async Task<Result<string>> (Param p, Scrapbook scrapbook) =>
                 {
