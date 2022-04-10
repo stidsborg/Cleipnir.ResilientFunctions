@@ -19,51 +19,27 @@ public class RFuncWithScrapbookBuilderTests
     {
         using var rFunctions = CreateRFunctions();
         var rFunc = rFunctions
-            .FuncWithScrapbook<string, Scrapbook, string>(
+            .RegisterFuncWithScrapbook<string, Scrapbook, string>(
                 _functionTypeId,
                 InnerFunc
             )
-            .Register()
             .Invoke;
 
         var result = await rFunc(FunctionInstanceId, "hello world");
         result.ShouldBe("HELLO WORLD");
     }
-    
-    [TestMethod]
-    public async Task ConstructedFuncWithPreAndPostInvokeCanBeCreatedAndInvoked()
-    {
-        using var rFunctions = CreateRFunctions();
-        var preInvokeFlag = new SyncedFlag();
-        var postInvokeFlag = new SyncedFlag();
-        var rFunc = rFunctions
-            .FuncWithScrapbook<string, Scrapbook, string>(
-                _functionTypeId,
-                InnerFunc
-            )
-            .WithPreInvoke((_, _) => preInvokeFlag.Raise())
-            .WithPostInvoke((result, _, _) => { postInvokeFlag.Raise(); return result; })
-            .Register()
-            .Invoke;
 
-        var result = await rFunc(FunctionInstanceId, "hello world");
-        result.ShouldBe("HELLO WORLD");
-        preInvokeFlag.Position.ShouldBe(FlagPosition.Raised);
-        postInvokeFlag.Position.ShouldBe(FlagPosition.Raised);
-    }
-    
     [TestMethod]
     public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
     {
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rFunc = rFunctions
-            .FuncWithScrapbook<string, Scrapbook, string>(
+            .RegisterFuncWithScrapbook<string, Scrapbook, string>(
                 _functionTypeId,
-                InnerFunc
+                InnerFunc,
+                serializer
             )
-            .WithSerializer(serializer)
-            .Register()
             .Invoke;
 
         var result = await rFunc(FunctionInstanceId, "hello world");

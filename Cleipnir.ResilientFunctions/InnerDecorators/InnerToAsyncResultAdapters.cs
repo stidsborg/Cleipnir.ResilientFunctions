@@ -90,4 +90,37 @@ public static class InnerToAsyncResultAdapters
             return Result.Succeed;
         };
     }
+    
+    public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, TReturn> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (param, scrapbook) =>
+        {
+            var result = inner(param, scrapbook);
+            return Task.FromResult(new Result<TReturn>(result));
+        };
+    }
+    
+    public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, Task<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return async (param, scrapbook) =>
+        {
+            var result = await inner(param, scrapbook);
+            return Succeed.WithValue(result);
+        };
+    }
+    
+    public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TScrapbook, TReturn>(
+        Func<TParam, TScrapbook, Result<TReturn>> inner
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return (param, scrapbook) =>
+        {
+            var result = inner(param, scrapbook);
+            return Task.FromResult(result);
+        };
+    }
 }

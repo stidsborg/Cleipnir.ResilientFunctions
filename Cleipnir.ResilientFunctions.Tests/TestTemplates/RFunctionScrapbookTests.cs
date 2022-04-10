@@ -27,10 +27,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
 
             var rFunc = rFunctions
-                .FuncWithScrapbook(
+                .RegisterFuncWithScrapbook(
                     functionTypeId,
                     (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
-                ).Register().Invoke;
+                ).Invoke;
 
             var result = await rFunc("hello", "hello");
             result.ShouldBe("HELLO");

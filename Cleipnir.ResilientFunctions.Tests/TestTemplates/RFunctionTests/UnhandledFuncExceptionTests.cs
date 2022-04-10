@@ -79,20 +79,16 @@ public abstract class UnhandledFuncExceptionTests
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions.Register<string, ListScrapbook<string>, string>(
+        var rFunc = rFunctions.RegisterFuncWithScrapbook(
             functionType,
-            (_, _) => throw new Exception("oh no"),
-            preInvoke: null,
-            postInvoke: async (result, scrapbook, metadata) =>
-            {
-                await Task.CompletedTask;
-                syncedException.Value = result.Fail!;
-                scrapbook.List.Add("onException");
-                return Postpone.Until(
-                    new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    inProcessWait: false
-                );
-            }
+            OnFailure.PostponeUntil<string, ListScrapbook<string>, string>(
+                string (string param, ListScrapbook<string> scrapbook) => throw new Exception("oh no"),
+                new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                (exception, scrapbook) =>
+                {
+                    syncedException.Value = exception;
+                    scrapbook.List.Add("onException");
+                })
         );
 
         //invoke
@@ -222,8 +218,8 @@ public abstract class UnhandledFuncExceptionTests
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions.RegisterActionWithScrapbook(
             functionType,
-            OnFailure.PostponeUntil<string, ListScrapbook<string>>(
-                (_, _) => throw new Exception("on no"),
+            OnFailure.PostponeUntil(
+                void (string _, ListScrapbook<string>_) => throw new Exception("on no"),
                 new DateTime(3000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 (exception, scrapbook) =>
                 {

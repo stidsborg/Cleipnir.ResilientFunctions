@@ -179,24 +179,17 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly Func<TScrapbook, Metadata<TParam>, Task> _preInvoke;
-    private readonly Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>> _postInvoke;
-    
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         CommonInvoker commonInvoker,
-        UnhandledExceptionHandler unhandledExceptionHandler, 
-        Func<TScrapbook, Metadata<TParam>, Task> preInvoke, 
-        Func<Result<TReturn>, TScrapbook, Metadata<TParam>, Task<Result<TReturn>>> postInvoke)
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _preInvoke = preInvoke;
-        _postInvoke = postInvoke;
     }
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
@@ -204,32 +197,25 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return await WaitForFunctionResult(functionId);
-        var metadata = new Metadata<TParam>(functionId, param);
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
         var scrapbook = CreateScrapbook(functionId);
         while (true)
         {
-            Result<TReturn> postInvoked;
+            Result<TReturn> result;
             try
             {
-                await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                var result = await _inner(param, scrapbook);
-                postInvoked = await _postInvoke(result, scrapbook, metadata);
+                result = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {
-                postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                if (postInvoked.Fail == exception)
-                {
-                    await PersistPostInvoked(functionId, postInvoked, scrapbook);
-                    throw;
-                }
+                await PersistFailure(functionId, exception, scrapbook);
+                throw;
             }
 
-            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook) == InProcessWait.DoNotRetryInvocation)
-                return postInvoked.SucceedWithValue!;
+            if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
+                return result.SucceedWithValue!;
         }
     }
 
@@ -248,25 +234,19 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             {
                 while (true)
                 {
-                    Result<TReturn> postInvoked;
+                    Result<TReturn> result;
                     try
                     {
-                        await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        var result = await _inner(param, scrapbook);
-                        postInvoked = await _postInvoke(result, scrapbook, metadata);
+                        result = await _inner(param, scrapbook);
                     }
                     catch (Exception exception)
                     {
-                        postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                        if (postInvoked.Fail == exception)
-                        {
-                            await PersistPostInvoked(functionId, postInvoked, scrapbook);
-                            throw;
-                        }
+                        await PersistFailure(functionId, exception, scrapbook);
+                        throw;
                     }
 
-                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook) == InProcessWait.DoNotRetryInvocation)
+                    if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
                         return;
                 }
             }
@@ -286,26 +266,20 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
         while (true)
         {
-            Result<TReturn> postInvoked;
+            Result<TReturn> result;
             try
             {
-                await _preInvoke(scrapbook, metadata);
                 // *** USER FUNCTION INVOCATION *** 
-                var result = await _inner(param, scrapbook);
-                postInvoked = await _postInvoke(result, scrapbook, metadata);
+                result = await _inner(param, scrapbook);
             }
             catch (Exception exception)
             {
-                postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                if (postInvoked.Fail == exception)
-                {
-                    await PersistPostInvoked(functionId, postInvoked, scrapbook, epoch);
-                    throw;
-                }
+                await PersistFailure(functionId, exception, scrapbook, epoch);
+                throw;
             }
 
-            if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
-                return postInvoked.SucceedWithValue!;
+            if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
+                return result.SucceedWithValue!;
         }
     }
     
@@ -322,25 +296,19 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             {
                 while (true)
                 {
-                    Result<TReturn> postInvoked;
+                    Result<TReturn> result;
                     try
                     {
-                        await _preInvoke(scrapbook, metadata);
                         // *** USER FUNCTION INVOCATION *** 
-                        var result = await _inner(param, scrapbook);
-                        postInvoked = await _postInvoke(result, scrapbook, metadata);
+                        result = await _inner(param, scrapbook);
                     }
                     catch (Exception exception)
                     {
-                        postInvoked = await _postInvoke(new Fail(exception), scrapbook, metadata);
-                        if (postInvoked.Fail == exception)
-                        {
-                            await PersistPostInvoked(functionId, postInvoked, scrapbook, epoch);
-                            throw;
-                        }
+                        await PersistFailure(functionId, exception, scrapbook, epoch);
+                        throw;
                     }
 
-                    if (await PersistResultAndEnsureSuccess(functionId, postInvoked, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
+                    if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
                         return;
                 }
             }
@@ -371,8 +339,8 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             expectedEpoch
         );
 
-    private async Task PersistPostInvoked(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
-        => await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
+    private async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch = 0)
+        => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
     private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook, expectedEpoch);

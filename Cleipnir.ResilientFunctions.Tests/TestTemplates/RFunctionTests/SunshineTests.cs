@@ -68,11 +68,10 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
-            .FuncWithScrapbook(
+            .RegisterFuncWithScrapbook(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
             )
-            .Register()
             .Invoke;
 
         var result = await rFunc("hello", "hello");
@@ -180,14 +179,14 @@ public abstract class SunshineTests
             unhandledExceptionCatcher.Catch
         );
 
-        var rFunc = rFunctions.FuncWithScrapbook(
+        var rFunc = rFunctions.RegisterFuncWithScrapbook(
             functionTypeId,
             (string _, ListScrapbook<string> scrapbook) =>
             {
                 scrapbook.List.Add("hello world");
                 return default(string).ToTask();
             }
-        ).Register().Invoke;
+        ).Invoke;
 
         var result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();
