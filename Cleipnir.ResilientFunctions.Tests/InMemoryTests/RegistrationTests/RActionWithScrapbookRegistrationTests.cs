@@ -5,10 +5,10 @@ using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.BuilderTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 
 [TestClass]
-public class RActionWithScrapbookBuilderTests
+public class RActionWithScrapbookRegistrationTests
 {
     private readonly FunctionTypeId _functionTypeId = new FunctionTypeId("FunctionTypeId");
     private const string FunctionInstanceId = "FunctionInstanceId";

@@ -7,10 +7,10 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.BuilderTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 
 [TestClass]
-public class RJobBuilderTests
+public class RJobRegistrationTests
 {
     private FunctionId FunctionId { get; } = new("Job", JobId);
     private const string JobId = "TestJob";
@@ -21,9 +21,8 @@ public class RJobBuilderTests
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
         await rFunctions
-            .RegisterJob<Scrapbook>(JobId)
-            .WithInner(scrapbook => scrapbook.Value = "invoked")
-            .Create()
+            .RegisterJob<Scrapbook>(JobId, scrapbook => 
+                scrapbook.Value = "invoked")
             .Start();
 
         await BusyWait.Until(
@@ -46,14 +45,14 @@ public class RJobBuilderTests
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
         await rFunctions
-            .RegisterJob<Scrapbook>(JobId)
-            .WithInner(scrapbook =>
-            {
-                scrapbook.Value = "invoked";
-                return Task.CompletedTask;
-            })
-            .Create()
-            .Start();
+            .RegisterJob<Scrapbook>(
+                JobId,
+                scrapbook =>
+                {
+                    scrapbook.Value = "invoked";
+                    return Task.CompletedTask;
+                }
+            ).Start();
 
         await BusyWait.Until(
             () => store
@@ -75,13 +74,13 @@ public class RJobBuilderTests
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
         await rFunctions
-            .RegisterJob<Scrapbook>(JobId)
-            .WithInner(scrapbook =>
-            {
-                scrapbook.Value = "invoked";
-                return Result.Succeed.ToTask();
-            })
-            .Create()
+            .RegisterJob<Scrapbook>(
+                JobId,
+                scrapbook =>
+                {
+                    scrapbook.Value = "invoked";
+                    return Result.Succeed.ToTask();
+                })
             .Start();
 
         await BusyWait.Until(
@@ -104,14 +103,14 @@ public class RJobBuilderTests
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
         await rFunctions
-            .RegisterJob<Scrapbook>(JobId)
-            .WithInner(scrapbook =>
-            {
-                scrapbook.Value = "invoked";
-                return Result.Succeed;
-            })
-            .Create()
-            .Start();
+            .RegisterJob<Scrapbook>(
+                JobId,
+                scrapbook =>
+                {
+                    scrapbook.Value = "invoked";
+                    return Result.Succeed;
+                }
+            ).Start();
 
         await BusyWait.Until(
             () => store
@@ -128,31 +127,23 @@ public class RJobBuilderTests
     }
     
     [TestMethod]
-    public async Task ConstructedFuncWithPreAndPostInvokeCanBeCreatedAndInvoked()
+    public async Task ConstructedFuncWithSerializerCreatedAndInvoked()
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
         
-        var preInvokeFlag = new SyncedFlag();
-        var postInvokeFlag = new SyncedFlag();
+        var flag = new SyncedFlag();
         var serializer = new Serializer();
         var rJob = rFunctions
-            .RegisterJob<Scrapbook>(JobId)
-            .WithInner(_ => { })
-            .WithPreInvoke(_ => preInvokeFlag.Raise())
-            .WithPostInvoke((result, _) =>
-            {
-                postInvokeFlag.Raise();
-                return result;
-            })
-            .WithSerializer(serializer)
-            .Register()
-            .Start;
+            .RegisterJob<Scrapbook>(
+                JobId,
+                _ => flag.Raise(),
+                serializer
+            ).Start;
 
         await rJob();
 
-        await preInvokeFlag.WaitForRaised().WithTimeout(1_000);
-        await postInvokeFlag.WaitForRaised().WithTimeout(1_000);
+        await flag.WaitForRaised().WithTimeout(1_000);
         serializer.Invoked.ShouldBeTrue();
     }
     

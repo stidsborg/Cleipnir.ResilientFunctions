@@ -2,14 +2,12 @@
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.BuilderTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 
 [TestClass]
-public class RFuncWithScrapbookBuilderTests
+public class RActionRegistrationTests
 {
     private readonly FunctionTypeId _functionTypeId = new FunctionTypeId("FunctionTypeId");
     private const string FunctionInstanceId = "FunctionInstanceId";
@@ -18,40 +16,14 @@ public class RFuncWithScrapbookBuilderTests
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
         using var rFunctions = CreateRFunctions();
-        var rFunc = rFunctions
-            .RegisterFuncWithScrapbook<string, Scrapbook, string>(
-                _functionTypeId,
-                InnerFunc
-            )
+        var rAction = rFunctions
+            .RegisterAction<string>(_functionTypeId, InnerAction)
             .Invoke;
 
-        var result = await rFunc(FunctionInstanceId, "hello world");
-        result.ShouldBe("HELLO WORLD");
+        await rAction(FunctionInstanceId, "hello world");
     }
-
-    [TestMethod]
-    public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
-    {
-        using var rFunctions = CreateRFunctions();
-        var serializer = new Serializer();
-        var rFunc = rFunctions
-            .RegisterFuncWithScrapbook<string, Scrapbook, string>(
-                _functionTypeId,
-                InnerFunc,
-                serializer
-            )
-            .Invoke;
-
-        var result = await rFunc(FunctionInstanceId, "hello world");
-        result.ShouldBe("HELLO WORLD");
-        serializer.Invoked.ShouldBeTrue();
-    }
-
-    private async Task<string> InnerFunc(string param, Scrapbook scrapbook)
-    {
-        await Task.CompletedTask;
-        return param.ToUpper();
-    }
+    
+    private Task InnerAction(string param) => Task.CompletedTask;
     private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
@@ -78,6 +50,4 @@ public class RFuncWithScrapbookBuilderTests
 
         public object DeserializeResult(string json, string type) => Default.DeserializeResult(json, type);
     }
-
-    private class Scrapbook : RScrapbook { }
 }

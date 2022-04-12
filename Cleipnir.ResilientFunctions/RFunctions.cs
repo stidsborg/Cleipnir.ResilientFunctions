@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Builder.RJob;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
@@ -396,14 +395,42 @@ public class RFunctions : IDisposable
         }
     }
 
-    public Builder<TScrapbook> RegisterJob<TScrapbook>(string jobId) 
-        where TScrapbook : RScrapbook, new() => new(this, jobId);
+    public RJob RegisterJob<TScrapbook>(
+        string jobId,
+        Action<TScrapbook> inner,
+        ISerializer? serializer = null
+    ) where TScrapbook : RScrapbook, new()
+        => RegisterJob(
+            jobId,
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
 
-    internal RJob RegisterJob<TScrapbook>(
+    public RJob RegisterJob<TScrapbook>(
+        string jobId,
+        Func<TScrapbook, Result> inner,
+        ISerializer? serializer = null
+    ) where TScrapbook : RScrapbook, new()
+        => RegisterJob(
+            jobId,
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
+
+    public RJob RegisterJob<TScrapbook>(
+        string jobId,
+        Func<TScrapbook, Task> inner,
+        ISerializer? serializer = null
+    ) where TScrapbook : RScrapbook, new()
+        => RegisterJob(
+            jobId,
+            InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            serializer
+        );
+
+    public RJob RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Task<Result>> inner,
-        Func<TScrapbook, Task>? preInvoke = null,
-        Func<Result, TScrapbook, Task<Result>>? postInvoke = null,
         ISerializer? serializer = null
     ) where TScrapbook : RScrapbook, new()
     {
@@ -427,8 +454,6 @@ public class RFunctions : IDisposable
             var rJobInvoker = new RJobInvoker<TScrapbook>(
                 jobId,
                 inner,
-                preInvoke,
-                postInvoke,
                 commonInvoker,
                 _unhandledExceptionHandler
             );

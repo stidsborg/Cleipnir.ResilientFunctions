@@ -17,12 +17,10 @@ public class Example
             postponedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
             unhandledExceptionHandler: Console.WriteLine
         );
-        var registration = rFunctions
-            .RegisterJob<Scrapbook>("SampleJob")
-            .WithInner(Job)
-            .Create();
+        var rJob = rFunctions
+            .RegisterJob<Scrapbook>("SampleJob", Job);
 
-        await registration.Start();
+        await rJob.Start();
 
         Console.ReadLine();
     }

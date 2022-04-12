@@ -2,14 +2,13 @@
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.BuilderTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 
 [TestClass]
-public class RFuncBuilderTests
+public class RFuncRegistrationTests
 {
     private readonly FunctionTypeId _functionTypeId = new FunctionTypeId("FunctionTypeId");
     private const string FunctionInstanceId = "FunctionInstanceId";
