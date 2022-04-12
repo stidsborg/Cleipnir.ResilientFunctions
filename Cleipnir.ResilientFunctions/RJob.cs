@@ -5,19 +5,19 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
 
-public delegate Task ForceContinuation(
+public delegate Task Retry(
     IEnumerable<Status> expectedStatuses,
     int? expectedEpoch = null
 );
 
 public class RJob
 {
-    public RJob(Func<Task> start, ForceContinuation forceContinuation)
+    public RJob(Func<Task> start, Retry retry)
     {
         Start = start;
-        ForceContinuation = forceContinuation;
+        Retry = retry;
     }
 
     public Func<Task> Start { get; }
-    public ForceContinuation ForceContinuation { get; }
+    public Retry Retry { get; }
 }

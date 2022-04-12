@@ -1,0 +1,16 @@
+﻿using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
+
+[TestClass]
+public class JobTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.JobTests
+{
+    [TestMethod]
+    public override Task JobCanBeRetried()
+        => JobCanBeRetried(Sql.AutoCreateAndInitializeStore()); 
+
+    [TestMethod]
+    public override Task JobCanBeStartedMultipleTimesWithoutError()
+        => JobCanBeStartedMultipleTimesWithoutError(Sql.AutoCreateAndInitializeStore());
+}
