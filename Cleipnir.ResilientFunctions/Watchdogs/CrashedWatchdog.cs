@@ -63,7 +63,8 @@ internal class CrashedWatchdog : IDisposable
                 var hangingFunctions =
                     from prev in prevExecutingFunctions
                     join curr in currExecutingFunctions
-                        on (prev.Key, prev.Value.SignOfLife) equals (curr.Key, curr.Value.SignOfLife)
+                        on (prev.Key, prev.Value.Epoch, prev.Value.SignOfLife) 
+                        equals (curr.Key, curr.Value.Epoch, curr.Value.SignOfLife)
                     select prev.Value;
 
                 foreach (var function in hangingFunctions.RandomlyPermutate())
