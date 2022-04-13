@@ -28,7 +28,7 @@ public abstract class PostponedTests
                 )
                 .RegisterFunc<string, string>(
                     functionTypeId,
-                    (string _) => Postpone.For(1, inProcessWait: false)
+                    (string _) => Postpone.For(1)
                 )
                 .Invoke;
 
@@ -73,7 +73,7 @@ public abstract class PostponedTests
                 )
                 .RegisterFuncWithScrapbook(
                     functionTypeId,
-                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), false)
+                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1))
                 )
                 .Invoke;
 
@@ -129,7 +129,7 @@ public abstract class PostponedTests
                 )
                 .RegisterAction(
                     functionTypeId,
-                    (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1), inProcessWait: false)
+                    (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1))
                 )
                 .Invoke;
 
@@ -174,7 +174,7 @@ public abstract class PostponedTests
                 )
                 .RegisterActionWithScrapbook(
                     functionTypeId,
-                    (string _, Scrapbook _) => Postpone.For(1, inProcessWait: false)
+                    (string _, Scrapbook _) => Postpone.For(1)
                 ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
@@ -207,51 +207,6 @@ public abstract class PostponedTests
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
 
             await rFunc(param, param);
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
-        }
-    }
-    
-    public abstract Task InMemoryPostponedActionIsNotCompletedByWatchDog();
-    protected async Task InMemoryPostponedActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionTypeId = nameof(InMemoryPostponedActionIsNotCompletedByWatchDog).ToFunctionTypeId();
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        const string param = "test";
-        {
-            var rAction = new RFunctions
-                (
-                    store,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
-                )
-                .RegisterAction(functionTypeId, (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000)))
-                .Invoke;
-
-            _ = rAction(param, param);
-        }
-        {
-            using var rFunctions = new RFunctions(
-                store,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
-            );
-
-            var _ = rFunctions
-                .RegisterFunc(
-                    functionTypeId,
-                    (string s) => s.ToUpper().ToTask()
-                );
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
-            await Task.Delay(500);
-            await store
-                .GetFunction(functionId)
-                .Map(s => s?.Status)
-                .ShouldBeAsync(Status.Executing);
-            
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }

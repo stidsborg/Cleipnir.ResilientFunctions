@@ -49,34 +49,17 @@ public class Fail
 public class Postpone
 {
     public DateTime DateTime { get; }
-    public bool InProcessWait { get; }
-    
-    private Postpone(DateTime dateTime, bool inProcessWait)
-    {
-        DateTime = dateTime;
-        InProcessWait = inProcessWait;
-    }
+
+    private Postpone(DateTime dateTime) => DateTime = dateTime;
 
     public Result ToResult() => new(this);
     public Result<T> ToResult<T>() => new(this);
+    
+    public static Postpone Until(DateTime dateTime) => new(dateTime.ToUniversalTime());
 
-    public static Postpone Until(DateTime dateTime, bool? inProcessWait = null)
-        => new Postpone(
-            dateTime.ToUniversalTime(),
-            inProcessWait ?? dateTime.ToUniversalTime() <= DateTime.UtcNow + TimeSpan.FromSeconds(2) 
-        );
+    public static Postpone For(TimeSpan timeSpan) => new(DateTime.UtcNow.Add(timeSpan));
 
-    public static Postpone For(TimeSpan timeSpan, bool? inProcessWait = null)
-        => new Postpone(
-            DateTime.UtcNow.Add(timeSpan),
-            inProcessWait ?? timeSpan <= TimeSpan.FromSeconds(2)
-        );
-
-    public static Postpone For(int ms, bool? inProcessWait = null)
-        => new Postpone(
-            DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)),
-            inProcessWait ?? ms <= 2_000
-        );
+    public static Postpone For(int ms) => new(DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)));
 }
 
 public class Result<T>

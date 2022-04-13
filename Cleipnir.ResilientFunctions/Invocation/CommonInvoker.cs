@@ -161,7 +161,7 @@ internal class CommonInvoker
             case Outcome.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
-                    result.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
+                    Status.Postponed,
                     scrapbookJson,
                     result: null,
                     errorJson: null,
@@ -219,7 +219,7 @@ internal class CommonInvoker
             case Outcome.Postpone:
                 success = await _functionStore.SetFunctionState(
                     functionId,
-                    result.Postpone!.InProcessWait ? Status.Executing : Status.Postponed,
+                    Status.Postponed,
                     scrapbookJson,
                     result: null,
                     errorJson: null,
@@ -350,37 +350,6 @@ internal class CommonInvoker
         return Tuple.Create(param, epoch, (RScrapbook?) scrapbook);
     }
 
-    private async Task<bool> WaitForInProcessDelay(Result result)
-    {
-        if (result.Postpone?.InProcessWait != true) return false;
-
-        _shutdownCoordinator.RegisterRFuncCompletion();
-        var delay = CalculateDelay(result.Postpone);
-        await Task.Delay(delay);
-        _shutdownCoordinator.RegisterRunningRFunc();
-        return true;
-    }
-
-    private async Task<bool> WaitForInProcessDelay<TReturn>(Result<TReturn> result)
-    {
-        if (result.Postpone?.InProcessWait != true) return false;
-
-        _shutdownCoordinator.RegisterRFuncCompletion();
-        var delay = CalculateDelay(result.Postpone);
-        await Task.Delay(delay);
-        _shutdownCoordinator.RegisterRunningRFunc();
-        return true;
-    }
-
-    public static TimeSpan CalculateDelay(Postpone postpone)
-    {
-        var delay = postpone.DateTime - DateTime.UtcNow;
-        if (delay < TimeSpan.Zero)
-            delay = TimeSpan.Zero;
-
-        return delay;
-    }
-
     public IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int epoch = 0)
     {
         var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
@@ -388,27 +357,23 @@ internal class CommonInvoker
         return new CombinedDisposables(signOfLifeUpdater, runningFunction);
     }
 
-    public async Task<InProcessWait> PersistResultAndEnsureSuccess<TReturn>(
+    public async Task PersistResultAndEnsureSuccess<TReturn>(
         FunctionId functionId, 
         Result<TReturn> result, 
         RScrapbook? scrapbook, 
         int expectedEpoch)
     {
         await PersistResult(functionId, result, scrapbook: scrapbook, expectedEpoch);
-        if (await WaitForInProcessDelay(result)) return InProcessWait.RetryInvocation;
         EnsureSuccess(functionId, result);
-        return InProcessWait.DoNotRetryInvocation;
     }
     
-    public async Task<InProcessWait> PersistResultAndEnsureSuccess(
+    public async Task PersistResultAndEnsureSuccess(
         FunctionId functionId, 
         Result result, 
         RScrapbook? scrapbook, 
         int expectedEpoch)
     {
         await PersistResult(functionId, result, scrapbook: scrapbook, expectedEpoch);
-        if (await WaitForInProcessDelay(result)) return InProcessWait.RetryInvocation;
         EnsureSuccess(functionId, result);
-        return InProcessWait.DoNotRetryInvocation;
     }
 }

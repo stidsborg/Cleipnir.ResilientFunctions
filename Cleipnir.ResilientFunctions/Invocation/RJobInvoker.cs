@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
-using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -58,24 +57,19 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
         {
             scrapbook ??= new TScrapbook();
 
-            while (true)
+            Result result;
+            try
             {
-                Result result;
-                try
-                {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(scrapbook);
-                }
-                catch (Exception exception)
-                {
-                    await PersistFailure(_functionId, exception, scrapbook, epoch);
-                    throw;
-                }
-
-                await _commonInvoker.PersistResult(_functionId, result, scrapbook, epoch);
-                if (result.Postpone?.InProcessWait != true) return;
-                await Task.Delay(CommonInvoker.CalculateDelay(result.Postpone));
+                // *** USER FUNCTION INVOCATION *** 
+                result = await _inner(scrapbook);
             }
+            catch (Exception exception)
+            {
+                await PersistFailure(_functionId, exception, scrapbook, epoch);
+                throw;
+            }
+
+            await _commonInvoker.PersistResult(_functionId, result, scrapbook, epoch);
         }
         catch (Exception exception)
         {

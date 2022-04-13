@@ -33,23 +33,20 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         if (!created) return await WaitForFunctionResult(functionId);
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
-        while (true)
+        Result<TReturn> result;
+        try
         {
-            Result<TReturn> result;
-            try
-            {
-                // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param);
-            }
-            catch (Exception exception)
-            {
-                await PersistFailure(functionId, exception);
-                throw;
-            }
-
-            if (await PersistResultAndEnsureSuccess(functionId, result) == InProcessWait.DoNotRetryInvocation)
-                return result.SucceedWithValue!;
+            // *** USER FUNCTION INVOCATION *** 
+            result = await _inner(param);
         }
+        catch (Exception exception)
+        {
+            await PersistFailure(functionId, exception);
+            throw;
+        }
+
+        await PersistResultAndEnsureSuccess(functionId, result);
+        return result.SucceedWithValue!;
     }
 
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
@@ -63,23 +60,19 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
             try
             {
-                while (true)
+                Result<TReturn> result;
+                try
                 {
-                    Result<TReturn> result;
-                    try
-                    {
-                        // *** USER FUNCTION INVOCATION *** 
-                        result = await _inner(param);
-                    }
-                    catch (Exception exception)
-                    {
-                        await PersistFailure(functionId, exception);
-                        throw;
-                    }
-
-                    if (await PersistResultAndEnsureSuccess(functionId, result) == InProcessWait.DoNotRetryInvocation)
-                        return;
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await _inner(param);
                 }
+                catch (Exception exception)
+                {
+                    await PersistFailure(functionId, exception);
+                    throw;
+                }
+
+                await PersistResultAndEnsureSuccess(functionId, result);
             }
             catch (Exception exception)
             {
@@ -87,32 +80,30 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             }
         });
     }
-    
+
     public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
-        while (true)
-        {
-            Result<TReturn> result;
-            try
-            {
-                // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param);
-            }
-            catch (Exception exception)
-            {
-                await PersistFailure(functionId, exception, epoch);
-                throw;
-            }
 
-            if (await PersistResultAndEnsureSuccess(functionId, result, epoch) == InProcessWait.DoNotRetryInvocation)
-                return result.SucceedWithValue!;
+        Result<TReturn> result;
+        try
+        {
+            // *** USER FUNCTION INVOCATION *** 
+            result = await _inner(param);
         }
+        catch (Exception exception)
+        {
+            await PersistFailure(functionId, exception, epoch);
+            throw;
+        }
+
+        await PersistResultAndEnsureSuccess(functionId, result, epoch);
+        return result.SucceedWithValue!;
     }
-    
+
     public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
@@ -123,23 +114,19 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
             try
             {
-                while (true)
+                Result<TReturn> result;
+                try
                 {
-                    Result<TReturn> result;
-                    try
-                    {
-                        // *** USER FUNCTION INVOCATION *** 
-                        result = await _inner(param);
-                    }
-                    catch (Exception exception)
-                    {
-                        await PersistFailure(functionId, exception, epoch);
-                        throw;
-                    }
-
-                    if (await PersistResultAndEnsureSuccess(functionId, result, epoch) == InProcessWait.DoNotRetryInvocation)
-                        return;
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await _inner(param);
                 }
+                catch (Exception exception)
+                {
+                    await PersistFailure(functionId, exception, epoch);
+                    throw;
+                }
+
+                await PersistResultAndEnsureSuccess(functionId, result, epoch);
             }
             catch (Exception exception)
             {
@@ -163,7 +150,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     private async Task PersistFailure(FunctionId functionId, Exception exception, int expectedEpoch = 0)
      => await _commonInvoker.PersistFailure(functionId, exception, scrapbook: null, expectedEpoch);
 
-    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
         => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook: null, expectedEpoch);
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
@@ -200,23 +187,21 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
         var scrapbook = CreateScrapbook(functionId);
-        while (true)
-        {
-            Result<TReturn> result;
-            try
-            {
-                // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param, scrapbook);
-            }
-            catch (Exception exception)
-            {
-                await PersistFailure(functionId, exception, scrapbook);
-                throw;
-            }
 
-            if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
-                return result.SucceedWithValue!;
+        Result<TReturn> result;
+        try
+        {
+            // *** USER FUNCTION INVOCATION *** 
+            result = await _inner(param, scrapbook);
         }
+        catch (Exception exception)
+        {
+            await PersistFailure(functionId, exception, scrapbook);
+            throw;
+        }
+
+        await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
+        return result.SucceedWithValue!;
     }
 
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
@@ -224,7 +209,6 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return;
-        var metadata = new Metadata<TParam>(functionId, param);
 
         _ = Task.Run(async () =>
         {
@@ -232,23 +216,19 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             var scrapbook = CreateScrapbook(functionId);
             try
             {
-                while (true)
+                Result<TReturn> result;
+                try
                 {
-                    Result<TReturn> result;
-                    try
-                    {
-                        // *** USER FUNCTION INVOCATION *** 
-                        result = await _inner(param, scrapbook);
-                    }
-                    catch (Exception exception)
-                    {
-                        await PersistFailure(functionId, exception, scrapbook);
-                        throw;
-                    }
-
-                    if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook) == InProcessWait.DoNotRetryInvocation)
-                        return;
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await _inner(param, scrapbook);
                 }
+                catch (Exception exception)
+                {
+                    await PersistFailure(functionId, exception, scrapbook);
+                    throw;
+                }
+
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
             }
             catch (Exception exception)
             {
@@ -256,61 +236,53 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             }
         });
     }
-    
+
     public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-        var metadata = new Metadata<TParam>(functionId, param);
 
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
-        while (true)
-        {
-            Result<TReturn> result;
-            try
-            {
-                // *** USER FUNCTION INVOCATION *** 
-                result = await _inner(param, scrapbook);
-            }
-            catch (Exception exception)
-            {
-                await PersistFailure(functionId, exception, scrapbook, epoch);
-                throw;
-            }
 
-            if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
-                return result.SucceedWithValue!;
+        Result<TReturn> result;
+        try
+        {
+            // *** USER FUNCTION INVOCATION *** 
+            result = await _inner(param, scrapbook);
         }
+        catch (Exception exception)
+        {
+            await PersistFailure(functionId, exception, scrapbook, epoch);
+            throw;
+        }
+
+        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
+        return result.SucceedWithValue!;
     }
-    
+
     public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-        var metadata = new Metadata<TParam>(functionId, param);
-            
+
         _ = Task.Run(async () =>
         {
             using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
             try
             {
-                while (true)
+                Result<TReturn> result;
+                try
                 {
-                    Result<TReturn> result;
-                    try
-                    {
-                        // *** USER FUNCTION INVOCATION *** 
-                        result = await _inner(param, scrapbook);
-                    }
-                    catch (Exception exception)
-                    {
-                        await PersistFailure(functionId, exception, scrapbook, epoch);
-                        throw;
-                    }
-
-                    if (await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch) == InProcessWait.DoNotRetryInvocation)
-                        return;
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await _inner(param, scrapbook);
                 }
+                catch (Exception exception)
+                {
+                    await PersistFailure(functionId, exception, scrapbook, epoch);
+                    throw;
+                }
+
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
             }
             catch (Exception exception)
             {
@@ -342,7 +314,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private async Task<InProcessWait> PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook, expectedEpoch);
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)

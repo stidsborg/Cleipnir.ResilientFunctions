@@ -35,7 +35,7 @@ public static class PostponedTest
         var schedule = firstRFunctions
             .RegisterFunc(
                 functionTypeId,
-                inner: Result<string>(int param) => Postpone.For(2000, inProcessWait: false)
+                inner: Result<string>(int param) => Postpone.For(2000)
             ).Schedule;
 
         _ = new RFunctions

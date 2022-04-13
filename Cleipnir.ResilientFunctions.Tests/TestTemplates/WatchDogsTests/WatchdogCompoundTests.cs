@@ -66,7 +66,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return Postpone.For(10, inProcessWait: false);
+                    return Postpone.For(10);
                 });
             
             await afterNextSetFunctionState;
@@ -174,7 +174,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
-                    return Postpone.For(10, inProcessWait: false);
+                    return Postpone.For(10);
                 });
             
             await afterNextPostponedSetFunctionState;
@@ -291,7 +291,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.For(10, inProcessWait: false);
+                        return Postpone.For(10);
                     }
                 );
 
@@ -406,7 +406,7 @@ public abstract class WatchdogCompoundTests
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
                         scrapbook.Scraps.Add(2);
                         await scrapbook.Save();
-                        return Postpone.For(10, inProcessWait: false);
+                        return Postpone.For(10);
                     });
             
             await afterNextPostponed;

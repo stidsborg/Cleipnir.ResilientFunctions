@@ -32,12 +32,12 @@ public class Example
         if (now < scrapbook.ExecuteNext)
         {
             Console.WriteLine("Not executing as next execution is in the future");
-            return Postpone.Until(scrapbook.ExecuteNext!, inProcessWait: false);            
+            return Postpone.Until(scrapbook.ExecuteNext!);            
         }
         
         scrapbook.ExecuteNext = now.AddSeconds(3);
         Console.WriteLine("Job Executed");
-        return Postpone.Until(scrapbook.ExecuteNext, inProcessWait: false);
+        return Postpone.Until(scrapbook.ExecuteNext);
     }
 
     private class Scrapbook : RScrapbook
