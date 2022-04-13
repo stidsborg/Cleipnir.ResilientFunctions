@@ -10,7 +10,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
-internal class JobWatchdog : IDisposable
+internal class PostponedJobWatchdog : IDisposable
 {
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -21,7 +21,7 @@ internal class JobWatchdog : IDisposable
     private readonly Dictionary<string, WatchDogReInvokeFunc> _reInvokeFuncs = new();
     private readonly object _sync = new();
 
-    public JobWatchdog(
+    public PostponedJobWatchdog(
         IFunctionStore functionStore,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -69,7 +69,7 @@ internal class JobWatchdog : IDisposable
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     "Job",
-                    $"{nameof(JobWatchdog)} failed while executing",
+                    $"{nameof(PostponedJobWatchdog)} failed while executing",
                     innerException
                 )
             );
@@ -104,7 +104,7 @@ internal class JobWatchdog : IDisposable
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     "Job",
-                    $"{nameof(JobWatchdog)} failed while executing: '{functionId}'",
+                    $"{nameof(PostponedJobWatchdog)} failed while executing: '{functionId}'",
                     innerException
                 )
             );

@@ -23,7 +23,7 @@ public class RFunctions : IDisposable
     private readonly IFunctionStore _functionFunctionStore;
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly WatchDogsFactory _watchDogsFactory;
-    private readonly JobWatchdog _jobWatchdog;
+    private readonly PostponedJobWatchdog _postponedJobWatchdog;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -57,7 +57,7 @@ public class RFunctions : IDisposable
             shutdownCoordinator
         );
 
-        _jobWatchdog = new JobWatchdog(
+        _postponedJobWatchdog = new PostponedJobWatchdog(
             functionStore,
             postponedCheckFrequency.Value,
             exceptionHandler,
@@ -458,7 +458,7 @@ public class RFunctions : IDisposable
                 _unhandledExceptionHandler
             );
 
-            _jobWatchdog.AddJob(
+            _postponedJobWatchdog.AddJob(
                 jobId,
                 (_, statuses, epoch) => rJobInvoker.ForceContinuation(statuses, epoch)
             );
