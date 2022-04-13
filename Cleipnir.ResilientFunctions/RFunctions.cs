@@ -24,6 +24,7 @@ public class RFunctions : IDisposable
     private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
     private readonly WatchDogsFactory _watchDogsFactory;
     private readonly PostponedJobWatchdog _postponedJobWatchdog;
+    private readonly CrashedJobWatchdog _crashedJobWatchdog;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -60,6 +61,12 @@ public class RFunctions : IDisposable
         _postponedJobWatchdog = new PostponedJobWatchdog(
             functionStore,
             postponedCheckFrequency.Value,
+            exceptionHandler,
+            shutdownCoordinator
+        );
+        _crashedJobWatchdog = new CrashedJobWatchdog(
+            functionStore,
+            crashedCheckFrequency.Value,
             exceptionHandler,
             shutdownCoordinator
         );
@@ -460,12 +467,16 @@ public class RFunctions : IDisposable
 
             _postponedJobWatchdog.AddJob(
                 jobId,
-                (_, statuses, epoch) => rJobInvoker.ForceContinuation(statuses, epoch)
+                reInvokeFunc: (_, statuses, epoch) => rJobInvoker.Retry(statuses, epoch)
+            );
+            _crashedJobWatchdog.AddJob(
+                jobId,
+                reInvokeFunc: (_, statuses, epoch) => rJobInvoker.Retry(statuses, epoch)
             );
 
             var registration = new RJob(
                 rJobInvoker.Start,
-                rJobInvoker.ForceContinuation
+                rJobInvoker.Retry
             );
 
             _jobs[jobId] = registration;

@@ -262,7 +262,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         tcs.TrySetResult(p);
-                        return NeverCompletingTask.OfVoidType();
+                        return NeverCompletingTask.OfVoidType;
                     })
                 .Invoke;
             
@@ -315,7 +315,7 @@ public abstract class WatchdogCompoundTests
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
                     Task.Run(invocationStarted.SetResult);
-                    return NeverCompletingTask.OfVoidType();
+                    return NeverCompletingTask.OfVoidType;
                 }
             );
 
@@ -373,7 +373,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(1);
                     await scrapbook.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    await NeverCompletingTask.OfVoidType();
+                    await NeverCompletingTask.OfVoidType;
                 }
             ).Invoke;
 
@@ -433,7 +433,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     _ = Task.Run(() => invocationStarted.SetResult());
                     await savedTask;
-                    await NeverCompletingTask.OfVoidType();
+                    await NeverCompletingTask.OfVoidType;
                 }
             );
             

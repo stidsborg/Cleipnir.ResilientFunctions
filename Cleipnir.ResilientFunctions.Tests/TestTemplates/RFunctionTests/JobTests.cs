@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -56,5 +57,37 @@ public abstract class JobTests
         counter.Current.ShouldBe(1);
         await t1; //should not throw exception
         await t2; //should not throw exception
+    }
+    
+    public abstract Task CrashedJobIsRetried();
+    protected async Task CrashedJobIsRetried(Task<IFunctionStore> storeTask)
+    {
+        var functionId = new FunctionId("Job", nameof(CrashedJobIsRetried));
+        using var disposables = new CombinableDisposable();
+        var store = await storeTask;
+        {
+            var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromDays(1));
+            disposables.Add(rFunctions);
+            var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
+                nameof(CrashedJobIsRetried),
+                inner: _ => NeverCompletingTask.OfVoidType
+            );
+            await rJob.Start();
+        }
+        {
+            var flag = new SyncedFlag();
+            var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(10));
+            disposables.Add(rFunctions);
+            rFunctions.RegisterJob<EmptyScrapbook>(
+                nameof(CrashedJobIsRetried),
+                inner: _ => flag.Raise()
+            );
+            
+            await BusyWait.Until(
+                () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            );
+            
+            flag.Position.ShouldBe(FlagPosition.Raised);
+        }
     }
 }

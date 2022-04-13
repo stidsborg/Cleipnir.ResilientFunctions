@@ -41,16 +41,16 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
         );
         
         if (created) 
-            _ = Task.Run(() => PerformInvocation(scrapbook: null, epoch: 0));
+            _ = Task.Run(() => Invoke(scrapbook: null, epoch: 0));
     }
 
-    public async Task ForceContinuation(IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
+    public async Task Retry(IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
     {
         var (scrapbook, epoch) = await PrepareForReInvocation(_functionId, expectedStatuses, expectedEpoch);
-        _ = Task.Run(() => PerformInvocation(scrapbook, epoch));
+        _ = Task.Run(() => Invoke(scrapbook, epoch));
     }
 
-    private async Task PerformInvocation(TScrapbook? scrapbook, int epoch)
+    private async Task Invoke(TScrapbook? scrapbook, int epoch)
     {
         using var _ = CreateSignOfLifeAndRegisterRunningFunction(_functionId, epoch);
         try

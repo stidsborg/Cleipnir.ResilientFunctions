@@ -13,4 +13,8 @@ public class JobTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctio
     [TestMethod]
     public override Task JobCanBeStartedMultipleTimesWithoutError()
         => JobCanBeStartedMultipleTimesWithoutError(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task CrashedJobIsRetried()
+        => CrashedJobIsRetried(Sql.AutoCreateAndInitializeStore());
 }

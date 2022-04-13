@@ -135,7 +135,7 @@ public abstract class CrashedTests
                 )
                 .RegisterAction(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfVoidType()
+                    (string _) => NeverCompletingTask.OfVoidType
                 )
                 .Invoke;
 
@@ -187,7 +187,7 @@ public abstract class CrashedTests
                 )
                 .RegisterActionWithScrapbook(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfVoidType()
+                    (string _, Scrapbook _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
