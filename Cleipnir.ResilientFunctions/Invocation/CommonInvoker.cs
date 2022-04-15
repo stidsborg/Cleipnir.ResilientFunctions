@@ -72,7 +72,7 @@ internal class CommonInvoker
                 case Status.Postponed:
                     throw new FunctionInvocationPostponedException(
                         functionId,
-                        postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value)
+                        postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 default:
                     throw new ArgumentOutOfRangeException(); //todo framework exception
@@ -101,7 +101,7 @@ internal class CommonInvoker
                 case Status.Postponed:
                     throw new FunctionInvocationPostponedException(
                         functionId,
-                        postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value)
+                        postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 default:
                     throw new ArgumentOutOfRangeException(); //todo framework exception
