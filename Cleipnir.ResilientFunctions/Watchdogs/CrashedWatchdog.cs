@@ -11,15 +11,14 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
-internal class CrashedWatchdog : IDisposable
+internal class CrashedWatchdog
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _checkFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private volatile bool _disposed;
-    private volatile bool _executing;
+    private readonly ShutdownCoordinator _shutdownCoordinator;
 
     public CrashedWatchdog(
         FunctionTypeId functionTypeId,
@@ -34,7 +33,7 @@ internal class CrashedWatchdog : IDisposable
         _reInvoke = reInvoke;
         _checkFrequency = checkFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
+        _shutdownCoordinator = shutdownCoordinator;
     }
 
     public async Task Start()
@@ -44,12 +43,10 @@ internal class CrashedWatchdog : IDisposable
         {
             var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredFunctionStatus>();
 
-            while (!_disposed)
+            while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                _executing = false;
                 await Task.Delay(_checkFrequency);
-                if (_disposed) return;
-                _executing = true;
+                if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var currExecutingFunctions = await _functionStore
                     .GetFunctionsWithStatus(_functionTypeId, Status.Executing)
@@ -69,7 +66,7 @@ internal class CrashedWatchdog : IDisposable
 
                 foreach (var function in hangingFunctions.RandomlyPermutate())
                 {
-                    if (_disposed) return;
+                    if (_shutdownCoordinator.ShutdownInitiated) return;
 
                     try
                     {
@@ -79,6 +76,7 @@ internal class CrashedWatchdog : IDisposable
                             expectedEpoch: function.Epoch
                         );
                     }
+                    catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
                     catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
                     catch (Exception innerException) 
                     {
@@ -106,17 +104,5 @@ internal class CrashedWatchdog : IDisposable
                 )
             );
         }
-        finally
-        {
-            _executing = false;
-        }
     }
-
-    private async Task DisposeAsync()
-    {
-        _disposed = true;
-        await BusyWait.ForeverUntilAsync(() => !_executing);
-    }
-
-    public void Dispose() => DisposeAsync().Wait();
 }

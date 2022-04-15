@@ -9,15 +9,14 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
-internal class PostponedWatchdog : IDisposable
+internal class PostponedWatchdog
 {
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
-    private volatile bool _disposed;
-    private volatile bool _executing;
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId,
@@ -30,9 +29,9 @@ internal class PostponedWatchdog : IDisposable
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _shutdownCoordinator = shutdownCoordinator;
         _reInvoke = reInvoke;
         _checkFrequency = checkFrequency;
-        _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
     }
 
     public async Task Start()
@@ -41,42 +40,22 @@ internal class PostponedWatchdog : IDisposable
 
         try
         {
-            while (!_disposed)
+            while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                _executing = false;
                 await Task.Delay(_checkFrequency);
-                if (_disposed) return;
-                _executing = true;
+                if (_shutdownCoordinator.ShutdownInitiated) return;
+
+                var now = DateTime.UtcNow;
 
                 var expires = await _functionStore
-                    .GetFunctionsWithStatus(_functionTypeId, Status.Postponed, DateTime.UtcNow.Ticks)
-                    .RandomlyPermutate();
+                    .GetFunctionsWithStatus(
+                        _functionTypeId,
+                        Status.Postponed,
+                        now.Add(_checkFrequency).Ticks
+                    );
 
                 foreach (var expired in expires)
-                {
-                    if (_disposed) return;
-
-                    try
-                    {
-                        await _reInvoke(
-                            expired.InstanceId,
-                            expectedStatuses: new[] {Status.Postponed},
-                            expectedEpoch: expired.Epoch
-                        );
-                    }
-                    catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
-                    catch (Exception innerException)
-                    {
-                        var functionId = new FunctionId(_functionTypeId, expired.InstanceId);
-                        _unhandledExceptionHandler.Invoke(
-                            new FrameworkException(
-                                _functionTypeId,
-                                $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
-                                innerException
-                            )
-                        );
-                    }
-                }
+                    _ = SleepAndThenReInvoke(expired, now);
             }
         }
         catch (Exception innerException)
@@ -89,17 +68,47 @@ internal class PostponedWatchdog : IDisposable
                 )
             );
         }
-        finally
+    }
+
+    private async Task SleepAndThenReInvoke(StoredFunctionStatus sfs, DateTime now)
+    {
+        var functionId = new FunctionId(_functionTypeId, sfs.InstanceId);
+        if (_shutdownCoordinator.ShutdownInitiated) return;
+
+        var postponedUntil = new DateTime(sfs.PostponedUntil!.Value, DateTimeKind.Utc);
+        var delay = TimeSpanHelper.Max(postponedUntil - now, TimeSpan.Zero);
+        await Task.Delay(delay);
+
+        if (_shutdownCoordinator.ShutdownInitiated) return;
+
+        try
         {
-            _executing = false;
+            using var _ = _shutdownCoordinator.RegisterRunningRFuncDisposable();
+            var success = await _functionStore.TryToBecomeLeader(
+                functionId,
+                Status.Executing,
+                expectedEpoch: sfs.Epoch,
+                newEpoch: sfs.Epoch + 1
+            );
+            if (!success) return;
+            
+            await _reInvoke(
+                sfs.InstanceId,
+                expectedStatuses: new[] {Status.Executing},
+                expectedEpoch: sfs.Epoch + 1
+            );
+        }
+        catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
+        catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
+        catch (Exception innerException)
+        {
+            _unhandledExceptionHandler.Invoke(
+                new FrameworkException(
+                    _functionTypeId,
+                    $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
+                    innerException
+                )
+            );
         }
     }
-
-    private Task DisposeAsync()
-    {
-        _disposed = true;
-        return BusyWait.ForeverUntilAsync(() => !_executing);
-    }
-
-    public void Dispose() => DisposeAsync().Wait();
 }

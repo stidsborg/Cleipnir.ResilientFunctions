@@ -11,14 +11,13 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;
 
-internal class CrashedJobWatchdog : IDisposable
+internal class CrashedJobWatchdog
 {
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _checkFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private volatile bool _disposed;
-    private volatile bool _executing;
-    
+    private readonly ShutdownCoordinator _shutdownCoordinator;
+
     private readonly Dictionary<string, WatchDogReInvokeFunc> _reInvokeFuncs = new();
     private readonly object _sync = new();
 
@@ -31,7 +30,7 @@ internal class CrashedJobWatchdog : IDisposable
         _functionStore = functionStore;
         _checkFrequency = checkFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _disposed = !shutdownCoordinator.ObserveShutdown(DisposeAsync);
+        _shutdownCoordinator = shutdownCoordinator;
     }
     
     public void AddJob(string jobId, WatchDogReInvokeFunc reInvokeFunc)
@@ -52,12 +51,10 @@ internal class CrashedJobWatchdog : IDisposable
         {
             var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredFunctionStatus>();
 
-            while (!_disposed)
+            while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                _executing = false;
                 await Task.Delay(_checkFrequency);
-                if (_disposed) return;
-                _executing = true;
+                if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var currExecutingFunctions = await _functionStore
                     .GetFunctionsWithStatus("Job", Status.Executing)
@@ -91,15 +88,11 @@ internal class CrashedJobWatchdog : IDisposable
                 )
             );
         }
-        finally
-        {
-            _executing = false;
-        }
     }
     
     private async Task ReInvokeJob(string jobId, int expectedEpoch)
     {
-        if (_disposed) return;
+        if (_shutdownCoordinator.ShutdownInitiated) return;
         WatchDogReInvokeFunc? reInvoke;
         lock (_sync)
             _reInvokeFuncs.TryGetValue(jobId, out reInvoke);
@@ -114,6 +107,7 @@ internal class CrashedJobWatchdog : IDisposable
                 expectedEpoch: expectedEpoch
             );
         }
+        catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
         catch (Exception innerException)
         {
@@ -127,12 +121,4 @@ internal class CrashedJobWatchdog : IDisposable
             );
         }
     }
-
-    private async Task DisposeAsync()
-    {
-        _disposed = true;
-        await BusyWait.ForeverUntilAsync(() => !_executing);
-    }
-
-    public void Dispose() => DisposeAsync().Wait();
 }

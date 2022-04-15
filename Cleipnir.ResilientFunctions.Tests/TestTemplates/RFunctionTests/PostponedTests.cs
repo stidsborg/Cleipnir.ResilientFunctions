@@ -210,25 +210,40 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
-
-    public abstract Task ImplicitlyPostponedFunctionAboveTwoSecondsIsNotPostponedInMemory();
-    protected async Task ImplicitlyPostponedFunctionAboveTwoSecondsIsNotPostponedInMemory(Task<IFunctionStore> storeTask)
+    
+    public abstract Task PostponedActionWithSecondDelayIsDetectedAndCompletedByWatchdog();
+    protected async Task PostponedActionWithSecondDelayIsDetectedAndCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
-        var rAction = rFunctions.RegisterAction(
-            "FunctionType",
-            (string _) => Postpone.For(10_000)
-        ).Invoke;
-        
-        await Should.ThrowAsync<FunctionInvocationPostponedException>(
-            () => 
-                rAction("InstanceId", "hello world")
+        var functionId = new FunctionId(
+            functionTypeId: nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog),
+            functionInstanceId: "test"
         );
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var flag = new SyncedFlag();
 
-        var function = await store.GetFunction(new FunctionId("FunctionType", "InstanceId"));
-        function.ShouldNotBeNull();
-        function.Status.ShouldBe(Status.Postponed);
+        var rFunc = new RFunctions
+            (
+                store,
+                unhandledExceptionHandler.Catch,
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+            )
+            .RegisterAction(
+                functionId.TypeId,
+                (string _) =>
+                {
+                    if (flag.Position == FlagPosition.Raised) return Result.Succeed;
+
+                    flag.Raise();
+                    return Postpone.For(1000);
+                }).Invoke;
+
+        _ = rFunc(functionId.InstanceId.ToString(), "param");
+
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+
+        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
     }
 
     private class Scrapbook : RScrapbook
