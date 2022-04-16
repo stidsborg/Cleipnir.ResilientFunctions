@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -174,7 +173,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
-                    return Postpone.For(10);
+                    return Postpone.For(100);
                 });
             
             await afterNextPostponedSetFunctionState;
@@ -186,7 +185,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var rFunctions = new RFunctions(
+            using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
@@ -234,8 +233,7 @@ public abstract class WatchdogCompoundTests
             storedFunction.Scrapbook!.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
-                .SequenceEqual(new [] {1,2,3,4})
-                .ShouldBeTrue();
+                .ShouldBe(new [] {1,2,3,4});
         }
     }
 
@@ -304,7 +302,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var invocationStarted = new TaskCompletionSource();
             var paramTcs = new TaskCompletionSource<Param>();
-            var rFunctions = new RFunctions(
+            using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
@@ -406,7 +404,7 @@ public abstract class WatchdogCompoundTests
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
                         scrapbook.Scraps.Add(2);
                         await scrapbook.Save();
-                        return Postpone.For(10);
+                        return Postpone.For(100);
                     });
             
             await afterNextPostponed;
@@ -419,7 +417,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
             var invocationStarted = new TaskCompletionSource();
-            var rFunctions = new RFunctions(
+            using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
@@ -470,8 +468,7 @@ public abstract class WatchdogCompoundTests
             storedFunction.Scrapbook!.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
-                .SequenceEqual(new [] {1,2,3,4})
-                .ShouldBeTrue();
+                .ShouldBe(new[] {1, 2, 3, 4});
         }
     }
 
