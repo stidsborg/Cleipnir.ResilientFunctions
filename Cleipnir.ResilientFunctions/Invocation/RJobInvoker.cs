@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -52,7 +53,7 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
 
     private async Task Invoke(TScrapbook? scrapbook, int epoch)
     {
-        using var _ = CreateSignOfLifeAndRegisterRunningFunction(_functionId, epoch);
+        using var __ = CreateSignOfLifeAndRegisterRunningFunction(_functionId, epoch);
         try
         {
             scrapbook ??= new TScrapbook();
@@ -70,6 +71,10 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
             }
 
             await _commonInvoker.PersistResult(_functionId, result, scrapbook, epoch);
+            if (result.Outcome == Outcome.Postpone)
+                _ = SleepAndThenReInvoke(result.Postpone!.DateTime, epoch);
+            else if (result.Outcome == Outcome.Fail)
+                _unhandledExceptionHandler.Invoke(new RJobException(_jobId, "Job invocation failed", result.Fail!));
         }
         catch (Exception exception)
         {
@@ -95,4 +100,11 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
+    
+    private async Task SleepAndThenReInvoke(DateTime postponeUntil, int expectedEpoch)
+    {
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
+        await Task.Delay(delay);
+        _ = Retry(expectedStatuses: new[] {Status.Postponed}, expectedEpoch);
+    }
 }

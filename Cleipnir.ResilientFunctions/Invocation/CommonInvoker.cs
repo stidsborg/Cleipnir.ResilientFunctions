@@ -245,14 +245,17 @@ internal class CommonInvoker
         }
     }
 
-    public static void EnsureSuccess(FunctionId functionId, Result result)
+    public static void EnsureSuccess(FunctionId functionId, Result result, bool allowPostponed)
     {
         switch (result.Outcome)
         {
             case Outcome.Succeed:
                 return;
             case Outcome.Postpone:
-                throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
+                if (allowPostponed)
+                    return;
+                else 
+                    throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
             case Outcome.Fail:
                 throw result.Fail!;
             default:
@@ -260,14 +263,17 @@ internal class CommonInvoker
         }
     }
 
-    private static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result)
+    public static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result, bool allowPostponed)
     {
         switch (result.Outcome)
         {
             case Outcome.Succeed:
                 return;
             case Outcome.Postpone:
-                throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
+                if (allowPostponed)
+                    return;
+                else
+                    throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
             case Outcome.Fail:
                 throw result.Fail!;
             default:
@@ -355,25 +361,5 @@ internal class CommonInvoker
         var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFuncDisposable();
         return new CombinedDisposables(signOfLifeUpdater, runningFunction);
-    }
-
-    public async Task PersistResultAndEnsureSuccess<TReturn>(
-        FunctionId functionId, 
-        Result<TReturn> result, 
-        RScrapbook? scrapbook, 
-        int expectedEpoch)
-    {
-        await PersistResult(functionId, result, scrapbook: scrapbook, expectedEpoch);
-        EnsureSuccess(functionId, result);
-    }
-    
-    public async Task PersistResultAndEnsureSuccess(
-        FunctionId functionId, 
-        Result result, 
-        RScrapbook? scrapbook, 
-        int expectedEpoch)
-    {
-        await PersistResult(functionId, result, scrapbook: scrapbook, expectedEpoch);
-        EnsureSuccess(functionId, result);
     }
 }

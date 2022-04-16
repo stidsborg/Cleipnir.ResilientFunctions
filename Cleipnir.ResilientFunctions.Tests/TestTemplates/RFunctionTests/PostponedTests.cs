@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -19,20 +20,24 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
+            var crashableStore = new CrashableFunctionStore(store);
             var rFunc = new RFunctions
                 (
-                    store,
+                    crashableStore,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
                 .RegisterFunc<string, string>(
                     functionTypeId,
-                    (string _) => Postpone.For(1)
+                    (string _) => Postpone.For(1000)
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() =>
+                rFunc(param, param)
+            );
+            crashableStore.Crash();
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -211,8 +216,8 @@ public abstract class PostponedTests
         }
     }
     
-    public abstract Task PostponedActionWithSecondDelayIsDetectedAndCompletedByWatchdog();
-    protected async Task PostponedActionWithSecondDelayIsDetectedAndCompletedByWatchdog(Task<IFunctionStore> storeTask)
+    public abstract Task PostponedActionIsCompletedAfterInMemoryTimeout();
+    protected async Task PostponedActionIsCompletedAfterInMemoryTimeout(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = new FunctionId(
@@ -222,13 +227,14 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
-        var rFunc = new RFunctions
+        using var rFunctions = new RFunctions
             (
                 store,
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
-            )
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10_000)
+            );
+        var rFunc = rFunctions
             .RegisterAction(
                 functionId.TypeId,
                 (string _) =>
@@ -236,14 +242,58 @@ public abstract class PostponedTests
                     if (flag.Position == FlagPosition.Raised) return Result.Succeed;
 
                     flag.Raise();
-                    return Postpone.For(1000);
-                }).Invoke;
-
+                    return Postpone.For(100);
+                })
+            .Invoke;
+        
         _ = rFunc(functionId.InstanceId.ToString(), "param");
 
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
 
         await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+    }
+    
+    public abstract Task PostponedActionIsCompletedByWatchDogAfterCrash();
+    protected async Task PostponedActionIsCompletedByWatchDogAfterCrash(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            functionTypeId: nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog),
+            functionInstanceId: "test"
+        );
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        {
+            var crashableStore = new CrashableFunctionStore(store);
+            using var rFunctions = new RFunctions
+            (
+                crashableStore,
+                unhandledExceptionHandler.Catch,
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10_000)
+            );
+            var rFunc = rFunctions
+                .RegisterAction(functionId.TypeId, (string _) => Postpone.For(1_000))
+                .Invoke;
+
+            var instanceId = functionId.InstanceId.ToString();
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => _ = rFunc(instanceId, "param"));
+            crashableStore.Crash();
+        }
+        {
+            var crashableStore = new CrashableFunctionStore(store);
+            using var rFunctions = new RFunctions
+            (
+                crashableStore,
+                unhandledExceptionHandler.Catch,
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+            );
+            rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
+            
+            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+        }
     }
 
     private class Scrapbook : RScrapbook

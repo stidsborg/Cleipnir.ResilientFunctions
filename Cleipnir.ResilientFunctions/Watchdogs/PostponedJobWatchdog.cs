@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -33,13 +34,15 @@ internal class PostponedJobWatchdog
     
     public void AddJob(string jobId, WatchDogReInvokeFunc reInvokeFunc)
     {
+        bool start;
         lock (_sync)
         {
-            var start = _reInvokeFuncs.Count == 0;
+            start = _reInvokeFuncs.Count == 0;
             _reInvokeFuncs[jobId] = reInvokeFunc;
-            if (start)
-                _ = Start();
         }
+        
+        if (start)
+            _ = Start();
     }
 
     private async Task Start()
@@ -54,10 +57,10 @@ internal class PostponedJobWatchdog
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var expires = await _functionStore
-                    .GetFunctionsWithStatus("Job", Status.Postponed, DateTime.UtcNow.Ticks);
+                    .GetFunctionsWithStatus("Job", Status.Postponed, DateTime.UtcNow.Add(_checkFrequency).Ticks);
 
                 foreach (var expired in expires)
-                    _ = ReInvokeJob(expired.InstanceId.ToString(), expired.Epoch);
+                    _ = SleepAndThenReInvokeJob(expired.InstanceId.ToString(), expired.Epoch, expired.PostponedUntil!.Value);
             }
         }
         catch (Exception innerException)
@@ -72,17 +75,21 @@ internal class PostponedJobWatchdog
         }
     }
 
-    private async Task ReInvokeJob(string jobId, int expectedEpoch)
+    private async Task SleepAndThenReInvokeJob(string jobId, int expectedEpoch, long postponedUntilTicks)
     {
-        var functionId = new FunctionId("Job", jobId);
-        
         if (_shutdownCoordinator.ShutdownInitiated) return;
+        
+        var postponedUntil = new DateTime(postponedUntilTicks, DateTimeKind.Utc);
+        var delay = TimeSpanHelper.Max(DateTime.UtcNow - postponedUntil, TimeSpan.Zero);
+        await Task.Delay(delay);
+        if (_shutdownCoordinator.ShutdownInitiated) return;
+        
         WatchDogReInvokeFunc? reInvoke;
         lock (_sync)
             _reInvokeFuncs.TryGetValue(jobId, out reInvoke);
-                            
         if (reInvoke == null) return;
-
+        
+        var functionId = new FunctionId("Job", jobId);
         try
         {
             using var _ = _shutdownCoordinator.RegisterRunningRFuncDisposable();

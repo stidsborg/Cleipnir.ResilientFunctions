@@ -25,6 +25,10 @@ public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
         => PostponedActionWithScrapbookIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task PostponedActionWithSecondDelayIsDetectedAndCompletedByWatchdog()
-        => PostponedActionWithSecondDelayIsDetectedAndCompletedByWatchdog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+    public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
+        => PostponedActionIsCompletedAfterInMemoryTimeout(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
+        => PostponedActionIsCompletedByWatchDogAfterCrash(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

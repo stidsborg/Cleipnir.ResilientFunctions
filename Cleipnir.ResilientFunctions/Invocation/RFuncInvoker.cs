@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -72,7 +73,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
                     throw;
                 }
 
-                await PersistResultAndEnsureSuccess(functionId, result);
+                await PersistResultAndEnsureSuccess(functionId, result, allowPostponed: true);
             }
             catch (Exception exception)
             {
@@ -126,7 +127,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
                     throw;
                 }
 
-                await PersistResultAndEnsureSuccess(functionId, result, epoch);
+                await PersistResultAndEnsureSuccess(functionId, result, epoch, allowPostponed: true);
             }
             catch (Exception exception)
             {
@@ -150,9 +151,25 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     private async Task PersistFailure(FunctionId functionId, Exception exception, int expectedEpoch = 0)
      => await _commonInvoker.PersistFailure(functionId, exception, scrapbook: null, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0)
-        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook: null, expectedEpoch);
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, int expectedEpoch = 0, bool allowPostponed = false)
+    {
+        await _commonInvoker.PersistResult(functionId, result, scrapbook: null, expectedEpoch);
+        if (result.Outcome == Outcome.Postpone)
+            _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
+        CommonInvoker.EnsureSuccess(functionId, result, allowPostponed);
+    } 
 
+    private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
+    {
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
+        await Task.Delay(delay);
+        _ = ScheduleReInvoke(
+            functionId.InstanceId.ToString(),
+            expectedStatuses: new[] {Status.Postponed},
+            expectedEpoch
+        );
+    }
+    
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
 }
@@ -228,7 +245,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                     throw;
                 }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponed: true);
             }
             catch (Exception exception)
             {
@@ -282,7 +299,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                     throw;
                 }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
             }
             catch (Exception exception)
             {
@@ -314,8 +331,24 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0)
-        => await _commonInvoker.PersistResultAndEnsureSuccess(functionId, result, scrapbook, expectedEpoch);
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, RScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponed = false)
+    {
+        await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
+        if (result.Outcome == Outcome.Postpone)
+            _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
+        CommonInvoker.EnsureSuccess(functionId, result, allowPostponed);
+    }
+    
+    private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
+    {
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
+        await Task.Delay(delay);
+        _ = ScheduleReInvoke(
+            functionId.InstanceId.ToString(),
+            expectedStatuses: new[] {Status.Postponed},
+            expectedEpoch
+        );
+    }
 
     private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);

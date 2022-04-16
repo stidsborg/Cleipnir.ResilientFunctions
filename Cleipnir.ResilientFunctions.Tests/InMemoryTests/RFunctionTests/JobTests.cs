@@ -19,4 +19,12 @@ public class JobTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctio
     [TestMethod]
     public override Task CrashedJobIsRetried()
         => CrashedJobIsRetried(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task PostponedJobDoesNotCauseUnhandledException()
+        => PostponedJobDoesNotCauseUnhandledException(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task FailedJobDoesCausesUnhandledException()
+        => FailedJobDoesCausesUnhandledException(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

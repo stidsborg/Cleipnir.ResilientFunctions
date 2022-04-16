@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -66,7 +65,7 @@ public abstract class JobTests
         using var disposables = new CombinableDisposable();
         var store = await storeTask;
         {
-            var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromDays(1));
+            using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromDays(1));
             disposables.Add(rFunctions);
             var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
                 nameof(CrashedJobIsRetried),
@@ -76,7 +75,7 @@ public abstract class JobTests
         }
         {
             var flag = new SyncedFlag();
-            var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(10));
+            using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(10));
             disposables.Add(rFunctions);
             rFunctions.RegisterJob<EmptyScrapbook>(
                 nameof(CrashedJobIsRetried),
@@ -89,5 +88,52 @@ public abstract class JobTests
             
             flag.Position.ShouldBe(FlagPosition.Raised);
         }
+    }
+    
+    public abstract Task PostponedJobDoesNotCauseUnhandledException();
+    protected async Task PostponedJobDoesNotCauseUnhandledException(Task<IFunctionStore> storeTask)
+    {
+        var functionId = new FunctionId("Job", nameof(PostponedJobDoesNotCauseUnhandledException));
+        using var disposables = new CombinableDisposable();
+        var store = await storeTask;
+        var unhandledExceptions = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            crashedCheckFrequency: TimeSpan.FromDays(1),
+            unhandledExceptionHandler: unhandledExceptions.Catch
+        );
+        disposables.Add(rFunctions);
+        var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
+            nameof(PostponedJobDoesNotCauseUnhandledException),
+            inner: _ => Postpone.For(TimeSpan.FromMilliseconds(10))
+        );
+        await rJob.Start();
+
+        await Task.Delay(100);
+
+        unhandledExceptions.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task FailedJobDoesCausesUnhandledException();
+    protected async Task FailedJobDoesCausesUnhandledException(Task<IFunctionStore> storeTask)
+    {
+        using var disposables = new CombinableDisposable();
+        var store = await storeTask;
+        var unhandledExceptions = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            crashedCheckFrequency: TimeSpan.FromDays(1),
+            unhandledExceptionHandler: unhandledExceptions.Catch
+        );
+        disposables.Add(rFunctions);
+        var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
+            nameof(FailedJobDoesCausesUnhandledException),
+            inner: _ => Fail.WithException(new Exception("oh no"))
+        );
+        await rJob.Start();
+
+        await Task.Delay(100);
+
+        unhandledExceptions.ThrownExceptions.ShouldNotBeEmpty();
     }
 }

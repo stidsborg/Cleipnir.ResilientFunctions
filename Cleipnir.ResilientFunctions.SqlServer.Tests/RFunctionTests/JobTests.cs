@@ -17,4 +17,12 @@ public class JobTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctio
     [TestMethod]
     public override Task CrashedJobIsRetried()
         => CrashedJobIsRetried(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task PostponedJobDoesNotCauseUnhandledException()
+        => PostponedJobDoesNotCauseUnhandledException(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task FailedJobDoesCausesUnhandledException()
+        => FailedJobDoesCausesUnhandledException(Sql.AutoCreateAndInitializeStore());
 }
