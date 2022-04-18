@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -35,25 +36,26 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
 
     public async Task Start()
     {
-        var created = await _commonInvoker.PersistFunctionInStore(
-            _functionId,
-            "",
-            typeof(TScrapbook)
-        );
-        
-        if (created) 
-            _ = Task.Run(() => Invoke(scrapbook: null, epoch: 0));
+        var (created, runningFunction) = await _commonInvoker
+            .PersistFunctionInStore(
+                _functionId,
+                "",
+                typeof(TScrapbook)
+            );
+
+        if (created)
+            _ = Task.Run(() => Invoke(scrapbook: null, epoch: 0, runningFunction));
     }
 
     public async Task Retry(IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
     {
-        var (scrapbook, epoch) = await PrepareForReInvocation(_functionId, expectedStatuses, expectedEpoch);
-        _ = Task.Run(() => Invoke(scrapbook, epoch));
+        var (_, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(_functionId, expectedStatuses, expectedEpoch);
+        _ = Task.Run(() => Invoke(scrapbook, epoch, runningFunction));
     }
 
-    private async Task Invoke(TScrapbook? scrapbook, int epoch)
+    private async Task Invoke(TScrapbook? scrapbook, int epoch, IDisposable runningFunction)
     {
-        using var __ = CreateSignOfLifeAndRegisterRunningFunction(_functionId, epoch);
+        using var __ = Disposable.Combine(runningFunction, StartSignOfLife(_functionId, epoch));
         try
         {
             scrapbook ??= new TScrapbook();
@@ -82,29 +84,28 @@ public class RJobInvoker<TScrapbook> where TScrapbook : RScrapbook, new()
         }
     }
     
-    private async Task<Tuple<TScrapbook, int>> PrepareForReInvocation(
+    private async Task<CommonInvoker.PreparedReInvocation<string, TScrapbook>> PrepareForReInvocation(
         FunctionId functionId,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch)
     {
-        var (_, scrapbook, epoch) = await _commonInvoker.PrepareForReInvocation<string, TScrapbook>(
+        var (_, epoch, scrapbook, runningFunction) = await _commonInvoker.PrepareForReInvocation<string, TScrapbook>(
             functionId,
             expectedStatuses,
             expectedEpoch
         );
-        return Tuple.Create(scrapbook, epoch);
+        return new CommonInvoker.PreparedReInvocation<string, TScrapbook>("", epoch, scrapbook, runningFunction);
     }
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch)
-        => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
-    
     private async Task SleepAndThenReInvoke(DateTime postponeUntil, int expectedEpoch)
     {
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
         await Task.Delay(delay);
         _ = Retry(expectedStatuses: new[] {Status.Postponed}, expectedEpoch);
     }
+
+    private IDisposable StartSignOfLife(FunctionId functionId, int epoch) => _commonInvoker.StartSignOfLife(_functionId, epoch);
 }

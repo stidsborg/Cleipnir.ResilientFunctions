@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Helpers.Disposables;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.SignOfLife;
@@ -32,23 +31,31 @@ internal class CommonInvoker
         _functionStore = functionStore;
     }
 
-    public async Task<bool> PersistFunctionInStore<TParam>(FunctionId functionId, TParam param, Type? scrapbookType)
+    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore<TParam>(FunctionId functionId, TParam param, Type? scrapbookType)
         where TParam : notnull
     {
-        if (_shutdownCoordinator.ShutdownInitiated)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+        var runningFunction = _shutdownCoordinator.RegisterRunningRFuncDisposable();
         var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.SimpleQualifiedTypeName();
-        var created = await _functionStore.CreateFunction(
-            functionId,
-            param: new StoredParameter(paramJson, paramType),
-            scrapbookType: scrapbookType?.SimpleQualifiedName(),
-            initialEpoch: 0,
-            initialSignOfLife: 0,
-            initialStatus: Status.Executing
-        );
-        
-        return created;
+        try
+        {
+            var created = await _functionStore.CreateFunction(
+                functionId,
+                param: new StoredParameter(paramJson, paramType),
+                scrapbookType: scrapbookType?.SimpleQualifiedName(),
+                initialEpoch: 0,
+                initialSignOfLife: 0,
+                initialStatus: Status.Executing
+            );
+
+            if (!created) runningFunction.Dispose();
+            return Tuple.Create(created, runningFunction);
+        }
+        catch (Exception)
+        {
+            runningFunction.Dispose();
+            throw;
+        }
     }
     
     public async Task<TReturn> WaitForFunctionResult<TReturn>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
@@ -281,40 +288,41 @@ internal class CommonInvoker
         }
     }
 
-    public async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation<TParam, TScrapbook>(
+    public async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        var (param, epoch, scrapbook) = await PrepareForReInvocation<TParam>(
+        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation<TParam>(
             functionId,
             expectedStatuses,
             expectedEpoch,
             hasScrapbook: true
         );
-        return Tuple.Create(
-            param, 
+        return new PreparedReInvocation<TParam, TScrapbook>(
+            param,
+            epoch, 
             (TScrapbook) scrapbook!,
-            epoch
+            runningFunction
         );
     }
 
-    public async Task<Tuple<TParam, int>> PrepareForReInvocation<TParam>(
+    public async Task<PreparedReInvocation<TParam>> PrepareForReInvocation<TParam>(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch)
         where TParam : notnull
     {
-        var (param, epoch, _) = await PrepareForReInvocation<TParam>(
+        var (param, epoch, _, runningFunction) = await PrepareForReInvocation<TParam>(
             functionId,
             expectedStatuses,
             expectedEpoch,
             hasScrapbook: false
         );
-        return Tuple.Create(param, epoch);
+        return new PreparedReInvocation<TParam>(param, epoch, runningFunction);
     }
     
-    private async Task<Tuple<TParam, int, RScrapbook?>> PrepareForReInvocation<TParam>(
+    private async Task<PreparedReInvocation<TParam, RScrapbook>> PrepareForReInvocation<TParam>(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch,
@@ -332,34 +340,44 @@ internal class CommonInvoker
         if (expectedEpoch != null && sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
 
-        var epoch = sf.Epoch + 1;
-        var success = await _functionStore.TryToBecomeLeader(
-            functionId,
-            Status.Executing,
-            expectedEpoch: sf.Epoch,
-            newEpoch: epoch
-        );
-        
-        if (!success)
-            throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'"); //todo concurrent modification exception
-
-        var param = (TParam) _serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-        if (!hasScrapbook)
-            return Tuple.Create(param, epoch, default(RScrapbook));
-        
-        var scrapbook = _serializer.DeserializeScrapbook(
-            sf.Scrapbook!.ScrapbookJson,
-            sf.Scrapbook.ScrapbookType
-        );
-        scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
-        
-        return Tuple.Create(param, epoch, (RScrapbook?) scrapbook);
-    }
-
-    public IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int epoch = 0)
-    {
-        var signOfLifeUpdater = _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFuncDisposable();
-        return new CombinedDisposables(signOfLifeUpdater, runningFunction);
+        try
+        {
+            var epoch = sf.Epoch + 1;
+            var success = await _functionStore.TryToBecomeLeader(
+                functionId,
+                Status.Executing,
+                expectedEpoch: sf.Epoch,
+                newEpoch: epoch
+            );
+
+            if (!success)
+                throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'"); //todo concurrent modification exception
+
+            var param = (TParam) _serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
+            if (!hasScrapbook)
+                return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, default(RScrapbook), runningFunction);
+
+            var scrapbook = _serializer.DeserializeScrapbook(
+                sf.Scrapbook!.ScrapbookJson,
+                sf.Scrapbook.ScrapbookType
+            );
+            scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
+
+            return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, (RScrapbook?) scrapbook, runningFunction);
+        }
+        catch (Exception)
+        {
+            runningFunction.Dispose();
+            throw;
+        }
     }
+
+    internal record PreparedReInvocation<TParam>(TParam Param, int Epoch, IDisposable RunningFunction);
+    internal record PreparedReInvocation<TParam, TScrapbook>(TParam Param, int Epoch, TScrapbook? Scrapbook, IDisposable RunningFunction)
+        where TScrapbook : RScrapbook;
+
+    public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
+        => _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+    public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFuncDisposable();
 }

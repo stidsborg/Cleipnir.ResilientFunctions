@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
@@ -30,10 +31,10 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistNewFunctionInStore(functionId, param);
-        if (!created) return await WaitForFunctionResult(functionId);
+        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
+        if (!created) { runningFunction.Dispose(); return await WaitForFunctionResult(functionId);}
 
-        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
+        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
         Result<TReturn> result;
         try
         {
@@ -53,12 +54,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistNewFunctionInStore(functionId, param);
-        if (!created) return;
+
+        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
+        if (!created) { runningFunction.Dispose(); return; }
 
         _ = Task.Run(async () =>
         {
-            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
+            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
             try
             {
                 Result<TReturn> result;
@@ -85,9 +87,8 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-
-        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+        var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        using var __ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
 
         Result<TReturn> result;
         try
@@ -108,11 +109,10 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-
+        var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
         _ = Task.Run(async () =>
         {
-            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
             try
             {
                 Result<TReturn> result;
@@ -136,13 +136,13 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         });
     }
 
-    private async Task<bool> PersistNewFunctionInStore(FunctionId functionId, TParam param)
+    private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param) 
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
-    private async Task<Tuple<TParam, int>> PrepareForReInvocation(
+    private async Task<CommonInvoker.PreparedReInvocation<TParam>> PrepareForReInvocation(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch
@@ -163,15 +163,18 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
     {
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
         await Task.Delay(delay);
-        _ = ScheduleReInvoke(
+        await ReInvoke(
             functionId.InstanceId.ToString(),
             expectedStatuses: new[] {Status.Postponed},
             expectedEpoch
         );
     }
-    
-    private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
-        => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
+
+    private IDisposable RegisterRunningFunction() 
+        => _commonInvoker.RegisterRunningFunction();
+
+    private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
+        => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
 }
 
 public class RFuncInvoker<TParam, TScrapbook, TReturn> 
@@ -199,10 +202,10 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
+        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return await WaitForFunctionResult(functionId);
 
-        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
+        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
         var scrapbook = CreateScrapbook(functionId);
 
         Result<TReturn> result;
@@ -224,12 +227,12 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var created = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
+        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return;
 
         _ = Task.Run(async () =>
         {
-            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId);
+            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
             var scrapbook = CreateScrapbook(functionId);
             try
             {
@@ -257,9 +260,9 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
-        using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
 
         Result<TReturn> result;
         try
@@ -280,11 +283,11 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, scrapbook, epoch) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
         _ = Task.Run(async () =>
         {
-            using var _ = CreateSignOfLifeAndRegisterRunningFunction(functionId, epoch);
+            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
             try
             {
                 Result<TReturn> result;
@@ -311,22 +314,27 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
         => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch);
 
-    private async Task<bool> PersistNewFunctionInStore(FunctionId functionId, TParam param, Type scrapbookType)
+    private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param, Type scrapbookType)
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType);
 
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
-    private async Task<Tuple<TParam, TScrapbook, int>> PrepareForReInvocation(
+    private async Task<Tuple<TParam, int, TScrapbook, IDisposable>> PrepareForReInvocation(
         FunctionId functionId,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch
-    ) => await _commonInvoker
-        .PrepareForReInvocation<TParam, TScrapbook>(
-            functionId,
-            expectedStatuses,
-            expectedEpoch
-        );
+    )
+    {
+        var (param, epoch, rScrapbook, runningFunction) = await _commonInvoker
+            .PrepareForReInvocation<TParam, TScrapbook>(
+                functionId,
+                expectedStatuses,
+                expectedEpoch
+            );
+
+        return Tuple.Create(param, epoch, rScrapbook!, runningFunction);
+    }
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
@@ -350,6 +358,6 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         );
     }
 
-    private IDisposable CreateSignOfLifeAndRegisterRunningFunction(FunctionId functionId, int expectedEpoch = 0)
-        => _commonInvoker.CreateSignOfLifeAndRegisterRunningFunction(functionId, expectedEpoch);
+    private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
+        => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
 }
