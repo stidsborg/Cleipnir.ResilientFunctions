@@ -47,15 +47,15 @@ internal class PostponedWatchdog
 
                 var now = DateTime.UtcNow;
 
-                var expires = await _functionStore
+                var expiresSoon = await _functionStore
                     .GetFunctionsWithStatus(
                         _functionTypeId,
                         Status.Postponed,
                         now.Add(_checkFrequency).Ticks
                     );
 
-                foreach (var expired in expires)
-                    _ = SleepAndThenReInvoke(expired, now);
+                foreach (var expireSoon in expiresSoon)
+                    _ = SleepAndThenReInvoke(expireSoon, now);
             }
         }
         catch (Exception innerException)
