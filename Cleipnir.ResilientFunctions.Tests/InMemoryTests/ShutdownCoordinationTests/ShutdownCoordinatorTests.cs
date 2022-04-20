@@ -42,4 +42,15 @@ public class ShutdownCoordinatorTests
         
         Should.Throw<ObjectDisposedException>(shutdownCoordinator.RegisterRunningRFunc);
     }
+    
+    [TestMethod]
+    public void RegisteringRunningRFuncOnDisposedShutdownCoordinatorWithPositiveConfirmedIsAllowed()
+    {
+        var shutdownCoordinator = new ShutdownCoordinator();
+        shutdownCoordinator.RegisterRunningRFunc();
+        var shutdownTask = shutdownCoordinator.PerformShutdown();
+
+        shutdownCoordinator.RegisterRunningRFunc();
+        shutdownTask.IsCompleted.ShouldBeFalse();
+    }
 }
