@@ -14,7 +14,7 @@ public class ShutdownCoordinatorTests
     public async Task ShutdownTaskIsOnlyCompletedWhenRunningFunctionsReachesZero()
     {
         var shutdownCoordinator = new ShutdownCoordinator();
-        var runningFuncDisposable = shutdownCoordinator.RegisterRunningRFuncDisposable();
+        var runningFuncDisposable = shutdownCoordinator.RegisterRunningRFunc();
 
         var shutdownCompleted = shutdownCoordinator.PerformShutdown();
 

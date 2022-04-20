@@ -83,7 +83,7 @@ internal class PostponedWatchdog
 
         try
         {
-            using var _ = _shutdownCoordinator.RegisterRunningRFuncDisposable();
+            using var _ = _shutdownCoordinator.RegisterRunningRFunc();
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,

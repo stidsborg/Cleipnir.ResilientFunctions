@@ -34,7 +34,7 @@ internal class CommonInvoker
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore<TParam>(FunctionId functionId, TParam param, Type? scrapbookType)
         where TParam : notnull
     {
-        var runningFunction = _shutdownCoordinator.RegisterRunningRFuncDisposable();
+        var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var paramJson = _serializer.SerializeParameter(param);
         var paramType = param.SimpleQualifiedTypeName();
         try
@@ -340,7 +340,7 @@ internal class CommonInvoker
         if (expectedEpoch != null && sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
 
-        var runningFunction = _shutdownCoordinator.RegisterRunningRFuncDisposable();
+        var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
             var epoch = sf.Epoch + 1;
@@ -379,5 +379,5 @@ internal class CommonInvoker
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
-    public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFuncDisposable();
+    public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFunc();
 }

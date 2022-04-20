@@ -92,7 +92,7 @@ internal class PostponedJobWatchdog
         var functionId = new FunctionId("Job", jobId);
         try
         {
-            using var _ = _shutdownCoordinator.RegisterRunningRFuncDisposable();
+            using var _ = _shutdownCoordinator.RegisterRunningRFunc();
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,
