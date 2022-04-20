@@ -185,4 +185,46 @@ public class RFunctionsShutdownTests
         await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    [TestMethod]
+    public async Task RFunctionsShutdownTaskCompletesWhenInvokedRFuncIsPostponed()
+    {
+        var functionTypeId = "functionTypeId".ToFunctionTypeId();
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = new InMemoryFunctionStore();
+        using var rFunctions = new RFunctions(
+            store,
+            unhandledExceptionCatcher.Catch,
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(5),
+            postponedCheckFrequency: TimeSpan.FromMilliseconds(5)
+        );
+
+        var counter = new SyncedCounter();
+
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Result (string _) =>
+            {
+                counter.Increment();
+                return Postpone.For(500);
+            }
+        ).Invoke;
+
+        _ = rAction("instanceId", "1");
+
+        await BusyWait.UntilAsync(() => counter.Current == 1);
+
+        var shutdownTask = rFunctions.ShutdownGracefully();
+        await Task.Delay(10);
+        shutdownTask.IsCompleted.ShouldBeTrue();
+
+        await Task.Delay(700);
+        
+        counter.Current.ShouldBe(1);
+
+        var sf = await store.GetFunction(new FunctionId(functionTypeId, "instanceId"));
+        sf!.Status.ShouldBe(Status.Postponed);
+            
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
 }
