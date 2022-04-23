@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 
 namespace ConsoleApp.Job;
 
-public class Example
+public static class Example
 {
     public static async Task RegisterAndStart()
     {

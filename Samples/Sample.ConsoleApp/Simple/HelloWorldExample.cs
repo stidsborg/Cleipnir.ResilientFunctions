@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace ConsoleApp.Simple;
 
-public class HelloWorldExample
+public static class HelloWorldExample
 {
     public static async Task Do()
     {

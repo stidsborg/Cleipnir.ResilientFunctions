@@ -12,7 +12,6 @@ internal class ShutdownCoordinator
     public bool ShutdownInitiated => _shutDownInitiated;
     private long _candidates;
     private long _confirmed;
-    private readonly object _sync = new();
 
     public async Task PerformShutdown()
     {
