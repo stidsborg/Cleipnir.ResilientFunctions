@@ -68,7 +68,7 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
-            .RegisterFuncWithScrapbook(
+            .RegisterFunc(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
             )
@@ -130,7 +130,7 @@ public abstract class SunshineTests
 
         using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
         var rFunc = rFunctions
-            .RegisterActionWithScrapbook(
+            .RegisterAction(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => scrapbook.Save()
             ).Invoke;
@@ -179,7 +179,7 @@ public abstract class SunshineTests
             unhandledExceptionCatcher.Catch
         );
 
-        var rFunc = rFunctions.RegisterFuncWithScrapbook(
+        var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             (string _, ListScrapbook<string> scrapbook) =>
             {

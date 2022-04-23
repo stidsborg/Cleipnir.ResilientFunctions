@@ -20,7 +20,7 @@ public abstract class UnhandledFuncExceptionTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions.RegisterFunc(
             functionType,
@@ -77,9 +77,9 @@ public abstract class UnhandledFuncExceptionTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions.RegisterFuncWithScrapbook(
+        var rFunc = rFunctions.RegisterFunc(
             functionType,
             OnFailure.PostponeUntil<string, ListScrapbook<string>, string>(
                 string (string param, ListScrapbook<string> scrapbook) => throw new Exception("oh no"),
@@ -156,7 +156,7 @@ public abstract class UnhandledFuncExceptionTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
         var rAction = rFunctions
             .RegisterAction(
@@ -214,9 +214,9 @@ public abstract class UnhandledFuncExceptionTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var syncedException = new Synced<Exception>();
-        var rFunc = rFunctions.RegisterActionWithScrapbook(
+        var rFunc = rFunctions.RegisterAction(
             functionType,
             OnFailure.PostponeUntil(
                 void (string _, ListScrapbook<string>_) => throw new Exception("on no"),

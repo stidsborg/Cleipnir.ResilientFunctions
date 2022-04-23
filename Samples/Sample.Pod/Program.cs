@@ -19,7 +19,7 @@ internal static class Program
             crashedCheckFrequency: TimeSpan.FromSeconds(2)
         );
 
-        var rAction = rFunctions.RegisterActionWithScrapbook(
+        var rAction = rFunctions.RegisterAction(
             "Pod",
             async Task(string param, Scrapbook scrapbook) =>
             {

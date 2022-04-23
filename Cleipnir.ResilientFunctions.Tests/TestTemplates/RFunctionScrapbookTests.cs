@@ -27,7 +27,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             using var rFunctions = new RFunctions(store, unhandledExceptionHandler.Catch);
 
             var rFunc = rFunctions
-                .RegisterFuncWithScrapbook(
+                .RegisterFunc(
                     functionTypeId,
                     (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
                 ).Invoke;

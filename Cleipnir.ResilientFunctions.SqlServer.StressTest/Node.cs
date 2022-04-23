@@ -21,7 +21,7 @@ public class Node
             crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
             postponedCheckFrequency: TimeSpan.FromMilliseconds(1_000)
         );
-        _rFunc = _rFunctions.RegisterFuncWithScrapbook<string, Scrapbook, string>(
+        _rFunc = _rFunctions.RegisterFunc<string, Scrapbook, string>(
             "StressTest",
             async Task<Result<string>> (string param, Scrapbook scrapbook) =>
             {

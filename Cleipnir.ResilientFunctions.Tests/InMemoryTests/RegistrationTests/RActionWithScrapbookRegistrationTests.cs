@@ -18,7 +18,7 @@ public class RActionWithScrapbookRegistrationTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .RegisterActionWithScrapbook<string, Scrapbook>(
+            .RegisterAction<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction
             )
@@ -33,7 +33,7 @@ public class RActionWithScrapbookRegistrationTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rAction = rFunctions
-            .RegisterActionWithScrapbook<string, Scrapbook>(
+            .RegisterAction<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction,
                 serializer

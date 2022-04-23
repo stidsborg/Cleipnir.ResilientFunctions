@@ -238,40 +238,40 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RFunc<TParam, TReturn> RegisterFuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => RegisterFuncWithScrapbook(
+        => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
 
-    public RFunc<TParam, TReturn> RegisterFuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => RegisterFuncWithScrapbook(
+        => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
 
-    public RFunc<TParam, TReturn> RegisterFuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => RegisterFuncWithScrapbook(
+        => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
 
-    public RFunc<TParam, TReturn> RegisterFuncWithScrapbook<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         ISerializer? serializer = null
@@ -320,40 +320,40 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
+    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => RegisterActionWithScrapbook(
+        => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
     
-    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
+    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => RegisterActionWithScrapbook(
+        => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
 
-    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
+    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
         ISerializer? serializer = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => RegisterActionWithScrapbook(
+        => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             serializer
         );
 
-    public RAction<TParam> RegisterActionWithScrapbook<TParam, TScrapbook>(
+    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         ISerializer? serializer = null

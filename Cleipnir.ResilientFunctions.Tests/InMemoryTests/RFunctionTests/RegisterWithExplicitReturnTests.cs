@@ -34,7 +34,7 @@ public class RegisterWithExplicitReturnTests
     {
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rFunc = rFunctions.RegisterFuncWithScrapbook<string, Scrapbook, string>(
+        var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
             "FunctionTypeId".ToFunctionTypeId(),
             inner: async (param, scrapbook) =>
             {
@@ -74,7 +74,7 @@ public class RegisterWithExplicitReturnTests
         using var rFunctions = new RFunctions(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
-            .RegisterActionWithScrapbook<string, Scrapbook>(
+            .RegisterAction<string, Scrapbook>(
                 "FunctionTypeId".ToFunctionTypeId(),
                 inner: async (param, scrapbook) =>
                 {

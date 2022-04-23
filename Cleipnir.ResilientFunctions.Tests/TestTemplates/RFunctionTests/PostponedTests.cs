@@ -76,7 +76,7 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .RegisterFuncWithScrapbook(
+                .RegisterFunc(
                     functionTypeId,
                     Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1))
                 )
@@ -94,7 +94,7 @@ public abstract class PostponedTests
             );
 
             var rFunc = rFunctions
-                .RegisterFuncWithScrapbook(
+                .RegisterFunc(
                     functionTypeId,
                     async (string s, Scrapbook scrapbook) =>
                     {
@@ -177,7 +177,7 @@ public abstract class PostponedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .RegisterActionWithScrapbook(
+                .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) => Postpone.For(1)
                 ).Invoke;
@@ -194,7 +194,7 @@ public abstract class PostponedTests
             );
 
             var rFunc = rFunctions
-                .RegisterActionWithScrapbook(
+                .RegisterAction(
                     functionTypeId,
                     async (string _, Scrapbook scrapbook) =>
                     {

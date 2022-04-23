@@ -16,7 +16,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
@@ -32,9 +32,9 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
-        var rFunc = rFunctions.RegisterFuncWithScrapbook<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
+        var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
             string (string param, ListScrapbook<string> scrapbook) => throw new ArithmeticException("Division by zero")
         ).Invoke;
@@ -48,7 +48,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions
             .RegisterAction(
@@ -66,7 +66,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
+        using var rFunctions = new RFunctions(store, unhandledExceptionCatcher.Catch);
 
         var rFunc = rFunctions
             .RegisterAction(

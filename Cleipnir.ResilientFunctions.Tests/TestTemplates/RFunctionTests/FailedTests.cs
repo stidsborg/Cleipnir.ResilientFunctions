@@ -104,7 +104,7 @@ public abstract class FailedTests
                     crashedCheckFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
-                .RegisterActionWithScrapbook(
+                .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) =>
                         throwUnhandledException 
@@ -117,14 +117,13 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = 
-                new RFunctions(
+            using var rFunctions = new RFunctions(
                     store,
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 );
-            var rAction = rFunctions.RegisterActionWithScrapbook(functionTypeId,
+            var rAction = rFunctions.RegisterAction(functionTypeId,
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
@@ -218,7 +217,7 @@ public abstract class FailedTests
         {
             var nonCompletingRFunctions = new RFunctions
                 (store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
-                .RegisterActionWithScrapbook(
+                .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) => 
                         throwUnhandledException
@@ -235,7 +234,7 @@ public abstract class FailedTests
                 unhandledExceptionHandler.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
             );
-            var rFunc = rFunctions.RegisterActionWithScrapbook(
+            var rFunc = rFunctions.RegisterAction(
                 functionTypeId,
                 (string _, Scrapbook _) =>
                 {

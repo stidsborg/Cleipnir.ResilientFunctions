@@ -25,7 +25,7 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
     {
         _logger = logger;
         
-        BookTravel = rFunctions.RegisterFuncWithScrapbook<OrderAndRequestIds, BookingScrapbook, Booking>(
+        BookTravel = rFunctions.RegisterFunc<OrderAndRequestIds, BookingScrapbook, Booking>(
             nameof(BookingSaga).ToFunctionTypeId(),
             _BookTravel
         ).Invoke;

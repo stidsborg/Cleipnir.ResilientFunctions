@@ -133,7 +133,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 unhandledExceptionCatcher.Catch
             );
-            var rFunc = rFunctions.RegisterFuncWithScrapbook(
+            var rFunc = rFunctions.RegisterFunc(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -166,7 +166,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.RegisterFuncWithScrapbook<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
+            _ = rFunctions.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
                 async Task<Result<string>> (Param p, Scrapbook scrapbook) =>
                 {
@@ -190,7 +190,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.RegisterFuncWithScrapbook(
+            _ = rFunctions.RegisterFunc(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -212,7 +212,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.RegisterFuncWithScrapbook(
+            _ = rFunctions.RegisterFunc(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -364,7 +364,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 unhandledExceptionCatcher.Catch
             );
-            var rFunc = rFunctions.RegisterActionWithScrapbook(
+            var rFunc = rFunctions.RegisterAction(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -397,7 +397,7 @@ public abstract class WatchdogCompoundTests
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
             _ = rFunctions
-                .RegisterActionWithScrapbook(
+                .RegisterAction(
                     functionTypeId,
                     async (Param p, Scrapbook scrapbook) =>
                     {
@@ -422,7 +422,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.RegisterActionWithScrapbook(
+            _ = rFunctions.RegisterAction(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -447,7 +447,7 @@ public abstract class WatchdogCompoundTests
                 unhandledExceptionCatcher.Catch,
                 crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
             );
-            _ = rFunctions.RegisterActionWithScrapbook(
+            _ = rFunctions.RegisterAction(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
