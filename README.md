@@ -76,19 +76,21 @@ public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionSt
   var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
   var httpClient = new HttpClient();
 
-  var rAction = functions.Register(
+  var rAction = functions.RegisterAction(
     functionTypeId: "HttpAndDatabaseSaga",
     inner: async (Guid id) =>
     {
       var response = await httpClient.PostAsync(URL, new StringContent(id.ToString()));
       response.EnsureSuccessStatusCode();
       var content = await response.Content.ReadAsStringAsync();
-      await connection.ExecuteAsync("UPDATE Entity SET State=@State WHERE Id=@Id", new {State = content, Id = id});
-      return Return.Succeed;
+      await connection.ExecuteAsync(
+        "UPDATE Entity SET State=@State WHERE Id=@Id",
+        new {State = content, Id = id}
+      );
     }).Invoke;
 
   var id = Guid.NewGuid();
-  await rAction(functionInstanceId: id.ToString(), param: id).EnsureSuccess();
+  await rAction(functionInstanceId: id.ToString(), param: id);
 }
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Samples/Sample.ConsoleApp/Simple/SimpleHttpAndDbExample.cs)
