@@ -10,7 +10,7 @@ namespace ConsoleApp.EmailOffers;
 
 public static class EmailSenderSaga
 {
-    public static async Task<Result> Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
+    public static async Task Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
     {
         var (recipients, subject, content) = mailAndRecipients;
         if (!scrapbook.Initialized)
@@ -39,8 +39,6 @@ public static class EmailSenderSaga
 
             await scrapbook.Save();
         }
-
-        return Succeed.WithoutValue;
     }
 
     public class Scrapbook : RScrapbook

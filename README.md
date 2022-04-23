@@ -101,24 +101,32 @@ Consider a travel agency which wants to send a promotional email to its customer
 public static async Task RegisterAndInvoke()
 {
   var store = new InMemoryFunctionStore();
-  var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
-  var rAction = functions.Register<MailAndRecipients, EmailSenderSaga.Scrapbook>(
-    "OffersMailSender", StartMailSending
-  ).Invoke;
+        
+  var functions = new RFunctions(
+    store,
+    unhandledExceptionHandler: Console.WriteLine
+  );
+
+  var rAction = functions
+    .RegisterActionWithScrapbook<MailAndRecipients, EmailSenderSaga.Scrapbook>(
+      "OffersMailSender",
+      EmailSenderSaga.Start
+    ).Invoke;
 
   var offerDate = new DateOnly(2022, 1, 1);
-  var result = await rAction(
+  await rAction(
     functionInstanceId: offerDate.ToString(),
     param: new MailAndRecipients(
       new[]
-        { new EmailAddress("Peter Hansen", "peter@gmail.com"),
-          new EmailAddress("Ulla Hansen", "ulla@gmail.com") },
+      {
+        new EmailAddress("Peter Hansen", "peter@gmail.com"),
+        new EmailAddress("Ulla Hansen", "ulla@gmail.com")
+      },
       Subject: "Dreaming yourself away?",
       Content: "We have found these great offers for you!"
     )
   );
-
-  result.EnsureSuccess();
+        
   Console.WriteLine("Offers sent successfully");
 }
 
@@ -129,16 +137,15 @@ public static async Task<Return> StartMailSending(MailAndRecipients mailAndRecip
   {
     //must be first invocation - add all recipients to scrapbook's queue
     foreach (var recipient in recipients)
-    {
       scrapbook.RecipientsLeft.Enqueue(recipient);
-      scrapbook.Initialized = true;
-      await scrapbook.Save();
-    }
+
+    scrapbook.Initialized = true;
+    await scrapbook.Save();
   }
 
   using var client = new SmtpClient();
   await client.ConnectAsync("mail.smtpbucket.com", 8025);
-       
+        
   while (scrapbook.RecipientsLeft.Any())
   {
     var recipient = scrapbook.RecipientsLeft.Dequeue();
@@ -151,9 +158,7 @@ public static async Task<Return> StartMailSending(MailAndRecipients mailAndRecip
     await client.SendAsync(message);
 
     await scrapbook.Save();
-   }
-
-   return Succeed.WithoutValue;
+  }
 }
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/tree/main/Samples/Sample.ConsoleApp/EmailOffers)
