@@ -173,7 +173,7 @@ public abstract class WatchdogCompoundTests
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(2);
                     await scrapbook.Save();
-                    return Postpone.For(100);
+                    return Postpone.For(1000);
                 });
             
             await afterNextPostponedSetFunctionState;
