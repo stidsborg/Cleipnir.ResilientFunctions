@@ -56,12 +56,13 @@ Firstly, the compulsory, ‘*hello world*’-example can be realized as follows:
 var store = new InMemoryFunctionStore();
 var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
 
-var rFunc = functions.Register<string, string>(
-  "HelloWorld",
-  async param => param.ToUpper()
+var rFunc = functions.RegisterFunc(
+  functionTypeId: "HelloWorld",
+  inner: (string param) => param.ToUpper()
 ).Invoke;
 
-var returned = await rFunc(id: "", param: "hello world").EnsureSuccess();
+var returned = await rFunc(functionInstanceId: "", param: "hello world");
+Console.WriteLine($"Returned: '{returned}'");
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Samples/Sample.ConsoleApp/Simple/HelloWorldExample.cs)
 
