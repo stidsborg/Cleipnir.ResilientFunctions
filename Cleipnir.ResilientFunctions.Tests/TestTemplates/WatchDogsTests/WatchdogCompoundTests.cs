@@ -58,14 +58,14 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterFunc<Param, string>(
                 functionTypeId,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return Postpone.For(10);
+                    return Postpone.For(100);
                 });
             
             await afterNextSetFunctionState;
@@ -79,7 +79,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -99,8 +99,8 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -164,7 +164,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
@@ -188,7 +188,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -210,7 +210,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -281,7 +281,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions
                 .RegisterAction(
@@ -289,7 +289,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.For(10);
+                        return Postpone.For(100);
                     }
                 );
 
@@ -305,7 +305,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterAction(
                 functionTypeId,
@@ -327,8 +327,8 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions
                 .RegisterAction(
@@ -394,7 +394,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions
                 .RegisterAction(
@@ -420,7 +420,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterAction(
                 functionTypeId,
@@ -445,7 +445,7 @@ public abstract class WatchdogCompoundTests
             using var rFunctions = new RFunctions(
                 store,
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
             );
             _ = rFunctions.RegisterAction(
                 functionTypeId,
