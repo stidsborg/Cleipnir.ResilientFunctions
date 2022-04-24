@@ -23,7 +23,8 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
             var password = Environment.GetEnvironmentVariable("POSTGRESQLPASSWORD");
             if (password == null)
                 throw new InvalidOperationException("Environment variable 'POSTGRESQLPASSWORD' not found");
-            
+            if (string.IsNullOrEmpty(password))
+                throw new InvalidOperationException("Environment variable 'POSTGRESQLPASSWORD' is the empty string");
             ConnectionString = $"Server=abul.db.elephantsql.com;Port=5432;Userid=utdbwvkk;Password={password};Database=utdbwvkk;Maximum Pool Size=1";
         }
         
