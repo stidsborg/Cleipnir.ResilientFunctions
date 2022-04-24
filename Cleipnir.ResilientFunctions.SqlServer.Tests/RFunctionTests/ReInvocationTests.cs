@@ -1,6 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
@@ -10,23 +8,20 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()
-        => ActionReInvocationSunshineScenario(CreateInMemoryStore());
+        => ActionReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ActionWithScrapbookReInvocationSunshineScenario()
-        => ActionWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
+        => ActionWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
-        => FuncReInvocationSunshineScenario(CreateInMemoryStore());
+        => FuncReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task FuncWithScrapbookReInvocationSunshineScenario()
-        => FuncWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
+        => FuncWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ReInvocationFailsWhenItHasUnexpectedStatus()
-        => ReInvocationFailsWhenItHasUnexpectedStatus(CreateInMemoryStore());
+        => ReInvocationFailsWhenItHasUnexpectedStatus(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
-        => ReInvocationFailsWhenTheFunctionDoesNotExist(CreateInMemoryStore());
-
-    private Task<IFunctionStore> CreateInMemoryStore() 
-        => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
+        => ReInvocationFailsWhenTheFunctionDoesNotExist(Sql.AutoCreateAndInitializeStore());
 }
