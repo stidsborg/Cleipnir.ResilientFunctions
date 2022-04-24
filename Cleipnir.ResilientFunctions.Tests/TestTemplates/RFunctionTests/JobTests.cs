@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -93,7 +94,6 @@ public abstract class JobTests
     public abstract Task PostponedJobDoesNotCauseUnhandledException();
     protected async Task PostponedJobDoesNotCauseUnhandledException(Task<IFunctionStore> storeTask)
     {
-        var functionId = new FunctionId("Job", nameof(PostponedJobDoesNotCauseUnhandledException));
         using var disposables = new CombinableDisposable();
         var store = await storeTask;
         var unhandledExceptions = new UnhandledExceptionCatcher();
@@ -132,8 +132,6 @@ public abstract class JobTests
         );
         await rJob.Start();
 
-        await Task.Delay(100);
-
-        unhandledExceptions.ThrownExceptions.ShouldNotBeEmpty();
+        await BusyWait.UntilAsync(() => unhandledExceptions.ThrownExceptions.Any());
     }
 }
