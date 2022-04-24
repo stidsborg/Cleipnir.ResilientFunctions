@@ -24,6 +24,8 @@ public class SqlServerFunctionStore : IFunctionStore
         _tablePrefix = tablePrefix;
     }
 
+    //todo add index for status and subsequently postponed until!
+    
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
     {
         return async () =>

@@ -1,6 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.SqlServer;
+using Cleipnir.ResilientFunctions.PostgreSQL;
 
 namespace Sample.Pod;
 
@@ -9,8 +9,10 @@ internal static class Program
     private static async Task Main()
     {
         await Task.CompletedTask;
-        
-        var sqlStore = new SqlServerFunctionStore("Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!");
+        var password = Environment.GetEnvironmentVariable("POSTGRESQLPASSWORD");
+        if (password == null)
+            throw new InvalidOperationException("Environment variable 'POSTGRESQLPASSWORD' not found");
+        var sqlStore = new PostgreSqlFunctionStore($"Server=abul.db.elephantsql.com;Port=5432;Userid=utdbwvkk;Password={password};Database=utdbwvkk");
         var store = new CrashableFunctionStore(sqlStore);
 
         var rFunctions = new RFunctions(
