@@ -7,9 +7,9 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-      
-env: 
-  POSTGRESQLPASSWORD: ${{ secrets.POSTGRESQLPASSWORD }}
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -17,18 +17,20 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    environment: Pipeline
     env:
-      Cleipnir.RFunctions.SqlServer.Tests.ConnectionString: Server=localhost;Database=rfunctionstest;User Id=sa;Password=Pa55word!    
+      Cleipnir.RFunctions.SqlServer.Tests.ConnectionString: Server=localhost;Database=rfunctionstest;User Id=sa;Password=Pa55word!
+      POSTGRESQLPASSWORD: ${{ secrets.POSTGRESQLPASSWORD }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      
+
       - uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '6.0.x' # SDK Version to use; x will use the latest version of the 3.1 channel
-      
+
       - run: dotnet build Cleipnir.ResilientFunctions.sln
 
       - name: Start containers
@@ -38,8 +40,8 @@ jobs:
       - name: Sleeping 5 secs
         run: sleep 5s
         shell: bash
-        
+
       - run: dotnet test Cleipnir.ResilientFunctions.sln
-          
+
       - name: Stop containers
         run: docker-compose -f "docker-compose.yml" down
