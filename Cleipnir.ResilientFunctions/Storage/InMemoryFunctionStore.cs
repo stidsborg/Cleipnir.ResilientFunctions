@@ -100,7 +100,6 @@ public class InMemoryFunctionStore : IFunctionStore
                     new StoredPostponedFunction(
                         s.FunctionId.InstanceId,
                         s.Epoch,
-                        s.SignOfLife,
                         s.PostponeUntil!.Value
                     )
                 )

@@ -185,7 +185,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
 
         var rows = await conn.QueryAsync<StoredPostponedFunctionRow>(@$"
-            SELECT FunctionInstanceId, Epoch, SignOfLife, PostponedUntil
+            SELECT FunctionInstanceId, Epoch, PostponedUntil
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Postponed} AND PostponedUntil <= @PostponedUntil",
             new { FunctionTypeId = functionTypeId.Value, PostponedUntil = expiresBefore }
@@ -193,15 +193,10 @@ public class SqlServerFunctionStore : IFunctionStore
 
         return rows
             .Select(r =>
-                new StoredPostponedFunction(
-                    r.FunctionInstanceId.ToFunctionInstanceId(),
-                    r.Epoch,
-                    r.SignOfLife,
-                    r.PostponedUntil
-                )
+                new StoredPostponedFunction(r.FunctionInstanceId.ToFunctionInstanceId(), r.Epoch, r.PostponedUntil)
             ).ToList().AsEnumerable();
     }
-    private record StoredPostponedFunctionRow(string FunctionInstanceId, int Epoch, int SignOfLife, long PostponedUntil);
+    private record StoredPostponedFunctionRow(string FunctionInstanceId, int Epoch, long PostponedUntil);
     
     public async Task<bool> SetFunctionState(
         FunctionId functionId,
