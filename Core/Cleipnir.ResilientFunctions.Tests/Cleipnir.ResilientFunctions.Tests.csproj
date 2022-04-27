@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
+      <ProjectReference Include="..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
 </Project>

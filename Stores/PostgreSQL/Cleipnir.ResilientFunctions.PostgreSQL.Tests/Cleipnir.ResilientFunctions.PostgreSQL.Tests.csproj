@@ -15,8 +15,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\..\Core\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj" />
       <ProjectReference Include="..\Cleipnir.ResilientFunctions.PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.csproj" />
-      <ProjectReference Include="..\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj" />
     </ItemGroup>
 
 </Project>

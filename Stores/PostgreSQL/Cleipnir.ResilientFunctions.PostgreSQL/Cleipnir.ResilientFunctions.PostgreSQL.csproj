@@ -22,9 +22,10 @@
         <PackageTags>saga, resilient functions, resiliency, micro service, fault-tolerant, distributed systems, cloud independent</PackageTags>
     </PropertyGroup>
 
+
     <ItemGroup>
-      <PackageReference Include="Dapper" Version="2.0.90" />
-      <PackageReference Include="Microsoft.Data.SqlClient" Version="3.0.1" />
+      <PackageReference Include="Dapper" Version="2.0.123" />
+      <PackageReference Include="Npgsql" Version="6.0.4" />
     </ItemGroup>
 
     <PropertyGroup Label="SourceLink">
@@ -37,18 +38,18 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
+      <ProjectReference Include="..\..\..\Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-    <None Include="..\cleipnir.png">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-    </None>
+        <None Include="..\..\..\cleipnir.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
     </ItemGroup>
 
 </Project>

@@ -9,7 +9,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Cleipnir.ResilientFunctions.SqlServer\Cleipnir.ResilientFunctions.SqlServer.csproj" />
-      <ProjectReference Include="..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
 </Project>

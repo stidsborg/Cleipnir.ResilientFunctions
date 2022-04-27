@@ -18,14 +18,9 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
 
         static Sql()
         {
-            //todo if postgresqlconnection found use it instead!
-            
-            var password = Environment.GetEnvironmentVariable("POSTGRESQLPASSWORD");
-            if (password == null)
-                throw new InvalidOperationException("Environment variable 'POSTGRESQLPASSWORD' not found");
-            if (string.IsNullOrEmpty(password))
-                throw new InvalidOperationException("Environment variable 'POSTGRESQLPASSWORD' is the empty string");
-            ConnectionString = $"Server=abul.db.elephantsql.com;Port=5432;Userid=utdbwvkk;Password={password};Database=utdbwvkk;Maximum Pool Size=1";
+            ConnectionString = 
+                Environment.GetEnvironmentVariable("Cleipnir.RFunctions.SqlServer.Tests.ConnectionString")
+                ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!";
         }
         
         public static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
