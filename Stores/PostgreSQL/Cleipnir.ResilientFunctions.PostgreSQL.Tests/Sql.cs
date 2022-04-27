@@ -19,13 +19,13 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
         static Sql()
         {
             ConnectionString = 
-                Environment.GetEnvironmentVariable("Cleipnir.RFunctions.SqlServer.Tests.ConnectionString")
+                Environment.GetEnvironmentVariable("Cleipnir.RFunctions.PostgreSQL.Tests.ConnectionString")
                 ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!";
         }
-        
-        public static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
+
+        private static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new PostgreSqlFunctionStore(ConnectionString); //$"{testClass}_{testMethod}_"
+            var store = new PostgreSqlFunctionStore(ConnectionString); 
             await store.Initialize();
             await store.TruncateTable();
             return store;
