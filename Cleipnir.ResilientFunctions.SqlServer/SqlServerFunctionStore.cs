@@ -163,51 +163,46 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    private record StoredFunctionStatusRow(
-        string FunctionInstanceId,
-        int Epoch, int SignOfLife,
-        Status Status,
-        long? PostponedUntil
-    );
-
-    public async Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(FunctionTypeId functionTypeId,
-        Status status, long? expiresBefore = null)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         await using var conn = await _connFunc();
 
-        var rows = expiresBefore == null
-            ? await conn.QueryAsync<StoredFunctionStatusRow>(@$"
-                    SELECT FunctionInstanceId, Epoch, SignOfLife, Status, PostponedUntil
-                    FROM {_tablePrefix}RFunctions
-                    WHERE FunctionTypeId = @FunctionTypeId AND Status = @Status",
-                new
-                {
-                    FunctionTypeId = functionTypeId.Value,
-                    Status = (int) status
-                })
-            : await conn.QueryAsync<StoredFunctionStatusRow>(@$"
-                    SELECT FunctionInstanceId, Epoch, SignOfLife, Status, PostponedUntil
-                    FROM {_tablePrefix}RFunctions
-                    WHERE FunctionTypeId = @FunctionTypeId AND Status = @Status AND PostponedUntil <= @PostponedUntil",
-                new
-                {
-                    FunctionTypeId = functionTypeId.Value,
-                    Status = status,
-                    PostponedUntil = expiresBefore.Value
-                });
+        var rows = await conn.QueryAsync<StoredExecutingFunctionRow>(@$"
+            SELECT FunctionInstanceId, Epoch, SignOfLife
+            FROM {_tablePrefix}RFunctions
+            WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing}",
+            new { FunctionTypeId = functionTypeId.Value }
+        );
+        return rows
+            .Select(r =>
+                new StoredExecutingFunction(r.FunctionInstanceId.ToFunctionInstanceId(), r.Epoch, r.SignOfLife)
+            ).ToList().AsEnumerable();
+    }
+    private record StoredExecutingFunctionRow(string FunctionInstanceId, int Epoch, int SignOfLife);
+
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    {
+        await using var conn = await _connFunc();
+
+        var rows = await conn.QueryAsync<StoredPostponedFunctionRow>(@$"
+            SELECT FunctionInstanceId, Epoch, SignOfLife, PostponedUntil
+            FROM {_tablePrefix}RFunctions
+            WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Postponed} AND PostponedUntil <= @PostponedUntil",
+            new { FunctionTypeId = functionTypeId.Value, PostponedUntil = expiresBefore }
+        );
 
         return rows
             .Select(r =>
-                new StoredFunctionStatus(
+                new StoredPostponedFunction(
                     r.FunctionInstanceId.ToFunctionInstanceId(),
                     r.Epoch,
                     r.SignOfLife,
-                    r.Status,
                     r.PostponedUntil
                 )
             ).ToList().AsEnumerable();
     }
-
+    private record StoredPostponedFunctionRow(string FunctionInstanceId, int Epoch, int SignOfLife, long PostponedUntil);
+    
     public async Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,

@@ -33,13 +33,16 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.UpdateSignOfLife(functionId, expectedEpoch, newSignOfLife);
 
-    public Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(
-        FunctionTypeId functionTypeId,
-        Status status,
-        long? expiresBefore = null
-    ) => _crashed
-        ? Task.FromException<IEnumerable<StoredFunctionStatus>>(new TimeoutException())
-        : _inner.GetFunctionsWithStatus(functionTypeId, status, expiresBefore);
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+        => _crashed
+            ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
+            : _inner.GetExecutingFunctions(functionTypeId);
+
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+        => _crashed
+            ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
+            : _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
+
 
     public Task<bool> SetFunctionState(
         FunctionId functionId,

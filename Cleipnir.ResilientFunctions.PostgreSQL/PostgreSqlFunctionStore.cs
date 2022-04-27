@@ -28,8 +28,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@"
-            CREATE TABLE IF NOT EXISTS RFunctions (
+        await conn.ExecuteAsync($@"
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}RFunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
                 param_json TEXT NULL,
@@ -51,7 +51,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task DropIfExists()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync("DROP TABLE IF EXISTS RFunctions");
+        await conn.ExecuteAsync($"DROP TABLE IF EXISTS {_tablePrefix}RFunctions");
+    }
+
+    public async Task TruncateTable()
+    {
+        await using var conn = await CreateConnection();
+        await conn.ExecuteAsync($"TRUNCATE TABLE {_tablePrefix}RFunctions");
     }
     
     public async Task<bool> CreateFunction(
@@ -63,8 +69,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int initialSignOfLife)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync(@"
-            INSERT INTO RFunctions
+        var affectedRows = await conn.ExecuteAsync(@$"
+            INSERT INTO {_tablePrefix}RFunctions
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life)
             VALUES
                 (@FunctionTypeId, @FunctionInstanceId, @ParamJson, @ParamType, @ScrapbookType, @Status, @Epoch, @SignOfLife)
@@ -91,8 +97,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int newEpoch)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync(@"
-            UPDATE RFunctions
+        var affectedRows = await conn.ExecuteAsync(@$"
+            UPDATE {_tablePrefix}RFunctions
             SET epoch = @NewEpoch, status = @NewStatus
             WHERE function_type_id = @FunctionTypeId AND function_instance_id = @FunctionInstanceId AND epoch = @ExpectedEpoch",
             new
@@ -114,8 +120,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int newSignOfLife)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync(@"
-            UPDATE RFunctions
+        var affectedRows = await conn.ExecuteAsync($@"
+            UPDATE {_tablePrefix}RFunctions
             SET sign_of_life = @NewSignOfLife
             WHERE function_type_id = @FunctionTypeId AND function_instance_id = @FunctionInstanceId AND epoch = @ExpectedEpoch",
             new
@@ -130,47 +136,45 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(
-        FunctionTypeId functionTypeId, 
-        Status status, 
-        long? expiresBefore = null)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         await using var conn = await CreateConnection();
-        if (expiresBefore == null)
-        {
-            var rows = await conn.QueryAsync<FunctionWithStatusRow>(@"
-                SELECT function_instance_id AS FunctionInstanceId, epoch, sign_of_life AS SignOfLife, status, postponed_until AS PostponedUntil
-                FROM RFunctions
-                WHERE function_type_id = @FunctionTypeId AND status = @Status;",
-                new {FunctionTypeId = functionTypeId.Value, Status = (int) status}
-            );
-            return rows.Select(row => new StoredFunctionStatus(
-                row.FunctionInstanceId,
-                row.Epoch,
-                row.SignOfLife,
-                (Status) row.Status,
-                row.PostponedUntil
-            )).ToList();
-        }
-        else
-        {
-            var rows = await conn.QueryAsync<FunctionWithStatusRow>(@"
-                SELECT function_instance_id AS FunctionInstanceId, epoch, sign_of_life AS SignOfLife, status, postponed_until AS PostponedUntil
-                FROM RFunctions
-                WHERE function_type_id = @FunctionTypeId AND status = @Status AND postponed_until < @ExpiresBefore;",
-                new {FunctionTypeId = functionTypeId.Value, Status = (int) status, ExpiresBefore = expiresBefore.Value}
-            );
-            return rows.Select(row => new StoredFunctionStatus(
-                row.FunctionInstanceId,
-                row.Epoch,
-                row.SignOfLife,
-                (Status) row.Status,
-                row.PostponedUntil
-            )).ToList();
-        }
-    }
 
-    private record FunctionWithStatusRow(string FunctionInstanceId, int Epoch, int SignOfLife, int Status, long? PostponedUntil);
+        var rows = await conn.QueryAsync<StoredExecutingFunctionRow>(@$"
+            SELECT function_instance_id AS FunctionInstanceId, epoch, sign_of_life AS SignOfLife 
+            FROM {_tablePrefix}RFunctions
+            WHERE function_type_id = @FunctionTypeId AND status = {(int) Status.Executing}",
+            new { FunctionTypeId = functionTypeId.Value }
+        );
+        return rows
+            .Select(r =>
+                new StoredExecutingFunction(r.FunctionInstanceId.ToFunctionInstanceId(), r.Epoch, r.SignOfLife)
+            ).ToList().AsEnumerable();
+    }
+    private record StoredExecutingFunctionRow(string FunctionInstanceId, int Epoch, int SignOfLife);
+
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    {
+        await using var conn = await CreateConnection();
+
+        var rows = await conn.QueryAsync<StoredPostponedFunctionRow>(@$"
+            SELECT function_instance_id AS FunctionInstanceId, epoch, sign_of_life AS SignOfLife, postponed_until AS PostponedUntil
+            FROM {_tablePrefix}RFunctions
+            WHERE function_type_id = @FunctionTypeId AND status = {(int) Status.Postponed} AND postponed_until <= @PostponedUntil",
+            new { FunctionTypeId = functionTypeId.Value, PostponedUntil = expiresBefore }
+        );
+
+        return rows
+            .Select(r =>
+                new StoredPostponedFunction(
+                    r.FunctionInstanceId.ToFunctionInstanceId(),
+                    r.Epoch,
+                    r.SignOfLife,
+                    r.PostponedUntil
+                )
+            ).ToList().AsEnumerable();
+    }
+    private record StoredPostponedFunctionRow(string FunctionInstanceId, int Epoch, int SignOfLife, long PostponedUntil);
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, 
@@ -182,8 +186,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync(@"
-            UPDATE RFunctions
+        var affectedRows = await conn.ExecuteAsync($@"
+            UPDATE {_tablePrefix}RFunctions
             SET status = @Status, scrapbook_json = @ScrapbookJson, 
                 result_json = @ResultJson, result_type = @ResultType, 
                 error_json = @ErrorJson, postponed_until = @PostponedUntil
@@ -211,7 +215,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var rows = await conn.QueryAsync<StoredFunctionRow>(@"
+        var rows = await conn.QueryAsync<StoredFunctionRow>($@"
             SELECT               
                 param_json AS ParamJson, 
                 param_type AS ParamType,
@@ -224,7 +228,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until AS PostponedUntil,
                 epoch, 
                 sign_of_life AS SignOfLife
-            FROM RFunctions
+            FROM {_tablePrefix}RFunctions
             WHERE function_type_id = @FunctionTypeId AND function_instance_id = @FunctionInstanceId;",
             new
             {

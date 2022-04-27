@@ -43,16 +43,14 @@ internal static class Program
 
         while (true)
         {
-            var executingFunctions = await sqlStore.GetFunctionsWithStatus(
-                "StressTest",
-                Status.Executing
-            ).ToTaskList();
+            var executingFunctions = await sqlStore
+                .GetExecutingFunctions("StressTest")
+                .ToTaskList();
             Console.WriteLine("EXECUTING FUNCTIONS: " + executingFunctions.Count);
             
-            var postponedFunctions = await sqlStore.GetFunctionsWithStatus(
-                "StressTest",
-                Status.Postponed
-            ).ToTaskList();
+            var postponedFunctions = await sqlStore
+                .GetPostponedFunctions("StressTest", expiresBefore: 0)
+                .ToTaskList();
             Console.WriteLine("POSTPONED FUNCTIONS: " + postponedFunctions.Count);
 
             if (executingFunctions.Count == 0 && postponedFunctions.Count == 0)

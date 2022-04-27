@@ -31,16 +31,14 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         var nonCompletes = await store
-            .GetFunctionsWithStatus(FunctionId.TypeId, Status.Executing)
+            .GetExecutingFunctions(FunctionId.TypeId)
             .ToTaskList();
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
         nonCompleted.InstanceId.ShouldBe(FunctionId.InstanceId);
-        nonCompleted.Status.ShouldBe(Status.Executing);
         nonCompleted.Epoch.ShouldBe(0);
         nonCompleted.SignOfLife.ShouldBe(1);
-        nonCompleted.PostponedUntil.ShouldBeNull();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
@@ -92,7 +90,7 @@ public abstract class StoreTests
             .ShouldBeTrueAsync();
 
         var nonCompletedFunctions = 
-            await store.GetFunctionsWithStatus(FunctionId.TypeId, Status.Executing);
+            await store.GetExecutingFunctions(FunctionId.TypeId);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(1);
@@ -121,7 +119,7 @@ public abstract class StoreTests
         ).ShouldBeFalseAsync();
 
         var nonCompletedFunctions = 
-            await store.GetFunctionsWithStatus(FunctionId.TypeId, Status.Executing);
+            await store.GetExecutingFunctions(FunctionId.TypeId);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(0);

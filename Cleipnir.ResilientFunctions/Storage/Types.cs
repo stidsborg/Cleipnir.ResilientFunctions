@@ -14,13 +14,18 @@ public record StoredFunction(
     int Epoch,
     int SignOfLife
 );
-    
-public record StoredFunctionStatus(
+
+public record StoredExecutingFunction(
+    FunctionInstanceId InstanceId, 
+    int Epoch,
+    int SignOfLife
+);
+
+public record StoredPostponedFunction(
     FunctionInstanceId InstanceId, 
     int Epoch,
     int SignOfLife,
-    Status Status,
-    long? PostponedUntil
+    long PostponedUntil
 );
 
 public record StoredParameter(string ParamJson, string ParamType);

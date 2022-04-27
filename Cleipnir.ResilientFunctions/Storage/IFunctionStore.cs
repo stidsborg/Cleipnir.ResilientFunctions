@@ -23,13 +23,10 @@ public interface IFunctionStore
     // ** LEADERSHIP ** //
     Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch);
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
-        
-    Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(
-        FunctionTypeId functionTypeId, 
-        Status status,
-        long? expiresBefore = null
-    ); //todo consider change this to async enumerable?
-        
+
+    Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
+    Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
+
     // ** CHANGES ** //
     Task<bool> SetFunctionState(
         FunctionId functionId,

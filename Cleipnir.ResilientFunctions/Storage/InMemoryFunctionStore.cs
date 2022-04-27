@@ -75,28 +75,33 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<IEnumerable<StoredFunctionStatus>> GetFunctionsWithStatus(
-        FunctionTypeId functionTypeId, 
-        Status status, 
-        long? expiresBefore = null
-    )
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
-                .Where(s => s.Status == status)
-                .Where(s => 
-                    expiresBefore == null 
-                    || s.PostponeUntil != null && s.PostponeUntil.Value < expiresBefore.Value
-                )
+                .Where(s => s.Status == Status.Executing)
+                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.SignOfLife))
+                .ToList()
+                .AsEnumerable()
+                .ToTask();
+    }
+
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    {
+        lock (_sync)
+            return _states
+                .Values
+                .Where(s => s.FunctionId.TypeId == functionTypeId)
+                .Where(s => s.Status == Status.Postponed)
+                .Where(s => s.PostponeUntil <= expiresBefore)
                 .Select(s =>
-                    new StoredFunctionStatus(
+                    new StoredPostponedFunction(
                         s.FunctionId.InstanceId,
                         s.Epoch,
                         s.SignOfLife,
-                        s.Status,
-                        s.PostponeUntil
+                        s.PostponeUntil!.Value
                     )
                 )
                 .ToList()

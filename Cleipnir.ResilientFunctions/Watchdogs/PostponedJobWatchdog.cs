@@ -57,10 +57,10 @@ internal class PostponedJobWatchdog
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var expires = await _functionStore
-                    .GetFunctionsWithStatus("Job", Status.Postponed, DateTime.UtcNow.Add(_checkFrequency).Ticks);
+                    .GetPostponedFunctions("Job", DateTime.UtcNow.Add(_checkFrequency).Ticks);
 
                 foreach (var expired in expires)
-                    _ = SleepAndThenReInvokeJob(expired.InstanceId.ToString(), expired.Epoch, expired.PostponedUntil!.Value);
+                    _ = SleepAndThenReInvokeJob(expired.InstanceId.ToString(), expired.Epoch, expired.PostponedUntil);
             }
         }
         catch (Exception innerException)

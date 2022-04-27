@@ -35,8 +35,4 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
         => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
-
-    [TestMethod]
-    public override Task GetFunctionsWithStatusOnlyReturnsSucceededFunction()
-        => GetFunctionsWithStatusOnlyReturnsSucceededFunction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

@@ -48,9 +48,8 @@ internal class PostponedWatchdog
                 var now = DateTime.UtcNow;
 
                 var expiresSoon = await _functionStore
-                    .GetFunctionsWithStatus(
+                    .GetPostponedFunctions(
                         _functionTypeId,
-                        Status.Postponed,
                         now.Add(_checkFrequency).Ticks
                     );
 
@@ -70,12 +69,12 @@ internal class PostponedWatchdog
         }
     }
 
-    private async Task SleepAndThenReInvoke(StoredFunctionStatus sfs, DateTime now)
+    private async Task SleepAndThenReInvoke(StoredPostponedFunction spf, DateTime now)
     {
-        var functionId = new FunctionId(_functionTypeId, sfs.InstanceId);
+        var functionId = new FunctionId(_functionTypeId, spf.InstanceId);
         if (_shutdownCoordinator.ShutdownInitiated) return;
 
-        var postponedUntil = new DateTime(sfs.PostponedUntil!.Value, DateTimeKind.Utc);
+        var postponedUntil = new DateTime(spf.PostponedUntil, DateTimeKind.Utc);
         var delay = TimeSpanHelper.Max(postponedUntil - now, TimeSpan.Zero);
         await Task.Delay(delay);
 
@@ -87,15 +86,15 @@ internal class PostponedWatchdog
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,
-                expectedEpoch: sfs.Epoch,
-                newEpoch: sfs.Epoch + 1
+                expectedEpoch: spf.Epoch,
+                newEpoch: spf.Epoch + 1
             );
             if (!success) return;
             
             await _reInvoke(
-                sfs.InstanceId,
+                spf.InstanceId,
                 expectedStatuses: new[] {Status.Executing},
-                expectedEpoch: sfs.Epoch + 1
+                expectedEpoch: spf.Epoch + 1
             );
         }
         catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed

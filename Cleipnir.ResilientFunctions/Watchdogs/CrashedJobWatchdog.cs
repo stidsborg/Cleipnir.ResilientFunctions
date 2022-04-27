@@ -49,7 +49,7 @@ internal class CrashedJobWatchdog
         if (_checkFrequency == TimeSpan.Zero) return;
         try
         {
-            var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredFunctionStatus>();
+            var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredExecutingFunction>();
 
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
@@ -57,7 +57,7 @@ internal class CrashedJobWatchdog
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var currExecutingFunctions = await _functionStore
-                    .GetFunctionsWithStatus("Job", Status.Executing)
+                    .GetExecutingFunctions("Job")
                     .TaskSelect(l =>
                         l.ToDictionary(
                             s => s.InstanceId,

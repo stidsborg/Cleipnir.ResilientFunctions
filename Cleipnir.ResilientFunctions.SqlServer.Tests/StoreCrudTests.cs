@@ -33,8 +33,4 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
         => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
-
-    [TestMethod]
-    public override Task GetFunctionsWithStatusOnlyReturnsSucceededFunction()
-        => GetFunctionsWithStatusOnlyReturnsSucceededFunction(Sql.AutoCreateAndInitializeStore());
 }
