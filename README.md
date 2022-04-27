@@ -15,9 +15,13 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
 * ability to migrate non-completed functions
 * simple testability 
 
-## Getting Started 
+## Getting Started
 ```
 Install-Package Cleipnir.ResilientFunctions.SqlServer
+```
+or
+```
+Install-Package Cleipnir.ResilientFunctions.PostgreSQL
 ```
 
 ## Elevator Pitch
@@ -193,13 +197,13 @@ After a resilient function has been registered invoking it is simply a matter of
 ```csharp
 var registration = rFunctions.Register(functionType, innerFunc);
 var rFunc = registration.Invoke;
-rFunc(instanceId, param);
+await rFunc(instanceId, param);
 ```
 
-Please note it is simple to F11-debug into the registered inner function. The inner function invocation happens inside the first layer of framework code. 
+Please note it is simple to F11-debug into the registered inner function. The inner function invocation happens inside the first or second layer of framework code. 
 
 ### Ensuring a crashed function completes
-When registering a function type the invocation of any crashed function of that type will automatically be restarted by the framework.
+When registering a function type the invocation of any crashed or postponed (eligible for execution) function of that type will automatically be restarted by the framework.
 ```csharp
 var registration = rFunctions.Register(functionType, innerFunc);
 ```
@@ -216,9 +220,13 @@ The framework automatically ensures the scrapbook is stored after the function i
 See the prior “Sending customer emails”-code for a good example. 
 
 ### Postponing an invocation
-Network communication is inherently unreliable. Thus, an executing function must handle unsuccessful communication with an external system. 
+Network communication is inherently unreliable. Thus, an executing function must be able to handle unsuccessful communication with an external system. 
 
-A common strategy when facing network communication issues is to try again after a short period of time. As an inner function in the framework is ordinary C#-code the retry logic can reside inside the function itself, using a retry-framework such as Polly (https://github.com/App-vNext/Polly). However, if the delay between retries becomes too large it might be more beneficial to persist the function and fetch it again when it becomes eligible for execution again. This saves resources on the running instance as state is moved from memory to persistent storage. The framework supports this out-of-the-box. A function can be postponed simply by returning the intent from the inner function as follows:
+A common strategy when facing network communication issues is to try again after a short period of time. As an inner function in the framework is ordinary C#-code the retry logic can reside inside the function itself, using a retry-framework such as Polly (https://github.com/App-vNext/Polly). 
+However, if the delay between retries becomes too large it might be more beneficial to persist the function and fetch it again when it becomes eligible for execution again. 
+This saves resources on the running instance as state is moved from memory to persistent storage.
+The framework supports this out-of-the-box. 
+A function can be postponed simply by returning the intent from the inner function as follows:
 
 ```csharp
 return Postpone.For(TimeSpan.FromHours(1));
