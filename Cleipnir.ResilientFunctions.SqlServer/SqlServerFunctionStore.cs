@@ -24,8 +24,6 @@ public class SqlServerFunctionStore : IFunctionStore
         _tablePrefix = tablePrefix;
     }
 
-    //todo add index for status and subsequently postponed until!
-    
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
     {
         return async () =>
@@ -57,7 +55,17 @@ public class SqlServerFunctionStore : IFunctionStore
                         {nameof(Row.Epoch)} INT NOT NULL,
                         {nameof(Row.SignOfLife)} INT NOT NULL,
                         PRIMARY KEY ({nameof(Row.FunctionTypeId)}, {nameof(Row.FunctionInstanceId)})
-                    );"
+                    );
+
+                    CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
+                        ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
+                        INCLUDE (Epoch, SignOfLife)
+                        WHERE Status = {(int) Status.Executing};
+
+                    CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
+                        ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
+                        INCLUDE (Epoch)
+                        WHERE Status = {(int) Status.Postponed};"
             );
         }
         catch (SqlException e)
