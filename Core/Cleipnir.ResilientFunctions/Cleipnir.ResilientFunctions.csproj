@@ -23,11 +23,11 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
     </PropertyGroup>
 
     <ItemGroup>
-      <None Include="..\cleipnir.png">
+      <None Include="..\..\cleipnir.png">
         <Pack>True</Pack>
         <PackagePath>\</PackagePath>
       </None>
-      <None Include="..\README.md">
+      <None Include="..\..\README.md">
         <Pack>True</Pack>
         <PackagePath>\</PackagePath>
       </None>
