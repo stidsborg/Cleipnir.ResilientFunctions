@@ -23,6 +23,24 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
                 ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!";
         }
 
+        [AssemblyInitialize]
+        public static void AssemblyInit(TestContext testContext)
+        {
+            // DROP test database if exists and create it again
+            var database = ConnectionString
+                .Split("Database=")[1]
+                .Split(";")
+                .First();
+            
+            var connectionStringWithoutDatabase = ConnectionString
+                .Split($"Database={database};")
+                .Aggregate("", string.Concat);
+
+            using var conn = new NpgsqlConnection(connectionStringWithoutDatabase);
+            conn.Execute($"DROP DATABASE IF EXISTS {database}");
+            conn.Execute($"CREATE DATABASE {database}");
+        }
+        
         private static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
             var store = new PostgreSqlFunctionStore(ConnectionString); 
