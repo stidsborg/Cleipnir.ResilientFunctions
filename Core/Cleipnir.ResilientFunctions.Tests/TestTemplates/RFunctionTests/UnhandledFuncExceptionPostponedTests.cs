@@ -13,7 +13,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-public abstract class UnhandledFuncExceptionTests
+public abstract class UnhandledFuncExceptionPostponedTests
 {
     public abstract Task UnhandledExceptionResultsInPostponedFunc();
     protected async Task UnhandledExceptionResultsInPostponedFunc(Task<IFunctionStore> storeTask)

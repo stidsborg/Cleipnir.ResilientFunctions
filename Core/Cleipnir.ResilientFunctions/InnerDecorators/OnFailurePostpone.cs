@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.InnerDecorators;
 
-public static class OnFailure
+public static partial class OnFailure
 {
     #region Func
     // sync with direct return
