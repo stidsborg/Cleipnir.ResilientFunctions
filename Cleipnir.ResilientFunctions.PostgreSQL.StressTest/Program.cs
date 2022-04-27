@@ -1,6 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions.Helpers;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.StressTest;
 
 internal static class Program
 {
@@ -9,9 +9,10 @@ internal static class Program
         var ready = new Queue<Node>();
         var started = new Queue<Node>();
 
-        const string connectionString = "Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!";
+        const string connectionString = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=rfunctions;";
         await DatabaseHelper.CreateDatabaseIfNotExists(connectionString);
-        var sqlStore = new SqlServerFunctionStore(connectionString);
+        var sqlStore = new PostgreSqlFunctionStore(connectionString); 
+        
         await sqlStore.DropIfExists();
         await sqlStore.Initialize();
         

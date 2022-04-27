@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 public class PostgreSqlFunctionStore : IFunctionStore
 {
     private readonly string _connectionString;
-    private readonly string _tablePrefix; //todo use this!
+    private readonly string _tablePrefix;
 
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
     {
@@ -23,7 +23,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await conn.OpenAsync();
         return conn;
     }
-    //todo add index for status and subsequently postponed until!
 
     public async Task Initialize()
     {
@@ -44,7 +43,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL,
                 sign_of_life INT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
-            )"
+            );
+            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
+            ON {_tablePrefix}rfunctions(function_type_id, function_instance_id)
+            INCLUDE (epoch, sign_of_life)
+            WHERE status = {(int) Status.Executing};
+
+            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_postponed
+            ON {_tablePrefix}rfunctions(function_type_id, postponed_until, function_instance_id)
+            INCLUDE (epoch)
+            WHERE status = {(int) Status.Postponed};"
         );
     }
 
