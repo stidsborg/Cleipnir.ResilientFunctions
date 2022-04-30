@@ -93,10 +93,13 @@ public class CrashableFunctionStore : IFunctionStore
                 expectedEpoch
             );
 
+        Subject<SetFunctionStateParams> subject;
         lock (_sync)
-            _subject.OnNext(new SetFunctionStateParams(
-                functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch
-            ));
+            subject = _subject;
+        
+        subject.OnNext(new SetFunctionStateParams(
+            functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch
+        ));
 
         return success;
     }
