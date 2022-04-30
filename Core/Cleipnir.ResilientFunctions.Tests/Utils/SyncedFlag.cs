@@ -17,6 +17,15 @@ public class SyncedFlag
         }
     }
 
+    public bool IsRaised
+    {
+        get
+        {
+            lock (_sync)
+                return _position == FlagPosition.Raised;
+        }
+    }
+
     public Task WaitForRaised()
     {
         var tcs = new TaskCompletionSource();
