@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Helpers;
+﻿using Dapper;
+using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
 
@@ -42,30 +43,16 @@ internal static class Program
         while (started.Count > 0)
             started.Dequeue().Stop();
 
-        var confirmed = 0;
         while (true)
         {
-            var executingFunctions = await sqlStore
-                .GetExecutingFunctions("StressTest")
-                .ToTaskList();
-            Console.WriteLine("EXECUTING FUNCTIONS: " + executingFunctions.Count);
-            
-            var postponedFunctions = await sqlStore
-                .GetPostponedFunctions("StressTest", expiresBefore: 0)
-                .ToTaskList();
-            Console.WriteLine("POSTPONED FUNCTIONS: " + postponedFunctions.Count);
+            await using var conn = new SqlConnection(connectionString);
+            conn.Open();
+            var nonCompletes = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM RFunctions WHERE ResultJson IS NULL;");
 
-            if (executingFunctions.Count == 0 && postponedFunctions.Count == 0)
-            {
-                confirmed++;
-                if (confirmed == 3)
-                    break;
-            }
-            else
-                confirmed = 0;
-                
-            
+            Console.WriteLine("Non-completed: " + nonCompletes);
             await Task.Delay(250);
+
+            if (nonCompletes == 0) break;
         }
     }
 }
