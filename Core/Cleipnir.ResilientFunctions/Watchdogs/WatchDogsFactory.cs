@@ -28,12 +28,14 @@ internal class WatchDogsFactory
         _postponedCheckFrequency = postponedCheckFrequency;
     }
 
-    public void CreateAndStart(FunctionTypeId functionTypeId, WatchDogReInvokeFunc reInvoke) 
+    public void CreateAndStart(FunctionTypeId functionTypeId, WatchDogReInvokeFunc reInvoke, int maxParallelInvocations)
     {
+        var workQueue = new WorkQueue(maxParallelInvocations);
         var crashedWatchdog = new CrashedWatchdog(
             functionTypeId,
             _functionStore,
             reInvoke,
+            workQueue,
             _crashedCheckFrequency,
             _unhandledExceptionHandler,
             _shutdownCoordinator
@@ -43,6 +45,7 @@ internal class WatchDogsFactory
             functionTypeId,
             _functionStore,
             reInvoke,
+            workQueue,
             _postponedCheckFrequency,
             _unhandledExceptionHandler,
             _shutdownCoordinator

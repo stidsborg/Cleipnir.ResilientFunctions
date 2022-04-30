@@ -17,11 +17,15 @@ public class WorkQueueTests
     {
         var workQueue = new WorkQueue(maxParallelism: 1);
         var flag = new SyncedFlag();
-        workQueue.Enqueue(() =>
-        {
-            flag.Raise();
-            return Task.CompletedTask;
-        });
+        var workItem = new WorkQueue.WorkItem(
+            "id1",
+            () =>
+            {
+                flag.Raise();
+                return Task.CompletedTask;
+            }
+        );
+        workQueue.Enqueue(new [] {workItem});
 
         await BusyWait.UntilAsync(() => flag.Position == FlagPosition.Raised);
     }
@@ -32,13 +36,21 @@ public class WorkQueueTests
         var workQueue = new WorkQueue(maxParallelism: 2);
         var waitFlag = new SyncedFlag();
         var executedFlag = new SyncedFlag();
-        workQueue.Enqueue(async () => await waitFlag.WaitForRaised());
-        workQueue.Enqueue(async () => await waitFlag.WaitForRaised());
-        
-        workQueue.Enqueue(() =>
+        var workItems = new WorkQueue.WorkItem[]
         {
-            executedFlag.Raise();
-            return Task.CompletedTask;
+            new ("id1", async () => await waitFlag.WaitForRaised()),
+            new ("id2", async () => await waitFlag.WaitForRaised())
+        };
+
+        workQueue.Enqueue(workItems);
+
+        workQueue.Enqueue(new WorkQueue.WorkItem[]
+        {
+            new("id3", () =>
+            {
+                executedFlag.Raise();
+                return Task.CompletedTask;
+            })
         });
 
         await Task.Delay(100);
@@ -55,16 +67,17 @@ public class WorkQueueTests
         var workQueue = new WorkQueue(maxParallelism: 2);
         
         var flags = Enumerable.Repeat(new SyncedFlag(), testSize).ToArray();
-
-        for (var i = 0; i < testSize; i++)
-        {
-            var j = i;
-            workQueue.Enqueue(() =>
-            {
-                flags[j].Raise();
-                return Task.CompletedTask;
-            });
-        }
+        var workItems = Enumerable
+            .Range(0, testSize)
+            .Select(i => new WorkQueue.WorkItem(
+                $"id{i}", () =>
+                {
+                    flags[i].Raise();
+                    return Task.CompletedTask;
+                })
+            );
+        
+        workQueue.Enqueue(workItems);
 
         foreach (var flag in flags)
             await BusyWait.UntilAsync(() => flag.IsRaised);
@@ -75,14 +88,41 @@ public class WorkQueueTests
     {
         var workQueue = new WorkQueue(maxParallelism: 1);
         var flag = new SyncedFlag();
-        workQueue.Enqueue(() => Task.FromException(new TimeoutException()));
-        
-        workQueue.Enqueue(() =>
+        workQueue.Enqueue(new []
         {
-            flag.Raise();
-            return Task.CompletedTask;
+            new WorkQueue.WorkItem("id1", () => Task.FromException(new TimeoutException())),
+            new WorkQueue.WorkItem("id2", () => { flag.Raise(); return Task.CompletedTask; })
         });
 
         await BusyWait.UntilAsync(() => flag.Position == FlagPosition.Raised);
+    }
+    
+    [TestMethod]
+    public async Task SameIdWorkIsOnlyExecutedOnce()
+    {
+        var workQueue = new WorkQueue(maxParallelism: 1);
+        var waitFlag = new SyncedFlag();
+        var counter = new SyncedCounter();
+        
+        workQueue.Enqueue(new WorkQueue.WorkItem[]
+        {
+            new("id0", async () => { await waitFlag.WaitForRaised(); })   
+        });
+        
+        workQueue.Enqueue(new WorkQueue.WorkItem[]
+        {
+            new("id1", () => { counter.Increment(); return Task.CompletedTask; })   
+        });
+        
+        workQueue.Enqueue(new WorkQueue.WorkItem[]
+        {
+            new("id1", () => { counter.Increment(); return Task.CompletedTask; })   
+        });
+        
+        waitFlag.Raise();
+
+        await Task.Delay(10);
+        
+        counter.Current.ShouldBe(1);
     }
 }

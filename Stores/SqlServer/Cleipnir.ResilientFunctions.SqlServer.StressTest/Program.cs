@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using System.Diagnostics;
+using Dapper;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
@@ -43,6 +44,8 @@ internal static class Program
         while (started.Count > 0)
             started.Dequeue().Stop();
 
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
         while (true)
         {
             await using var conn = new SqlConnection(connectionString);
@@ -54,5 +57,7 @@ internal static class Program
 
             if (nonCompletes == 0) break;
         }
+
+        Console.WriteLine("Settled in: " + stopWatch.Elapsed);
     }
 }

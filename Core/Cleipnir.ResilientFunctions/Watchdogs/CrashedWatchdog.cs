@@ -15,6 +15,7 @@ internal class CrashedWatchdog
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly WatchDogReInvokeFunc _reInvoke;
+    private readonly WorkQueue _workQueue;
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _checkFrequency;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -24,6 +25,7 @@ internal class CrashedWatchdog
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke,
+        WorkQueue workQueue,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -31,6 +33,7 @@ internal class CrashedWatchdog
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
         _reInvoke = reInvoke;
+        _workQueue = workQueue;
         _checkFrequency = checkFrequency;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -64,33 +67,39 @@ internal class CrashedWatchdog
                         equals (curr.Key, curr.Value.Epoch, curr.Value.SignOfLife)
                     select prev.Value;
 
-                foreach (var function in hangingFunctions.RandomlyPermutate())
-                {
-                    if (_shutdownCoordinator.ShutdownInitiated) return;
-
-                    try
-                    {
-                        await _reInvoke(
-                            function.InstanceId,
-                            expectedStatuses: new[] { Status.Executing },
-                            expectedEpoch: function.Epoch
-                        );
-                    }
-                    catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
-                    catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
-                    catch (Exception innerException) 
-                    {
-                        var functionId = new FunctionId(_functionTypeId, function.InstanceId);
-                        _unhandledExceptionHandler.Invoke(
-                            new FrameworkException(
-                                _functionTypeId,
-                                $"{nameof(CrashedWatchdog)} failed while executing: '{functionId}'",
-                                innerException
-                            )
-                        );
-                    }
-                }
-
+                var workItems = hangingFunctions
+                    .Select(sef => new WorkQueue.WorkItem(
+                        Id: sef.InstanceId.Value, 
+                        Work: async () =>
+                        {
+                            if (_shutdownCoordinator.ShutdownInitiated) return;
+                            
+                            try
+                            {
+                                await _reInvoke(
+                                    sef.InstanceId,
+                                    expectedStatuses: new[] {Status.Executing},
+                                    expectedEpoch: sef.Epoch
+                                );
+                            }
+                            catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
+                            catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
+                            catch (Exception innerException)
+                            {
+                                var functionId = new FunctionId(_functionTypeId, sef.InstanceId);
+                                _unhandledExceptionHandler.Invoke(
+                                    new FrameworkException(
+                                        _functionTypeId,
+                                        $"{nameof(CrashedWatchdog)} failed while executing: '{functionId}'",
+                                        innerException
+                                    )
+                                );
+                            }
+                        }))
+                    .RandomlyPermutate();
+                
+                _workQueue.Enqueue(workItems);
+                
                 prevExecutingFunctions = currExecutingFunctions;
             }
         }

@@ -15,6 +15,7 @@ internal class PostponedWatchdog
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly WatchDogReInvokeFunc _reInvoke;
+    private readonly WorkQueue _workQueue;
     private readonly TimeSpan _checkFrequency;
     private readonly FunctionTypeId _functionTypeId;
 
@@ -22,6 +23,7 @@ internal class PostponedWatchdog
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke,
+        WorkQueue workQueue,
         TimeSpan checkFrequency,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -31,6 +33,7 @@ internal class PostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
         _reInvoke = reInvoke;
+        _workQueue = workQueue;
         _checkFrequency = checkFrequency;
     }
 
@@ -73,41 +76,46 @@ internal class PostponedWatchdog
     {
         var functionId = new FunctionId(_functionTypeId, spf.InstanceId);
         if (_shutdownCoordinator.ShutdownInitiated) return;
-
+        
         var postponedUntil = new DateTime(spf.PostponedUntil, DateTimeKind.Utc);
         var delay = TimeSpanHelper.Max(postponedUntil - now, TimeSpan.Zero);
         await Task.Delay(delay);
 
         if (_shutdownCoordinator.ShutdownInitiated) return;
 
-        try
-        {
-            using var _ = _shutdownCoordinator.RegisterRunningRFunc();
-            var success = await _functionStore.TryToBecomeLeader(
-                functionId,
-                Status.Executing,
-                expectedEpoch: spf.Epoch,
-                newEpoch: spf.Epoch + 1
-            );
-            if (!success) return;
+        _workQueue.Enqueue(
+            functionId.InstanceId.ToString(),
+            async () =>
+            {
+                try
+                {
+                    using var _ = _shutdownCoordinator.RegisterRunningRFunc();
+                    var success = await _functionStore.TryToBecomeLeader(
+                        functionId,
+                        Status.Executing,
+                        expectedEpoch: spf.Epoch,
+                        newEpoch: spf.Epoch + 1
+                    );
+                    if (!success) return;
             
-            await _reInvoke(
-                spf.InstanceId,
-                expectedStatuses: new[] {Status.Executing},
-                expectedEpoch: spf.Epoch + 1
-            );
-        }
-        catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
-        catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
-        catch (Exception innerException)
-        {
-            _unhandledExceptionHandler.Invoke(
-                new FrameworkException(
-                    _functionTypeId,
-                    $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
-                    innerException
-                )
-            );
-        }
+                    await _reInvoke(
+                        spf.InstanceId,
+                        expectedStatuses: new[] {Status.Executing},
+                        expectedEpoch: spf.Epoch + 1
+                    );
+                }
+                catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
+                catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
+                catch (Exception innerException)
+                {
+                    _unhandledExceptionHandler.Invoke(
+                        new FrameworkException(
+                            _functionTypeId,
+                            $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
+                            innerException
+                        )
+                    );
+                }
+            });
     }
 }

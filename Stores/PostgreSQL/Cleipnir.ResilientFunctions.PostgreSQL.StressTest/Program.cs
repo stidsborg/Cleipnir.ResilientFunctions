@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using System.Diagnostics;
+using Dapper;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL.StressTest;
@@ -44,6 +45,8 @@ internal static class Program
         while (started.Count > 0)
             started.Dequeue().Stop();
         
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
         while (true)
         {
             await using var conn = new NpgsqlConnection(connectionString);
@@ -55,5 +58,7 @@ internal static class Program
 
             if (nonCompletes == 0) break;
         }
+        
+        Console.WriteLine("Settled in: " + stopWatch.Elapsed);
     }
 }

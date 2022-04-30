@@ -81,37 +81,44 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TReturn> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
         InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        serializer
+        serializer,
+        maxParallelCrashedOrPostponedInvocations
     );
     
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<TReturn>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
         InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        serializer
+        serializer,
+        maxParallelCrashedOrPostponedInvocations
     );
     
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result<TReturn>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
         InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        serializer
+        serializer,
+        maxParallelCrashedOrPostponedInvocations
     );
     
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result<TReturn>>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull
     {
         if (_disposed)
@@ -144,7 +151,8 @@ public class RFunctions : IDisposable
             
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
-                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch)
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                maxParallelCrashedOrPostponedInvocations
             );
 
             var registration = new RFunc<TParam, TReturn>(
@@ -161,40 +169,47 @@ public class RFunctions : IDisposable
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Action<TParam> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull 
     {
         if (_disposed)
@@ -224,7 +239,8 @@ public class RFunctions : IDisposable
 
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
-                reInvoke: (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch)
+                reInvoke: (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                maxParallelCrashedOrPostponedInvocations
             );
 
             var registration =  new RAction<TParam>(
@@ -241,40 +257,47 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
 
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
 
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
 
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
@@ -306,7 +329,8 @@ public class RFunctions : IDisposable
 
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
-                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch)
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                maxParallelCrashedOrPostponedInvocations
             );
 
             var registration = new RFunc<TParam, TReturn>(
@@ -323,40 +347,47 @@ public class RFunctions : IDisposable
     public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
     
     public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
 
     public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            serializer
+            serializer,
+            maxParallelCrashedOrPostponedInvocations
         );
 
     public RAction<TParam> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        int maxParallelCrashedOrPostponedInvocations = 10
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
@@ -388,7 +419,8 @@ public class RFunctions : IDisposable
             
             _watchDogsFactory.CreateAndStart(
                 functionTypeId,
-                (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch)
+                (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                maxParallelCrashedOrPostponedInvocations
             );
 
             var registration = new RAction<TParam>(
