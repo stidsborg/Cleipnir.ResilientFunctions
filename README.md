@@ -233,24 +233,19 @@ return Postpone.For(TimeSpan.FromHours(1));
 ```
 
 #### Back-off strategies:
-It is common to increase the delay between retries using some mathematical function in order to put less pressure on the unresponsive system. E.g. linear or exponential backoff strategies. The simplest approach for using such strategies within the framework is to store a retry counter in a scrapbook associated with the function. For instance:
+It is common to increase the delay between retries using some mathematical function in order to put less pressure on the unresponsive system. E.g. linear or exponential backoff strategies. The framework supports both strategies using function composition. For instance, exponential backoff error-handling can be added to an inner function as follows:
 
 ```csharp
-public static async Task<Return> InnerFunc(string @param, Scrapbook scrapbook)
-{
-  var success = await ExternalCall();
-  if (!success)
-  {
-    scrapbook.RetryCount++;
-    return Postpone.For(CalculateDelay(scrapbook.RetryCount));
-  }
-  return Return.Succeed;
-}
-
-public class Scrapbook : RScrapbook
-{
-  public int RetryCount { get; set; }
-}
+var rFuncRegistration = rFunctions.RegisterFunc(
+  functionType,
+  OnFailure.BackoffExponentially<string, BackoffScrapbook, string>(
+    Inner,
+    firstDelay: TimeSpan.FromMilliseconds(1000),
+    factor: 2,
+    maxRetries: 3,
+    onException: LogError
+  )
+);
 ```
 
 ### Failing an invocation for manual handling:
