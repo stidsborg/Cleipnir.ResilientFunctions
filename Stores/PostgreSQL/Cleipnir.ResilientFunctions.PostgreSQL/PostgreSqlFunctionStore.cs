@@ -241,7 +241,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 FunctionTypeId = functionId.TypeId.Value,
                 FunctionInstanceId = functionId.InstanceId.Value
             }
-        ).ToTaskList();
+        ).ToTaskAsync();
 
         if (rows.Count == 0) return null;
         

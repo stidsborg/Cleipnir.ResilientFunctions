@@ -32,7 +32,7 @@ public abstract class StoreTests
 
         var nonCompletes = await store
             .GetExecutingFunctions(FunctionId.TypeId)
-            .ToTaskList();
+            .ToTaskAsync();
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];

@@ -66,7 +66,7 @@ public class Arbitrator : IArbitrator
         var existingValue = await conn.QueryAsync<string>(
             @$"SELECT [Value] FROM {_tablePrefix}Arbitrator WHERE [Id]=@Id",
             new {Id = id}
-        ).ToTaskList();
+        ).ToTaskAsync();
 
         if (existingValue.Count == 1)
             return existingValue.Single() == value;

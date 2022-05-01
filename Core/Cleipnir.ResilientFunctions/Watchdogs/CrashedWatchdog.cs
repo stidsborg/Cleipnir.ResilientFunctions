@@ -53,7 +53,7 @@ internal class CrashedWatchdog
 
                 var currExecutingFunctions = await _functionStore
                     .GetExecutingFunctions(_functionTypeId)
-                    .TaskSelect(l =>
+                    .SelectAsync(l =>
                         l.ToDictionary(
                             s => s.InstanceId,
                             s => s
