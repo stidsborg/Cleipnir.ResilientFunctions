@@ -249,43 +249,25 @@ var rFuncRegistration = rFunctions.RegisterFunc(
 ```
 
 ### Failing an invocation for manual handling:
-It is often infeasible (especially for distributed systems) to take every possible scenario into account when coding. Thus, it is sometimes simpler to flag an issue for human intervention. A function can be failed simply by returning the intent from the inner function as follows:
+It is often infeasible (especially for distributed systems) to take every possible scenario into account when coding. Thus, it is sometimes simpler to flag an issue for human intervention. A function can be failed simply by throwing an unhandled exception or by explicitly returning a Fail-instance from the inner function:
 
 ```csharp
 return Fail.WithException(new InvalidOperationException(...));
 ```
 
-A failed function will not be retried by the framework. However, it is possible to invoke the function again using the function registration’s reinvoke-method. 
+A failed function will not be retried by the framework. However, it is possible to explicitly invoke the function again using the function registration’s reinvoke-method. 
 ```csharp
 var registration = rFunctions.Register(functionType, innerFunc);
 var reInvokeRFunc = registration.ReInvoke;
-reInvokeRFunc(instanceId);
+reInvokeRFunc(instanceId, new[] {Status.Failed});
 ```
-
-Please note that if a registered inner function throws an unhandled exception it is failed by the runtime. 
 
 ## Resilient Function Anatomy
 ### Defintion
-A resilient function is simply a wrapped user-specified function (called inner function) with a certain signature. 
-
-The inner function must return either a ```Task<Return>``` or ```Task<Return<T>>``` and accept a user-specified parameter as well as an optional scrapbook-parameter.   
-
-  For instance, concretely, the inner function could have any of the following signatures:
-* ```Task<Return<Booking>> ProcessOrder(Order order, Scrapbook scrapbook)```
-* ```Task<Return>> ProcessOrder(Order order, Scrapbook scrapbook)```
-* ```Task<Return<Booking>> ProcessOrder(Order order)``` 
-* ```Task<Return>> ProcessOrder(Order order)```
-
-Which would result in one of the following resilient function signatures:
-* ```Task<Result<Booking>> RFunc(string id, Order param)``` 
-* ```Task<Result> RAction(string id, Order param)```
-* ```Task<Result<Booking>> RFunc(string id, Order param)```
-* ```Task<Result> RAction(Order param)```
-
-It is noted that a resilient function returning a non-generic Result is also called a *resilient action* and an inner function returning a non-generic Return-type is  called an *inner action*. 
+A resilient function is simply a wrapped user-specified function (called inner function), which accepts either one or two parameters and optionally returns a value.    
   
 #### Input parameter
-The first parameter of all inner function types is the input parameter. It is the idempotent and serializable information which is required for the function to perform its task. 
+The first parameter of any inner function is the input parameter. It is the constant and serializable information which is required for the function to perform its designated task. 
 
 #### Scrapbook
 A scrapbook is a user-specified subtype (of the abstract RScrapbook type) which is used to persist information regarding and during the invocation of the function. The information will be available on re-invocations - e.g. if the function crashes or is postponed. Thus, the scrapbook can be used to avoid blindly restarting the resilient function from scratch after each re-invocation. 
@@ -293,40 +275,37 @@ A scrapbook is a user-specified subtype (of the abstract RScrapbook type) which 
 Commonly, a scrapbook type is specifically designed for the resilient function at hand. That is, the scrapbook type has properties which make sense for the use-case at hand. Furthermore, a scrapbook must inherit from the abstract RScrapbook framework class and have an empty constructor. 
 
 #### Return-type
-An inner function may return either:
-* ```Task<Return>```
-* ```Task<Return<T>>```
+An inner function may optionally return a value and in either case may explicitly return the outcome of the invocation (e.g. if the invocation should be postponed).
 
-The first corresponds to a void-method whereas the second represents a value returning method. Returning a successful void-result can be accomplished as follows: 
+Thus, returning a successful void-result can be accomplished as follows: 
 ```csharp
-async Task<Return> Inner(string param) => Succeed.WithoutValue;
+void Inner(string param) => {...}
+```
+
+Or in the async case:
+```csharp
+Task Inner(string param) => {...}
 ```
 
 Whereas a non-void value can be returned as follows:
 ```csharp
-async Task<Return<string>> Inner(string param) => param.ToUpper();
+string Inner(string param) => param.ToUpper();
+```
+
+Or (again) in the async case:
+```csharp
+async Task<string> Inner(string param) => param.ToUpper();
 ```
 
 Apart from indicating a successful invocation the Return-type also allows postponing and failing an invocation as follows:
 ```csharp
-async Task<Return<string>> Inner(string param) => Postpone.For(10_000);
+Return<string> Inner(string param) => Postpone.For(10_000);
 ```
   
 ```csharp
 async Task<Return<string>> Inner(string param) => Fail.WithException(new TimeoutException());
 ```  
 
-#### Result
-The resilient function created from the inner function returns either Result or Result<T>. The Result-type allows determining if the invocation was successful, postponed or failed. Furthermore, if the invocation was successful then the return value can be extracted in the following way:
-```csharp
-var result = await rFunc(“hello world”);
-var returnValue = result.EnsureSuccess();
-```
-  
-Or using the short-hand:
-```csharp
-var returnValue = await rFunc(“hello world”).EnsureSuccess();
-```
 ### Identification
 A resilient function is uniquely identified by two strings:
 * Function Type Id
