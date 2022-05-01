@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.Tests", "Core\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj", "{36E75AAA-C2EB-4209-8455-A51676D16B76}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.StressTests", "StressTests\Cleipnir.ResilientFunctions.StressTests.csproj", "{846AE03C-A170-43A8-AD7C-EF693A88CB1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -190,6 +192,18 @@ Global
 		{36E75AAA-C2EB-4209-8455-A51676D16B76}.Release|x64.Build.0 = Release|Any CPU
 		{36E75AAA-C2EB-4209-8455-A51676D16B76}.Release|x86.ActiveCfg = Release|Any CPU
 		{36E75AAA-C2EB-4209-8455-A51676D16B76}.Release|x86.Build.0 = Release|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Debug|x64.Build.0 = Debug|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Debug|x86.Build.0 = Debug|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Release|x64.ActiveCfg = Release|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Release|x64.Build.0 = Release|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Release|x86.ActiveCfg = Release|Any CPU
+		{846AE03C-A170-43A8-AD7C-EF693A88CB1E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0B3EAFB3-3C0F-441B-809F-2659BD6B7E72} = {BE943138-D5D9-46D6-9B7C-76C73A552274}
