@@ -16,11 +16,11 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
 * simple testability 
 
 ## Getting Started
-```
+```powershell
 Install-Package Cleipnir.ResilientFunctions.SqlServer
 ```
 or
-```
+```powershell
 Install-Package Cleipnir.ResilientFunctions.PostgreSQL
 ```
 
