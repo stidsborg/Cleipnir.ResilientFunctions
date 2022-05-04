@@ -89,6 +89,7 @@ internal class CrashedWatchdog
                             }
                             catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
                             catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
+                            catch (FunctionInvocationPostponedException) {}
                             catch (Exception innerException)
                             {
                                 var functionId = new FunctionId(_functionTypeId, sef.InstanceId);
