@@ -12,7 +12,7 @@ public static class CrashedTest
         const int testSize = 1000;
 
         await helper.InitializeDatabaseAndTruncateTable();
-        var sqlStore = helper.CreateFunctionStore();
+        var sqlStore = await helper.CreateFunctionStore();
 
         Console.WriteLine("CRASHED_TEST: Initializing");
         for (var i = 0; i < testSize; i++)

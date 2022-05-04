@@ -30,5 +30,10 @@ public class Helper : IHelper
         return nonCompletes;
     }
 
-    public IFunctionStore CreateFunctionStore() => new PostgreSqlFunctionStore(ConnectionString);
+    public async Task<IFunctionStore> CreateFunctionStore()
+    {
+        var store = new PostgreSqlFunctionStore(ConnectionString);
+        await store.Initialize();
+        return store;
+    } 
 }

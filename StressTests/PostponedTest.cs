@@ -10,7 +10,7 @@ public static class PostponedTest
     public static async Task Perform(IHelper helper)
     {
         const int testSize = 1000;
-        var store = helper.CreateFunctionStore();
+        var store = await helper.CreateFunctionStore();
 
         var start = DateTime.UtcNow.AddSeconds(10);
         Console.WriteLine("POSTPONED_TEST: Expected start: " + start);

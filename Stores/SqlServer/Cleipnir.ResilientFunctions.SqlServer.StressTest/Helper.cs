@@ -15,7 +15,11 @@ public class Helper : IHelper
         await DatabaseHelper.CreateDatabaseIfNotExists(ConnectionString);
         await using var conn = new SqlConnection(ConnectionString);
         conn.Open();
-        await conn.ExecuteAsync("TRUNCATE TABLE rfunctions");
+        try { await conn.ExecuteAsync("TRUNCATE TABLE rfunctions"); }
+        catch
+        {
+            // ignored
+        }
     }
 
     public async Task<int> NumberOfNonCompleted()
@@ -30,5 +34,10 @@ public class Helper : IHelper
         return nonCompletes;
     }
 
-    public IFunctionStore CreateFunctionStore() => new SqlServerFunctionStore(ConnectionString);
+    public async Task<IFunctionStore> CreateFunctionStore()
+    {
+        var store = new SqlServerFunctionStore(ConnectionString);
+        await store.Initialize();
+        return store;
+    } 
 }

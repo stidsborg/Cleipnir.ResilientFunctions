@@ -6,5 +6,5 @@ public interface IHelper
 {
     Task InitializeDatabaseAndTruncateTable();
     Task<int> NumberOfNonCompleted();
-    IFunctionStore CreateFunctionStore();
+    Task<IFunctionStore> CreateFunctionStore();
 }
