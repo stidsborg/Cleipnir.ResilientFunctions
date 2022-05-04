@@ -17,8 +17,10 @@ internal static class Program
 
         var rFunctions = new RFunctions(
             store,
-            Console.WriteLine,
-            crashedCheckFrequency: TimeSpan.FromSeconds(2)
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                CrashedCheckFrequency: TimeSpan.FromSeconds(2)
+            )
         );
 
         var rAction = rFunctions.RegisterAction(

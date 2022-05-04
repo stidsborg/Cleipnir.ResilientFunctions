@@ -34,13 +34,17 @@ public class SignOfLifeUpdaterTests
                 return true.ToTask();
             }
         };
-           
-        var updaterFactory = new SignOfLifeUpdaterFactory(
-            storeMock,
-            new UnhandledExceptionHandler(_unhandledExceptionCatcher.Catch),
-            unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
+
+        var settings = new Settings(
+            _unhandledExceptionCatcher.Catch,
+            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
         );
-        var updater = updaterFactory.CreateAndStart(_functionId, expectedEpoch);
+        var updater = SignOfLifeUpdater.CreateAndStart(
+            _functionId,
+            expectedEpoch,
+            storeMock,
+            SettingsWithDefaults.Default.Merge(settings)
+        );
 
         await Task.Delay(200);
         updater.Dispose();
@@ -70,12 +74,16 @@ public class SignOfLifeUpdaterTests
             } 
         };
 
-        var updaterFactory = new SignOfLifeUpdaterFactory(
-            storeMock,
-            new UnhandledExceptionHandler(_unhandledExceptionCatcher.Catch),
-            unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
+        var settings = new Settings(
+            _unhandledExceptionCatcher.Catch,
+            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
         );
-        using var updater = updaterFactory.CreateAndStart(_functionId, epoch: 0);
+        var updater = SignOfLifeUpdater.CreateAndStart(
+            _functionId,
+            epoch: 0,
+            storeMock,
+            SettingsWithDefaults.Default.Merge(settings)
+        );
 
         await Task.Delay(100);
         updater.Dispose();
@@ -96,14 +104,18 @@ public class SignOfLifeUpdaterTests
                 throw new Exception();
             }
         };
-            
-        var updaterFactory = new SignOfLifeUpdaterFactory(
-            storeMock,
-            new UnhandledExceptionHandler(_unhandledExceptionCatcher.Catch),
-            unhandledFunctionsCheckFrequency: TimeSpan.FromMilliseconds(10)
+
+        var settings = new Settings(
+            _unhandledExceptionCatcher.Catch,
+            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
         );
-        using var updater = updaterFactory.CreateAndStart(_functionId, epoch: 0);
-            
+        var updater = SignOfLifeUpdater.CreateAndStart(
+            _functionId,
+            epoch: 0,
+            storeMock,
+            SettingsWithDefaults.Default.Merge(settings)
+        );
+
         BusyWait.Until(() => _unhandledExceptionCatcher.ThrownExceptions.Any());
             
         _unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);

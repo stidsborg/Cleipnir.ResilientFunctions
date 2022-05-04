@@ -17,8 +17,10 @@ public class Node
         _crashableFunctionStore = new CrashableFunctionStore(store);
         _rFunctions = new RFunctions(
             _crashableFunctionStore,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(1_000)
+            new Settings(
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(1_000)
+            )
         );
         _rFunc = _rFunctions.RegisterFunc<string, Scrapbook, string>(
             "StressTest",

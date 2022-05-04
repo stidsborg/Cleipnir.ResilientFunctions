@@ -14,8 +14,10 @@ public static class Example
         var store = new InMemoryFunctionStore();
         var rFunctions = new RFunctions(
             store,
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
-            unhandledExceptionHandler: Console.WriteLine
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(1_000)
+            )
         );
         var rJob = rFunctions
             .RegisterJob<Scrapbook>("SampleJob", Job);

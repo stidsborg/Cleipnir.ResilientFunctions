@@ -33,6 +33,24 @@ public class SignOfLifeUpdater : IDisposable
         _updateFrequency = updateFrequency;
     }
 
+    public static IDisposable CreateAndStart(
+        FunctionId functionId, 
+        int epoch, 
+        IFunctionStore functionStore, 
+        SettingsWithDefaults settings)
+    {
+        var signOfLifeUpdater = new SignOfLifeUpdater(
+            functionId,
+            epoch,
+            functionStore,
+            settings.UnhandledExceptionHandler,
+            updateFrequency: settings.CrashedCheckFrequency / 2
+        );
+            
+        _ = signOfLifeUpdater.Start();
+        return signOfLifeUpdater;
+    }
+    
     public Task Start()
     {
         if (_updateFrequency == TimeSpan.Zero)

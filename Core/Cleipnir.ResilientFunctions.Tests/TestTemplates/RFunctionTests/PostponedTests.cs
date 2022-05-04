@@ -24,9 +24,11 @@ public abstract class PostponedTests
             var rFunc = new RFunctions
                 (
                     crashableStore,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.Zero,
+                        PostponedCheckFrequency: TimeSpan.Zero
+                    )
                 )
                 .RegisterFunc<string, string>(
                     functionTypeId,
@@ -43,9 +45,11 @@ public abstract class PostponedTests
         {
             using var rFunctions = new RFunctions(
                 store,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                )
             );
 
             var rFunc = rFunctions
@@ -72,9 +76,11 @@ public abstract class PostponedTests
             var rFunc = new RFunctions
                 (
                     store,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.Zero,
+                        PostponedCheckFrequency: TimeSpan.Zero
+                    )
                 )
                 .RegisterFunc(
                     functionTypeId,
@@ -88,9 +94,11 @@ public abstract class PostponedTests
         {
             using var rFunctions = new RFunctions(
                 store,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                )
             );
 
             var rFunc = rFunctions
@@ -128,9 +136,11 @@ public abstract class PostponedTests
             var rAction = new RFunctions
                 (
                     store,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.Zero,
+                        PostponedCheckFrequency: TimeSpan.Zero
+                    )
                 )
                 .RegisterAction(
                     functionTypeId,
@@ -144,9 +154,11 @@ public abstract class PostponedTests
         {
             using var rFunctions = new RFunctions(
                 store,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                )
             );
 
             var rFunc = rFunctions
@@ -173,9 +185,11 @@ public abstract class PostponedTests
             var rFunc = new RFunctions
                 (
                     store,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.Zero,
+                        PostponedCheckFrequency: TimeSpan.Zero
+                    )
                 )
                 .RegisterAction(
                     functionTypeId,
@@ -188,9 +202,11 @@ public abstract class PostponedTests
         {
             using var rFunctions = new RFunctions(
                 store,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                )
             );
 
             var rFunc = rFunctions
@@ -230,9 +246,11 @@ public abstract class PostponedTests
         using var rFunctions = new RFunctions
             (
                 store,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10_000)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromSeconds(10)
+                )
             );
         var rFunc = rFunctions
             .RegisterAction(
@@ -267,9 +285,11 @@ public abstract class PostponedTests
             using var rFunctions = new RFunctions
             (
                 crashableStore,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10_000)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromSeconds(10)
+                )
             );
             var rFunc = rFunctions
                 .RegisterAction(functionId.TypeId, (string _) => Postpone.For(1_000))
@@ -284,9 +304,11 @@ public abstract class PostponedTests
             using var rFunctions = new RFunctions
             (
                 crashableStore,
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                )
             );
             rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
             

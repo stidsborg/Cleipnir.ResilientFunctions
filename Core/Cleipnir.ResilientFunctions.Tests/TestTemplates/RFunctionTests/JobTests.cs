@@ -27,7 +27,7 @@ public abstract class JobTests
         
         await rJob.Start();
         await BusyWait.Until(() => store
-            .GetFunction(new FunctionId("Job", nameof(JobCanBeRetried)))
+            .GetFunction(new FunctionId(nameof(JobCanBeRetried), "Job"))
             .Map(sf => sf?.Status == Status.Postponed)
         );
 
@@ -62,11 +62,11 @@ public abstract class JobTests
     public abstract Task CrashedJobIsRetried();
     protected async Task CrashedJobIsRetried(Task<IFunctionStore> storeTask)
     {
-        var functionId = new FunctionId("Job", nameof(CrashedJobIsRetried));
+        var functionId = new FunctionId(nameof(CrashedJobIsRetried), "Job");
         using var disposables = new CombinableDisposable();
         var store = await storeTask;
         {
-            using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromDays(1));
+            using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromDays(1)));
             disposables.Add(rFunctions);
             var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
                 nameof(CrashedJobIsRetried),
@@ -76,7 +76,7 @@ public abstract class JobTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(10));
+            using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)));
             disposables.Add(rFunctions);
             rFunctions.RegisterJob<EmptyScrapbook>(
                 nameof(CrashedJobIsRetried),
@@ -99,8 +99,10 @@ public abstract class JobTests
         var unhandledExceptions = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            crashedCheckFrequency: TimeSpan.FromDays(1),
-            unhandledExceptionHandler: unhandledExceptions.Catch
+            new Settings(
+                unhandledExceptions.Catch,
+                TimeSpan.FromDays(1)
+            )
         );
         disposables.Add(rFunctions);
         var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
@@ -122,8 +124,7 @@ public abstract class JobTests
         var unhandledExceptions = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            crashedCheckFrequency: TimeSpan.FromDays(1),
-            unhandledExceptionHandler: unhandledExceptions.Catch
+            new Settings(unhandledExceptions.Catch, CrashedCheckFrequency: TimeSpan.FromDays(1))
         );
         disposables.Add(rFunctions);
         var rJob = rFunctions.RegisterJob<EmptyScrapbook>(

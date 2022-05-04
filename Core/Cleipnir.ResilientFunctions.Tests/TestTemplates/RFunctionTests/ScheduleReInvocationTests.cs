@@ -23,9 +23,11 @@ public abstract class ScheduleReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.Zero,
-            postponedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
         );
         var syncedParameter = new Synced<string>();
 
@@ -76,9 +78,11 @@ public abstract class ScheduleReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.Zero,
-            postponedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
         );
 
         var rAction = rFunctions.RegisterAction<string, ListScrapbook<string>>(
@@ -138,9 +142,11 @@ public abstract class ScheduleReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.Zero,
-            postponedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
         );
 
         var rFunc = rFunctions.RegisterFunc<string, string>(
@@ -187,9 +193,11 @@ public abstract class ScheduleReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.Zero,
-            postponedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
         );
 
         var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>(
@@ -250,9 +258,11 @@ public abstract class ScheduleReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.Zero,
-            postponedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
         );
 
         var rFunc = rFunctions
@@ -282,9 +292,11 @@ public abstract class ScheduleReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.Zero,
-            postponedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
         );
 
         var rFunc = rFunctions

@@ -35,9 +35,11 @@ public abstract class FailedTests
             var rFunc = new RFunctions
                 (
                     store,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.Zero,
+                        PostponedCheckFrequency: TimeSpan.Zero
+                    )
                 )
                 .RegisterAction(
                     functionTypeId,
@@ -54,9 +56,11 @@ public abstract class FailedTests
             var flag = new SyncedFlag();
             using var rFunctions = new RFunctions(
                 store, 
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                )
             );
             var rFunc = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -100,9 +104,11 @@ public abstract class FailedTests
             var nonCompletingRFunctions = new RFunctions
                 (
                     store, 
-                    unhandledExceptionHandler.Catch, 
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                        PostponedCheckFrequency: TimeSpan.FromMilliseconds(0)
+                    )
                 )
                 .RegisterAction(
                     functionTypeId,
@@ -119,9 +125,11 @@ public abstract class FailedTests
             var flag = new SyncedFlag();
             using var rFunctions = new RFunctions(
                     store,
-                    unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                        PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    )
                 );
             var rAction = rFunctions.RegisterAction(functionTypeId,
                 (string _, Scrapbook _) =>
@@ -158,9 +166,11 @@ public abstract class FailedTests
             var nonCompletingRFunctions = new RFunctions
                 (
                     store, 
-                    unhandledExceptionHandler.Catch, 
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    new Settings(
+                        unhandledExceptionHandler.Catch,
+                        CrashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                        PostponedCheckFrequency: TimeSpan.FromMilliseconds(0)
+                    )
                 )
                 .RegisterAction(
                     functionTypeId,
@@ -174,9 +184,11 @@ public abstract class FailedTests
             var flag = new SyncedFlag();
             using var rFunctions = new RFunctions(
                 store, 
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                )
             );
             var rFunc = rFunctions
                 .RegisterAction(
@@ -216,7 +228,7 @@ public abstract class FailedTests
         const string param = "test";
         {
             var nonCompletingRFunctions = new RFunctions
-                (store, unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+                (store, new Settings(unhandledExceptionHandler.Catch, CrashedCheckFrequency: TimeSpan.Zero))
                 .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) => 
@@ -230,9 +242,8 @@ public abstract class FailedTests
         {
             var flag = new SyncedFlag();
             using var rFunctions = new RFunctions(
-                store, 
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                store,
+                new Settings(unhandledExceptionHandler.Catch, CrashedCheckFrequency: TimeSpan.FromMilliseconds(2))
             );
             var rFunc = rFunctions.RegisterAction(
                 functionTypeId,

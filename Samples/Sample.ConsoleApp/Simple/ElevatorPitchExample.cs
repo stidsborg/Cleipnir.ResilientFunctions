@@ -18,10 +18,12 @@ public static class ElevatorPitchExample
 
         var rFunctions = new RFunctions( //this is where you register different resilient function types
             store,
-            unhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
+            new Settings(
+                UnhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
                 e => Log.Error(e, "Resilient Function Framework exception occured"),
-            crashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
-            postponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
+                CrashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
+                PostponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
+            )
         );
 
         var registration = rFunctions.RegisterFunc( //making a function resilient is simply a matter of registering it

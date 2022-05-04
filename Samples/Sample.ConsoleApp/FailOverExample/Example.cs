@@ -27,8 +27,10 @@ public static class Example
     {
         var functions = new RFunctions(
             new SqlServerFunctionStore(CreateConnection),
-            unhandledExceptionHandler: Console.WriteLine,
-            crashedCheckFrequency: TimeSpan.Zero
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                CrashedCheckFrequency: TimeSpan.Zero
+            )
         );
 
         var callApi = functions
@@ -51,9 +53,11 @@ public static class Example
     {
         var functions = new RFunctions(
             new SqlServerFunctionStore(CreateConnection),
-            unhandledExceptionHandler: Console.WriteLine,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+            )
         );
 
         var callApi = functions

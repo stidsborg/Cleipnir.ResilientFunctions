@@ -37,22 +37,26 @@ public static class PostponedTest
                 expectedEpoch: 0
             );
         }
-        
+
         using var rFunctions1 = new RFunctions(
             store,
-            Console.WriteLine,
-            postponedCheckFrequency: TimeSpan.FromSeconds(1)
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                PostponedCheckFrequency: TimeSpan.FromSeconds(1)
+            )
         );
 
         rFunctions1.RegisterFunc(
             nameof(PostponedTest),
             int (string param) => 1 
         );
-        
+
         using var rFunctions2 = new RFunctions(
             store,
-            Console.WriteLine,
-            postponedCheckFrequency: TimeSpan.FromSeconds(1)
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                PostponedCheckFrequency: TimeSpan.FromSeconds(1)
+            )
         );
 
         rFunctions2.RegisterFunc(

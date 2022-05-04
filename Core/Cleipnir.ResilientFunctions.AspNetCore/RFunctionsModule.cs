@@ -20,9 +20,11 @@ public static class RFunctionsModule
         services.AddSingleton(unhandledExceptionHandler);
         services.AddSingleton(s => new RFunctions(
             s.GetRequiredService<IFunctionStore>(),
-            unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
-            crashedFunctionCheckFrequency,
-            postponedFunctionCheckFrequency
+            new Settings(
+                UnhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
+                crashedFunctionCheckFrequency,
+                postponedFunctionCheckFrequency
+                )
             )
         );
         
@@ -42,12 +44,14 @@ public static class RFunctionsModule
     {
         services.AddSingleton<IFunctionStore, TFunctionStore>();
         services.AddSingleton(unhandledExceptionHandler);
-        services.AddSingleton(s => 
+        services.AddSingleton(s =>
             new RFunctions(
                 s.GetRequiredService<IFunctionStore>(),
-                unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
-                crashedFunctionCheckFrequency,
-                postponedFunctionCheckFrequency
+                new Settings(
+                    UnhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
+                    crashedFunctionCheckFrequency,
+                    postponedFunctionCheckFrequency
+                )
             )
         );
 
@@ -67,12 +71,14 @@ public static class RFunctionsModule
     {
         services.AddSingleton(store);
         services.AddSingleton(unhandledExceptionHandler);
-        services.AddSingleton(s => 
+        services.AddSingleton(s =>
             new RFunctions(
                 s.GetRequiredService<IFunctionStore>(),
-                unhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
-                crashedFunctionCheckFrequency,
-                postponedFunctionCheckFrequency
+                new Settings(
+                    UnhandledExceptionHandler: s.GetRequiredService<Action<RFunctionException>>(),
+                    crashedFunctionCheckFrequency,
+                    postponedFunctionCheckFrequency
+                )
             )
         );
 

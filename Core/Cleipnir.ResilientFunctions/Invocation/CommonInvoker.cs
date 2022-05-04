@@ -15,19 +15,18 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 internal class CommonInvoker
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly ISerializer _serializer;
     private readonly IFunctionStore _functionStore;
-    private readonly SignOfLifeUpdaterFactory _signOfLifeUpdaterFactory;
+    private readonly SettingsWithDefaults _settings;
+    private ISerializer Serializer { get; }
 
     public CommonInvoker(
-        ISerializer serializer, 
+        SettingsWithDefaults settings,
         IFunctionStore functionStore, 
-        ShutdownCoordinator shutdownCoordinator, 
-        SignOfLifeUpdaterFactory signOfLifeUpdaterFactory)
+        ShutdownCoordinator shutdownCoordinator)
     {
+        _settings = settings;
+        Serializer = settings.Serializer;
         _shutdownCoordinator = shutdownCoordinator;
-        _signOfLifeUpdaterFactory = signOfLifeUpdaterFactory;
-        _serializer = serializer;
         _functionStore = functionStore;
     }
 
@@ -35,7 +34,7 @@ internal class CommonInvoker
         where TParam : notnull
     {
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
-        var paramJson = _serializer.SerializeParameter(param);
+        var paramJson = Serializer.SerializeParameter(param);
         var paramType = param.SimpleQualifiedTypeName();
         try
         {
@@ -72,9 +71,9 @@ internal class CommonInvoker
                     await Task.Delay(100);
                     continue;
                 case Status.Succeeded:
-                    return (TReturn) storedFunction.Result!.Deserialize(_serializer)!;
+                    return (TReturn) storedFunction.Result!.Deserialize(Serializer)!;
                 case Status.Failed:
-                    var error = _serializer.DeserializeError(storedFunction.ErrorJson!);
+                    var error = Serializer.DeserializeError(storedFunction.ErrorJson!);
                     throw new PreviousFunctionInvocationException(functionId, error);
                 case Status.Postponed:
                     throw new FunctionInvocationPostponedException(
@@ -103,7 +102,7 @@ internal class CommonInvoker
                 case Status.Succeeded:
                     return;
                 case Status.Failed:
-                    var error = _serializer.DeserializeError(storedFunction.ErrorJson!);
+                    var error = Serializer.DeserializeError(storedFunction.ErrorJson!);
                     throw new PreviousFunctionInvocationException(functionId, error);
                 case Status.Postponed:
                     throw new FunctionInvocationPostponedException(
@@ -119,7 +118,7 @@ internal class CommonInvoker
     public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch) where TScrapbook : RScrapbook, new()
     {
         var scrapbook = new TScrapbook();
-        scrapbook.Initialize(functionId, _functionStore, _serializer, expectedEpoch);
+        scrapbook.Initialize(functionId, _functionStore, Serializer, expectedEpoch);
         return scrapbook;
     }
 
@@ -127,14 +126,14 @@ internal class CommonInvoker
     {
         var scrapbookJson = scrapbook == null
             ? null
-            : _serializer.SerializeScrapbook(scrapbook);
+            : Serializer.SerializeScrapbook(scrapbook);
         
         var success = await _functionStore.SetFunctionState(
             functionId,
             Status.Failed,
             scrapbookJson,
             result: null,
-            errorJson: _serializer.SerializeError(exception.ToError()),
+            errorJson: Serializer.SerializeError(exception.ToError()),
             postponedUntil: null,
             expectedEpoch
         );
@@ -149,7 +148,7 @@ internal class CommonInvoker
     {
         var scrapbookJson = scrapbook == null
             ? null
-            : _serializer.SerializeScrapbook(scrapbook);
+            : Serializer.SerializeScrapbook(scrapbook);
 
         switch (result.Outcome)
         {
@@ -183,7 +182,7 @@ internal class CommonInvoker
                     Status.Failed,
                     scrapbookJson,
                     result: null,
-                    errorJson: _serializer.SerializeError(result.Fail!.ToError()),
+                    errorJson: Serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
                     expectedEpoch
                 );
@@ -202,7 +201,7 @@ internal class CommonInvoker
     {
         var scrapbookJson = scrapbook == null
             ? null
-            : _serializer.SerializeScrapbook(scrapbook);
+            : Serializer.SerializeScrapbook(scrapbook);
         
         switch (result.Outcome)
         {
@@ -214,7 +213,7 @@ internal class CommonInvoker
                     result: new StoredResult(
                         ResultJson: result.SucceedWithValue == null
                             ? null
-                            : _serializer.SerializeResult(result.SucceedWithValue),
+                            : Serializer.SerializeResult(result.SucceedWithValue),
                         ResultType: result.SucceedWithValue?.GetType().SimpleQualifiedName()
                     ),
                     errorJson: null,
@@ -241,7 +240,7 @@ internal class CommonInvoker
                     Status.Failed,
                     scrapbookJson,
                     result: null,
-                    errorJson: _serializer.SerializeError(result.Fail!.ToError()),
+                    errorJson: Serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
                     expectedEpoch
                 );
@@ -354,15 +353,15 @@ internal class CommonInvoker
             if (!success)
                 throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'"); //todo concurrent modification exception
 
-            var param = (TParam) _serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
+            var param = (TParam) Serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
             if (!hasScrapbook)
                 return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, default(RScrapbook), runningFunction);
 
-            var scrapbook = _serializer.DeserializeScrapbook(
+            var scrapbook = Serializer.DeserializeScrapbook(
                 sf.Scrapbook!.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(functionId, _functionStore, _serializer, epoch);
+            scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
 
             return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, (RScrapbook?) scrapbook, runningFunction);
         }
@@ -378,6 +377,7 @@ internal class CommonInvoker
         where TScrapbook : RScrapbook;
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
-        => _signOfLifeUpdaterFactory.CreateAndStart(functionId, epoch);
+        => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
+    
     public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFunc();
 }

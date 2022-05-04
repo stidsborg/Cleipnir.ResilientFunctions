@@ -29,7 +29,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(5));
+        using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
         _ = rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => flag.Raise()
@@ -60,7 +60,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(5));
+        using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
         _ = rFunctions.RegisterAction<string, Scrapbook>(
             functionId.TypeId,
             void(string param, Scrapbook scrapbook) => flag.Raise()
@@ -94,7 +94,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(5));
+        using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
         _ = rFunctions.RegisterFunc(
             functionId.TypeId,
             string (string param) =>
@@ -131,7 +131,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, crashedCheckFrequency: TimeSpan.FromMilliseconds(5));
+        using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
         _ = rFunctions.RegisterFunc(
             functionId.TypeId,
             string (string param, Scrapbook scrapbook) =>

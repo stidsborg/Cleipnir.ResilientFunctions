@@ -12,7 +12,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 [TestClass]
 public class RJobRegistrationTests
 {
-    private FunctionId FunctionId { get; } = new("Job", JobId);
+    private FunctionId FunctionId { get; } = new(JobId, "Job");
     private const string JobId = "TestJob";
     
     [TestMethod]
@@ -138,7 +138,7 @@ public class RJobRegistrationTests
             .RegisterJob<Scrapbook>(
                 JobId,
                 _ => flag.Raise(),
-                serializer
+                new Settings(Serializer: serializer)
             ).Start;
 
         await rJob();

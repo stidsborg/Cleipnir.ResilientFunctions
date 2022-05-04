@@ -32,7 +32,7 @@ public class SerializationTests
         
         using var rFunctions = new RFunctions(
             store, 
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(1)
+            new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(1))
         );
 
         var personCurr = default(PersonCurr);
@@ -45,7 +45,7 @@ public class SerializationTests
                     flag.Raise();
                     return Task.CompletedTask;
                 },
-                serializer
+                new Settings(Serializer: serializer)
             );
 
         await flag.WaitForRaised();

@@ -19,9 +19,11 @@ public class RFunctionsShutdownTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             new InMemoryFunctionStore(),
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(5),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(5)
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            )
         );
 
         var insideRFuncFlag = new SyncedFlag();
@@ -59,9 +61,11 @@ public class RFunctionsShutdownTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             new InMemoryFunctionStore(),
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(5),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(5)
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            )
         );
 
         var insideRFuncFlag = new SyncedFlag();
@@ -101,9 +105,11 @@ public class RFunctionsShutdownTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            )
         );
 
         var insideRFuncFlag = new SyncedFlag();
@@ -157,9 +163,11 @@ public class RFunctionsShutdownTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            )
         );
 
         var insideRFuncFlag = new SyncedFlag();
@@ -194,9 +202,11 @@ public class RFunctionsShutdownTests
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(
             store,
-            unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(5),
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(5)
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            )
         );
 
         var counter = new SyncedCounter();

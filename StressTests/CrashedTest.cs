@@ -30,8 +30,10 @@ public static class CrashedTest
         Console.WriteLine("CRASHED_TEST: Waiting for invocations to begin");
         using var rFunctions = new RFunctions(
             sqlStore,
-            Console.WriteLine,
-            crashedCheckFrequency: TimeSpan.FromSeconds(1)
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                CrashedCheckFrequency: TimeSpan.FromSeconds(1)
+            )
         );
 
         var _ = rFunctions.RegisterAction(

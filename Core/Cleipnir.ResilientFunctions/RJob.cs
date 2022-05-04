@@ -21,3 +21,16 @@ public class RJob
     public Func<Task> Start { get; }
     public Retry Retry { get; }
 }
+
+public static class RJobExtensions
+{
+    public static Func<Nothing, TScrapbook, Task<Result>> ToNothingFunc<TScrapbook>(Func<TScrapbook, Task<Result>> inner)
+    {
+        return (_, scrapbook) => inner(scrapbook);
+    } 
+}
+
+public class Nothing
+{
+    public static Nothing Instance = new Nothing();
+}
