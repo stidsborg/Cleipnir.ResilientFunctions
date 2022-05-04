@@ -7,5 +7,7 @@ public static class AllTests
         await CrashedTest.Perform(helper);
         Console.WriteLine();
         await PostponedTest.Perform(helper);
+        Console.WriteLine();
+        await FlippingTest.Test.Perform(helper);
     }
 }

@@ -63,12 +63,7 @@ public static class PostponedTest
         Console.WriteLine("POSTPONED_TEST: Waiting for invocations to begin");
         await Task.Delay(3000);
 
-        var allSucceeded = WaitFor.AllCompleted(
-            helper,
-            logPrefix: "POSTPONED_TEST: ",
-            expectedMin: TimeSpan.FromSeconds(3),
-            expectedMax: TimeSpan.FromSeconds(4)
-        );
+        var allSucceeded = WaitFor.AllCompleted(helper, logPrefix: "POSTPONED_TEST:");
 
         while (true)
         {

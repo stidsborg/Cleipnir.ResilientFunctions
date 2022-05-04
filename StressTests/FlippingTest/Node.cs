@@ -17,7 +17,6 @@ public class Node
         _crashableFunctionStore = new CrashableFunctionStore(store);
         _rFunctions = new RFunctions(
             _crashableFunctionStore,
-            //exception => Console.WriteLine($"NODE_{_id} EXCEPTION: {exception}"),
             crashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
             postponedCheckFrequency: TimeSpan.FromMilliseconds(1_000)
         );

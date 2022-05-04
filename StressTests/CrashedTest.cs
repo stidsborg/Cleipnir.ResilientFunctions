@@ -39,7 +39,6 @@ public static class CrashedTest
             void(string param) => { }
         );
 
-        await WaitFor.AllCompleted(helper, logPrefix: "CRASHED_TEST: ", expectedMin: TimeSpan.FromSeconds(3), expectedMax: TimeSpan.FromSeconds(4));
-        Console.WriteLine("CRASHED_TEST: Finished");
+        await WaitFor.AllCompleted(helper, logPrefix: "CRASHED_TEST: ");
     }
 }

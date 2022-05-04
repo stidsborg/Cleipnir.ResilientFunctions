@@ -4,7 +4,7 @@ namespace Cleipnir.ResilientFunctions.StressTests;
 
 public static class WaitFor
 {
-    public static async Task AllCompleted(IHelper helper, string logPrefix, TimeSpan expectedMin, TimeSpan expectedMax)
+    public static async Task AllCompleted(IHelper helper, string logPrefix)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -18,6 +18,6 @@ public static class WaitFor
             if (nonCompletes == 0) break;
         }
         
-        Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed} - Expected between: {expectedMin} -> {expectedMax}");
+        Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
     }
 }
