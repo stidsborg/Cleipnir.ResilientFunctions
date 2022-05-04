@@ -332,6 +332,10 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     {
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
+        
+        while (DateTime.UtcNow < postponeUntil) //clock resolution means that we might wake up early 
+            await Task.Yield();
+        
         _ = ScheduleReInvoke(
             functionId.InstanceId.ToString(),
             expectedStatuses: new[] {Status.Postponed},

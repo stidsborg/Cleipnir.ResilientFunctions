@@ -93,6 +93,9 @@ internal class PostponedWatchdog
             {
                 try
                 {
+                    while (DateTime.UtcNow < postponedUntil) //clock resolution means that we might wake up early 
+                        await Task.Yield();
+                    
                     using var _ = _shutdownCoordinator.RegisterRunningRFunc();
                     var success = await _functionStore.TryToBecomeLeader(
                         functionId,
