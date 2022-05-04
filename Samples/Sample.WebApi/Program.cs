@@ -1,3 +1,4 @@
+using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.Storage;
 using Sample.WebApi.Saga;
@@ -13,8 +14,10 @@ internal static class Program
         // Add services to the container.
         builder.Services.AddRFunctionsService(
             new InMemoryFunctionStore(),
-            unhandledExceptionHandler: s =>
-                exception => s.GetRequiredService<ILogger>().LogError(exception, "Unhandled RFunction Exception"),
+            s => new Settings(
+                UnhandledExceptionHandler: 
+                    exception => s.GetRequiredService<ILogger>().LogError(exception, "Unhandled RFunction Exception")
+                ),
             gracefulShutdown: true
         );
         builder.Services.AddSingleton<BookingSaga>();
