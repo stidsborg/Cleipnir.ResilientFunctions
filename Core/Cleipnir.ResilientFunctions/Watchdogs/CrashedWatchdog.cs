@@ -18,6 +18,7 @@ internal class CrashedWatchdog
     private readonly WorkQueue _workQueue;
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _checkFrequency;
+    private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
 
@@ -27,6 +28,7 @@ internal class CrashedWatchdog
         WatchDogReInvokeFunc reInvoke,
         WorkQueue workQueue,
         TimeSpan checkFrequency,
+        TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
@@ -35,6 +37,7 @@ internal class CrashedWatchdog
         _reInvoke = reInvoke;
         _workQueue = workQueue;
         _checkFrequency = checkFrequency;
+        _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
     }
@@ -42,6 +45,8 @@ internal class CrashedWatchdog
     public async Task Start()
     {
         if (_checkFrequency == TimeSpan.Zero) return;
+        await Task.Delay(_delayStartUp);
+        
         try
         {
             var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredExecutingFunction>();

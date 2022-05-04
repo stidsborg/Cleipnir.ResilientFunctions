@@ -17,6 +17,7 @@ internal class PostponedWatchdog
     private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly WorkQueue _workQueue;
     private readonly TimeSpan _checkFrequency;
+    private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
 
     public PostponedWatchdog(
@@ -25,6 +26,7 @@ internal class PostponedWatchdog
         WatchDogReInvokeFunc reInvoke,
         WorkQueue workQueue,
         TimeSpan checkFrequency,
+        TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
@@ -35,12 +37,14 @@ internal class PostponedWatchdog
         _reInvoke = reInvoke;
         _workQueue = workQueue;
         _checkFrequency = checkFrequency;
+        _delayStartUp = delayStartUp;
     }
 
     public async Task Start()
     {
         if (_checkFrequency == TimeSpan.Zero) return;
-
+        await Task.Delay(_delayStartUp);
+        
         try
         {
             while (!_shutdownCoordinator.ShutdownInitiated)

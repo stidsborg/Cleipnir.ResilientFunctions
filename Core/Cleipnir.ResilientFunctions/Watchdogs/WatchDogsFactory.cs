@@ -20,6 +20,7 @@ internal static class WatchDogsFactory
             reInvoke,
             workQueue,
             settings.CrashedCheckFrequency,
+            settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
         );
@@ -30,6 +31,7 @@ internal static class WatchDogsFactory
             reInvoke,
             workQueue,
             settings.PostponedCheckFrequency,
+            settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
         );
