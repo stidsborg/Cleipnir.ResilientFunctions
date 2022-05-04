@@ -159,7 +159,7 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
     {
-        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
         _ = ScheduleReInvoke(
             functionId.InstanceId.ToString(),
@@ -330,7 +330,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
     {
-        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
         _ = ScheduleReInvoke(
             functionId.InstanceId.ToString(),

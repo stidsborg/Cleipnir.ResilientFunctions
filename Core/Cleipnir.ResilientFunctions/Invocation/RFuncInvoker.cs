@@ -161,7 +161,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
     {
-        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(10));
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
         await ReInvoke(
             functionId.InstanceId.ToString(),
@@ -349,7 +349,7 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
     
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
     {
-        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow - TimeSpan.FromMilliseconds(100), TimeSpan.Zero);
+        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
         _ = ScheduleReInvoke(
             functionId.InstanceId.ToString(),
