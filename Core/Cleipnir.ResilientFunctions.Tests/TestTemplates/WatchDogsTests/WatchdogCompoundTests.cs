@@ -52,9 +52,8 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             var afterNextSetFunctionState = crashableStore
                 .AfterSetFunctionStateStream
-                .Take(1)
-                .ObserveOnThreadPool();
-            
+                .Take(1);
+
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
@@ -70,6 +69,7 @@ public abstract class WatchdogCompoundTests
                 });
             
             await afterNextSetFunctionState;
+            await Task.Yield();
             crashableStore.Crash();
             paramTcs.Task.Result.ShouldBe(param);
         }
@@ -160,9 +160,8 @@ public abstract class WatchdogCompoundTests
             var afterNextPostponedSetFunctionState = crashableStore
                 .AfterSetFunctionStateStream
                 .Where(p => p.PostponedUntil != null)
-                .Take(1)
-                .ObserveOnThreadPool();
-            
+                .Take(1);
+
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
@@ -180,6 +179,7 @@ public abstract class WatchdogCompoundTests
                 });
             
             await afterNextPostponedSetFunctionState;
+            await Task.Yield();
             crashableStore.Crash();
             
             paramTcs.Task.Result.ShouldBe(param);
@@ -281,8 +281,8 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             var afterSetFunctionState = crashableStore
                 .AfterSetFunctionStateStream
-                .Take(1)
-                .ObserveOnThreadPool();
+                .Take(1);
+            
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
@@ -300,6 +300,7 @@ public abstract class WatchdogCompoundTests
                 );
 
             await afterSetFunctionState;
+            await Task.Yield();
             crashableStore.Crash();
             paramTcs.Task.Result.ShouldBe(param);
         }
@@ -395,9 +396,8 @@ public abstract class WatchdogCompoundTests
             var afterNextPostponed = crashableStore
                 .AfterSetFunctionStateStream
                 .Where(p => p.PostponedUntil != null)
-                .Take(1)
-                .ObserveOnThreadPool();
-            
+                .Take(1);
+
             using var rFunctions = new RFunctions(
                 crashableStore,
                 unhandledExceptionCatcher.Catch,
@@ -416,6 +416,7 @@ public abstract class WatchdogCompoundTests
                     });
             
             await afterNextPostponed;
+            await Task.Yield();
             crashableStore.Crash();
             
             paramTcs.Task.Result.ShouldBe(param);
