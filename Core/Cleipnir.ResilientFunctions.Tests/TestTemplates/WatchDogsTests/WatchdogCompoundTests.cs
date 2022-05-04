@@ -69,8 +69,8 @@ public abstract class WatchdogCompoundTests
                 });
             
             await afterNextSetFunctionState;
-            await Task.Yield();
             crashableStore.Crash();
+            await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
         }
         { 
@@ -179,9 +179,8 @@ public abstract class WatchdogCompoundTests
                 });
             
             await afterNextPostponedSetFunctionState;
-            await Task.Yield();
             crashableStore.Crash();
-            
+            await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
         }
         {
@@ -300,8 +299,8 @@ public abstract class WatchdogCompoundTests
                 );
 
             await afterSetFunctionState;
-            await Task.Yield();
             crashableStore.Crash();
+            await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
         }
         //third invocation crashes
@@ -416,9 +415,8 @@ public abstract class WatchdogCompoundTests
                     });
             
             await afterNextPostponed;
-            await Task.Yield();
             crashableStore.Crash();
-            
+            await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
         }
         {
