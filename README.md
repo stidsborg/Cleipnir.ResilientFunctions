@@ -32,24 +32,26 @@ await store.Initialize(); //create table in database - btw the invocation is ide
 
 var rFunctions = new RFunctions( //this is where you register different resilient function types
   store,
-  unhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
-    e => Log.Error(e, "Resilient Function Framework exception occured"),
-  crashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
-  postponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
-);
+  new Settings(
+    UnhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
+      e => Log.Error(e, "Resilient Function Framework exception occured"),
+    CrashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
+    PostponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
+    )
+  );
 
-var registration = rFunctions.RegisterFunc( //making a function resilient is simply a matter of registering it
-  functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
-  inner: async Task<string>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
-); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
-   //also any crashed invocation of the function type will automatically be picked after this point
+  var registration = rFunctions.RegisterFunc( //making a function resilient is simply a matter of registering it
+    functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
+    inner: async Task<string>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
+  ); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
+     //also any crashed invocation of the function type will automatically be picked after this point
 
-var rFunc = registration.Invoke; //you can also re-invoke (useful for manual handling) an existing function or schedule one for invocation
-const string url = "https://google.com";
-var responseBody = await rFunc(functionInstanceId: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
-Log.Information("Resilient Function getting {Url} completed successfully with body: {Body}", url, responseBody);
+  var rFunc = registration.Invoke; //you can also re-invoke (useful for manual handling) an existing function or schedule one for invocation
+  const string url = "https://google.com";
+  var responseBody = await rFunc(functionInstanceId: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
+  Log.Information("Resilient Function getting {Url} completed successfully with body: {Body}", url, responseBody);
         
-await rFunctions.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!
+  await rFunctions.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!
 ```
 
 ## Show me more code
@@ -77,7 +79,7 @@ Invoking a HTTP-endpoint and storing the response in a database table:
 ```csharp
 public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionStore store)
 {
-  var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
+  var functions = new RFunctions(store, new Settings(UnhandledExceptionHandler: Console.WriteLine));
   var httpClient = new HttpClient();
 
   var rAction = functions.RegisterAction(
@@ -108,7 +110,7 @@ public static async Task RegisterAndInvoke()
         
   var functions = new RFunctions(
     store,
-    unhandledExceptionHandler: Console.WriteLine
+    new Settings(UnhandledExceptionHandler: Console.WriteLine)
   );
 
   var rAction = functions
