@@ -32,7 +32,7 @@ public abstract class PostponedTests
                 )
                 .RegisterFunc<string, string>(
                     functionTypeId,
-                    (string _) => Postpone.For(1000)
+                    (string _) => Postpone.For(1_000)
                 )
                 .Invoke;
 
@@ -84,7 +84,7 @@ public abstract class PostponedTests
                 )
                 .RegisterFunc(
                     functionTypeId,
-                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1))
+                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000))
                 )
                 .Invoke;
 
@@ -144,7 +144,7 @@ public abstract class PostponedTests
                 )
                 .RegisterAction(
                     functionTypeId,
-                    (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1))
+                    (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000))
                 )
                 .Invoke;
 
@@ -193,7 +193,7 @@ public abstract class PostponedTests
                 )
                 .RegisterAction(
                     functionTypeId,
-                    (string _, Scrapbook _) => Postpone.For(1)
+                    (string _, Scrapbook _) => Postpone.For(1_000)
                 ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
@@ -260,7 +260,7 @@ public abstract class PostponedTests
                     if (flag.Position == FlagPosition.Raised) return Result.Succeed;
 
                     flag.Raise();
-                    return Postpone.For(100);
+                    return Postpone.For(1_000);
                 })
             .Invoke;
         

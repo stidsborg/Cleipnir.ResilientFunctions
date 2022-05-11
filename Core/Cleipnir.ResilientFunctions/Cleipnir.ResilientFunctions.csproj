@@ -32,11 +32,7 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
         <PackagePath>\</PackagePath>
       </None>
     </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    </ItemGroup>
-
+    
     <PropertyGroup Label="SourceLink">
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <IncludeSymbols>true</IncludeSymbols>

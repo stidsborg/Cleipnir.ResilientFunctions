@@ -507,10 +507,7 @@ public abstract class WatchdogCompoundTests
 
     private class Scrapbook : RScrapbook
     {
-        public List<int> Scraps { get; }
-
-        public Scrapbook() => Scraps = new List<int>();
-        public Scrapbook(List<int> scraps) => Scraps = scraps;
+        public List<int> Scraps { get; set; } = new();
     }
     
     private record Param(string Id, int Value);
