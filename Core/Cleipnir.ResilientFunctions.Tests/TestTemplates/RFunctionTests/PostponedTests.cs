@@ -21,7 +21,7 @@ public abstract class PostponedTests
         const string param = "test";
         {
             var crashableStore = new CrashableFunctionStore(store);
-            var rFunc = new RFunctions
+            using var rFunctions = new RFunctions
                 (
                     crashableStore,
                     new Settings(
@@ -29,12 +29,11 @@ public abstract class PostponedTests
                         CrashedCheckFrequency: TimeSpan.Zero,
                         PostponedCheckFrequency: TimeSpan.Zero
                     )
-                )
-                .RegisterFunc<string, string>(
-                    functionTypeId,
-                    (string _) => Postpone.For(1_000)
-                )
-                .Invoke;
+                );
+            var rFunc = rFunctions.RegisterFunc<string, string>(
+                functionTypeId,
+                (string _) => Postpone.For(1_000)
+            ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() =>
                 rFunc(param, param)
@@ -73,7 +72,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rFunc = new RFunctions
+            using var rFunctions = new RFunctions
                 (
                     store,
                     new Settings(
@@ -81,10 +80,10 @@ public abstract class PostponedTests
                         CrashedCheckFrequency: TimeSpan.Zero,
                         PostponedCheckFrequency: TimeSpan.Zero
                     )
-                )
-                .RegisterFunc(
+                );
+            var rFunc = rFunctions.RegisterFunc(
                     functionTypeId,
-                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000))
+                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
                 )
                 .Invoke;
 
@@ -133,20 +132,19 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rAction = new RFunctions
-                (
-                    store,
-                    new Settings(
-                        unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero,
-                        PostponedCheckFrequency: TimeSpan.Zero
-                    )
+            using var rFunctions = new RFunctions
+            (
+                store,
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.Zero
                 )
-                .RegisterAction(
-                    functionTypeId,
-                    (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1000))
-                )
-                .Invoke;
+            );
+            var rAction = rFunctions.RegisterAction(
+                functionTypeId,
+                (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
+            ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -182,21 +180,21 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var rFunc = new RFunctions
-                (
-                    store,
-                    new Settings(
-                        unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero,
-                        PostponedCheckFrequency: TimeSpan.Zero
-                    )
+            using var rFunctions = new RFunctions
+            (
+                store,
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.Zero
                 )
-                .RegisterAction(
-                    functionTypeId,
-                    (string _, Scrapbook _) => Postpone.For(1_000)
-                ).Invoke;
+            );
+            var rAction = rFunctions.RegisterAction(
+                functionTypeId,
+                (string _, Scrapbook _) => Postpone.For(1_000)
+            ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -244,14 +242,14 @@ public abstract class PostponedTests
         var flag = new SyncedFlag();
 
         using var rFunctions = new RFunctions
-            (
-                store,
-                new Settings(
-                    unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.Zero,
-                    PostponedCheckFrequency: TimeSpan.FromSeconds(10)
-                )
-            );
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.FromSeconds(10)
+            )
+        );
         var rFunc = rFunctions
             .RegisterAction(
                 functionId.TypeId,
@@ -261,8 +259,7 @@ public abstract class PostponedTests
 
                     flag.Raise();
                     return Postpone.For(1_000);
-                })
-            .Invoke;
+                }).Invoke;
         
         _ = rFunc(functionId.InstanceId.ToString(), "param");
 
