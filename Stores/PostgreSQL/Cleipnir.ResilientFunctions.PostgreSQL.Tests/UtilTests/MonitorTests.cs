@@ -2,8 +2,8 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.PostgreSQL.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
-using Dapper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.UtilTests;
 
@@ -55,6 +55,9 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
     {
         await using var conn = await Sql.ConnFunc();
-        return await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {memberName}Monitor");
+        var sql = $"SELECT COUNT(*) FROM {memberName}Monitor";
+        await using var command = new NpgsqlCommand(sql, conn);
+        var count = (int) (long) (await command.ExecuteScalarAsync() ?? 0);
+        return count;
     }
 }

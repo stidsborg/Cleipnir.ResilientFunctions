@@ -1,10 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using Dapper;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
@@ -30,7 +28,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync($@"
+        var sql = $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}RFunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
@@ -55,20 +53,26 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_postponed
             ON {_tablePrefix}rfunctions(function_type_id, postponed_until, function_instance_id)
             INCLUDE (epoch)
-            WHERE status = {(int) Status.Postponed};"
-        );
+            WHERE status = {(int) Status.Postponed};";
+
+        await using var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task DropIfExists()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync($"DROP TABLE IF EXISTS {_tablePrefix}RFunctions");
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions";
+        await using var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync($"TRUNCATE TABLE {_tablePrefix}RFunctions");
+        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions";
+        await using var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
     
     public async Task<bool> CreateFunction(
@@ -80,24 +84,28 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int initialSignOfLife)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync(@$"
+        var sql = @$"
             INSERT INTO {_tablePrefix}RFunctions
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life)
             VALUES
-                (@FunctionTypeId, @FunctionInstanceId, @ParamJson, @ParamType, @ScrapbookType, @Status, @Epoch, @SignOfLife)
-            ON CONFLICT DO NOTHING;",
-            new 
+                ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT DO NOTHING;";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                FunctionTypeId = functionId.TypeId.Value,
-                FunctionInstanceId = functionId.InstanceId.Value,
-                ParamJson = param.ParamJson,
-                ParamType = param.ParamType,
-                ScrapbookType = scrapbookType,
-                Status = (int) initialStatus,
-                Epoch = initialEpoch,
-                SignOfLife = initialSignOfLife
-            });
+                new() {Value = functionId.TypeId.Value},
+                new() {Value =  functionId.InstanceId.Value},
+                new() {Value = param.ParamJson},
+                new() {Value =  param.ParamType},
+                new() {Value = scrapbookType ?? (object) DBNull.Value},
+                new() {Value = (int) initialStatus},
+                new() {Value = initialEpoch},
+                new() {Value = initialSignOfLife},
+            }
+        };
 
+        var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 
@@ -108,20 +116,24 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int newEpoch)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync(@$"
+        var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET epoch = @NewEpoch, status = @NewStatus
-            WHERE function_type_id = @FunctionTypeId AND function_instance_id = @FunctionInstanceId AND epoch = @ExpectedEpoch",
-            new
-            {
-                FunctionTypeId = functionId.TypeId.Value,
-                FunctionInstanceId = functionId.InstanceId.Value,
-                ExpectedEpoch = expectedEpoch,
-                NewEpoch = newEpoch,
-                NewStatus = (int) newStatus
-            }
-        );
+            SET epoch = $1, status = $2
+            WHERE function_type_id = $3 AND function_instance_id = $4 AND epoch = $5";
 
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = newEpoch},
+                new() {Value = (int) newStatus},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
+            }
+        };
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 
@@ -131,57 +143,80 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int newSignOfLife)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync($@"
+        var sql = $@"
             UPDATE {_tablePrefix}RFunctions
-            SET sign_of_life = @NewSignOfLife
-            WHERE function_type_id = @FunctionTypeId AND function_instance_id = @FunctionInstanceId AND epoch = @ExpectedEpoch",
-            new
+            SET sign_of_life = $1
+            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                FunctionTypeId = functionId.TypeId.Value,
-                FunctionInstanceId = functionId.InstanceId.Value,
-                ExpectedEpoch = expectedEpoch,
-                NewSignOfLife = newSignOfLife
+                new() {Value = newSignOfLife},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
             }
-        );
+        };
 
+        var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 
     public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         await using var conn = await CreateConnection();
-
-        var rows = await conn.QueryAsync<StoredExecutingFunctionRow>(@$"
-            SELECT function_instance_id AS FunctionInstanceId, epoch, sign_of_life AS SignOfLife 
+        var sql = @$"
+            SELECT function_instance_id, epoch, sign_of_life 
             FROM {_tablePrefix}RFunctions
-            WHERE function_type_id = @FunctionTypeId AND status = {(int) Status.Executing}",
-            new { FunctionTypeId = functionTypeId.Value }
-        );
-        return rows
-            .Select(r =>
-                new StoredExecutingFunction(r.FunctionInstanceId.ToFunctionInstanceId(), r.Epoch, r.SignOfLife)
-            ).ToList().AsEnumerable();
+            WHERE function_type_id = $1 AND status = {(int) Status.Executing}";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters = { new() {Value = functionTypeId.Value} }
+        };
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var functions = new List<StoredExecutingFunction>();
+        while (await reader.ReadAsync())
+        {
+            var functionInstanceId = reader.GetString(0);
+            var epoch = reader.GetInt32(1);
+            var signOfLife = reader.GetInt32(2);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife));
+        }
+
+        return functions;
     }
-    private record StoredExecutingFunctionRow(string FunctionInstanceId, int Epoch, int SignOfLife);
 
     public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
     {
         await using var conn = await CreateConnection();
-
-        var rows = await conn.QueryAsync<StoredPostponedFunctionRow>(@$"
-            SELECT function_instance_id AS FunctionInstanceId, epoch, postponed_until AS PostponedUntil
+        var sql = @$"
+            SELECT function_instance_id, epoch, postponed_until
             FROM {_tablePrefix}RFunctions
-            WHERE function_type_id = @FunctionTypeId AND status = {(int) Status.Postponed} AND postponed_until <= @PostponedUntil",
-            new { FunctionTypeId = functionTypeId.Value, PostponedUntil = expiresBefore }
-        );
+            WHERE function_type_id = $1 AND status = {(int) Status.Postponed} AND postponed_until <= $2";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionTypeId.Value},
+                new() {Value = expiresBefore}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var functions = new List<StoredPostponedFunction>();
+        while (await reader.ReadAsync())
+        {
+            var functionInstanceId = reader.GetString(0);
+            var epoch = reader.GetInt32(1);
+            var postponedUntil = reader.GetInt64(2);
+            functions.Add(new StoredPostponedFunction(functionInstanceId, epoch, postponedUntil));
+        }
 
-        return rows
-            .Select(r =>
-                new StoredPostponedFunction(r.FunctionInstanceId.ToFunctionInstanceId(), r.Epoch, r.PostponedUntil)
-            ).ToList().AsEnumerable();
+        return functions;
     }
-    private record StoredPostponedFunctionRow(string FunctionInstanceId, int Epoch, long PostponedUntil);
-
+    
     public async Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 
@@ -192,80 +227,85 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
-        var affectedRows = await conn.ExecuteAsync($@"
+        var sql = $@"
             UPDATE {_tablePrefix}RFunctions
-            SET status = @Status, scrapbook_json = @ScrapbookJson, 
-                result_json = @ResultJson, result_type = @ResultType, 
-                error_json = @ErrorJson, postponed_until = @PostponedUntil
+            SET status = $1, scrapbook_json = $2, 
+                result_json = $3, result_type = $4, 
+                error_json = $5, postponed_until = $6
             WHERE 
-                function_type_id = @FunctionTypeId AND 
-                function_instance_id = @FunctionInstanceId AND 
-                epoch = @ExpectedEpoch",
-            new
+                function_type_id = $7 AND 
+                function_instance_id = $8 AND 
+                epoch = $9";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                FunctionTypeId = functionId.TypeId.Value,
-                FunctionInstanceId = functionId.InstanceId.Value,
-                ExpectedEpoch = expectedEpoch,
-                Status = (int) status,
-                ScrapbookJson = scrapbookJson,
-                ResultJson = result?.ResultJson,
-                ResultType = result?.ResultType,
-                ErrorJson = errorJson,
-                PostponedUntil = postponedUntil
+                new() {Value = (int) status},
+                new() {Value = scrapbookJson ?? (object) DBNull.Value},
+                new() {Value = result?.ResultJson ?? (object) DBNull.Value},
+                new() {Value = result?.ResultType ?? (object) DBNull.Value},
+                new() {Value = errorJson ?? (object) DBNull.Value},
+                new() {Value = postponedUntil ?? (object) DBNull.Value},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
             }
-        );
+        };
 
+        var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var rows = await conn.QueryAsync<StoredFunctionRow>($@"
+        var sql = $@"
             SELECT               
-                param_json AS ParamJson, 
-                param_type AS ParamType,
-                scrapbook_json AS ScrapbookJson, 
-                scrapbook_type AS ScrapbookType,
+                param_json, 
+                param_type,
+                scrapbook_json, 
+                scrapbook_type,
                 status,
-                result_json AS ResultJson, 
-                result_type AS ResultType,
-                error_json AS ErrorJson,
-                postponed_until AS PostponedUntil,
+                result_json, 
+                result_type,
+                error_json,
+                postponed_until,
                 epoch, 
-                sign_of_life AS SignOfLife
+                sign_of_life
             FROM {_tablePrefix}RFunctions
-            WHERE function_type_id = @FunctionTypeId AND function_instance_id = @FunctionInstanceId;",
-            new
-            {
-                FunctionTypeId = functionId.TypeId.Value,
-                FunctionInstanceId = functionId.InstanceId.Value
+            WHERE function_type_id = $1 AND function_instance_id = $2;";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters = { 
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
             }
-        ).ToTaskAsync();
-
-        if (rows.Count == 0) return null;
+        };
         
-        var row = rows.Single();
-        return new StoredFunction(
-            functionId,
-            new StoredParameter(row.ParamJson, row.ParamType),
-            Scrapbook: row.ScrapbookType != null ? new StoredScrapbook(row.ScrapbookJson!, row.ScrapbookType) : null,
-            Status: (Status) row.Status,
-            Result: row.ResultType != null ? new StoredResult(row.ResultJson!, row.ResultType) : null,
-            row.ErrorJson,
-            row.PostponedUntil,
-            row.Epoch,
-            row.SignOfLife
-        );
-    }
+        await using var reader = await command.ExecuteReaderAsync();
+        
+        while (await reader.ReadAsync())
+        {
+            var hasScrapbookJson = !await reader.IsDBNullAsync(2);
+            var hasScrapbookType = !await reader.IsDBNullAsync(3);
+            var hasResult = !await reader.IsDBNullAsync(6);
+            var hasError = !await reader.IsDBNullAsync(7);
+            var postponedUntil = !await reader.IsDBNullAsync(8);
+            return new StoredFunction(
+                functionId,
+                new StoredParameter(reader.GetString(0), reader.GetString(1)),
+                Scrapbook: hasScrapbookType ? new StoredScrapbook(
+                    hasScrapbookJson ? reader.GetString(2) : null,  
+                    reader.GetString(3)) : null,
+                Status: (Status) reader.GetInt32(4),
+                Result: hasResult ? new StoredResult(reader.GetString(5), reader.GetString(6)) : null,
+                hasError ? reader.GetString(7) : null,
+                postponedUntil ? reader.GetInt64(8) : null,
+                Epoch: reader.GetInt32(9),
+                SignOfLife: reader.GetInt32(10)
+            );
+        }
 
-    private record StoredFunctionRow(
-        string ParamJson, string ParamType,
-        string? ScrapbookJson, string? ScrapbookType,
-        int Status,
-        string? ResultJson, string? ResultType,
-        string? ErrorJson,
-        long? PostponedUntil,
-        int Epoch, int SignOfLife
-    );
+        return null;
+    }
 }

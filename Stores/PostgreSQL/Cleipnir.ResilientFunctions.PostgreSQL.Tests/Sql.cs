@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Dapper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npgsql;
 
@@ -38,16 +36,23 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
                 .Split("Database=")[1]
                 .Split(";")
                 .First();
-            
+
             var connectionStringWithoutDatabase = ConnectionString
                 .Split($"Database={database};")
                 .Aggregate("", string.Concat);
 
             using var conn = new NpgsqlConnection(connectionStringWithoutDatabase);
-            conn.Execute($"DROP DATABASE IF EXISTS {database}");
-            conn.Execute($"CREATE DATABASE {database}");
+            conn.Open();
+            {
+                using var command = new NpgsqlCommand($"DROP DATABASE IF EXISTS {database}", conn);
+                command.ExecuteNonQuery();    
+            }
+            {
+                using var command = new NpgsqlCommand($"CREATE DATABASE {database}", conn);
+                command.ExecuteNonQuery();    
+            }
         }
-        
+
         private static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
             var store = new PostgreSqlFunctionStore(ConnectionString); 

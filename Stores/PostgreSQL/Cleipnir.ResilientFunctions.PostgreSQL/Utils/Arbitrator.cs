@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
-using Dapper;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Utils;
@@ -21,18 +20,13 @@ public class Arbitrator : IArbitrator
     public async Task Initialize()
     {
         await using var conn = await _connFunc();
-        await conn.ExecuteAsync(@$"            
+        var sql = @$"            
                 CREATE TABLE IF NOT EXISTS {_tablePrefix}arbitrator (
                     id VARCHAR(255) PRIMARY KEY NOT NULL,                
                     value VARCHAR(255) NOT NULL
-                );"
-        );
-    }
-    
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await _connFunc();
-        await conn.ExecuteAsync(@$"DROP TABLE IF NOT EXISTS {_tablePrefix}arbitrator");
+                );";
+        await using var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public Task<bool> Propose(string groupId, string instanceId, string value)
@@ -46,21 +40,38 @@ public class Arbitrator : IArbitrator
         await using var conn = await _connFunc();
         var id = KeyEncoder.Encode(groupId, instanceId);
 
-        var affectedRows = await conn.ExecuteAsync($@"
+        var sql = $@"
             INSERT INTO {_tablePrefix}arbitrator
                 (id, value)
             VALUES
-                (@Id, @Value)
-            ON CONFLICT DO NOTHING",
-            new { Id = id, Value = value }
-        );
-        if (affectedRows == 1) return true;
-        
-        var existingValue = await conn.QuerySingleAsync<string>(
-            @$"SELECT value FROM {_tablePrefix}arbitrator WHERE id=@Id",
-            new {Id = id}
-        );
+                ($1, $2)
+            ON CONFLICT DO NOTHING";
+        {
+            await using var command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = id},
+                    new() {Value = value}
+                }
+            };
 
-        return existingValue == value;
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            if (affectedRows == 1) return true;    
+        }
+        {
+            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}arbitrator WHERE id=$1 AND value=$2";
+            await using var command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = id},
+                    new() {Value = value}
+                }
+            };
+
+            var countedRows = (long) (await command.ExecuteScalarAsync() ?? 0);
+            return countedRows == 1;
+        }
     }
 }

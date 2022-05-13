@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Dapper;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
@@ -20,9 +18,15 @@ public static class DatabaseHelper
         var conn = new NpgsqlConnection(connectionStringWithDatabaseName);
         var databaseName = match.Groups["DatabaseName"].Value;
         await conn.OpenAsync();
-        var dbExistsRow = await conn.QueryAsync<int>($"SELECT 1 FROM pg_database WHERE datname='{databaseName}'");
-        if (dbExistsRow.Any()) return;
-            
-        await conn.ExecuteAsync($"CREATE DATABASE {databaseName}");
+
+        var sql = $"SELECT COUNT(*) FROM pg_database WHERE datname='{databaseName}'";
+        await using (var existsCommand = new NpgsqlCommand(sql, conn))
+        {
+            var dbExists = (long) (await existsCommand.ExecuteScalarAsync() ?? 0);
+            if (dbExists == 1) return;    
+        }
+        
+        await using var createDbCommand = new NpgsqlCommand($"CREATE DATABASE {databaseName}", conn);
+        await createDbCommand.ExecuteNonQueryAsync();
     }
 }
