@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -13,6 +14,13 @@ public static class RFunc
         string functionInstanceId,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null
+    );
+    
+    public delegate Task<TReturn> ReInvoke<TScrapbook, TReturn>(
+        string functionInstanceId,
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch = null,
+        Action<TScrapbook>? scrapbookUpdater = null
     );
 }
 
@@ -33,4 +41,22 @@ public class RFunc<TParam, TReturn> where TParam : notnull
         ScheduleReInvocation = scheduleReInvocation;
     }
 } 
+
+public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull
+{
+    public RFunc.Invoke<TParam, TReturn> Invoke { get; }
+    public RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke { get; }
+    public Schedule<TParam> Schedule { get; }
+    public ScheduleReInvocation<TScrapbook> ScheduleReInvocation { get; }
+    
+    public RFunc(
+        RFunc.Invoke<TParam, TReturn> invoke, RFunc.ReInvoke<TScrapbook, TReturn> reInvoke, 
+        Schedule<TParam> schedule, ScheduleReInvocation<TScrapbook> scheduleReInvocation)
+    {
+        Invoke = invoke;
+        ReInvoke = reInvoke;
+        Schedule = schedule;
+        ScheduleReInvocation = scheduleReInvocation;
+    }
+}
     

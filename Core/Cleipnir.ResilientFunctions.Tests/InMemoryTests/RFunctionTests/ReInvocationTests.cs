@@ -15,6 +15,12 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     public override Task ActionWithScrapbookReInvocationSunshineScenario()
         => ActionWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
+    public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction()
+        => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(CreateInMemoryStore());
+    [TestMethod]
+    public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc()
+        => ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(CreateInMemoryStore());
+    [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]

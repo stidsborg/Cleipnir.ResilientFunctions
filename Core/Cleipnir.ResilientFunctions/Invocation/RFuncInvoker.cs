@@ -257,9 +257,11 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         });
     }
 
-    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
+    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
+        if (scrapbookUpdater != null)
+            await UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch);
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
         using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
@@ -280,9 +282,11 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
+        if (scrapbookUpdater != null)
+            await UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch);
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
         _ = Task.Run(async () =>
@@ -313,6 +317,9 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
         => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch);
+
+    private Task UpdateScrapbook(FunctionId functionId, Action<TScrapbook> updater, IEnumerable<Status> expectedStatuses, int? expectedEpoch) 
+        => _commonInvoker.UpdateScrapbook(functionId, updater, expectedStatuses, expectedEpoch);
 
     private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param, Type scrapbookType)
         => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType);

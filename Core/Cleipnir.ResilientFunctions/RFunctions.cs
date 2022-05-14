@@ -5,7 +5,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.Invocation;
-using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Watchdogs;
@@ -185,7 +184,7 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
         Settings? settings = null
@@ -196,7 +195,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
         Settings? settings = null
@@ -207,7 +206,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
         Settings? settings = null
@@ -218,7 +217,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         Settings? settings = null
@@ -231,8 +230,8 @@ public class RFunctions : IDisposable
         {
             if (_functions.ContainsKey(functionTypeId))
             {
-                if (_functions[functionTypeId] is not RFunc<TParam, TReturn> r)
-                    throw new ArgumentException($"{typeof(RFunc<TParam, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                if (_functions[functionTypeId] is not RFunc<TParam, TScrapbook, TReturn> r)
+                    throw new ArgumentException($"{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
         
@@ -253,7 +252,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var registration = new RFunc<TParam, TReturn>(
+            var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvocation,
@@ -264,7 +263,7 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
+    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
         Settings? settings = null
@@ -275,7 +274,7 @@ public class RFunctions : IDisposable
             settings
         );
     
-    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
+    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
         Settings? settings = null
@@ -286,7 +285,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
+    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
         Settings? settings = null
@@ -297,7 +296,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RAction<TParam> RegisterAction<TParam, TScrapbook>(
+    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         Settings? settings = null
@@ -310,8 +309,8 @@ public class RFunctions : IDisposable
         {
             if (_functions.ContainsKey(functionTypeId))
             {
-                if (_functions[functionTypeId] is not RAction<TParam> r)
-                    throw new ArgumentException($"{typeof(RAction<TParam>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                if (_functions[functionTypeId] is not RAction<TParam, TScrapbook> r)
+                    throw new ArgumentException($"{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
 
@@ -332,7 +331,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var registration = new RAction<TParam>(
+            var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
                 rActionInvoker.ScheduleInvocation,
@@ -343,7 +342,7 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RJob RegisterJob<TScrapbook>(
+    public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Action<TScrapbook> inner,
         Settings? settings = null
@@ -354,7 +353,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RJob RegisterJob<TScrapbook>(
+    public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Result> inner,
         Settings? settings = null
@@ -365,7 +364,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RJob RegisterJob<TScrapbook>(
+    public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Task> inner,
         Settings? settings = null
@@ -376,7 +375,7 @@ public class RFunctions : IDisposable
             settings
         );
 
-    public RJob RegisterJob<TScrapbook>(
+    public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Task<Result>> inner,
         Settings? settings = null
@@ -393,10 +392,10 @@ public class RFunctions : IDisposable
                 settings
             );
           
-            var registration = new RJob(
+            var registration = new RJob<TScrapbook>(
                 () => actionRegistration.Schedule("Job", Nothing.Instance),
-                (statuses, epoch) => 
-                    actionRegistration.ScheduleReInvocation("Job", statuses, epoch)
+                (statuses, epoch, scrapbookUpdater) => 
+                    actionRegistration.ScheduleReInvocation("Job", statuses, epoch, scrapbookUpdater)
             );
 
             return registration;

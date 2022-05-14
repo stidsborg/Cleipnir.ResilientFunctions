@@ -122,6 +122,14 @@ internal class CommonInvoker
         return scrapbook;
     }
 
+    public Task UpdateScrapbook<TScrapbook>(
+        FunctionId functionId, 
+        Action<TScrapbook> scrapbookUpdater,
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch
+    ) where TScrapbook : RScrapbook, new() 
+        => _functionStore.UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch, _settings.Serializer);
+
     public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook? scrapbook, int expectedEpoch)
     {
         var scrapbookJson = scrapbook == null

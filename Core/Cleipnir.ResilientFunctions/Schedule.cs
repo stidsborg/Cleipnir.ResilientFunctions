@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -9,4 +10,11 @@ public delegate Task ScheduleReInvocation(
     string functionInstanceId, 
     IEnumerable<Status> expectedStatuses, 
     int? expectedEpoch
+);
+
+public delegate Task ScheduleReInvocation<TScrapbook>(
+    string functionInstanceId, 
+    IEnumerable<Status> expectedStatuses, 
+    int? expectedEpoch = null,
+    Action<TScrapbook>? scrapbookUpdater = null
 );

@@ -5,21 +5,22 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
 
-public delegate Task Retry(
+public delegate Task Retry<TScrapbook>(
     IEnumerable<Status> expectedStatuses,
-    int? expectedEpoch = null
+    int? expectedEpoch = null,
+    Action<TScrapbook>? scrapbookUpdater = null
 );
 
-public class RJob
+public class RJob<TScrapbook>
 {
-    public RJob(Func<Task> start, Retry retry)
+    public RJob(Func<Task> start, Retry<TScrapbook> retry)
     {
         Start = start;
         Retry = retry;
     }
 
     public Func<Task> Start { get; }
-    public Retry Retry { get; }
+    public Retry<TScrapbook> Retry { get; }
 }
 
 public static class RJobExtensions
@@ -32,5 +33,5 @@ public static class RJobExtensions
 
 public class Nothing
 {
-    public static Nothing Instance = new Nothing();
+    public static readonly Nothing Instance = new Nothing();
 }

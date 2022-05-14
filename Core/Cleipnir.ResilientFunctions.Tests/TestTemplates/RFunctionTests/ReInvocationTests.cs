@@ -116,6 +116,103 @@ public abstract class ReInvocationTests
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction();
+    protected async Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        var functionId = new FunctionId(functionType, "something");
+        var flag = new SyncedFlag();
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction<string, Scrapbook>(
+            functionType,
+            inner: (_, scrapbook) =>
+            {
+                scrapbook.Value++;
+                if (flag.Position == FlagPosition.Lowered)
+                    throw new Exception("oh no");
+            }
+        );
+
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
+        var sfScrapbook = await store
+            .GetFunction(functionId)
+            .Map(sf => sf?.Scrapbook?.ScrapbookJson?.DeserializeFromJsonTo<Scrapbook>());
+
+        sfScrapbook.ShouldNotBeNull();
+        sfScrapbook.Value.ShouldBe(1);
+        
+        flag.Raise();
+        await rAction.ReInvoke(
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Failed},
+            expectedEpoch: 0,
+            scrapbookUpdater: s => s.Value = -1 
+        );
+
+        var function = await store.GetFunction(functionId);
+        function.ShouldNotBeNull();
+        function.Status.ShouldBe(Status.Succeeded);
+        var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>();
+        scrapbook.Value.ShouldBe(0);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc();
+    protected async Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        var functionId = new FunctionId(functionType, "something");
+        var flag = new SyncedFlag();
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
+            functionType,
+            inner: (param, scrapbook) =>
+            {
+                scrapbook.Value++;
+                if (flag.Position == FlagPosition.Lowered)
+                    throw new Exception("oh no");
+
+                return param;
+            }
+        );
+
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+        var sfScrapbook = await store
+            .GetFunction(functionId)
+            .Map(sf => sf?.Scrapbook?.ScrapbookJson?.DeserializeFromJsonTo<Scrapbook>());
+
+        sfScrapbook.ShouldNotBeNull();
+        sfScrapbook.Value.ShouldBe(1);
+        
+        flag.Raise();
+        var returned = await rFunc.ReInvoke(
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Failed},
+            expectedEpoch: 0,
+            scrapbookUpdater: s => s.Value = -1 
+        );
+        returned.ShouldBe("something");
+        
+        var function = await store.GetFunction(functionId);
+        function.ShouldNotBeNull();
+        function.Status.ShouldBe(Status.Succeeded);
+        var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>();
+        scrapbook.Value.ShouldBe(0);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    private class Scrapbook : RScrapbook
+    {
+        public int Value { get; set; }
+    }
 
     public abstract Task FuncReInvocationSunshineScenario();
     protected async Task FuncReInvocationSunshineScenario(Task<IFunctionStore> storeTask)

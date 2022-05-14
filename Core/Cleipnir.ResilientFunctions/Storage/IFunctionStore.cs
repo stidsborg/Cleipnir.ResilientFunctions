@@ -42,6 +42,7 @@ public interface IFunctionStore
         FunctionId functionId, 
         Action<TScrapbook> updater,
         IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch = null,
         ISerializer? serializer = null) where TScrapbook : RScrapbook, new()
     {
         var sf = await GetFunction(functionId);
@@ -51,6 +52,8 @@ public interface IFunctionStore
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' does not have scrapbook");
         if (!expectedStatuses.Contains(sf.Status))
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{sf.Status}'");
+        if (expectedEpoch != null && expectedEpoch != sf.Epoch)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch '{expectedEpoch}' was '{sf.Epoch}'");
         
         serializer ??= DefaultSerializer.Instance;
 
