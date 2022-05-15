@@ -1,7 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests;
-using Dapper;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
@@ -15,7 +14,11 @@ public class Helper : IHelper
         await DatabaseHelper.CreateDatabaseIfNotExists(ConnectionString);
         await using var conn = new SqlConnection(ConnectionString);
         conn.Open();
-        try { await conn.ExecuteAsync("TRUNCATE TABLE rfunctions"); }
+        try
+        {
+            await using var command = new SqlCommand("TRUNCATE TABLE rfunctions", conn);
+            await command.ExecuteNonQueryAsync();
+        }
         catch
         {
             // ignored
@@ -26,12 +29,13 @@ public class Helper : IHelper
     {
         await using var conn = new SqlConnection(ConnectionString);
         conn.Open();
-        var nonCompletes = await conn.ExecuteScalarAsync<int>(@$"
-                SELECT COUNT(*) 
-                FROM rfunctions 
-                WHERE Status = {(int) Status.Executing} OR Status = {(int) Status.Postponed};"
-        );
-        return nonCompletes;
+        var sql = @$"
+            SELECT COUNT(*) 
+            FROM rfunctions 
+            WHERE Status = {(int) Status.Executing} OR Status = {(int) Status.Postponed}";
+        await using var command = new SqlCommand(sql, conn);
+        var count = (int) (await command.ExecuteScalarAsync() ?? 0);
+        return count;
     }
 
     public async Task<IFunctionStore> CreateFunctionStore()

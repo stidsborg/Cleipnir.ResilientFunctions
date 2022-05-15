@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
-using Dapper;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Utils;
@@ -22,12 +21,14 @@ public class Monitor : IMonitor
         await using var conn = await _connFunc();
         try
         {
-            await conn.ExecuteAsync(@$"
+            var sql = @$"
                 CREATE TABLE {_tablePrefix}Monitor (
                     [LockId] NVARCHAR(255) PRIMARY KEY NOT NULL,                
                     [KeyId] NVARCHAR(255) NOT NULL
-                );"
-            );
+                )";
+
+            await using var command = new SqlCommand(sql, conn);
+            await command.ExecuteNonQueryAsync();
         }
         catch (SqlException e)
         {
@@ -41,7 +42,9 @@ public class Monitor : IMonitor
         await using var conn = await _connFunc();
         try
         {
-            await conn.ExecuteAsync(@$"DROP TABLE {_tablePrefix}Monitor");
+            var sql = $"DROP TABLE {_tablePrefix}Monitor";
+            await using var command = new SqlCommand(sql, conn);
+            await command.ExecuteNonQueryAsync();
         }
         catch (SqlException e)
         {
@@ -55,13 +58,15 @@ public class Monitor : IMonitor
         try
         {
             await using var conn = await _connFunc();
-            var affectedRows = await conn.ExecuteAsync(@$"
-            IF (SELECT COUNT(*) FROM {_tablePrefix}Monitor WHERE [LockId] = @LockId AND [KeyId] = @KeyId) = 0
-                INSERT INTO {_tablePrefix}Monitor ([LockId], [KeyId])
-                VALUES (@LockId, @KeyId);",
-                new {LockId = lockId, keyId = keyId}
-            );
+            var sql = @$"
+                IF (SELECT COUNT(*) FROM {_tablePrefix}Monitor WHERE [LockId] = @LockId AND [KeyId] = @KeyId) = 0
+                    INSERT INTO {_tablePrefix}Monitor ([LockId], [KeyId])
+                    VALUES (@LockId, @KeyId);";
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@LockId", lockId);
+            command.Parameters.AddWithValue("@KeyId", keyId);
 
+            var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 0
                 ? null
                 : new Lock(this, lockId, keyId);
@@ -78,10 +83,11 @@ public class Monitor : IMonitor
     public async Task Release(string lockId, string keyId)
     {
         await using var conn = await _connFunc();
-        await conn.ExecuteAsync(
-            @$"DELETE FROM {_tablePrefix}Monitor WHERE [LockId] = @LockId AND [KeyId] = @KeyId",
-            new { LockId = lockId, KeyId = keyId }
-        );
+        var sql = $"DELETE FROM {_tablePrefix}Monitor WHERE [LockId] = @LockId AND [KeyId] = @KeyId";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@LockId", lockId);
+        command.Parameters.AddWithValue("@KeyId", keyId);
+        await command.ExecuteNonQueryAsync();
     }
 
     private class Lock : IMonitor.ILock
