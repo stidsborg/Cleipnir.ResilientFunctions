@@ -35,4 +35,16 @@ public static class RFunctionsModule
         Func<IServiceProvider, Settings>? settings = null,
         bool gracefulShutdown = false
     ) => AddRFunctionsService(services, _ => store, settings, gracefulShutdown);
+
+    public static IServiceCollection AddRFunctionsService(
+        this IServiceCollection services,
+        IFunctionStore store,
+        Settings? settings = null,
+        bool gracefulShutdown = false
+    ) => AddRFunctionsService(
+        services,
+        _ => store,
+        settings == null ? null : _ => settings,
+        gracefulShutdown
+    );
 }

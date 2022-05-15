@@ -27,7 +27,7 @@ public class RFunctionsService : IHostedService
             .Where(t => t.GetInterfaces().Contains(typeof(IRegisterRFuncOnInstantiation)));
 
         foreach (var iRegisterRFuncOnInstantiationType in iRegisterRFuncOnInstantiationTypes)
-            _ = _services.GetService(iRegisterRFuncOnInstantiationType); //todo should this be required invocation or not?
+            _ = _services.GetService(iRegisterRFuncOnInstantiationType); 
 
         var rFunctions = _services.GetRequiredService<RFunctions>();
         var iRegisterRFuncs = _services.GetServices<IRegisterRFunc>();
