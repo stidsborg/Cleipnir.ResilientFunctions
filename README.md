@@ -1,19 +1,20 @@
 # Cleipnir's Resilient Functions
+**"Simply providing a way to ensure your code gets run - until you say it is done"**
 
-Resilient Functions is a .NET framework realizing the saga-pattern using .NET funcs / actions. 
+Resilient Functions is a simple and intuitive .NET framework for managing the execution of functions which must complete in their entirety despite: failures, restarts, deployments, data migrations etc. 
 
-By registering a function with the framework, it will ensure that the function invocation completes despite: failures, restarts, deployments, data migrations etc. 
+It automatically retries an invocation until it completes potentially across process restarts and physical nodes. 
 
-The framework also supports failing invocations for manually handling and facilitates data migrations. 
+The framework also supports failing invocations for manually handling, postponing invocations and facilitates data migrations.
 
-It requires a minimal amount of setup to get started and seamlessly scales with multiple running instances. 
+It requires a minimal amount of setup to get started and seamlessly scales with multiple running instances.
 
-*Psst* out-of-the-box you also get:
+Out-of-the-box you also get:
 * synchronized invocation across multiple process instances
 * cloud independance & support for multiple databases
 * simple debuggability
 * ability to migrate non-completed functions
-* simple testability 
+* simple testability
 
 ## Getting Started
 ```powershell
