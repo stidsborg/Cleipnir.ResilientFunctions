@@ -16,6 +16,28 @@ Out-of-the-box you also get:
 * ability to migrate non-completed functions
 * simple testability
 
+| What it is not? |
+| --- |
+| Resilient Functions is not a message-broker based solution. Meaning, it does not need a message-broker to operate. Also there is no event replay or similar occuring when it retries a function invocation. <br /><br />In short, when a function is re-invoked the latest state is passed to the function by the framework and nothing else. |
+
+## Sections
+* [Getting Started](#getting-started)
+* [Elevator Pitch](#elevator-pitch)
+* [Introduction](#introduction)
+* [Show me more code](#show-me-more-code)
+  * [Hello World](#hello-world) 
+  * [HTTP-call & Database](#http-call--database)
+  * [Sending customer emails](#sending-customer-emails)
+  * [ASP.NET Core Integration](#aspnet-core-integration) 
+* [Simple Scenarios](#simple-scenarios)
+  * [Invoking a resilient function](#invoking-a-resilient-function) 
+  * [Ensuring a crashed function completes](#ensuring-a-crashed-function-completes) 
+  * [Storing rainy-day state](#storing-rainy-day-state) 
+  * [Postponing an invocation](#postponing-an-invocation) 
+  * [Back-off strategies](#back-off-strategies) 
+  * [Failing an invocation for manual handling](#failing-an-invocation-for-manual-handling) 
+* [Resilient Function Anatomy](#resilient-function-anatomy)
+
 ## Getting Started
 ```powershell
 Install-Package Cleipnir.ResilientFunctions.SqlServer
@@ -58,6 +80,186 @@ var rFunctions = new RFunctions( //this is where you register different resilien
         
   await rFunctions.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!
 ```
+
+## Introduction
+Almost certainly there exists some code/method/business process within your application which must be executed in its entirety in order to avoid inconsistencies. 
+
+A prime example is that of an order processing flow where every contained step must be executed. If the flow is only partly executed a situation can arise where the ordered product might be shipped but funds never deducted from the customer’s credit card. 
+
+Unfortunately, the operating system process executing our code might crash at any time be that unexpectedly due to underlying hardware failures or simply because of a deployment of a new version of our application. Per default nothing keeps track of such issues. They can therefore be hard to track down and fix.
+
+Cleipnir’s Resilient Functions framework helps you manage all this complexity while automatically retrying your function invocation. It is exceptionally simple to set up and get started, designed to be a slim and intuitive abstraction (no-magic). In short, it provides a way to ensure your code gets executed - until you say it is done. 
+
+| Two Transactions’ Problem (pun intended) |
+| --- |
+| The problem addressed by the framework boils down to a fundamental limitation of distributed computing and the ephemerality of the executing state of our application. <br /><br />Imagine you have two distinct database transactions (which cannot be turned into one transaction) and you are tasked with writing a method ensuring both transactions are committed. Let’s assume you come up with the following simple solution:<br /><br />```void CommitBoth(Transaction t1, Transaction t2) { t1.Commit(); t2.Commit(); }```<br /><br />A PR review might suggest adding exception handling and retry logic. However, the other fundamental reality that our application exists in makes this a futile effort. An application might suddenly at any time crash. This might be due to hardware failures or simply deployment of a new version of our software. <br /><br />In the end no matter the effort we cannot write a method which ensures that both or no transactions are committed when we lose track of where we got to in the execution of our application. <br /><br />The Resilient Functions framework tackles the problem by keeping track of the “CommitBoth”-method invocation and retries it until it eventually succeeds.|
+
+**Recipe: Making your code resilient**
+1. Get the nuget package(s) 
+2. Setup the framework at application startup 
+```csharp
+var store = new SqlServerFunctionStore(ConnectionString);
+await store.Initialize();
+var rFunctions = new RFunctions(store);
+```
+3. Register your function with the framework and use the returned delegate in your code-base
+```csharp
+var processOrderRFunc = rFunctions.RegisterAction<Order>(
+  functionTypeId,
+  ProcessOrder
+).Invoke;
+await processOrderRFunc(functionInstanceId, parameter); //from here onwards the framework ensures that the function invocation completes…
+```
+
+This is all the setup that is required in order to get started. Just provide a connection string, register the function you want to make resilient and use the returned function in your code base. There is no cluster management - thus, to get fail-over and high-availability simply register the function on multiple running instances. 
+
+### Business Processes needing Resiliency
+Business processes which must be executed in their entirety are surprisingly common in today's microservice architectures. The situation typically arises when a process needs to communicate with one or more microservices and potentially its own database in order to fulfill its task. If the operating system process executing the flow crashes while executing it, the system as a whole will be in an inconsistent state, where parts of the system reflect the operations and others do not. Per default nothing will rectify or notify you of this situation. 
+
+| Monolithic Approach |
+| --- |
+| The problem described above stands in contrast to how business processes were handled before the rise of microservices. In a monolithic architecture where an application only has one database and there is no communication with external dependencies, the problem can easily be solved by using ACID transactions. <br />Simply ensure that:<br />A. When a request is received a transaction is started. <br />B. All side effects performed when handling the request are wrapped inside the transaction.<br />C. Immediately before completing the processing of the request the transaction is committed. <br /><br />However, in a microservice architecture this is not feasible. Thus, another mechanism is required for ensuring that all side effects are committed.|
+
+A simple ubiquitous example of a business process needing resiliency is that of an order processing flow. A simplified version could involve the following steps:
+1. Reserve funds from the customer’s credit card
+2. Ship ordered products to the customer
+3. Send confirmation email to the customer
+4. Capture funds from the customer’s credit card
+
+Or equivalently in code:
+```csharp
+public static async Task ProcessOrder(Order order)
+{
+  var reservationId = await PaymentProvider.ReserveFunds(
+    order.CustomerId,
+    amount: order.Products.Sum(p => p.Price)
+  );
+  await LogisticsService.ShipProducts(order.Products);
+  await EmailService.SendConfirmationEmail(order.CustomerEmail);
+  await PaymentProvider.CaptureFunds(reservationId);
+}
+```
+
+When implementing this business flow without framework assistance it is not guaranteed that the flow will complete. In fact, as the process executing it may crash at any time during the flow, we might end up in a situation in which the products have been sent to the customer but without receiving payment for them.
+
+### Diving a bit deeper
+When retrying a method invocation after a crash it is not always meaningful to naively execute the code in the same way as previously.  
+
+In a distributed system the endpoints we invoke can have different behaviors. It might be fine to invoke an endpoint multiple times (so called idempotent end-point) or it may not be the case (at-most-once endpoint). Furthermore, when invoking an idempotent endpoint we might need to supply a request id, which allows the endpoint on the other side to detect if it is a new request or if it has already been handled previously. The Resilient Functions’ framework addresses all these concerns in a simple yet powerful way. 
+
+#### Introducing the Scrapbook-type 
+At a high-level a scrapbook is a user-defined type which contains useful information to be used when retrying a method invocation. Any registered resilient function may accept a scrapbook-parameter. A scrapbook is automatically created and implicitly persisted by the framework.
+
+Let us imagine that a new idempotent version of the payment provider’s endpoint in the previously presented example was published. In turn this would change the internals of the method in the following way:   
+
+```csharp
+public static async Task ProcessOrder(Order order)
+{
+  var requestId = Guid.NewGuid();
+  await PaymentProvider.ReserveFunds(
+    requestId,
+    order.CustomerId,
+    amount: order.Products.Sum(p => p.Price)
+  );
+  await LogisticsService.ShipProducts(order.Products);
+  await EmailService.SendConfirmationEmail(order.CustomerEmail);
+  await PaymentProvider.CaptureFunds(requestId);
+}
+```
+
+As shown, it is now up to the sender to generate and supply a request id to the payment provider allowing it to determine if a request has been handled before. However, the current version does not handle process crashes and subsequent retries correctly. Each re-invocation would result in a new request id being created and in turn a new reservation and potentially captured payment. 
+
+In order to rectify this issue a scrapbook can be used, as follows:  
+
+```csharp
+public static async Task ProcessOrder(Order order, Scrapbook scrapbook)
+{
+  if (scrapbook.RequestId == null) 
+  {
+    scrapbook.RequestId = Guid.NewId();
+    await scrapbook.Save();
+  }
+
+  await PaymentProvider.ReserveFunds(
+    scrapbook.RequestId,
+    order.CustomerId,
+    amount: order.Products.Sum(p => p.Price)
+  );
+  await LogisticsService.ShipProducts(order.Products);
+  await EmailService.SendConfirmationEmail(order.CustomerEmail);
+  await PaymentProvider.CaptureFunds(scrapbook.RequestId);
+}
+
+public class Scrapbook : RScrapbook
+{
+    public Guid RequestId { get; set; }
+}
+```
+
+Using the scrapbook we ensure that all re-invocations will use the same request id and subsequently that the payment provider will be able to recognize if it is the same reserve or capture request. 
+
+**At-most-once semantics:**
+At the other end of the spectrum of end-point “toughness” are end-points which are not idempotent and which perform side-effects. They pose a major challenge against naively retrying a business process after a crash.  
+
+Imagine that the Logistics Service’s endpoint in the “processing order”-example is non-idempotent. That is each request to the endpoint will result in the specified products being shipped to the customer. If it is invoked multiple times then the customer will receive the products multiple times.
+
+A simple solution can be attained by extending the scrapbook. In this way we can ensure that the “ShipProducts”-endpoint is invoked at-most-once and flag the invocation for manual handling if a crash occurs while invoking the “ShipProducts”-endpoint. 
+
+```csharp
+public static async Task ProcessOrder(Order order, Scrapbook scrapbook)
+{
+  if (scrapbook.RequestId == null) 
+  {
+    scrapbook.RequestId = Guid.NewId();
+    await scrapbook.Save();
+  }
+  if (scrapbook.ShipProductsCallCompleted == false)
+    throw new InvalidOperationException("ShipProducts did not complete previously");
+
+  await PaymentProvider.ReserveFunds(
+    scrapbook.RequestId,
+    order.CustomerId,
+    amount: order.Products.Sum(p => p.Price)
+  );
+  if (scrapbook.ShipProductsCallCompleted != true) 
+  { 
+    scrapbook.ShipProductsCallCompleted = false;
+    await scrapbook.Save();
+    await LogisticsService.ShipProducts(order.Products);
+    scrapbook.ShipProductsCallCompleted = true;
+    await scrapbook.Save();
+  }
+  await EmailService.SendConfirmationEmail(order.CustomerEmail);
+  await PaymentProvider.CaptureFunds(scrapbook.RequestId);
+}
+
+public class Scrapbook : RScrapbook
+{
+    public Guid RequestId { get; set; }
+    public bool? ShipProductsCallCompleted { get; set; }
+}
+```
+
+A thrown unhandled exception - as with the InvalidOperationException above - will result in the function invocation for that specific order to transition to a failed state. In this state the framework will not try to re-invoke the function automatically. Instead, this state is meant for the case where manual handling is required for the issue to be rectified. Assuming it has been determined that it is safe for the invocation to be retried then the function can be invoked again as follows:
+
+```csharp
+var reinvokeProcessOrder = rFunctions.RegisterAction<Order>(
+  functionTypeId,
+  ProcessOrder
+).ReInvoke;
+
+await reinvokeProcessOrder(
+  functionInstanceId, 
+  parameter, 
+  expectedStatuses: new[] {Status.Failed},
+  scrapbookUpdater: s => s.ShipProductsCallCompleted = null //resetting flag
+); //from here onwards the framework ensures that the function invocation completes…
+```
+
+#### Exception Handling / Rollback logic
+The acute reader might have noticed that the previous examples are lacking exception handling. Primarily, this is to keep them simple. The nitty gritty details of communicating with the payment provider, email and logistics services are assumed to exist inside their respective methods. Thus, this is where the relevant exception handling and retry logic resides. 
+
+However, as the code inside a resilient function is ordinary C#-code you are free to implement exception handling as you think fit. Moreover, the framework has constructs for applying exponential or linear backoff strategies around a user specified function (see backoff strategies under scenarios). This provides a simple way to add retry logic to your code. 
 
 ## Show me more code
 Firstly, the compulsory, ‘*hello world*’-example can be realized as follows:
