@@ -24,6 +24,10 @@ or
 ```powershell
 Install-Package Cleipnir.ResilientFunctions.PostgreSQL
 ```
+and optionally
+```powershell
+Install-Package Cleipnir.ResilientFunctions.AspNetCore
+```
 
 ## Elevator Pitch
 Still curious - ok awesome - then here comes our elevator pitch example:
@@ -171,15 +175,23 @@ public static async Task<Return> StartMailSending(MailAndRecipients mailAndRecip
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/tree/main/Samples/Sample.ConsoleApp/EmailOffers)
 
 ### ASP.NET Core Integration
-To simplify integration with ASP.NET Core projects the companying nuget package can be used, which automatically registers and initializes the framework within your ASP.NET application. Further, the package can be configured to postpone shutdown until all executing resilient functions have completed - so called graceful shutdown. 
+To simplify integration with ASP.NET Core projects the companying nuget package can be used, which automatically registers and initializes the framework within your ASP.NET application. 
 
+```powershell
+Install-Package Cleipnir.ResilientFunctions.AspNetCore
+```
+
+Further, the package can be configured to postpone shutdown until all executing resilient functions have completed - so called graceful shutdown. 
 Using this functionality within your application is simply a matter of adding the following (or similar) snippet to your code-base:
 
 ```csharp
 builder.Services.AddRFunctionsService(
-  store,
-  unhandledExceptionHandler,
-  gracefulShutdown: true
+  store: sp => new PostgreSqlFunctionStore(connectionString),
+  settings: sp => 
+    new Settings(
+      UnhandledExceptionHandler: e => sp.GetRequiredService<ILogger<RFunctions>>().LogError(e, "RFunctions thrown unhandled exception")
+    ), 
+    gracefulShutdown: true
 );
 ```
 
