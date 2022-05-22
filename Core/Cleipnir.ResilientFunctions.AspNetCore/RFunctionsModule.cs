@@ -17,11 +17,12 @@ public static class RFunctionsModule
         if (settings != null)
             services.AddSingleton(settings);
         
-        services.AddSingleton(s => new RFunctions(
-            s.GetRequiredService<IFunctionStore>(),
-            s.GetService<Settings>()
-            )
-        );
+        services.AddSingleton(s =>
+        {
+            var functionStore = s.GetRequiredService<IFunctionStore>();
+            functionStore.Initialize().Wait();
+            return new RFunctions(functionStore, s.GetService<Settings>());
+        });
         
         var callingAssembly = Assembly.GetCallingAssembly();
         services.AddHostedService(s => new RFunctionsService(s, callingAssembly, gracefulShutdown));
