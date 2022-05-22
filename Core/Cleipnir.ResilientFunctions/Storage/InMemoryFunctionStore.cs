@@ -10,7 +10,9 @@ public class InMemoryFunctionStore : IFunctionStore
 {
     private readonly Dictionary<FunctionId, State> _states = new();
     private readonly object _sync = new();
-    
+
+    public Task Initialize() => Task.CompletedTask;
+
     public Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param,

@@ -10,6 +10,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface IFunctionStore
 {
+    public Task Initialize();
+    
     // ** CREATION ** // 
     Task<bool> CreateFunction(
         FunctionId functionId, 

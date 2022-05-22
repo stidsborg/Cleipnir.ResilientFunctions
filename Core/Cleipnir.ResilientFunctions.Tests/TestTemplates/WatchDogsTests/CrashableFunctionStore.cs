@@ -27,7 +27,9 @@ public class CrashableFunctionStore : IFunctionStore
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;
 
     public void Crash() => _crashed = true;
-    
+
+    public Task Initialize() => Task.CompletedTask;
+
     public Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, 

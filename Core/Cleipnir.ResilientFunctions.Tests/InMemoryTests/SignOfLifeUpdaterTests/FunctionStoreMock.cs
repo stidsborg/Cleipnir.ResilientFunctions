@@ -39,7 +39,10 @@ public delegate Task<StoredFunction?> GetFunction(FunctionId functionId);
 
 public class FunctionStoreMock : IFunctionStore
 {
+    public Task Initialize() => Task.CompletedTask;
+    
     public CreateFunction? SetupCreateFunction { private get; init; }
+
     public Task<bool> CreateFunction(
         FunctionId functionId,
         StoredParameter param,
