@@ -18,7 +18,7 @@ Out-of-the-box you also get:
 
 | What it is not? |
 | --- |
-| Resilient Functions is not a message-broker based solution. Meaning, it does not need a message-broker to operate. Also there is no event replay or similar occuring when it retries a function invocation. <br /><br />In short, when a function is re-invoked the latest state is passed to the function by the framework and nothing else. |
+| Resilient Functions is not a message-broker based solution. Meaning, it does not need a message-broker to operate. Also there is no event replay or similar occuring when it retries a function invocation. <br /><br />In short, when a function is re-invoked the latest state is passed to the function by the framework and nothing else.<br /><br />This is in line with the framework’s basic tenet of simplicity and understandability. Thus, making it as simple as possible to ensure a piece of logic is executed while at the same time ensuring the execution is easy to reason about. |
 
 ## Sections
 * [Getting Started](#getting-started)
