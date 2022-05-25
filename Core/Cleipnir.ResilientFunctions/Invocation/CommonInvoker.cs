@@ -57,7 +57,7 @@ internal class CommonInvoker
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult<TReturn>(FunctionId functionId) //todo consider if this function should accept an epoch parameter
+    public async Task<TReturn> WaitForFunctionResult<TReturn>(FunctionId functionId) 
     {
         while (true)
         {
@@ -81,7 +81,7 @@ internal class CommonInvoker
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 default:
-                    throw new ArgumentOutOfRangeException(); //todo framework exception
+                    throw new ArgumentOutOfRangeException(); 
             }
         }
     }
@@ -110,7 +110,7 @@ internal class CommonInvoker
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 default:
-                    throw new ArgumentOutOfRangeException(); //todo framework exception
+                    throw new ArgumentOutOfRangeException(); 
             }
         }
     }
@@ -359,7 +359,7 @@ internal class CommonInvoker
             );
 
             if (!success)
-                throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'"); //todo concurrent modification exception
+                throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'");
 
             var param = (TParam) Serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
             if (!hasScrapbook)
