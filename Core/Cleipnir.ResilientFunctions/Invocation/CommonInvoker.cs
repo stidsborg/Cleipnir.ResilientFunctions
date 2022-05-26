@@ -35,7 +35,7 @@ internal class CommonInvoker
     {
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var paramJson = Serializer.SerializeParameter(param);
-        var paramType = param.SimpleQualifiedTypeName();
+        var paramType = param.GetType().SimpleQualifiedName();
         try
         {
             var created = await _functionStore.CreateFunction(

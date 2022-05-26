@@ -13,8 +13,6 @@ public static class TypeHelper
         return builder.ToString();
     }
 
-    public static string SimpleQualifiedTypeName(this object o) => SimpleQualifiedName(o.GetType());
-
     private static int ExtractSimplifiedName(string name, int i, StringBuilder stringBuilder)
     {
         var ignore = false;
