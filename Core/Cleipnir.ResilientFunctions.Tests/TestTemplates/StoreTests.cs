@@ -176,4 +176,30 @@ public abstract class StoreTests
         storedFunction.Epoch.ShouldBe(2);
         storedFunction.SignOfLife.ShouldBe(0);
     }
+    
+    public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
+    public async Task CreatingTheSameFunctionTwiceReturnsFalse(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+        var paramType = PARAM.GetType().SimpleQualifiedName();
+
+        await store.CreateFunction(
+            FunctionId,
+            param: new StoredParameter(paramJson, paramType),
+            scrapbookType: null,
+            Status.Executing,
+            initialEpoch: 0,
+            initialSignOfLife: 0
+        ).ShouldBeTrueAsync();
+
+        await store.CreateFunction(
+            FunctionId,
+            param: new StoredParameter(paramJson, paramType),
+            scrapbookType: null,
+            Status.Executing,
+            initialEpoch: 0,
+            initialSignOfLife: 0
+        ).ShouldBeFalseAsync();
+    }
 }

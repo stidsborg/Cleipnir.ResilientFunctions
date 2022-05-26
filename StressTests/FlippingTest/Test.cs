@@ -7,7 +7,7 @@ public static class Test
         var ready = new Queue<Node>();
         var started = new Queue<Node>();
 
-        await helper.InitializeDatabaseAndTruncateTable();
+        await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
 
         Console.WriteLine("FLIPPING_TEST: Initializing...");

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -194,7 +195,9 @@ public abstract class PostponedTests
                 (string _, Scrapbook _) => Postpone.For(1_000)
             ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
+                rAction(param, param)
+            );
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -203,15 +206,21 @@ public abstract class PostponedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     CrashedCheckFrequency: TimeSpan.Zero,
-                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
                 )
             );
 
+            var counter = 0;
             var rFunc = rFunctions
                 .RegisterAction(
                     functionTypeId,
                     async (string _, Scrapbook scrapbook) =>
                     {
+                        counter++;
+                        if (counter == 2)
+                            Console.WriteLine("OH NO");
+                        Console.WriteLine("OK");
+                        Console.WriteLine(new StackTrace());
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                     }

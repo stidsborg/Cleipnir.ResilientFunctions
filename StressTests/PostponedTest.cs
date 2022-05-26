@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -10,11 +11,13 @@ public static class PostponedTest
     public static async Task Perform(IHelper helper)
     {
         const int testSize = 1000;
+        await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
 
-        var start = DateTime.UtcNow.AddSeconds(10);
+        var start = DateTime.UtcNow.AddSeconds(20);
         Console.WriteLine("POSTPONED_TEST: Expected start: " + start);
-        var startTicks = start.Ticks;
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
         Console.WriteLine("POSTPONED_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
@@ -37,6 +40,8 @@ public static class PostponedTest
                 expectedEpoch: 0
             );
         }
+        stopWatch.Stop();
+        Console.WriteLine("Initialization took: " + stopWatch.Elapsed);
 
         using var rFunctions1 = new RFunctions(
             store,
@@ -67,7 +72,7 @@ public static class PostponedTest
         Console.WriteLine("POSTPONED_TEST: Waiting for invocations to begin");
         await Task.Delay(3000);
 
-        var allSucceeded = WaitFor.AllCompleted(helper, logPrefix: "POSTPONED_TEST:");
+        var allSucceeded = WaitFor.AllCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
 
         while (true)
         {
@@ -76,7 +81,7 @@ public static class PostponedTest
             if (startingIn.Ticks < 0) break;
             await Task.Delay(250);
         }
-
+        
         await allSucceeded;
     }
 }

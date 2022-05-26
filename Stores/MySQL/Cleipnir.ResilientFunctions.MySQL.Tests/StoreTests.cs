@@ -1,7 +1,6 @@
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests;
+namespace Cleipnir.ResilientFunctions.MySQL.Tests;
 
 [TestClass]
 public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests

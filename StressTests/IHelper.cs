@@ -4,7 +4,7 @@ namespace Cleipnir.ResilientFunctions.StressTests;
 
 public interface IHelper
 {
-    Task InitializeDatabaseAndTruncateTable();
+    Task InitializeDatabaseAndInitializeAndTruncateTable();
     Task<int> NumberOfNonCompleted();
     Task<IFunctionStore> CreateFunctionStore();
 }

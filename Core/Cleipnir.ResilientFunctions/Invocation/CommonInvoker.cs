@@ -145,7 +145,8 @@ internal class CommonInvoker
             postponedUntil: null,
             expectedEpoch
         );
-        if (!success) throw new ConcurrentModificationException(functionId);
+        if (!success) 
+            throw new ConcurrentModificationException(functionId);
     }
     
     public async Task PersistResult(

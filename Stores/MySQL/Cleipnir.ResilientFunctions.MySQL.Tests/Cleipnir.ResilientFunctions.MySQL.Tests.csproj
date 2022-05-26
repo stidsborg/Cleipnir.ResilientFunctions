@@ -2,8 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>true</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,10 +12,10 @@
         <PackageReference Include="MSTest.TestFramework" Version="2.2.7" />
         <PackageReference Include="coverlet.collector" Version="3.1.0" />
     </ItemGroup>
-
+    
     <ItemGroup>
+      <ProjectReference Include="..\Cleipnir.ResilientFunctions.MySQL\Cleipnir.ResilientFunctions.MySQL.csproj" />
       <ProjectReference Include="..\..\..\Core\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj" />
-      <ProjectReference Include="..\Cleipnir.ResilientFunctions.PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -11,9 +12,12 @@ public static class CrashedTest
     {
         const int testSize = 1000;
 
-        await helper.InitializeDatabaseAndTruncateTable();
+        await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var sqlStore = await helper.CreateFunctionStore();
 
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        
         Console.WriteLine("CRASHED_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
@@ -26,6 +30,9 @@ public static class CrashedTest
                 initialSignOfLife: 0
             );
         }
+        
+        stopWatch.Stop();
+        Console.WriteLine("Initialization took: " + stopWatch.Elapsed);
 
         Console.WriteLine("CRASHED_TEST: Waiting for invocations to begin");
         using var rFunctions = new RFunctions(
@@ -41,6 +48,6 @@ public static class CrashedTest
             void(string param) => { }
         );
 
-        await WaitFor.AllCompleted(helper, logPrefix: "CRASHED_TEST: ");
+        await WaitFor.AllCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
     }
 }

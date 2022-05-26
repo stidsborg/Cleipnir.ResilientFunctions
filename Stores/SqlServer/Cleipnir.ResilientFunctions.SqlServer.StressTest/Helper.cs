@@ -7,22 +7,15 @@ namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
 
 public class Helper : IHelper
 {
-    private const string ConnectionString = "Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!";
+    private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!";
 
-    public async Task InitializeDatabaseAndTruncateTable()
+    public async Task InitializeDatabaseAndInitializeAndTruncateTable()
     {
         await DatabaseHelper.CreateDatabaseIfNotExists(ConnectionString);
-        await using var conn = new SqlConnection(ConnectionString);
-        conn.Open();
-        try
-        {
-            await using var command = new SqlCommand("TRUNCATE TABLE rfunctions", conn);
-            await command.ExecuteNonQueryAsync();
-        }
-        catch
-        {
-            // ignored
-        }
+        
+        var store = new SqlServerFunctionStore(ConnectionString);
+        await store.Initialize();
+        await store.Truncate();
     }
 
     public async Task<int> NumberOfNonCompleted()
