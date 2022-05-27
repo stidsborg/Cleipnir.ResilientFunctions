@@ -31,24 +31,17 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
         [AssemblyInitialize]
         public static void AssemblyInit(TestContext testContext)
         {
-            // DROP test database if exists and create it again
-            var database = ConnectionString
-                .Split("Database=")[1]
-                .Split(";")
-                .First();
-
-            var connectionStringWithoutDatabase = ConnectionString
-                .Split($"Database={database};")
-                .Aggregate("", string.Concat);
-
+            var connectionStringWithoutDatabase = Storage.DatabaseHelper.GetConnectionStringWithoutDatabase(ConnectionString);
+            var databaseName = Storage.DatabaseHelper.GetDatabaseName(ConnectionString);
+            
             using var conn = new NpgsqlConnection(connectionStringWithoutDatabase);
             conn.Open();
             {
-                using var command = new NpgsqlCommand($"DROP DATABASE IF EXISTS {database}", conn);
+                using var command = new NpgsqlCommand($"DROP DATABASE IF EXISTS {databaseName}", conn);
                 command.ExecuteNonQuery();    
             }
             {
-                using var command = new NpgsqlCommand($"CREATE DATABASE {database}", conn);
+                using var command = new NpgsqlCommand($"CREATE DATABASE {databaseName}", conn);
                 command.ExecuteNonQuery();    
             }
         }

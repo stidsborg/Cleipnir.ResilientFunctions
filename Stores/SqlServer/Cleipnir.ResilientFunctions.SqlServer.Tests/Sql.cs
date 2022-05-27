@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
     public static class Sql
     {
         public static Func<Task<SqlConnection>> ConnFunc { get; }
-        public static string ConnectionString { get; }
+        private static string ConnectionString { get; }
 
         static Sql()
         {
@@ -33,22 +33,15 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         [AssemblyInitialize]
         public static void AssemblyInit(TestContext testContext)
         {
-            // DROP test database if exists and create it again
-            var database = ConnectionString
-                .Split("Database=")[1]
-                .Split(";")
-                .First();
-            
-            var connectionStringWithoutDatabase = ConnectionString
-                .Split($"Database={database};")
-                .Aggregate("", string.Concat);
+            var connectionStringWithoutDatabase = Storage.DatabaseHelper.GetConnectionStringWithoutDatabase(ConnectionString);
+            var databaseName = Storage.DatabaseHelper.GetDatabaseName(ConnectionString);
 
             using var conn = new SqlConnection(connectionStringWithoutDatabase);
-            conn.Execute($"DROP DATABASE IF EXISTS {database}");
-            conn.Execute($"CREATE DATABASE {database}");
+            conn.Execute($"DROP DATABASE IF EXISTS {databaseName}");
+            conn.Execute($"CREATE DATABASE {databaseName}");
         }
-        
-        public static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
+
+        private static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
             var store = new SqlServerFunctionStore(ConnFunc, $"{testClass}_{testMethod}");
             await store.Initialize();

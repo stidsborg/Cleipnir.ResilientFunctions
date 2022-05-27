@@ -29,9 +29,9 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
         public static void AssemblyInit(TestContext testContext)
         {
             // DROP test database if exists and create it again
-            var database = DatabaseHelper.GetDatabaseName(ConnectionString);
+            var database = Storage.DatabaseHelper.GetDatabaseName(ConnectionString);
 
-            var connectionStringWithoutDatabase = DatabaseHelper.GetConnectionStringWithoutDatabase(ConnectionString);
+            var connectionStringWithoutDatabase = Storage.DatabaseHelper.GetConnectionStringWithoutDatabase(ConnectionString);
 
             using var conn = new MySqlConnection(connectionStringWithoutDatabase);
             conn.Open();
