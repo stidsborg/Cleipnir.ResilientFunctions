@@ -20,10 +20,19 @@ services:
       POSTGRES_PASSWORD: "Pa55word!"
 
   mysql-db:
-    container_name: mysql
+    container_name: mysql-db
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: "Pa55word!"
+
+  mongo:
+    container_name: mongo-db
+    image: mongo   
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: "Pa55word!"
+    ports:
+      - "27017:27017"
