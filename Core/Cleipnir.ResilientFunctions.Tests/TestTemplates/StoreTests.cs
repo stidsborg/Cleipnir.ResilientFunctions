@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -201,5 +202,73 @@ public abstract class StoreTests
             initialEpoch: 0,
             initialSignOfLife: 0
         ).ShouldBeFalseAsync();
+    }
+    
+    public abstract Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut();
+    public async Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+        var paramType = PARAM.GetType().SimpleQualifiedName();
+        var nowTicks = DateTime.UtcNow.Ticks;
+        
+        await store.CreateFunction(
+            FunctionId,
+            param: new StoredParameter(paramJson, paramType),
+            scrapbookType: null,
+            Status.Executing,
+            initialEpoch: 0,
+            initialSignOfLife: 0
+        ).ShouldBeTrueAsync();
+
+        await store.SetFunctionState(
+            FunctionId,
+            Status.Postponed,
+            scrapbookJson: null,
+            result: null,
+            errorJson: null,
+            postponedUntil: nowTicks,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+
+        var postponedFunctions = await store.GetPostponedFunctions(
+            FunctionId.TypeId,
+            nowTicks - 100
+        );
+        postponedFunctions.ShouldBeEmpty();
+    }
+    
+    public abstract Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut();
+    public async Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+        var paramType = PARAM.GetType().SimpleQualifiedName();
+        var nowTicks = DateTime.UtcNow.Ticks;
+        
+        await store.CreateFunction(
+            FunctionId,
+            param: new StoredParameter(paramJson, paramType),
+            scrapbookType: null,
+            Status.Executing,
+            initialEpoch: 0,
+            initialSignOfLife: 0
+        ).ShouldBeTrueAsync();
+
+        await store.SetFunctionState(
+            FunctionId,
+            Status.Postponed,
+            scrapbookJson: null,
+            result: null,
+            errorJson: null,
+            postponedUntil: nowTicks,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+
+        var postponedFunctions = await store.GetPostponedFunctions(
+            FunctionId.TypeId,
+            nowTicks + 100
+        );
+        postponedFunctions.Count().ShouldBe(1);
     }
 }

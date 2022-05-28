@@ -120,10 +120,6 @@ public class MongoDbFunctionStore : IFunctionStore
         var functionTypeIdStr = functionTypeId.Value;
         var executingStatus = (int) Status.Executing;
         var collection = GetCollection();
-        /*var projection = Builders<Document>.Projection
-            .Include(d => d.Id)
-            .Include(d => d.Epoch)
-            .Include(d => d.SignOfLife);*/
 
         var query =
             from d in collection.AsQueryable()
@@ -135,17 +131,6 @@ public class MongoDbFunctionStore : IFunctionStore
             sef.Add(new StoredExecutingFunction(row.FunctionInstanceId, row.Epoch, row.SignOfLife));
 
         return sef.CastTo<IEnumerable<StoredExecutingFunction>>().ToTask();
-
-        /*
-        var document = await GetCollection()
-            .Find(d =>
-                d.Id.FunctionTypeId == functionTypeId &&
-                d.Status == executingStatus
-            ).Project(projection)
-            .ToListAsync();
-            
-        
-        if (document == null) return null;*/
     }
 
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
@@ -156,7 +141,7 @@ public class MongoDbFunctionStore : IFunctionStore
 
         var query =
             from d in collection.AsQueryable()
-            where d.Id.FunctionTypeId == functionTypeIdStr && d.Status == postponedStatus
+            where d.Id.FunctionTypeId == functionTypeIdStr && d.Status == postponedStatus && d.PostponedUntil <= expiresBefore
             select new { d.Id.FunctionInstanceId, d.Epoch, d.PostponedUntil };
         
         var sef = new List<StoredPostponedFunction>();

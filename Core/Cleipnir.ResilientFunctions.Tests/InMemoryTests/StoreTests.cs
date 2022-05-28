@@ -31,4 +31,16 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
         => CreatingTheSameFunctionTwiceReturnsFalse(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut()
+        => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
+    [TestMethod]
+    public override Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut()
+        => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }
