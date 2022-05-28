@@ -18,7 +18,17 @@ public class MongoDbFunctionStore : IFunctionStore
         _collectionName = collectionName;
     }
 
-    public Task Initialize() => Task.CompletedTask;
+    public Task Initialize()
+    {
+        var collection = GetCollection();
+        var notificationLogBuilder = Builders<Document>.IndexKeys;
+        var indexModel = new CreateIndexModel<Document>(notificationLogBuilder
+            .Ascending(d => d.Id.FunctionTypeId)
+            .Ascending(d => d.Status)
+        );
+        
+        return collection!.Indexes.CreateOneAsync(indexModel);
+    }
 
     public Task DropUnderlyingCollection()
     {

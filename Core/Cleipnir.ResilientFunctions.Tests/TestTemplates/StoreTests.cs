@@ -271,4 +271,12 @@ public abstract class StoreTests
         );
         postponedFunctions.Count().ShouldBe(1);
     }
+    
+    public abstract Task InitializeCanBeInvokedMultipleTimesSuccessfully();
+    public async Task InitializeCanBeInvokedMultipleTimesSuccessfully(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.Initialize();
+        await store.Initialize();
+    }
 }

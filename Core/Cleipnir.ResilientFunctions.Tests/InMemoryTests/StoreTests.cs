@@ -43,4 +43,10 @@ public class StoreTests : TestTemplates.StoreTests
         => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
         );
+
+    [TestMethod]
+    public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
+        => InitializeCanBeInvokedMultipleTimesSuccessfully(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }

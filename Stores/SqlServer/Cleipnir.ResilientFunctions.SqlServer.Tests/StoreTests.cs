@@ -37,4 +37,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut()
         => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
+        => InitializeCanBeInvokedMultipleTimesSuccessfully(Sql.AutoCreateAndInitializeStore());
 }
