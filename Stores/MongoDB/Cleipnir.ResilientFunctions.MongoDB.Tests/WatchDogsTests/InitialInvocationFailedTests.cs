@@ -7,17 +7,17 @@ public class InitialInvocationFailedTests : Cleipnir.ResilientFunctions.Tests.Te
 {
     [TestMethod]
     public override Task CreatedActionIsCompletedByWatchdog()
-        => CreatedActionIsCompletedByWatchdog(Sql.AutoCreateAndInitializeStore());
+        => CreatedActionIsCompletedByWatchdog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CreatedActionWithScrapbookIsCompletedByWatchdog()
-        => CreatedActionWithScrapbookIsCompletedByWatchdog(Sql.AutoCreateAndInitializeStore());
+        => CreatedActionWithScrapbookIsCompletedByWatchdog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CreatedFuncIsCompletedByWatchdog()
-        => CreatedFuncIsCompletedByWatchdog(Sql.AutoCreateAndInitializeStore());
+        => CreatedFuncIsCompletedByWatchdog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CreatedFuncWithScrapbookIsCompletedByWatchdog()
-        => CreatedFuncWithScrapbookIsCompletedByWatchdog(Sql.AutoCreateAndInitializeStore());
+        => CreatedFuncWithScrapbookIsCompletedByWatchdog(NoSql.AutoCreateAndInitializeStore());
 }

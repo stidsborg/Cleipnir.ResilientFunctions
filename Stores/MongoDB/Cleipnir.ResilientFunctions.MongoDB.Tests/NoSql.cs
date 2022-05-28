@@ -6,12 +6,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.MongoDB.Tests
 {
     [TestClass]
-    public static class Sql
+    public static class NoSql
     {
         private static string ConnectionString { get; }
         public const string CollectionName = "rfunctions_test";
 
-        static Sql()
+        static NoSql()
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.MongoDB.Tests.ConnectionString")

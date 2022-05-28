@@ -7,17 +7,17 @@ public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTest
 {
     [TestMethod]
     public override Task NonCompletedFuncIsCompletedByWatchDog()
-        => NonCompletedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => NonCompletedFuncIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonCompletedActionIsCompletedByWatchDog()
-        => NonCompletedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => NonCompletedActionIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 }

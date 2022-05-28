@@ -7,29 +7,29 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
 {
     [TestMethod]
     public override Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
-        => FunctionCanBeCreatedWithASingleParameterSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeCreatedWithASingleParameterSuccessfully(NoSql.AutoCreateAndInitializeStore());
         
     [TestMethod]
     public override Task FunctionCanBeCreatedWithATwoParametersSuccessfully()
-        => FunctionCanBeCreatedWithATwoParametersSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeCreatedWithATwoParametersSuccessfully(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
-        => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task FetchingNonExistingFunctionReturnsNull()
-        => FetchingNonExistingFunctionReturnsNull(Sql.AutoCreateAndInitializeStore());
+        => FetchingNonExistingFunctionReturnsNull(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UpdateScrapbookSunshineScenario()
-        => UpdateScrapbookSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => UpdateScrapbookSunshineScenario(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
-        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
 }

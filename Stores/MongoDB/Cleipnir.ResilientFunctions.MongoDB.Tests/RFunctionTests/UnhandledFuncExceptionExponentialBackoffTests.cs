@@ -7,5 +7,5 @@ public class UnhandledFuncExceptionExponentialBackoffTests : Cleipnir.ResilientF
 {
     [TestMethod]
     public override Task UnhandledExceptionResultsInPostponedFunc()
-        => UnhandledExceptionResultsInPostponedFunc(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionResultsInPostponedFunc(NoSql.AutoCreateAndInitializeStore());
 }

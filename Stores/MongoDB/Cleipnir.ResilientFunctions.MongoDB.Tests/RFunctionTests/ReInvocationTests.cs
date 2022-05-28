@@ -7,26 +7,26 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()
-        => ActionReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => ActionReInvocationSunshineScenario(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ActionWithScrapbookReInvocationSunshineScenario()
-        => ActionWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => ActionWithScrapbookReInvocationSunshineScenario(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction()
-        => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc()
-        => ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
-        => FuncReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => FuncReInvocationSunshineScenario(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task FuncWithScrapbookReInvocationSunshineScenario()
-        => FuncWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => FuncWithScrapbookReInvocationSunshineScenario(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ReInvocationFailsWhenItHasUnexpectedStatus()
-        => ReInvocationFailsWhenItHasUnexpectedStatus(Sql.AutoCreateAndInitializeStore());
+        => ReInvocationFailsWhenItHasUnexpectedStatus(NoSql.AutoCreateAndInitializeStore());
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
-        => ReInvocationFailsWhenTheFunctionDoesNotExist(Sql.AutoCreateAndInitializeStore());
+        => ReInvocationFailsWhenTheFunctionDoesNotExist(NoSql.AutoCreateAndInitializeStore());
 }

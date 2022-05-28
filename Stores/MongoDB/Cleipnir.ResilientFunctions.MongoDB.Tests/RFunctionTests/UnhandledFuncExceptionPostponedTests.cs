@@ -7,17 +7,17 @@ public class UnhandledFuncExceptionPostponedTests : Cleipnir.ResilientFunctions.
 {
     [TestMethod]
     public override Task UnhandledExceptionResultsInPostponedFunc()
-        => UnhandledExceptionResultsInPostponedFunc(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionResultsInPostponedFunc(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionResultsInPostponedFuncWithScrapbook()
-        => UnhandledExceptionResultsInPostponedFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionResultsInPostponedFuncWithScrapbook(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionResultsInPostponedAction()
-        => UnhandledExceptionResultsInPostponedAction(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionResultsInPostponedAction(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionResultsInPostponedActionWithScrapbook()
-        => UnhandledExceptionResultsInPostponedActionWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionResultsInPostponedActionWithScrapbook(NoSql.AutoCreateAndInitializeStore());
 }

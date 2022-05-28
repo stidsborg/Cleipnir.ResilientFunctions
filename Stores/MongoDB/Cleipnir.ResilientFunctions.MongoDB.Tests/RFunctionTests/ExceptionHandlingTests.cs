@@ -7,17 +7,17 @@ public class ExceptionHandlingTests : Cleipnir.ResilientFunctions.Tests.TestTemp
 {
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFunc()
-        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFunc(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFunc(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook()
-        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook(NoSql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction()
-        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook()
-        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook(NoSql.AutoCreateAndInitializeStore());
 }

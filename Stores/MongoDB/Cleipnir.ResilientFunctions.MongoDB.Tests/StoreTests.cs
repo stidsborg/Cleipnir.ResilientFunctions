@@ -7,37 +7,37 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest() 
-        => SunshineScenarioTest(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioTest(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-        => SignOfLifeIsUpdatedWhenAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsUpdatedWhenAsExpected(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected() 
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsNotUpdatedWhenNotAsExpected(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected() 
-        => BecomeLeaderSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => BecomeLeaderSucceedsWhenEpochIsAsExpected(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
-        => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => BecomeLeaderFailsWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
-        => CreatingTheSameFunctionTwiceReturnsFalse(Sql.AutoCreateAndInitializeStore());
+        => CreatingTheSameFunctionTwiceReturnsFalse(NoSql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut()
-        => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Sql.AutoCreateAndInitializeStore());
+        => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut()
-        => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Sql.AutoCreateAndInitializeStore());
+        => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(NoSql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
-        => InitializeCanBeInvokedMultipleTimesSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => InitializeCanBeInvokedMultipleTimesSuccessfully(NoSql.AutoCreateAndInitializeStore());
 }

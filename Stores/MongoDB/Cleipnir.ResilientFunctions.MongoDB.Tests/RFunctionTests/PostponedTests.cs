@@ -7,25 +7,25 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
 {
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
-        => PostponedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedFuncIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedFuncWithScrapbookIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
-        => PostponedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionWithScrapbookIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
-        => PostponedActionIsCompletedAfterInMemoryTimeout(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedAfterInMemoryTimeout(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
-        => PostponedActionIsCompletedByWatchDogAfterCrash(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedByWatchDogAfterCrash(NoSql.AutoCreateAndInitializeStore());
 }
