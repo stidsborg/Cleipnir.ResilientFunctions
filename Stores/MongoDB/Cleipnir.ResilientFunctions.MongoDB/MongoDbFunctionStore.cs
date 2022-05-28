@@ -41,7 +41,7 @@ public class MongoDbFunctionStore : IFunctionStore
 
     private IMongoCollection<Document>? GetCollection()
     {
-        var dbClient = new MongoClient(_connectionString); //todo investigate disposable of dbclient
+        var dbClient = new MongoClient(_connectionString); 
         var db = dbClient.GetDatabase(_databaseName);
         var collection = db.GetCollection<Document>(_collectionName);
         return collection;
