@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+        <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
+        <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
+        <PackageReference Include="coverlet.collector" Version="3.1.2" />
+        <PackageReference Include="Npgsql" Version="6.0.4" />
+        <PackageReference Include="Shouldly" Version="4.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
+      <ProjectReference Include="..\..\Stores\PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.csproj" />
+      <ProjectReference Include="..\Cleipnir.ResilientFunctions.Messaging.PostgreSQL\Cleipnir.ResilientFunctions.Messaging.PostgreSQL.csproj" />
+    </ItemGroup>
+
+</Project>
