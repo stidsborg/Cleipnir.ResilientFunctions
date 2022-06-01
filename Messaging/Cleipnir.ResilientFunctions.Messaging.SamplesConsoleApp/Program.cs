@@ -9,17 +9,15 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp
     {
         private static async Task Main()
         {
-            var connStr = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=rfunctions;";
+            var connectionString = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=rfunctions;";
 
-            var functionStore = new PostgreSqlFunctionStore(connStr);
-            await functionStore.DropIfExists();
+            await DatabaseHelper.RecreateDatabase(connectionString);
+            
+            var functionStore = new PostgreSqlFunctionStore(connectionString);
             await functionStore.Initialize();
-            
             var rFunctions = new RFunctions(functionStore);
-            var eventStore = new PostgreSqlEventStore(connStr);
-            await eventStore.DropUnderlyingTable();
-            await eventStore.Initialize();
             
+            var eventStore = new PostgreSqlEventStore(connectionString);
             var eventSources = new EventSources(eventStore);
             await eventSources.Initialize();
             

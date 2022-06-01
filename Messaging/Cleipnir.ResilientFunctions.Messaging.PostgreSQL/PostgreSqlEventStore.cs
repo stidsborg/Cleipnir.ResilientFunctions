@@ -40,10 +40,17 @@ public class PostgreSqlEventStore : IEventStore
             return new Subscription(this, observerId).CastTo<IDisposable>().ToTask();
         }
     }
+
+    private readonly TaskCompletionSource _setUpDatabaseSubscriptionTcs = new();
+    private bool _setUpDatabaseSubscriptionStarted;
     
     private Task SetUpDatabaseSubscription()
     {
-        var tcs = new TaskCompletionSource();
+        lock (_sync)
+        {
+            if (_setUpDatabaseSubscriptionStarted) return _setUpDatabaseSubscriptionTcs.Task;
+            _setUpDatabaseSubscriptionStarted = true;
+        }
         
         var thread = new Thread(_ =>
         {
@@ -66,7 +73,7 @@ public class PostgreSqlEventStore : IEventStore
                 cmd.ExecuteNonQuery();
             }
             
-            Task.Run(() => tcs.SetResult());
+            Task.Run(() => _setUpDatabaseSubscriptionTcs.SetResult());
 
             while (true) {
                 conn.Wait(); // Thread will block here
@@ -78,11 +85,11 @@ public class PostgreSqlEventStore : IEventStore
         };
 
         thread.Start();
-        return tcs.Task;
+        return _setUpDatabaseSubscriptionTcs.Task;
     }
     
     public EventSource CreateMessagesInstance(FunctionId functionId) => new EventSource(functionId, this);
-
+    
     public async Task Initialize()
     {
         lock (_sync)

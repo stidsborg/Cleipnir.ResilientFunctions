@@ -26,6 +26,8 @@ public class EventSources : IDisposable
             if (_subscribedInDatabase || _disposed) return;
             _subscribedInDatabase = true;
         }
+
+        await _eventStore.Initialize();
         
         var subscription = await _eventStore.SubscribeToChanges(NotifyEventSourceOfChange);
         _storeSubscription = subscription;
