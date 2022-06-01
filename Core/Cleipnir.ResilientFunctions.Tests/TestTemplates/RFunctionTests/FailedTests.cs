@@ -30,6 +30,7 @@ public abstract class FailedTests
     {
         var store = await storeTask;
         var functionTypeId = callerMemberName.ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, PARAM);
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var rFunc = new RFunctions
@@ -51,6 +52,7 @@ public abstract class FailedTests
                 .Invoke;
 
             await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
+            (await store.GetFunction(functionId)).ShouldNotBeNull();
         }
         {
             var flag = new SyncedFlag();
@@ -74,7 +76,7 @@ public abstract class FailedTests
             
             flag.Position.ShouldBe(Lowered);
             
-            var functionId = new FunctionId(functionTypeId, PARAM.ToFunctionInstanceId());
+            
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
