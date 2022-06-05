@@ -283,6 +283,39 @@ public abstract class ScheduleReInvocationTests
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState();
+    protected async Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
+        );
+
+        var rFunc = rFunctions
+            .RegisterAction(
+                functionType,
+                (string _) => Task.FromException(new Exception("oh no"))
+            );
+
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+
+        await rFunc.ScheduleReInvocation(
+            functionInstanceId: "something",
+            expectedStatuses: new[] {Status.Executing},
+            expectedEpoch: null,
+            throwOnUnexpectedFunctionState: false
+        );
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
 
     public abstract Task ReInvocationFailsWhenTheFunctionDoesNotExist();
     protected async Task ReInvocationFailsWhenTheFunctionDoesNotExist(Task<IFunctionStore> storeTask)

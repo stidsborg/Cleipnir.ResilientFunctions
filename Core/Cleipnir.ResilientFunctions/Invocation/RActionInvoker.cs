@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
@@ -103,35 +104,44 @@ public class RActionInvoker<TParam> where TParam : notnull
         await PersistResultAndEnsureSuccess(functionId, result, epoch);
     }
 
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
+    public async Task ScheduleReInvoke(
+        string instanceId, 
+        IEnumerable<Status> expectedStatuses, 
+        int? expectedEpoch = null,
+        bool throwOnUnexpectedFunctionState = true)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-
-        _ = Task.Run(async () =>
+        try
         {
-            using var _ = Disposable.Combine(runningFunction);
-            try
+            var functionId = new FunctionId(_functionTypeId, instanceId);
+            var (param, epoch, runningFunction) =
+                await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+
+            _ = Task.Run(async () =>
             {
-                Result result;
+                using var _ = Disposable.Combine(runningFunction);
                 try
                 {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param);
+                    Result result;
+                    try
+                    {
+                        // *** USER FUNCTION INVOCATION *** 
+                        result = await _inner(param);
+                    }
+                    catch (Exception exception)
+                    {
+                        await PersistFailure(functionId, exception, epoch);
+                        throw;
+                    }
+
+                    await PersistResultAndEnsureSuccess(functionId, result, epoch, allowPostponed: true);
                 }
                 catch (Exception exception)
                 {
-                    await PersistFailure(functionId, exception, epoch);
-                    throw;
+                    _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
                 }
-
-                await PersistResultAndEnsureSuccess(functionId, result, epoch, allowPostponed: true);
-            }
-            catch (Exception exception)
-            {
-                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
-            }
-        });
+            });
+        }
+        catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
     private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param)
@@ -275,7 +285,8 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         string instanceId, 
         IEnumerable<Status> expectedStatuses, 
         int? expectedEpoch = null, 
-        Action<TScrapbook>? scrapbookUpdater = null)
+        Action<TScrapbook>? scrapbookUpdater = null,
+        bool throwOnUnexpectedFunctionState = true)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         if (scrapbookUpdater != null)

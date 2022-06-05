@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
@@ -106,7 +107,7 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, bool throwOnUnexpectedFunctionState = true)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
@@ -282,37 +283,46 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
+    public async Task ScheduleReInvoke(
+        string instanceId, 
+        IEnumerable<Status> expectedStatuses, 
+        int? expectedEpoch = null, 
+        Action<TScrapbook>? scrapbookUpdater = null,
+        bool throwOnUnexpectedFunctionState = true)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        if (scrapbookUpdater != null)
-            await UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch);
-        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-
-        _ = Task.Run(async () =>
+        try
         {
-            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
-            try
+            var functionId = new FunctionId(_functionTypeId, instanceId);
+            if (scrapbookUpdater != null)
+                await UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch);
+            var (param, epoch, scrapbook, runningFunction) =
+                await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+
+            _ = Task.Run(async () =>
             {
-                Result<TReturn> result;
+                using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
                 try
                 {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param, scrapbook);
+                    Result<TReturn> result;
+                    try
+                    {
+                        // *** USER FUNCTION INVOCATION *** 
+                        result = await _inner(param, scrapbook);
+                    }
+                    catch (Exception exception)
+                    {
+                        await PersistFailure(functionId, exception, scrapbook, epoch);
+                        throw;
+                    }
+
+                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
                 }
                 catch (Exception exception)
                 {
-                    await PersistFailure(functionId, exception, scrapbook, epoch);
-                    throw;
+                    _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
                 }
-
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
-            }
-            catch (Exception exception)
-            {
-                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
-            }
-        });
+            });
+        } catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)

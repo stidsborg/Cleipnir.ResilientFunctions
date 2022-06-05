@@ -21,6 +21,9 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
     public override Task ReInvocationFailsWhenItHasUnexpectedStatus()
         => ReInvocationFailsWhenItHasUnexpectedStatus(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
+    public override Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState()
+        => ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(Sql.AutoCreateAndInitializeStore());
+    [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(Sql.AutoCreateAndInitializeStore());
 }

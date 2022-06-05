@@ -1,4 +1,6 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
@@ -24,4 +26,10 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(Sql.AutoCreateAndInitializeStore());
+    [TestMethod]
+    public override Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState()
+        => ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(
+            Sql.CreateAndInitializeStore(nameof(ScheduleReInvocationTests), "NotThrowOnUnexpectedFunctionState")
+                .Map(store => (IFunctionStore) store)
+        );
 }

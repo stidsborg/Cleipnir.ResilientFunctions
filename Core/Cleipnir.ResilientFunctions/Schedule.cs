@@ -9,12 +9,14 @@ public delegate Task Schedule<in TParam>(string functionInstanceId, TParam param
 public delegate Task ScheduleReInvocation(
     string functionInstanceId, 
     IEnumerable<Status> expectedStatuses, 
-    int? expectedEpoch
+    int? expectedEpoch,
+    bool throwOnUnexpectedFunctionState = true
 );
 
 public delegate Task ScheduleReInvocation<TScrapbook>(
     string functionInstanceId, 
     IEnumerable<Status> expectedStatuses, 
     int? expectedEpoch = null,
-    Action<TScrapbook>? scrapbookUpdater = null
+    Action<TScrapbook>? scrapbookUpdater = null,
+    bool throwOnUnexpectedFunctionState = true
 );
