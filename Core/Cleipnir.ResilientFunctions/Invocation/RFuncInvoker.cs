@@ -109,32 +109,36 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
 
     public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, bool throwOnUnexpectedFunctionState = true)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-        _ = Task.Run(async () =>
+        try
         {
-            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
-            try
+            var functionId = new FunctionId(_functionTypeId, instanceId);
+            var (param, epoch, runningFunction) =
+                await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+            _ = Task.Run(async () =>
             {
-                Result<TReturn> result;
+                using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
                 try
                 {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param);
+                    Result<TReturn> result;
+                    try
+                    {
+                        // *** USER FUNCTION INVOCATION *** 
+                        result = await _inner(param);
+                    }
+                    catch (Exception exception)
+                    {
+                        await PersistFailure(functionId, exception, epoch);
+                        throw;
+                    }
+
+                    await PersistResultAndEnsureSuccess(functionId, result, epoch, allowPostponed: true);
                 }
                 catch (Exception exception)
                 {
-                    await PersistFailure(functionId, exception, epoch);
-                    throw;
+                    _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
                 }
-
-                await PersistResultAndEnsureSuccess(functionId, result, epoch, allowPostponed: true);
-            }
-            catch (Exception exception)
-            {
-                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
-            }
-        });
+            });
+        } catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
     private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param) 

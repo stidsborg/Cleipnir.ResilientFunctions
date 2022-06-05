@@ -288,35 +288,38 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         Action<TScrapbook>? scrapbookUpdater = null,
         bool throwOnUnexpectedFunctionState = true)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        if (scrapbookUpdater != null)
-            await UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch);
-        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
-
-        _ = Task.Run(async () =>
+        try
         {
-            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
-            try
+            var functionId = new FunctionId(_functionTypeId, instanceId);
+            if (scrapbookUpdater != null)
+                await UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch);
+            var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+
+            _ = Task.Run(async () =>
             {
-                Result result;
+                using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
                 try
                 {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param, scrapbook);
+                    Result result;
+                    try
+                    {
+                        // *** USER FUNCTION INVOCATION *** 
+                        result = await _inner(param, scrapbook);
+                    }
+                    catch (Exception exception)
+                    {
+                        await PersistFailure(functionId, exception, scrapbook, epoch);
+                        throw;
+                    }
+
+                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
                 }
                 catch (Exception exception)
                 {
-                    await PersistFailure(functionId, exception, scrapbook, epoch);
-                    throw;
+                    _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
                 }
-
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
-            }
-            catch (Exception exception)
-            {
-                _unhandledExceptionHandler.Invoke(_functionTypeId, exception);
-            }
-        });
+            });
+        } catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
