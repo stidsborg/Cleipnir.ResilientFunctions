@@ -14,10 +14,7 @@ public class EventSources : IDisposable
     private bool _subscribedInDatabase;
     private readonly object _sync = new();
 
-    public EventSources(IEventStore eventStore)
-    {
-        _eventStore = eventStore;
-    }
+    public EventSources(IEventStore eventStore) => _eventStore = eventStore;
 
     public async Task Initialize()
     {
@@ -51,6 +48,9 @@ public class EventSources : IDisposable
             observer();
     }
 
+    public Task<EventSource> GetEventSource(string functionTypeId, string functionInstanceId)
+        => GetEventSource(new FunctionId(functionTypeId, functionInstanceId));
+    
     public async Task<EventSource> GetEventSource(FunctionId functionId)
     {
         int observerId; 

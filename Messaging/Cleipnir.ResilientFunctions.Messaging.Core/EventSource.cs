@@ -1,6 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Reactive.Subjects;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Messaging.Core;
 
@@ -24,6 +26,9 @@ public class EventSource : IDisposable
 
     private Action? _unsubscribeToChanges;
 
+    private bool _newEventsFlag;
+    private bool _workerExecuting;
+    private readonly HashSet<string> _idempotencyKeys = new();
     private int _count;
     private readonly object _sync = new();
     
@@ -36,36 +41,56 @@ public class EventSource : IDisposable
     public async Task Initialize(Action unsubscribeToChanges)
     {
         _unsubscribeToChanges = unsubscribeToChanges;
-        
-        var existingMessages = await _eventStore.GetEvents(_functionId, skip: 0);
-        foreach (var existingMessage in existingMessages)
+        await DeliverOutstandingEvents();
+    }
+
+    internal void HandleNotification() => Task.Run(DeliverOutstandingEvents);
+    
+    private async Task DeliverOutstandingEvents()
+    {
+        Start:
+        int count;
+        lock (_sync)
         {
-            _existing = _existing.Add(existingMessage);
-            _allSubject.OnNext(existingMessage);
+            if (_workerExecuting)
+            {
+                _newEventsFlag = true;
+                return;
+            }
+
+            _workerExecuting = true;
+            _newEventsFlag = false;
+            count = _count;
+        }
+
+        var storedEvents = await _eventStore.GetEvents(_functionId, count);
+        foreach (var storedEvent in storedEvents)
+        {
+            if (storedEvent.IdempotencyKey != null)
+                if (_idempotencyKeys.Contains(storedEvent.IdempotencyKey))
+                    continue;
+                else
+                    _idempotencyKeys.Add(storedEvent.IdempotencyKey);
+
+            var deserialized = storedEvent.Deserialize();
+            _existing = _existing.Add(deserialized);
+            _allSubject.OnNext(deserialized);
             _count++;
+        }
+
+        lock (_sync)
+        {
+            _workerExecuting = false;
+            if (_newEventsFlag) goto Start;
         }
     }
 
-    internal void HandleNotification()
+    public async Task Emit(object @event, string? idempotencyKey = null)
     {
-        Task.Run(async () =>
-        {
-            var newMessages = await _eventStore.GetEvents(_functionId, _count);
-            lock (_sync)
-            {
-                foreach (var newMessage in newMessages)
-                {
-                    _existing = _existing.Add(newMessage);
-                    _allSubject.OnNext(newMessage); //todo is this blocking on an awaiting reactive listener?
-                    _count++;
-                }   
-            }
-        });
-    }
-
-    public async Task Emit(object message)
-    {
-        await _eventStore.AppendEvent(_functionId, message);
+        var json = JsonSerializer.Serialize(@event, @event.GetType());
+        var type = @event.GetType().SimpleQualifiedName();
+        await _eventStore.AppendEvent(_functionId, json, type, idempotencyKey);
+        await DeliverOutstandingEvents();
     }
 
     public void Dispose() => _unsubscribeToChanges?.Invoke();

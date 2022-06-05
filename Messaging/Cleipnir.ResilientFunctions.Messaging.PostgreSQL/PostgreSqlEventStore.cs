@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Cleipnir.ResilientFunctions.Domain;
+﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Dapper;
@@ -10,12 +9,14 @@ namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 public class PostgreSqlEventStore : IEventStore
 {
     private readonly string _connectionString;
-    private readonly string _tablePrefix; //todo use this prefix
+    private readonly string _tablePrefix;
 
+    private bool _initializing;
     private bool _initialized;
     private int _nextSubscriberId;
     private readonly Dictionary<int, Action<FunctionId>> _subscribers = new();
     private readonly object _sync = new();
+    private volatile bool _disposed;
     
     public PostgreSqlEventStore(string connectionString, string tablePrefix = "")
     {
@@ -69,83 +70,90 @@ public class PostgreSqlEventStore : IEventStore
                     observer(functionId);
             };
             
-            using (var cmd = new NpgsqlCommand("LISTEN cleipnir_rx_notifications", conn)) { //todo change channel_name to table name
+            using (var cmd = new NpgsqlCommand($"LISTEN {_tablePrefix}events", conn)) { 
                 cmd.ExecuteNonQuery();
             }
             
             Task.Run(() => _setUpDatabaseSubscriptionTcs.SetResult());
 
-            while (true) {
+            while (!_disposed) {
                 conn.Wait(); // Thread will block here
             }
         })
         {
-            Name = "ResilientFunctions.Rx.Notification.Listener", //todo add prefix?
+            Name = $"{_tablePrefix}.ResilientFunctions.Rx.Notification.Listener", 
             IsBackground = true
         };
 
         thread.Start();
         return _setUpDatabaseSubscriptionTcs.Task;
     }
-    
-    public EventSource CreateMessagesInstance(FunctionId functionId) => new EventSource(functionId, this);
-    
+
     public async Task Initialize()
     {
+        bool initializing;
         lock (_sync)
         {
-            if (_initialized) throw new InvalidOperationException("Instance already initialized");
-            _initialized = true;
+            if (_initialized) return;
+            initializing = _initializing;
+            _initializing = true;
         }
-        
+
+        if (initializing)
+        {
+            await BusyWait.UntilAsync(() => { lock (_sync) return _initialized; });
+            return;
+        }
+
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@"
-            CREATE TABLE IF NOT EXISTS messages (
+        await conn.ExecuteAsync(@$"
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}events (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
-                position INT,
-                message_json TEXT,
-                message_type VARCHAR(255),             
+                position INT NOT NULL,
+                event_json TEXT NOT NULL,
+                event_type VARCHAR(255) NOT NULL,   
+                idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position)
             );" 
         );
         
         await SetUpDatabaseSubscription();
+        
+        lock (_sync)
+            _initialized = true;
     }
     
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@"DROP TABLE IF EXISTS messages;");
+        await conn.ExecuteAsync(@$"DROP TABLE IF EXISTS {_tablePrefix}events;");
     }
     
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@"TRUNCATE TABLE messages;");
+        await conn.ExecuteAsync(@$"TRUNCATE TABLE {_tablePrefix}events;");
     }
     
-    public async Task AppendEvent(FunctionId functionId, object @event)
+    public async Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
     {
-        var messageJson = JsonSerializer.Serialize(@event, @event.GetType());
-        var messageType = @event.GetType().SimpleQualifiedName();
-
         await using var conn = await CreateConnection();
 
-        var sql = @"    
-                INSERT INTO messages
-                    (function_type_id, function_instance_id, position, message_json, message_type)
+        var sql = @$"    
+                INSERT INTO {_tablePrefix}events
+                    (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
-                    ($1, $2, (SELECT COUNT(*) FROM messages WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4);";
+                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
-                new() {Value = messageJson},
-                new() {Value = messageType},
-                new() {Value = functionId.ToString()} //todo consider best way to serialize and deserialize function id
+                new() {Value = eventJson},
+                new() {Value = eventType},
+                new() {Value = idempotencyKey ?? (object) DBNull.Value}
             }
         };
         await command.ExecuteNonQueryAsync();
@@ -153,12 +161,12 @@ public class PostgreSqlEventStore : IEventStore
         _ = Notify(functionId); //todo improve by using batching instead (for one roundtrip)
     }
 
-    public async Task<IEnumerable<object>> GetEvents(FunctionId functionId, int skip)
+    public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
-        var sql = @"    
-            SELECT message_json, message_type
-            FROM messages
+        var sql = @$"    
+            SELECT event_json, event_type, idempotency_key
+            FROM {_tablePrefix}events
             WHERE function_type_id = $1 AND function_instance_id = $2 AND position >= $3
             ORDER BY position ASC;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -171,24 +179,24 @@ public class PostgreSqlEventStore : IEventStore
             }
         };
         
-        var messages = new List<object>();
+        var storedEvents = new List<StoredEvent>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var messageJson = reader.GetString(0);
-            var messageType = reader.GetString(1);
-            var message = JsonSerializer.Deserialize(messageJson, Type.GetType(messageType, throwOnError: true)!)!;
-            messages.Add(message);
+            var eventJson = reader.GetString(0);
+            var messageJson = reader.GetString(1);
+            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
+            storedEvents.Add(new StoredEvent(eventJson, messageJson, idempotencyKey));
         }
 
-        return messages;
+        return storedEvents;
     }
 
     private async Task Notify(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
 
-        var sql = "SELECT pg_notify('cleipnir_rx_notifications', $1);";    
+        var sql = $"SELECT pg_notify('{_tablePrefix}events', $1);";    
             
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -218,4 +226,6 @@ public class PostgreSqlEventStore : IEventStore
                 _store._subscribers.Remove(_subscriberId);
         }
     }
+
+    public void Dispose() => _disposed = true;
 }

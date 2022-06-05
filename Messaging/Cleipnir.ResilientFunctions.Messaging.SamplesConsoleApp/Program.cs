@@ -1,6 +1,11 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System.Text.Json;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Domain;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 
 namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp
@@ -21,18 +26,23 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp
             var eventSources = new EventSources(eventStore);
             await eventSources.Initialize();
             
-            var saga = new Saga(eventSources);
-            var registration = rFunctions.RegisterAction<string, Saga.Scrapbook>(
-                "OrderProcessing", saga.ProcessOrder
+            //clients
+            var messageQueue = new MessageQueueClient();
+            var saga = new OrderProcessingSaga(
+                rFunctions,
+                eventSources,
+                new BankClientStub(),
+                new EmailClientStub(),
+                messageQueue,
+                new ProductsClientStub()
             );
+            messageQueue.Saga = saga;
 
-            var orderId = "1234ABC";
-            _ =  registration.Invoke(orderId, orderId);
-
-            await Task.Delay(1_000);
-            await eventStore.AppendEvent(
-                new FunctionId("OrderProcessing", orderId),
-                "hello world"
+            _ = saga.ProcessOrder(
+                new Order(
+                    "MK-12345",
+                    CustomerEmail: "coolness@cleipnir.net",
+                    ProductIds: new[] {"THR-123", "BLDR-549"})
             );
 
             await Task.Delay(100);
