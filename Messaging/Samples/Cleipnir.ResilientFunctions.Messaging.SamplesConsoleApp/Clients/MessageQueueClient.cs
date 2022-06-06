@@ -11,12 +11,12 @@ public interface IMessageQueueClient
 
 public class MessageQueueClient : IMessageQueueClient
 {
-    public OrderProcessingSaga Saga { get; set; }
+    public OrderProcessingSaga? Saga { get; set; }
 
     public async Task Send(ShipProducts message)
     {
         await Task.Delay(1000);
         var raisedEvent = new ProductsShipped(message.OrderId);
-        await Saga.DeliverAndProcessEvent(message.OrderId, raisedEvent, nameof(ProductsShipped));
+        await Saga!.DeliverAndProcessEvent(message.OrderId, raisedEvent, nameof(ProductsShipped));
     }
 }
