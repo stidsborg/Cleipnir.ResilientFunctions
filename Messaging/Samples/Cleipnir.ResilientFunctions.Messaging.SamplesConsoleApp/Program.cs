@@ -1,7 +1,4 @@
-﻿using System.Text.Json;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging.Core;
+﻿using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Domain;
@@ -23,9 +20,9 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp
             var rFunctions = new RFunctions(functionStore);
             
             var eventStore = new PostgreSqlEventStore(connectionString);
+            await eventStore.Initialize();
             var eventSources = new EventSources(eventStore);
-            await eventSources.Initialize();
-            
+
             //clients
             var messageQueue = new MessageQueueClient();
             var saga = new OrderProcessingSaga(

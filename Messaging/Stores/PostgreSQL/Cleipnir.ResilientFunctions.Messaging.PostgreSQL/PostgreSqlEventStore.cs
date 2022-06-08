@@ -14,7 +14,8 @@ public class PostgreSqlEventStore : IEventStore
     private bool _initializing;
     private bool _initialized;
     private int _nextSubscriberId;
-    private readonly Dictionary<int, Action<FunctionId>> _subscribers = new();
+    
+    private readonly Dictionary<FunctionId, Dictionary<int, Action>> _subscribers = new();
     private readonly object _sync = new();
     private volatile bool _disposed;
     
@@ -31,14 +32,22 @@ public class PostgreSqlEventStore : IEventStore
         return conn;
     }
     
-    public Task<IDisposable> SubscribeToChanges(Action<FunctionId> subscriber)
+    public async Task<IDisposable> SubscribeToChanges(FunctionId functionId, Action handler)
     {
+        await SetUpDatabaseSubscription();
+        
         lock (_subscribers)
         {
             var observerId = _nextSubscriberId++;
-            _subscribers[observerId] = subscriber;
-
-            return new Subscription(this, observerId).CastTo<IDisposable>().ToTask();
+            if (!_subscribers.ContainsKey(functionId))
+                _subscribers[functionId] = new Dictionary<int, Action>();
+            
+            _subscribers[functionId][observerId] = handler;
+            return new ActionDisposable(() =>
+            {
+                lock (_sync)
+                    _subscribers[functionId].Remove(observerId);
+            });
         }
     }
 
@@ -62,12 +71,15 @@ public class PostgreSqlEventStore : IEventStore
             {
                 var functionIdStringArr = args.Payload.Split("@");
                 var functionId = new FunctionId(functionIdStringArr[1], functionIdStringArr[0]);
-                List<Action<FunctionId>> subscribers;
+                List<Action> subscribers;
                 lock (_sync)
-                    subscribers = _subscribers.Values.ToList();
-
+                {
+                    if (!_subscribers.ContainsKey(functionId)) return;
+                    subscribers = _subscribers[functionId].Values.ToList();
+                }
+                
                 foreach (var observer in subscribers)
-                    observer(functionId);
+                    observer();
             };
             
             using (var cmd = new NpgsqlCommand($"LISTEN {_tablePrefix}events", conn)) { 
@@ -123,7 +135,7 @@ public class PostgreSqlEventStore : IEventStore
         lock (_sync)
             _initialized = true;
     }
-    
+
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
@@ -208,24 +220,6 @@ public class PostgreSqlEventStore : IEventStore
 
         await command.ExecuteNonQueryAsync();
     }
-
-    private class Subscription : IDisposable
-    {
-        private readonly PostgreSqlEventStore _store;
-        private readonly int _subscriberId;
-
-        public Subscription(PostgreSqlEventStore store, int subscriberId)
-        {
-            _store = store;
-            _subscriberId = subscriberId;
-        }
-
-        public void Dispose()
-        {
-            lock (_store._sync)
-                _store._subscribers.Remove(_subscriberId);
-        }
-    }
-
+    
     public void Dispose() => _disposed = true;
 }

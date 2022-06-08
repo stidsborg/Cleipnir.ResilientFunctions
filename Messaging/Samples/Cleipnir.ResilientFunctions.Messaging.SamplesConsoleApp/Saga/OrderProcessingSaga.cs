@@ -65,7 +65,7 @@ public class OrderProcessingSaga
         if (!eventSource.Existing.OfType<ProductsShipped>().Any())
         {
             await _messageQueueClient.Send(new ShipProducts(order.OrderId, order.CustomerEmail, order.ProductIds)); //make this at-most-once
-            await eventSource.All.OfType<ProductsShipped>().FirstAsync();
+            await eventSource.All.OfType<ProductsShipped>().NextEvent(1_000);
         }
 
         if (!scrapbook.EmailSent)

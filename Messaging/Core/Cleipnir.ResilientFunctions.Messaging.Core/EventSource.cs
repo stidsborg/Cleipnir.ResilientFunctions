@@ -8,8 +8,17 @@ namespace Cleipnir.ResilientFunctions.Messaging.Core;
 
 public class EventSource : IDisposable
 {
-    private ImmutableList<object> _existing = ImmutableList<object>.Empty;
+    private readonly FunctionId _functionId;
+    private readonly IEventStore _eventStore;
+    private IDisposable? _subscription;
+    
+    private bool _newEventsFlag;
+    private bool _workerExecuting;
+    private readonly HashSet<string> _idempotencyKeys = new();
+    private int _count;
+    private readonly object _sync = new();
 
+    private ImmutableList<object> _existing = ImmutableList<object>.Empty;
     public IReadOnlyList<object> Existing
     {
         get
@@ -18,19 +27,10 @@ public class EventSource : IDisposable
                 return _existing;
         }
     }
+    
     private readonly ReplaySubject<object> _allSubject = new();
     public IObservable<object> All => _allSubject;
 
-    private readonly FunctionId _functionId;
-    private readonly IEventStore _eventStore;
-
-    private Action? _unsubscribeToChanges;
-
-    private bool _newEventsFlag;
-    private bool _workerExecuting;
-    private readonly HashSet<string> _idempotencyKeys = new();
-    private int _count;
-    private readonly object _sync = new();
     
     public EventSource(FunctionId functionId, IEventStore eventStore)
     {
@@ -38,14 +38,15 @@ public class EventSource : IDisposable
         _eventStore = eventStore;
     }
 
-    public async Task Initialize(Action unsubscribeToChanges)
+    public async Task Initialize()
     {
-        _unsubscribeToChanges = unsubscribeToChanges;
+        _subscription = await _eventStore.SubscribeToChanges(
+            _functionId,
+            () => _ = DeliverOutstandingEvents()
+        );
         await DeliverOutstandingEvents();
     }
 
-    internal void HandleNotification() => Task.Run(DeliverOutstandingEvents);
-    
     private async Task DeliverOutstandingEvents()
     {
         Start:
@@ -73,7 +74,8 @@ public class EventSource : IDisposable
                     _idempotencyKeys.Add(storedEvent.IdempotencyKey);
 
             var deserialized = storedEvent.Deserialize();
-            _existing = _existing.Add(deserialized);
+            lock (_sync)
+                _existing = _existing.Add(deserialized);
             _allSubject.OnNext(deserialized);
             _count++;
         }
@@ -93,5 +95,15 @@ public class EventSource : IDisposable
         await DeliverOutstandingEvents();
     }
 
-    public void Dispose() => _unsubscribeToChanges?.Invoke();
+    public async Task Pull()
+    {
+        await DeliverOutstandingEvents();
+        await BusyWait.UntilAsync(() =>
+        {
+            lock (_sync)
+                return !_workerExecuting;
+        });
+    }
+
+    public void Dispose() => _subscription?.Dispose();
 }

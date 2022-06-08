@@ -16,8 +16,8 @@ public class EventSourcesTests
             nameof(EventSourcesTests),
             nameof(EventSourcesSunshineScenario)
         );
+        await eventStore.Initialize();
         var eventSources = new EventSources(eventStore);
-        await eventSources.Initialize();
 
         var eventSource = await eventSources.GetEventSource(functionId);
 
