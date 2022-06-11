@@ -1,6 +1,6 @@
-﻿using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Domain;
+﻿using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Domain;
 
-namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
+namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Clients;
 
 public interface IProductsClient
 {

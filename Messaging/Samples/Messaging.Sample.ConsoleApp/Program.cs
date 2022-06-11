@@ -1,8 +1,8 @@
 ﻿using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Domain;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Clients;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Domain;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 
 namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp
@@ -35,14 +35,14 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp
             );
             messageQueue.Saga = saga;
 
-            _ = saga.ProcessOrder(
+            await saga.ProcessOrder(
                 new Order(
                     "MK-12345",
                     CustomerEmail: "coolness@cleipnir.net",
                     ProductIds: new[] {"THR-123", "BLDR-549"})
             );
 
-            await Task.Delay(100);
+            Console.WriteLine("ORDER PROCESSING COMPLETED");
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
         }

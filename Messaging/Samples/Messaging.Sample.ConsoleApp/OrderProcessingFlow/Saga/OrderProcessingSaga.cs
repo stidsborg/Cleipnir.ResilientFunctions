@@ -1,12 +1,12 @@
 ﻿using System.Reactive.Linq;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging.Core;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Domain;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga.Commands;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga.Events;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Clients;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Domain;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga.Commands;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga.Events;
 
-namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga;
+namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga;
 
 public class OrderProcessingSaga
 {

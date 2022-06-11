@@ -1,8 +1,8 @@
-﻿using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga.Commands;
-using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Saga.Events;
+﻿using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga.Commands;
+using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga.Events;
 
-namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
+namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Clients;
 
 public interface IMessageQueueClient
 {

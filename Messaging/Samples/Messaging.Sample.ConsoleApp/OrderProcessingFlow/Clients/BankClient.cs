@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.Clients;
+﻿namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Clients;
 
 public interface IBankClient
 {
