@@ -1,4 +1,4 @@
-﻿using Cleipnir.ResilientFunctions.PostgreSQL;
+﻿using System.Runtime.CompilerServices;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests
@@ -7,19 +7,12 @@ namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests
     public static class Sql
     {
         private static string ConnectionString { get; }
-        public static Func<Task<NpgsqlConnection>> ConnFunc { get; set; }
-        
+
         static Sql()
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.PostgreSQL.Tests.ConnectionString")
                 ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!";
-            ConnFunc = async () =>
-            {
-                var conn = new NpgsqlConnection(ConnectionString);
-                await conn.OpenAsync();
-                return conn;
-            };
         }
 
         [AssemblyInitialize]
@@ -40,17 +33,15 @@ namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests
             }
         }
 
-        public static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
+        public static async Task<PostgreSqlEventStore> CreateAndInitializeEventStore(
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerMemberName] string callMemberName = "")
         {
-            var store = new PostgreSqlFunctionStore(ConnectionString); 
-            await store.Initialize();
-            await store.TruncateTable();
-            return store;
-        }
-
-        public static async Task<PostgreSqlEventStore> CreateAndInitializeEventStore(string testClass, string testMethod)
-        {
-            var store = new PostgreSqlEventStore(ConnectionString);
+            var sourceFileName = sourceFilePath
+                .Split(new[] {"\\", "/"}, StringSplitOptions.None)
+                .Last()
+                .Replace(".cs", "");
+            var store = new PostgreSqlEventStore(ConnectionString, $"{sourceFileName}_{callMemberName}");
             await store.DropUnderlyingTable();
             await store.Initialize();
             return store;

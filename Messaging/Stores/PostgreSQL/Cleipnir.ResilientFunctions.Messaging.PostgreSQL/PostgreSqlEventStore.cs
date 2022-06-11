@@ -22,7 +22,7 @@ public class PostgreSqlEventStore : IEventStore
     public PostgreSqlEventStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
-        _tablePrefix = tablePrefix;
+        _tablePrefix = tablePrefix.ToLower();
     } 
 
     private async Task<NpgsqlConnection> CreateConnection()
@@ -77,6 +77,8 @@ public class PostgreSqlEventStore : IEventStore
                     if (!_subscribers.ContainsKey(functionId)) return;
                     subscribers = _subscribers[functionId].Values.ToList();
                 }
+
+                if (_disposed) return;
                 
                 foreach (var observer in subscribers)
                     observer();
@@ -147,17 +149,19 @@ public class PostgreSqlEventStore : IEventStore
         await using var conn = await CreateConnection();
         await conn.ExecuteAsync(@$"TRUNCATE TABLE {_tablePrefix}events;");
     }
-    
-    public async Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+
+    public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await CreateConnection();
+        var transaction = await conn.BeginTransactionAsync();
+        var (eventJson, eventType, idempotencyKey) = storedEvent;
 
         var sql = @$"    
                 INSERT INTO {_tablePrefix}events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
                     ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, conn, transaction)
         {
             Parameters =
             {
@@ -170,6 +174,40 @@ public class PostgreSqlEventStore : IEventStore
         };
         await command.ExecuteNonQueryAsync();
 
+        await transaction.CommitAsync();
+        _ = Notify(functionId); //todo improve by using batching instead (for one roundtrip)
+    }
+
+    public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+    
+    public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await CreateConnection();
+        var transaction =  await conn.BeginTransactionAsync();
+
+        foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
+        {
+            var sql = @$"    
+                INSERT INTO {_tablePrefix}events
+                    (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
+                VALUES
+                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
+            await using var command = new NpgsqlCommand(sql, conn, transaction)
+            {
+                Parameters =
+                {
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = eventJson},
+                    new() {Value = eventType},
+                    new() {Value = idempotencyKey ?? (object) DBNull.Value}
+                }
+            };
+            await command.ExecuteNonQueryAsync();
+        }
+        
+        await transaction.CommitAsync();
         _ = Notify(functionId); //todo improve by using batching instead (for one roundtrip)
     }
 
