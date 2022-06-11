@@ -63,7 +63,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{891F69A8-DDE8-4B3E-ADCD-A78D1F7B6C77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp", "Messaging\Samples\Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp\Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.csproj", "{6FEC4901-298B-429C-B392-CB367EE6EA71}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Messaging.Sample.ConsoleApp", "Messaging\Samples\Messaging.Sample.ConsoleApp\Messaging.Sample.ConsoleApp.csproj", "{6FEC4901-298B-429C-B392-CB367EE6EA71}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Stores", "Stores", "{4BACEB2B-F318-49F7-9AED-55CEA77D00A8}"
 EndProject
