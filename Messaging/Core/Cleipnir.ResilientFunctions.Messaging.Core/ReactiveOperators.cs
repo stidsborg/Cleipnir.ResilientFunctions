@@ -13,6 +13,16 @@ public static class ReactiveOperators
                 tcs.TrySetResult(new Option<T>(t));
                 cancellationToken.Cancel();
             },
+            onError: e =>
+            {
+                tcs.TrySetException(e);
+                cancellationToken.Cancel();
+            },
+            onCompleted: () =>
+            {
+                tcs.TrySetException(new InvalidOperationException("Observable completed without result"));
+                cancellationToken.Cancel();
+            },
             cancellationToken.Token
         );
 
@@ -33,6 +43,16 @@ public static class ReactiveOperators
                 tcs.TrySetResult(t);
                 cancellationToken.Cancel();
             },
+            onError: e =>
+            {
+                tcs.TrySetException(e);
+                cancellationToken.Cancel();
+            },
+            onCompleted: () =>
+            {
+                tcs.TrySetException(new InvalidOperationException("Observable completed without result"));
+                cancellationToken.Cancel();
+            },
             cancellationToken.Token
         );
 
@@ -42,6 +62,55 @@ public static class ReactiveOperators
                 cancellationToken.Token
             );
 
+        return tcs.Task;
+    }
+    
+    public static Task<List<T>> AllEvents<T>(this IObservable<T> observable, int maxWaitMs)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var cancellationToken = new CancellationTokenSource();
+        var events = new List<T>();
+        
+        observable.Subscribe(
+            onNext: t => events.Add(t),
+            onError: e =>
+            {
+                tcs.TrySetException(e);
+                cancellationToken.Cancel();
+            },
+            onCompleted: () =>
+            {
+                tcs.TrySetResult(events);
+                cancellationToken.Cancel();
+            },
+            cancellationToken.Token
+        );
+
+        Task.Delay(maxWaitMs, cancellationToken.Token)
+            .ContinueWith(_ => 
+                    tcs.TrySetException(new TimeoutException("Observable did not complete within threshold")), 
+                cancellationToken.Token
+            );
+
+        return tcs.Task;
+    }
+    
+    public static Task<T> NextEvent<T>(this IObservable<T> observable)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var cancellationToken = new CancellationTokenSource();
+
+        observable.Subscribe(
+            onNext: t =>
+            {
+                tcs.TrySetResult(t);
+                cancellationToken.Cancel();
+            },
+            onCompleted: () =>
+                tcs.TrySetException(new InvalidOperationException("Observable completed without result")),
+            onError: e => tcs.TrySetException(e)
+        );
+        
         return tcs.Task;
     }
 }

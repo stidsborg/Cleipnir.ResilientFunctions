@@ -38,7 +38,7 @@ public class OrderProcessingSaga
 
     public async Task DeliverAndProcessEvent(string functionInstanceId, object @event, string? idempotencyKey = null)
     {
-        var eventSource = await _eventSources.GetEventSource(new FunctionId(FunctionTypeId, functionInstanceId));
+        using var eventSource = await _eventSources.GetEventSource(new FunctionId(FunctionTypeId, functionInstanceId));
         await eventSource.Emit(@event, idempotencyKey);
         await _registration.ScheduleReInvocation(
             functionInstanceId,
