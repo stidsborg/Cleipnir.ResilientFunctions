@@ -1,7 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.StressTests.FlippingTest;
+namespace Cleipnir.ResilientFunctions.StressTests.Common.FlippingTest;
 
 public class CrashableFunctionStore : IFunctionStore
 {

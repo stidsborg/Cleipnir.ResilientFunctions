@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.StressTests;
+﻿namespace Cleipnir.ResilientFunctions.StressTests.Common;
 
 public static class AllTests
 {

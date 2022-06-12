@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\StressTests\Cleipnir.ResilientFunctions.StressTests.csproj" />
+      <ProjectReference Include="..\..\StressTests\Common\Cleipnir.ResilientFunctions.StressTests.Common.csproj" />
       <ProjectReference Include="..\Cleipnir.ResilientFunctions.PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.csproj" />
     </ItemGroup>
 

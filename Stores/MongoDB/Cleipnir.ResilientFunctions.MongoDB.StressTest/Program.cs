@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.StressTests;
+using Cleipnir.ResilientFunctions.StressTests.Common;
 
 namespace Cleipnir.ResilientFunctions.MongoDB.StressTest;
 

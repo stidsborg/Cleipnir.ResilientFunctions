@@ -2,6 +2,7 @@
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests;
+using Cleipnir.ResilientFunctions.StressTests.Common;
 using MongoDB.Driver;
 
 namespace Cleipnir.ResilientFunctions.MongoDB.StressTest;

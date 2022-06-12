@@ -1,6 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.StressTests;
+namespace Cleipnir.ResilientFunctions.StressTests.Common;
 
 public interface IHelper
 {

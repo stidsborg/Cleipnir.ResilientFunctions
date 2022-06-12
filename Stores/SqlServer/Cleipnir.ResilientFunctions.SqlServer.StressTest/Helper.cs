@@ -1,6 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests;
+using Cleipnir.ResilientFunctions.StressTests.Common;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;

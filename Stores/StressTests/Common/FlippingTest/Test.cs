@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.StressTests.FlippingTest;
+﻿namespace Cleipnir.ResilientFunctions.StressTests.Common.FlippingTest;
 
 public static class Test
 {

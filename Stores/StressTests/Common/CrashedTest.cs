@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.StressTests;
+namespace Cleipnir.ResilientFunctions.StressTests.Common;
 
 public static class CrashedTest
 {
