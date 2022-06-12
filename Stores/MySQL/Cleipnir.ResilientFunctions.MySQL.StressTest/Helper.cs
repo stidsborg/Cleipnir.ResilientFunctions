@@ -30,6 +30,15 @@ public class Helper : IHelper
         return (int) (long) (await command.ExecuteScalarAsync() ?? 0);
     }
 
+    public async Task<int> NumberOfSuccessfullyCompleted()
+    {
+        await using var conn = new MySqlConnection(ConnectionString);
+        await conn.OpenAsync();
+        var sql = @$"SELECT COUNT(*) FROM rfunctions WHERE Status = {(int) Status.Succeeded}";
+        await using var command = new MySqlCommand(sql, conn);
+        return (int) (long) (await command.ExecuteScalarAsync() ?? 0);
+    }
+
     public async Task<IFunctionStore> CreateFunctionStore()
     {
         var store = new MySqlFunctionStore(ConnectionString);

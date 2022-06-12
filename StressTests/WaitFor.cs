@@ -30,7 +30,28 @@ public static class WaitFor
         }
 
         if (counts == 0) counts = 1;
-        Console.WriteLine($"Average Velocity: {sum/counts}" );
+        Console.WriteLine($"Average Speed: {sum/counts}" );
+        Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
+    }
+    
+    public static async Task AllSuccessfullyCompleted(IHelper helper, int testSize, string logPrefix)
+    {
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        var iterations = 1;
+
+        while (true)
+        {
+            var completed = await helper.NumberOfSuccessfullyCompleted();
+            Console.WriteLine($"{logPrefix} Completed: {completed}/{testSize}");
+            await Task.Delay(250);
+
+            if (completed == testSize) break;
+            
+            iterations++;
+        }
+        
+        Console.WriteLine($"{logPrefix} Average Speed: {testSize/iterations}" );
         Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
     }
     

@@ -30,6 +30,15 @@ public class Helper : IHelper
         await using var command = new NpgsqlCommand(sql, conn);
         return (int) (long) (await command.ExecuteScalarAsync() ?? 0);
     }
+    
+    public async Task<int> NumberOfSuccessfullyCompleted()
+    {
+        await using var conn = new NpgsqlConnection(ConnectionString);
+        await conn.OpenAsync();
+        var sql = @$"SELECT COUNT(*) FROM rfunctions WHERE Status = {(int) Status.Succeeded}";
+        await using var command = new NpgsqlCommand(sql, conn);
+        return (int) (long) (await command.ExecuteScalarAsync() ?? 0);
+    }
 
     public async Task<IFunctionStore> CreateFunctionStore()
     {

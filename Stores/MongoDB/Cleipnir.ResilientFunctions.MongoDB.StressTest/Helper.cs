@@ -26,6 +26,16 @@ public class Helper : IHelper
         return (int) await collection.CountDocumentsAsync(d => d.Status == postponedStatus || d.Status == executingStatus);
     }
 
+    public async Task<int> NumberOfSuccessfullyCompleted()
+    {
+        var dbClient = new MongoClient(ConnectionString);
+        var db = dbClient.GetDatabase("rfunctions_stresstest");
+        var collection = db.GetCollection<Document>("rfunctions");
+        var succeededStatus = (int) Status.Succeeded;
+
+        return (int) await collection.CountDocumentsAsync(d => d.Status == succeededStatus);
+    }
+
     public Task<IFunctionStore> CreateFunctionStore()
     {
         var store = new MongoDbFunctionStore(ConnectionString, "rfunctions_stresstest");

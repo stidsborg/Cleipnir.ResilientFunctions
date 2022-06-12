@@ -8,6 +8,5 @@ public static class AllTests
         Console.WriteLine();
         await PostponedTest.Perform(helper);
         Console.WriteLine();
-        await FlippingTest.Test.Perform(helper);
     }
 }

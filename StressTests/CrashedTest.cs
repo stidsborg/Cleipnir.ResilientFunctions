@@ -32,7 +32,7 @@ public static class CrashedTest
         }
         
         stopWatch.Stop();
-        Console.WriteLine("Initialization took: " + stopWatch.Elapsed);
+        Console.WriteLine("CRASHED_TEST: Initialization took: " + stopWatch.Elapsed);
 
         Console.WriteLine("CRASHED_TEST: Waiting for invocations to begin");
         using var rFunctions = new RFunctions(
@@ -42,12 +42,23 @@ public static class CrashedTest
                 CrashedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-
         var _ = rFunctions.RegisterAction(
             "CrashedTest",
             void(string param) => { }
         );
+        
+        using var rFunctions2 = new RFunctions(
+            sqlStore,
+            new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                CrashedCheckFrequency: TimeSpan.FromSeconds(1)
+            )
+        );
+        _ = rFunctions2.RegisterAction(
+            "CrashedTest",
+            void(string param) => { }
+        );
 
-        await WaitFor.AllCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
+        await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
     }
 }

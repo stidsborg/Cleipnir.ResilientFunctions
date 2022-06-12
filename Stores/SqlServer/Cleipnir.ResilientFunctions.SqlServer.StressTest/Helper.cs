@@ -30,6 +30,16 @@ public class Helper : IHelper
         var count = (int) (await command.ExecuteScalarAsync() ?? 0);
         return count;
     }
+    
+    public async Task<int> NumberOfSuccessfullyCompleted()
+    {
+        await using var conn = new SqlConnection(ConnectionString);
+        conn.Open();
+        var sql = @$"SELECT COUNT(*) FROM rfunctions WHERE Status = {(int) Status.Succeeded}";
+        await using var command = new SqlCommand(sql, conn);
+        var count = (int) (await command.ExecuteScalarAsync() ?? 0);
+        return count;
+    }
 
     public async Task<IFunctionStore> CreateFunctionStore()
     {

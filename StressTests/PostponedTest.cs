@@ -41,7 +41,7 @@ public static class PostponedTest
             );
         }
         stopWatch.Stop();
-        Console.WriteLine("Initialization took: " + stopWatch.Elapsed);
+        Console.WriteLine("POSTPONED_TEST: Initialization took: " + stopWatch.Elapsed);
 
         using var rFunctions1 = new RFunctions(
             store,
@@ -50,7 +50,6 @@ public static class PostponedTest
                 PostponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-
         rFunctions1.RegisterFunc(
             nameof(PostponedTest),
             int (string param) => 1 
@@ -63,7 +62,6 @@ public static class PostponedTest
                 PostponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-
         rFunctions2.RegisterFunc(
             nameof(PostponedTest),
             int (string param) => 2
@@ -72,16 +70,14 @@ public static class PostponedTest
         Console.WriteLine("POSTPONED_TEST: Waiting for invocations to begin");
         await Task.Delay(3000);
 
-        var allSucceeded = WaitFor.AllCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
-
-        while (true)
-        {
-            var startingIn = start - DateTime.UtcNow;
-            Console.WriteLine("POSTPONED_TEST: Starting in: " + startingIn);
-            if (startingIn.Ticks < 0) break;
-            await Task.Delay(250);
-        }
-        
-        await allSucceeded;
+       while (true)
+       {
+           var startingIn = start - DateTime.UtcNow;
+           Console.WriteLine("POSTPONED_TEST: Starting in: " + startingIn);
+           if (startingIn < TimeSpan.FromSeconds(1)) break;
+           await Task.Delay(500);
+       }
+       
+       await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
     }
 }
