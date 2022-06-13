@@ -9,7 +9,6 @@ namespace Cleipnir.ResilientFunctions.MongoDB.Tests
     public static class NoSql
     {
         private static string ConnectionString { get; }
-        public const string CollectionName = "rfunctions_test";
 
         static NoSql()
         {
@@ -20,7 +19,11 @@ namespace Cleipnir.ResilientFunctions.MongoDB.Tests
 
         private static async Task<MongoDbFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new MongoDbFunctionStore(ConnectionString, "rfunctions_tests"); 
+            var store = new MongoDbFunctionStore(
+                ConnectionString, 
+                databaseName: "rfunctions_tests",
+                collectionName: $"{testClass}_{testMethod}"
+            ); 
             await store.Initialize();
             await store.DropUnderlyingCollection();
             return store;
