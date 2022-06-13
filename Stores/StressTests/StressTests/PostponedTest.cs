@@ -10,9 +10,9 @@ namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 public static class PostponedTest
 {
-    public static async Task Perform(IEngine helper)
+    public static async Task<int> Perform(IEngine helper)
     {
-        const int testSize = 1000;
+        const int testSize = 5000;
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
 
@@ -80,6 +80,6 @@ public static class PostponedTest
            await Task.Delay(500);
        }
        
-       await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
+       return await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
     }
 }

@@ -10,9 +10,9 @@ namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 public static class CrashedTest
 {
-    public static async Task Perform(IEngine helper)
+    public static async Task<int> Perform(IEngine helper)
     {
-        const int testSize = 1000;
+        const int testSize = 5000;
 
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var sqlStore = await helper.CreateFunctionStore();
@@ -61,6 +61,6 @@ public static class CrashedTest
             void(string param) => { }
         );
 
-        await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
+        return await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
     }
 }

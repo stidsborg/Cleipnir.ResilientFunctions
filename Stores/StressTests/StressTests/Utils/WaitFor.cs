@@ -35,7 +35,7 @@ public static class WaitFor
         Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
     }
     
-    public static async Task AllSuccessfullyCompleted(IEngine helper, int testSize, string logPrefix)
+    public static async Task<int> AllSuccessfullyCompleted(IEngine helper, int testSize, string logPrefix)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -51,9 +51,12 @@ public static class WaitFor
             
             iterations++;
         }
-        
-        Console.WriteLine($"{logPrefix} Average Speed: {testSize/iterations}" );
+
+        var averageSpeed = testSize / iterations;
+        Console.WriteLine($"{logPrefix} Average Speed: {averageSpeed}" );
         Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
+
+        return averageSpeed;
     }
     
     public static async Task AllCompleted(IEngine helper, string logPrefix)
