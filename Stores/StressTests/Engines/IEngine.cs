@@ -1,6 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 
 public interface IEngine
 {

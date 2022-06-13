@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.MongoDB;
 using Cleipnir.ResilientFunctions.Storage;
 using MongoDB.Driver;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 
 public class MongoDbEngine : IEngine
 {

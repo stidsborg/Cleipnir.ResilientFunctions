@@ -1,6 +1,7 @@
-﻿using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+﻿using Cleipnir.ResilientFunctions.StressTests.Engines;
+using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common.FlippingTest;
+namespace Cleipnir.ResilientFunctions.StressTests.FlippingTest;
 
 public static class Test
 {

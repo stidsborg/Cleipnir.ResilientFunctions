@@ -1,8 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.MySQL.StressTest;
-using Cleipnir.ResilientFunctions.PostgreSQL.StressTest;
-using Cleipnir.ResilientFunctions.SqlServer.StressTest;
-using Cleipnir.ResilientFunctions.StressTests.Common;
-using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+﻿using Cleipnir.ResilientFunctions.StressTests.Engines;
+using Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 namespace Cleipnir.ResilientFunctions.StressTests
 {

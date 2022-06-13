@@ -3,9 +3,10 @@ using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+using Cleipnir.ResilientFunctions.StressTests.Engines;
+using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common;
+namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 public static class CrashedTest
 {

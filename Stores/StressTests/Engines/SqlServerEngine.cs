@@ -1,9 +1,10 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.SqlServer;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 using Microsoft.Data.SqlClient;
+using DatabaseHelper = Cleipnir.ResilientFunctions.SqlServer.DatabaseHelper;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
+namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 
 public class SqlServerEngine : IEngine
 {

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
-using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+using Cleipnir.ResilientFunctions.StressTests.Engines;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common;
+namespace Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
 public static class WaitFor
 {

@@ -1,9 +1,10 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.PostgreSQL;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 using Npgsql;
+using DatabaseHelper = Cleipnir.ResilientFunctions.PostgreSQL.DatabaseHelper;
 
-namespace Cleipnir.ResilientFunctions.PostgreSQL.StressTest;
+namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 
 public class PostgreSqlEngine : IEngine
 {

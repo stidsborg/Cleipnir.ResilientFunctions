@@ -1,6 +1,6 @@
-﻿using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+﻿using Cleipnir.ResilientFunctions.StressTests.Engines;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common;
+namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 public static class AllTests
 {
