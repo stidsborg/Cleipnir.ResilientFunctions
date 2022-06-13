@@ -76,7 +76,6 @@ public abstract class FailedTests
             
             flag.Position.ShouldBe(Lowered);
             
-            
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
