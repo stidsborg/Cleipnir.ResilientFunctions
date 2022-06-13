@@ -76,9 +76,9 @@ public abstract class FailedTests
             
             flag.Position.ShouldBe(Lowered);
             
-            var status = await store.GetFunction(functionId).Map(t => t?.Status);
-            status.ShouldNotBeNull();
-            status.ShouldBe(Status.Failed);
+            var sf = await store.GetFunction(functionId);
+            sf.ShouldNotBeNull();
+            sf.Status.ShouldBe(Status.Failed);
             await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
         }
             
