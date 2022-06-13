@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\..\Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
+      <ProjectReference Include="..\MongoDB\Cleipnir.ResilientFunctions.MongoDB\Cleipnir.ResilientFunctions.MongoDB.csproj" />
+      <ProjectReference Include="..\MySQL\Cleipnir.ResilientFunctions.MySQL\Cleipnir.ResilientFunctions.MySQL.csproj" />
+      <ProjectReference Include="..\PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.csproj" />
+      <ProjectReference Include="..\SqlServer\Cleipnir.ResilientFunctions.SqlServer\Cleipnir.ResilientFunctions.SqlServer.csproj" />
+    </ItemGroup>
+</Project>

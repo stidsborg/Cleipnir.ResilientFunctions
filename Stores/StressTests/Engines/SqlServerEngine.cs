@@ -1,12 +1,11 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.StressTests;
-using Cleipnir.ResilientFunctions.StressTests.Common;
+using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.StressTest;
 
-public class Helper : IHelper
+public class SqlServerEngine : IEngine
 {
     private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!";
 

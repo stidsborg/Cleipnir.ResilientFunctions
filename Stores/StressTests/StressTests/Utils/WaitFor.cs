@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
+using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 
 namespace Cleipnir.ResilientFunctions.StressTests.Common;
 
 public static class WaitFor
 {
-    public static async Task AllCompleted(IHelper helper, int testSize, string logPrefix)
+    public static async Task AllCompleted(IEngine helper, int testSize, string logPrefix)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -34,7 +35,7 @@ public static class WaitFor
         Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
     }
     
-    public static async Task AllSuccessfullyCompleted(IHelper helper, int testSize, string logPrefix)
+    public static async Task AllSuccessfullyCompleted(IEngine helper, int testSize, string logPrefix)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -55,7 +56,7 @@ public static class WaitFor
         Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
     }
     
-    public static async Task AllCompleted(IHelper helper, string logPrefix)
+    public static async Task AllCompleted(IEngine helper, string logPrefix)
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();

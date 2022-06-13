@@ -1,8 +1,8 @@
 ﻿using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.StressTests.Common;
+namespace Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 
-public interface IHelper
+public interface IEngine
 {
     Task InitializeDatabaseAndInitializeAndTruncateTable();
     Task<int> NumberOfNonCompleted();

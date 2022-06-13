@@ -1,8 +1,10 @@
-﻿namespace Cleipnir.ResilientFunctions.StressTests.Common.FlippingTest;
+﻿using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
+
+namespace Cleipnir.ResilientFunctions.StressTests.Common.FlippingTest;
 
 public static class Test
 {
-    public static async Task Perform(IHelper helper)
+    public static async Task Perform(IEngine helper)
     {
         var ready = new Queue<Node>();
         var started = new Queue<Node>();

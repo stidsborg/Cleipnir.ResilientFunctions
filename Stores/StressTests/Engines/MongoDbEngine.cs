@@ -1,13 +1,12 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.MongoDB;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.StressTests;
-using Cleipnir.ResilientFunctions.StressTests.Common;
 using MongoDB.Driver;
 
-namespace Cleipnir.ResilientFunctions.MongoDB.StressTest;
+namespace Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 
-public class Helper : IHelper
+public class MongoDbEngine : IEngine
 {
     private const string ConnectionString = "mongodb://root:Pa55word!@localhost:27017?authSource=admin";
 

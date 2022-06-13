@@ -3,12 +3,13 @@ using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.StressTests.Common.Engines;
 
 namespace Cleipnir.ResilientFunctions.StressTests.Common;
 
 public static class PostponedTest
 {
-    public static async Task Perform(IHelper helper)
+    public static async Task Perform(IEngine helper)
     {
         const int testSize = 1000;
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
