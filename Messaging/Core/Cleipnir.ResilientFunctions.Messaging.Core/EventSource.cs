@@ -10,13 +10,16 @@ public class EventSource : IDisposable
 {
     private readonly FunctionId _functionId;
     private readonly IEventStore _eventStore;
-    private IDisposable? _subscription;
-    
-    private bool _newEventsFlag;
-    private bool _workerExecuting;
+    private readonly TimeSpan _pullFrequency;
+
     private readonly HashSet<string> _idempotencyKeys = new();
+    
     private int _count;
+    private bool _syncingEvents;
+    private List<TaskCompletionSource> _tcsQueue = new();
     private readonly object _sync = new();
+    
+    private volatile bool _disposed;
 
     private ImmutableList<object> _existing = ImmutableList<object>.Empty;
     public IReadOnlyList<object> Existing
@@ -30,61 +33,93 @@ public class EventSource : IDisposable
     
     private readonly ReplaySubject<object> _allSubject = new();
     public IObservable<object> All => _allSubject;
-
     
-    public EventSource(FunctionId functionId, IEventStore eventStore)
+    public EventSource(FunctionId functionId, IEventStore eventStore, TimeSpan? pullFrequency)
     {
         _functionId = functionId;
         _eventStore = eventStore;
+        _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
     }
 
     public async Task Initialize()
     {
-        _subscription = await _eventStore.SubscribeToChanges(
-            _functionId,
-            () => _ = DeliverOutstandingEvents()
-        );
         await DeliverOutstandingEvents();
+        _ = Task.Run(async () =>
+        {
+            while (!_disposed)
+            {
+                await Task.Delay(_pullFrequency);
+                if (_disposed) return;
+                await DeliverOutstandingEvents();
+            }
+        });
     }
 
-    private async Task DeliverOutstandingEvents()
+    private Task DeliverOutstandingEvents()
     {
-        Start:
-        int count;
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(EventSource));
+        
+        var tcsToReturn = new TaskCompletionSource();
+        
         lock (_sync)
         {
-            if (_workerExecuting)
+            _tcsQueue.Add(tcsToReturn);
+            if (_syncingEvents)
+                return tcsToReturn.Task;
+
+            _syncingEvents = true;
+        }
+        
+        //start worker
+        Task.Run(async () =>
+        {
+            while (true)
             {
-                _newEventsFlag = true;
-                return;
+                List<TaskCompletionSource> enqueued;
+                lock (_sync)
+                {
+                    if (_tcsQueue.Count == 0)
+                    {
+                        _syncingEvents = false;
+                        return;
+                    }
+
+                    enqueued = _tcsQueue;
+                    _tcsQueue = new List<TaskCompletionSource>();
+                }
+
+                try
+                {
+                    var storedEvents = await _eventStore.GetEvents(_functionId, skip: _count);
+                    foreach (var storedEvent in storedEvents)
+                    {
+                        _count++;
+
+                        if (storedEvent.IdempotencyKey != null)
+                            if (_idempotencyKeys.Contains(storedEvent.IdempotencyKey))
+                                continue;
+                            else
+                                _idempotencyKeys.Add(storedEvent.IdempotencyKey);
+
+                        var deserialized = storedEvent.Deserialize();
+                        lock (_sync)
+                            _existing = _existing.Add(deserialized);
+                        _allSubject.OnNext(deserialized);
+                    }
+
+                    foreach (var enqueuedTcs in enqueued)
+                        enqueuedTcs.SetResult();
+                }
+                catch (Exception e)
+                {
+                    foreach (var enqueuedTcs in enqueued)
+                        enqueuedTcs.TrySetException(e);
+                }
             }
+        });
 
-            _workerExecuting = true;
-            _newEventsFlag = false;
-            count = _count;
-        }
-
-        var storedEvents = await _eventStore.GetEvents(_functionId, count);
-        foreach (var storedEvent in storedEvents)
-        {
-            if (storedEvent.IdempotencyKey != null)
-                if (_idempotencyKeys.Contains(storedEvent.IdempotencyKey))
-                    continue;
-                else
-                    _idempotencyKeys.Add(storedEvent.IdempotencyKey);
-
-            var deserialized = storedEvent.Deserialize();
-            lock (_sync)
-                _existing = _existing.Add(deserialized);
-            _allSubject.OnNext(deserialized);
-            _count++;
-        }
-
-        lock (_sync)
-        {
-            _workerExecuting = false;
-            if (_newEventsFlag) goto Start;
-        }
+        return tcsToReturn.Task;
     }
 
     public async Task Emit(object @event, string? idempotencyKey = null)
@@ -95,15 +130,7 @@ public class EventSource : IDisposable
         await DeliverOutstandingEvents();
     }
 
-    public async Task Pull()
-    {
-        await DeliverOutstandingEvents();
-        await BusyWait.UntilAsync(() =>
-        {
-            lock (_sync)
-                return !_workerExecuting;
-        });
-    }
+    public Task Pull() => DeliverOutstandingEvents();
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose() => _disposed = true;
 }

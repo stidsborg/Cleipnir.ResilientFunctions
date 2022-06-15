@@ -2,11 +2,10 @@
 
 namespace Cleipnir.ResilientFunctions.Messaging.Core;
 
-public interface IEventStore : IDisposable
+public interface IEventStore
 {
     Task Initialize();
-    Task<IDisposable> SubscribeToChanges(FunctionId functionId, Action handler);
-    
+
     Task AppendEvent(FunctionId functionId, StoredEvent storedEvent);
     Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null);
     Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);

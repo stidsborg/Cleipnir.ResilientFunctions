@@ -1,5 +1,4 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Dapper;
 using Npgsql;
@@ -11,14 +10,6 @@ public class PostgreSqlEventStore : IEventStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    private bool _initializing;
-    private bool _initialized;
-    private int _nextSubscriberId;
-    
-    private readonly Dictionary<FunctionId, Dictionary<int, Action>> _subscribers = new();
-    private readonly object _sync = new();
-    private volatile bool _disposed;
-    
     public PostgreSqlEventStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
@@ -32,93 +23,8 @@ public class PostgreSqlEventStore : IEventStore
         return conn;
     }
     
-    public async Task<IDisposable> SubscribeToChanges(FunctionId functionId, Action handler)
-    {
-        await SetUpDatabaseSubscription();
-        
-        lock (_subscribers)
-        {
-            var observerId = _nextSubscriberId++;
-            if (!_subscribers.ContainsKey(functionId))
-                _subscribers[functionId] = new Dictionary<int, Action>();
-            
-            _subscribers[functionId][observerId] = handler;
-            return new ActionDisposable(() =>
-            {
-                lock (_sync)
-                    _subscribers[functionId].Remove(observerId);
-            });
-        }
-    }
-
-    private readonly TaskCompletionSource _setUpDatabaseSubscriptionTcs = new();
-    private bool _setUpDatabaseSubscriptionStarted;
-    
-    private Task SetUpDatabaseSubscription()
-    {
-        lock (_sync)
-        {
-            if (_setUpDatabaseSubscriptionStarted) return _setUpDatabaseSubscriptionTcs.Task;
-            _setUpDatabaseSubscriptionStarted = true;
-        }
-        
-        var thread = new Thread(_ =>
-        {
-            var conn = new NpgsqlConnection(_connectionString);
-            conn.Open();
-
-            conn.Notification += (sender, args) =>
-            {
-                var functionIdStringArr = args.Payload.Split("@");
-                var functionId = new FunctionId(functionIdStringArr[1], functionIdStringArr[0]);
-                List<Action> subscribers;
-                lock (_sync)
-                {
-                    if (!_subscribers.ContainsKey(functionId)) return;
-                    subscribers = _subscribers[functionId].Values.ToList();
-                }
-
-                if (_disposed) return;
-                
-                foreach (var observer in subscribers)
-                    observer();
-            };
-            
-            using (var cmd = new NpgsqlCommand($"LISTEN {_tablePrefix}events", conn)) { 
-                cmd.ExecuteNonQuery();
-            }
-            
-            Task.Run(() => _setUpDatabaseSubscriptionTcs.SetResult());
-
-            while (!_disposed) {
-                conn.Wait(); // Thread will block here
-            }
-        })
-        {
-            Name = $"{_tablePrefix}.ResilientFunctions.Rx.Notification.Listener", 
-            IsBackground = true
-        };
-
-        thread.Start();
-        return _setUpDatabaseSubscriptionTcs.Task;
-    }
-
     public async Task Initialize()
     {
-        bool initializing;
-        lock (_sync)
-        {
-            if (_initialized) return;
-            initializing = _initializing;
-            _initializing = true;
-        }
-
-        if (initializing)
-        {
-            await BusyWait.UntilAsync(() => { lock (_sync) return _initialized; });
-            return;
-        }
-
         await using var conn = await CreateConnection();
         await conn.ExecuteAsync(@$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}events (
@@ -131,11 +37,6 @@ public class PostgreSqlEventStore : IEventStore
                 PRIMARY KEY (function_type_id, function_instance_id, position)
             );" 
         );
-        
-        await SetUpDatabaseSubscription();
-        
-        lock (_sync)
-            _initialized = true;
     }
 
     public async Task DropUnderlyingTable()
@@ -173,9 +74,7 @@ public class PostgreSqlEventStore : IEventStore
             }
         };
         await command.ExecuteNonQueryAsync();
-
         await transaction.CommitAsync();
-        _ = Notify(functionId); //todo improve by using batching instead (for one roundtrip)
     }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -208,7 +107,6 @@ public class PostgreSqlEventStore : IEventStore
         }
         
         await transaction.CommitAsync();
-        _ = Notify(functionId); //todo improve by using batching instead (for one roundtrip)
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
@@ -241,23 +139,4 @@ public class PostgreSqlEventStore : IEventStore
 
         return storedEvents;
     }
-
-    private async Task Notify(FunctionId functionId)
-    {
-        await using var conn = await CreateConnection();
-
-        var sql = $"SELECT pg_notify('{_tablePrefix}events', $1);";    
-            
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = functionId.ToString()} //todo consider best way to serialize and deserialize function id
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
-    }
-    
-    public void Dispose() => _disposed = true;
 }

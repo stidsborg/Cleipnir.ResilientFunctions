@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessin
 public class OrderProcessingSaga
 {
     private const string FunctionTypeId = "OrderProcessing";
-    private readonly EventSources _eventSources;
+    private readonly IEventStore _eventStore;
     private readonly RAction<Order, Scrapbook> _registration;
 
     private readonly IBankClient _bankClient;
@@ -20,11 +20,11 @@ public class OrderProcessingSaga
     private readonly IProductsClient _productsClient;
 
     public OrderProcessingSaga(
-        RFunctions rFunctions, EventSources eventSources, 
+        RFunctions rFunctions, IEventStore eventStore, 
         IBankClient bankClient, IEmailClient emailClient, IMessageQueueClient messageQueueClient, 
         IProductsClient productsClient)
     {
-        _eventSources = eventSources;
+        _eventStore = eventStore;
         _bankClient = bankClient;
         _emailClient = emailClient;
         _messageQueueClient = messageQueueClient;
@@ -38,7 +38,7 @@ public class OrderProcessingSaga
 
     public async Task DeliverAndProcessEvent(string functionInstanceId, object @event, string? idempotencyKey = null)
     {
-        using var eventSource = await _eventSources.GetEventSource(new FunctionId(FunctionTypeId, functionInstanceId));
+        using var eventSource = await _eventStore.GetEventSource(new FunctionId(FunctionTypeId, functionInstanceId));
         await eventSource.Emit(@event, idempotencyKey);
         await _registration.ScheduleReInvocation(
             functionInstanceId,
@@ -56,7 +56,7 @@ public class OrderProcessingSaga
             await scrapbook.Save();
         }
         var bankTransactionId = scrapbook.BankTransactionId.Value;
-        using var eventSource = await _eventSources
+        using var eventSource = await _eventStore
             .GetEventSource(new FunctionId(FunctionTypeId, order.OrderId));
         
         var totalPrice = (await _productsClient.GetProductPrices(order.ProductIds)).Sum(p => p.Price);

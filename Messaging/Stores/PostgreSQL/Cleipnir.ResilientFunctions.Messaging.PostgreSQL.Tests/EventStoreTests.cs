@@ -13,7 +13,7 @@ public class EventStoreTests
     public async Task AppendedMessagesCanBeFetchedAgain()
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
-        using var eventStore = await Sql.CreateAndInitializeEventStore();
+        var eventStore = await Sql.CreateAndInitializeEventStore();
 
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
@@ -42,7 +42,7 @@ public class EventStoreTests
     public async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain()
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
-        using var eventStore = await Sql.CreateAndInitializeEventStore();
+        var eventStore = await Sql.CreateAndInitializeEventStore();
 
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
@@ -57,30 +57,5 @@ public class EventStoreTests
         events[0].IdempotencyKey.ShouldBe("1");
         events[1].Deserialize().ShouldBe(msg2);
         events[1].IdempotencyKey.ShouldBe("2");
-    }
-    
-    [TestMethod]
-    public async Task NotificationIsRaisedFromAppendedEvent()
-    {
-        var functionId = new FunctionId("TypeId", "InstanceId");
-        var otherFunctionId = new FunctionId("TypeId", "InstanceId2");
-        using var eventStore = await Sql.CreateAndInitializeEventStore();
-        var changesDetected = new SyncedFlag();
-        await eventStore.SubscribeToChanges(functionId, changesDetected.Raise);
-        var otherFunctionChangesDetected = new SyncedFlag();
-        await eventStore.SubscribeToChanges(otherFunctionId, otherFunctionChangesDetected.Raise);
-
-        await Task.Delay(10);
-        changesDetected.IsRaised.ShouldBeFalse();
-        otherFunctionChangesDetected.IsRaised.ShouldBeFalse();
-
-        const string msg1 = "hello world";
-        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
-
-        await eventStore.AppendEvent(functionId, storedEvent1);
-
-        await changesDetected.WaitForRaised();
-        await Task.Delay(10);
-        otherFunctionChangesDetected.IsRaised.ShouldBeFalse();
     }
 }

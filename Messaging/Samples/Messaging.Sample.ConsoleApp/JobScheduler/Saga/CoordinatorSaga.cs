@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.JobScheduler.S
 
 public class CoordinatorSaga
 {
-    private readonly EventSources _eventSources;
+    private readonly IEventStore _eventStore;
     private readonly MessageQueue _messageQueue;
     private readonly int _numberOfWorkers;
     
@@ -16,11 +16,11 @@ public class CoordinatorSaga
     
     public CoordinatorSaga(
         RFunctions rFunctions, 
-        EventSources eventSources, 
+        IEventStore eventStore, 
         MessageQueue messageQueue,
         int numberOfWorkers)
     {
-        _eventSources = eventSources;
+        _eventStore = eventStore;
         _messageQueue = messageQueue;
         _numberOfWorkers = numberOfWorkers;
 
@@ -29,17 +29,17 @@ public class CoordinatorSaga
             switch (msg)
             {
                 case JobAccepted j:
-                    _eventSources
+                    _eventStore
                         .GetEventSource(FunctionTypeId, j.JobId.ToString())
                         .ContinueWith(esTask => esTask.Result.Emit(j, $"{nameof(JobAccepted)}_{j.WorkerId}"));
                     return;
                 case JobRefused j:
-                    _eventSources
+                    _eventStore
                         .GetEventSource(FunctionTypeId, j.JobId.ToString())
                         .ContinueWith(esTask => esTask.Result.Emit(j, $"{nameof(JobRefused)}_{j.WorkerId}"));
                     return;
                 case JobCompleted j:
-                    _eventSources
+                    _eventStore
                         .GetEventSource(FunctionTypeId, j.JobId.ToString())
                         .ContinueWith(esTask => esTask.Result.Emit(j, $"{nameof(JobCompleted)}_{j.WorkerId}"));
                     return;
@@ -56,7 +56,7 @@ public class CoordinatorSaga
 
     private async Task _ScheduleJob(Guid jobId, Scrapbook scrapbook)
     {
-        using var eventSource = await _eventSources
+        using var eventSource = await _eventStore
             .GetEventSource(new FunctionId(FunctionTypeId, jobId.ToString()));
 
         CancelJobAndThrowIfFailedSchedulation(jobId, scrapbook);
