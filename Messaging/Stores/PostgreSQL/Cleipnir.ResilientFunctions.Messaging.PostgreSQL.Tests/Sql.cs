@@ -1,4 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
+using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging.Tests.Utils;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests
@@ -18,8 +20,8 @@ namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests
         [AssemblyInitialize]
         public static void AssemblyInit(TestContext testContext)
         {
-            var connectionStringWithoutDatabase = Storage.DatabaseHelper.GetConnectionStringWithoutDatabase(ConnectionString);
-            var databaseName = Storage.DatabaseHelper.GetDatabaseName(ConnectionString);
+            var connectionStringWithoutDatabase = DatabaseHelper.GetConnectionStringWithoutDatabase(ConnectionString);
+            var databaseName = DatabaseHelper.GetDatabaseName(ConnectionString);
             
             using var conn = new NpgsqlConnection(connectionStringWithoutDatabase);
             conn.Open();
@@ -33,7 +35,7 @@ namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests
             }
         }
 
-        public static async Task<PostgreSqlEventStore> CreateAndInitializeEventStore(
+        public static async Task<IEventStore> CreateAndInitializeEventStore(
             [CallerFilePath] string sourceFilePath = "",
             [CallerMemberName] string callMemberName = "")
         {

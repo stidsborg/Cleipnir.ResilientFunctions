@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests.Utils;
+﻿namespace Cleipnir.ResilientFunctions.Messaging.Tests.Utils;
 
 public class SyncedFlag
 {

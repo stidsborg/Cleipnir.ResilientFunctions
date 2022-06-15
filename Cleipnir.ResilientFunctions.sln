@@ -63,6 +63,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.StressTests", "Stores\StressTests\Cleipnir.ResilientFunctions.StressTests.csproj", "{640D8843-9389-4422-9DC0-48A1E9D7C943}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.Messaging.Tests", "Messaging\Core\Cleipnir.ResilientFunctions.Messaging.Tests\Cleipnir.ResilientFunctions.Messaging.Tests.csproj", "{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -304,6 +306,18 @@ Global
 		{640D8843-9389-4422-9DC0-48A1E9D7C943}.Release|x64.Build.0 = Release|Any CPU
 		{640D8843-9389-4422-9DC0-48A1E9D7C943}.Release|x86.ActiveCfg = Release|Any CPU
 		{640D8843-9389-4422-9DC0-48A1E9D7C943}.Release|x86.Build.0 = Release|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Debug|x64.Build.0 = Debug|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Debug|x86.Build.0 = Debug|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Release|Any CPU.Build.0 = Release|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Release|x64.ActiveCfg = Release|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Release|x64.Build.0 = Release|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Release|x86.ActiveCfg = Release|Any CPU
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0B3EAFB3-3C0F-441B-809F-2659BD6B7E72} = {BE943138-D5D9-46D6-9B7C-76C73A552274}
@@ -330,5 +344,6 @@ Global
 		{221E3935-8A76-471D-B451-5E1BF6488BB3} = {C3D76B32-D7AF-44B7-B52B-FE2E4DD93838}
 		{0130FE04-4E9A-467C-AD05-3A6317A06B6F} = {C3D76B32-D7AF-44B7-B52B-FE2E4DD93838}
 		{640D8843-9389-4422-9DC0-48A1E9D7C943} = {F74BC95E-DDE2-44D1-A2B4-CE8FC2FB31EA}
+		{853ADDDA-CBF6-47B7-94D2-776CA4E0B465} = {47BE2A44-16FB-4A12-809B-04DA1C1038A0}
 	EndGlobalSection
 EndGlobal

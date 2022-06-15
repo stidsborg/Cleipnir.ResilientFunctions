@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests.Utils;
+namespace Cleipnir.ResilientFunctions.Messaging.Tests.Utils;
 
 public static class JsonExtensions
 {
