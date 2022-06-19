@@ -1,6 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging.Core;
-using Dapper;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
@@ -26,7 +25,7 @@ public class PostgreSqlEventStore : IEventStore
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@$"
+        var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}events (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
@@ -35,20 +34,25 @@ public class PostgreSqlEventStore : IEventStore
                 event_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position)
-            );" 
-        );
+            );";
+        var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@$"DROP TABLE IF EXISTS {_tablePrefix}events;");
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}events;";
+        var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
     
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        await conn.ExecuteAsync(@$"TRUNCATE TABLE {_tablePrefix}events;");
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}events;";
+        var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
