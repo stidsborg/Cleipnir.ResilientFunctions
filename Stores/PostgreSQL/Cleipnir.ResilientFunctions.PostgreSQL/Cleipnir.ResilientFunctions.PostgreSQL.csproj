@@ -21,25 +21,25 @@
         <RepositoryUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</RepositoryUrl>
         <PackageTags>saga, resilient functions, resiliency, micro service, fault-tolerant, distributed systems, cloud independent</PackageTags>
     </PropertyGroup>
-
-
+    
     <ItemGroup>
       <PackageReference Include="Npgsql" Version="6.0.4" />
-    </ItemGroup>
-
-    <PropertyGroup Label="SourceLink">
-        <PublishRepositoryUrl>true</PublishRepositoryUrl>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    </PropertyGroup>
-    <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
+    <PropertyGroup Label="SourceLink">
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    </PropertyGroup>
+    <ItemGroup Label="SourceLink">
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    </ItemGroup>
+    
     <ItemGroup>
         <None Include="..\..\..\cleipnir.png">
             <Pack>True</Pack>
@@ -50,5 +50,5 @@
             <PackagePath>\</PackagePath>
         </None>
     </ItemGroup>
-
+    
 </Project>
