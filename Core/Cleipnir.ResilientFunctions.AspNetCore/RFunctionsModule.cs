@@ -10,7 +10,8 @@ public static class RFunctionsModule
         this IServiceCollection services, 
         Func<IServiceProvider, IFunctionStore> store,
         Func<IServiceProvider, Settings>? settings = null,
-        bool gracefulShutdown = false
+        bool gracefulShutdown = false,
+        Assembly? rootAssembly = null
     )
     {
         services.AddSingleton(store);
@@ -24,8 +25,8 @@ public static class RFunctionsModule
             return new RFunctions(functionStore, s.GetService<Settings>());
         });
         
-        var callingAssembly = Assembly.GetCallingAssembly();
-        services.AddHostedService(s => new RFunctionsService(s, callingAssembly, gracefulShutdown));
+        rootAssembly ??= Assembly.GetCallingAssembly();
+        services.AddHostedService(s => new RFunctionsService(s, rootAssembly, gracefulShutdown));
         
         return services;
     }
@@ -34,18 +35,27 @@ public static class RFunctionsModule
         this IServiceCollection services,
         IFunctionStore store,
         Func<IServiceProvider, Settings>? settings = null,
-        bool gracefulShutdown = false
-    ) => AddRFunctionsService(services, _ => store, settings, gracefulShutdown);
+        bool gracefulShutdown = false,
+        Assembly? rootAssembly = null
+    ) => AddRFunctionsService(
+        services,
+        _ => store,
+        settings,
+        gracefulShutdown,
+        rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()
+    );
 
     public static IServiceCollection AddRFunctionsService(
         this IServiceCollection services,
         IFunctionStore store,
         Settings? settings = null,
-        bool gracefulShutdown = false
+        bool gracefulShutdown = false,
+        Assembly? rootAssembly = null
     ) => AddRFunctionsService(
         services,
         _ => store,
         settings == null ? null : _ => settings,
-        gracefulShutdown
+        gracefulShutdown,
+        rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()
     );
 }
