@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
+
+// TODO: Move to stores. Rename to SQL Database Helper or similar. This is not for all databases.
 public static class DatabaseHelper
 {
     public static string GetDatabaseName(string connectionString)

@@ -24,7 +24,7 @@ public class RActionRegistrationTests
     }
     
     private Task InnerAction(string param) => Task.CompletedTask;
-    private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
+    private FunctionContainer CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
     {
@@ -38,13 +38,13 @@ public class RActionRegistrationTests
 
         public object DeserializeParameter(string json, string type) => Default.DeserializeParameter(json, type);
 
-        public string SerializeScrapbook(RScrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
+        public string SerializeScrapbook(Scrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
 
-        public RScrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
+        public Scrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
 
-        public string SerializeError(RError error) => Default.SerializeError(error);
+        public string SerializeError(Error error) => Default.SerializeError(error);
 
-        public RError DeserializeError(string json) => Default.DeserializeError(json);
+        public Error DeserializeError(string json) => Default.DeserializeError(json);
 
         public string SerializeResult(object result) => Default.SerializeResult(result);
 

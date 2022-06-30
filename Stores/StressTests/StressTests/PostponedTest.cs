@@ -45,7 +45,7 @@ public static class PostponedTest
         stopWatch.Stop();
         Console.WriteLine("POSTPONED_TEST: Initialization took: " + stopWatch.Elapsed);
 
-        using var rFunctions1 = new RFunctions(
+        using var rFunctions1 = new FunctionContainer(
             store,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
@@ -57,7 +57,7 @@ public static class PostponedTest
             int (string param) => 1 
         );
 
-        using var rFunctions2 = new RFunctions(
+        using var rFunctions2 = new FunctionContainer(
             store,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,

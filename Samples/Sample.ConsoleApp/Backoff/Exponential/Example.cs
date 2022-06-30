@@ -12,7 +12,7 @@ public static class Example
     {
         var functionType = "ExponentialBackoffExample";
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var rFunc = rFunctions.RegisterFunc(
             functionType,
             OnFailure.BackoffExponentially<string, BackoffScrapbook, string>(

@@ -2,7 +2,7 @@
 
 namespace Cleipnir.ResilientFunctions.Utils.Scrapbooks;
 
-public class BackoffScrapbook : RScrapbook, IBackoffScrapbook
+public class BackoffScrapbook : Scrapbook, IBackoffScrapbook
 {
     public int Retry { get; set; }
 }

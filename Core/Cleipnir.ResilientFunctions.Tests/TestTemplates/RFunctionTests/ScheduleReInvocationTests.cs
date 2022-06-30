@@ -21,7 +21,7 @@ public abstract class ScheduleReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -76,7 +76,7 @@ public abstract class ScheduleReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -140,7 +140,7 @@ public abstract class ScheduleReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -191,7 +191,7 @@ public abstract class ScheduleReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -256,7 +256,7 @@ public abstract class ScheduleReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -290,7 +290,7 @@ public abstract class ScheduleReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -323,7 +323,7 @@ public abstract class ScheduleReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,

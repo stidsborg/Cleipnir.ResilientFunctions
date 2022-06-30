@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public abstract class RScrapbook
+public abstract class Scrapbook
 {
     private IFunctionStore? FunctionStore { get; set; }
     private ISerializer? Serializer { get; set; }

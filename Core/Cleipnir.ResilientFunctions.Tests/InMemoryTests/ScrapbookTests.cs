@@ -35,6 +35,6 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             }
         }
         
-        private class TestScrapbook : RScrapbook {}
+        private class TestScrapbook : Scrapbook {}
     }
 }

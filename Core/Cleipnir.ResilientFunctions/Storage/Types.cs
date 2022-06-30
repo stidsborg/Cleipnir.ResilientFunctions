@@ -27,7 +27,7 @@ internal static class StorageTypeExtensions
     public static object Deserialize(this StoredParameter parameter, ISerializer serializer)
         => serializer.DeserializeParameter(parameter.ParamJson, parameter.ParamType);
         
-    public static RScrapbook Deserialize(this StoredScrapbook scrapbook, ISerializer serializer)
+    public static Scrapbook Deserialize(this StoredScrapbook scrapbook, ISerializer serializer)
         => serializer.DeserializeScrapbook(scrapbook.ScrapbookJson!, scrapbook.ScrapbookType);
 
     public static object? Deserialize(this StoredResult result, ISerializer serializer)

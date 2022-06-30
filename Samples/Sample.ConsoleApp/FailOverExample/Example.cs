@@ -25,7 +25,7 @@ public static class Example
 
     private static async Task Service1()
     {
-        var functions = new RFunctions(
+        var functions = new FunctionContainer(
             new SqlServerFunctionStore(CreateConnection),
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
@@ -51,7 +51,7 @@ public static class Example
 
     private static async Task Service2()
     {
-        var functions = new RFunctions(
+        var functions = new FunctionContainer(
             new SqlServerFunctionStore(CreateConnection),
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,

@@ -11,9 +11,9 @@ public delegate Task Retry<TScrapbook>(
     Action<TScrapbook>? scrapbookUpdater = null
 );
 
-public class RJob<TScrapbook>
+public class Job<TScrapbook>
 {
-    public RJob(Func<Task> start, Retry<TScrapbook> retry)
+    public Job(Func<Task> start, Retry<TScrapbook> retry)
     {
         Start = start;
         Retry = retry;
@@ -25,7 +25,7 @@ public class RJob<TScrapbook>
 
 public static class RJobExtensions
 {
-    public static Func<Nothing, TScrapbook, Task<Result>> ToNothingFunc<TScrapbook>(Func<TScrapbook, Task<Result>> inner)
+    public static Func<Nothing, TScrapbook, Task<Result>> ToNothingFunc<TScrapbook>(System.Func<TScrapbook, Task<Result>> inner)
     {
         return (_, scrapbook) => inner(scrapbook);
     } 

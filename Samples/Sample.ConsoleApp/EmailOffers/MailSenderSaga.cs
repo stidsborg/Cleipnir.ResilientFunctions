@@ -41,7 +41,7 @@ public static class EmailSenderSaga
         }
     }
 
-    public class Scrapbook : RScrapbook
+    public class Scrapbook : Cleipnir.ResilientFunctions.Domain.Scrapbook
     {
         public Queue<EmailAddress> RecipientsLeft { get; set; } = new();
         public bool Initialized { get; set; }

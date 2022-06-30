@@ -30,7 +30,7 @@ public class SerializationTests
             initialSignOfLife: 0
         ).ShouldBeTrueAsync();
         
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store, 
             new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(1))
         );
@@ -81,16 +81,16 @@ public class SerializationTests
             )!;
         }
 
-        public string SerializeScrapbook(RScrapbook scrapbook)
+        public string SerializeScrapbook(Scrapbook scrapbook)
             => _defaultSerializer.SerializeScrapbook(scrapbook);
 
-        public RScrapbook DeserializeScrapbook(string? json, string type)
+        public Scrapbook DeserializeScrapbook(string? json, string type)
             => _defaultSerializer.DeserializeScrapbook(json, type);
 
-        public string SerializeError(RError error)
+        public string SerializeError(Error error)
             => _defaultSerializer.SerializeError(error);
 
-        public RError DeserializeError(string json)
+        public Error DeserializeError(string json)
             => _defaultSerializer.DeserializeError(json);
         
         public string SerializeResult(object result)

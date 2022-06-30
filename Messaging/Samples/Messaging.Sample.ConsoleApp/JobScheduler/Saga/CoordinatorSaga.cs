@@ -15,7 +15,7 @@ public class CoordinatorSaga
     public const string FunctionTypeId = "JobScheduler";
     
     public CoordinatorSaga(
-        RFunctions rFunctions, 
+        FunctionContainer rFunctions, 
         IEventStore eventStore, 
         MessageQueue messageQueue,
         int numberOfWorkers)
@@ -52,7 +52,7 @@ public class CoordinatorSaga
         ).Invoke;
     }
 
-    public RAction.Invoke<Guid> ScheduleJob { get; }
+    public Action.Invoke<Guid> ScheduleJob { get; }
 
     private async Task _ScheduleJob(Guid jobId, Scrapbook scrapbook)
     {
@@ -129,7 +129,7 @@ public class CoordinatorSaga
     private async Task AwaitJobCompletion(EventSource eventSource) 
         => await eventSource.All.OfType<JobCompleted>().NextEvent(10_000);
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : ResilientFunctions.Domain.Scrapbook
     {
         public bool JobReservationSent { get; set; }
         public bool JobOrderSent { get; set; }

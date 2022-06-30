@@ -16,7 +16,7 @@ public abstract class ScrapbookTests
         ParamType: typeof(string).SimpleQualifiedName()
     );
         
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public string? Name { get; set; }
     }

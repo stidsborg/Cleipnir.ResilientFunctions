@@ -15,7 +15,7 @@ public abstract class StoreCrudTests
     private StoredParameter Param => new(TestParam.ToJson(), typeof(TestParameters).SimpleQualifiedName());
     private record TestParameters(string Name, int Age);
 
-    private class TestScrapbook : RScrapbook
+    private class TestScrapbook : Scrapbook
     {
         public string? Note { get; set; }
     }

@@ -33,7 +33,7 @@ public abstract class FailedTests
         var functionId = new FunctionId(functionTypeId, PARAM);
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var rFunc = new RFunctions
+            var rFunc = new FunctionContainer
                 (
                     store,
                     new Settings(
@@ -56,7 +56,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -102,7 +102,7 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (
                     store, 
                     new Settings(
@@ -124,7 +124,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
@@ -164,7 +164,7 @@ public abstract class FailedTests
         var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (
                     store, 
                     new Settings(
@@ -183,7 +183,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -228,7 +228,7 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (store, new Settings(unhandledExceptionHandler.Catch, CrashedCheckFrequency: TimeSpan.Zero))
                 .RegisterAction(
                     functionTypeId,
@@ -242,7 +242,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(unhandledExceptionHandler.Catch, CrashedCheckFrequency: TimeSpan.FromMilliseconds(2))
             );
@@ -281,5 +281,5 @@ public abstract class FailedTests
         }
     }
 
-    private class Scrapbook : RScrapbook { }
+    private class Scrapbook : Domain.Scrapbook { }
 }

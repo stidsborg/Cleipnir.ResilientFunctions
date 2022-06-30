@@ -26,6 +26,8 @@ public static class BusyWait
                 return;
             
             Thread.Sleep(checkInterval.Value);
+            // https://stackoverflow.com/questions/20082221/when-to-use-task-delay-when-to-use-thread-sleep
+            //await Task.Delay(checkInterval.Value); Let's make this Async? Lets not tell the CPU to sleep. Let it work on other stuff
         }
 
         if (throwOnThresholdExceeded)

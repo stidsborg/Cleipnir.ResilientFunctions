@@ -12,7 +12,7 @@ public static class Example
     public static async Task RegisterAndStart()
     {
         var store = new InMemoryFunctionStore();
-        var rFunctions = new RFunctions(
+        var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
@@ -42,7 +42,7 @@ public static class Example
         return Postpone.Until(scrapbook.ExecuteNext);
     }
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Cleipnir.ResilientFunctions.Domain.Scrapbook
     {
         public DateTime ExecuteNext { get; set; }
     }

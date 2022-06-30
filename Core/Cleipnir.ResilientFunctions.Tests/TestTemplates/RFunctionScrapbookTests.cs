@@ -24,7 +24,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+            using var rFunctions = new FunctionContainer(store, new Settings(unhandledExceptionHandler.Catch));
 
             var rFunc = rFunctions
                 .RegisterFunc(
@@ -52,7 +52,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
         }
 
-        private class Scrapbook : RScrapbook
+        private class Scrapbook : Domain.Scrapbook
         {
             public string Scrap { get; set; } = "";
         }

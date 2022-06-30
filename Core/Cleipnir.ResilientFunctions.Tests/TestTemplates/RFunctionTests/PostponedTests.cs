@@ -22,7 +22,7 @@ public abstract class PostponedTests
         const string param = "test";
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionContainer
                 (
                     crashableStore,
                     new Settings(
@@ -43,7 +43,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -73,7 +73,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionContainer
                 (
                     store,
                     new Settings(
@@ -92,7 +92,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -133,7 +133,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionContainer
             (
                 store,
                 new Settings(
@@ -151,7 +151,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -181,7 +181,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionContainer
             (
                 store,
                 new Settings(
@@ -201,7 +201,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -250,7 +250,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionContainer
         (
             store,
             new Settings(
@@ -288,7 +288,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionContainer
             (
                 crashableStore,
                 new Settings(
@@ -307,7 +307,7 @@ public abstract class PostponedTests
         }
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionContainer
             (
                 crashableStore,
                 new Settings(
@@ -324,7 +324,7 @@ public abstract class PostponedTests
         }
     }
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public int Value { get; set; }
     }

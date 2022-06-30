@@ -19,7 +19,7 @@ public class RJobRegistrationTests
     public async Task ConstructedActionJobIsCompletedSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         await rFunctions
             .RegisterJob<Scrapbook>(JobId, scrapbook => 
                 scrapbook.Value = "invoked")
@@ -43,7 +43,7 @@ public class RJobRegistrationTests
     public async Task ConstructedAsyncJobIsCompletedSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         await rFunctions
             .RegisterJob<Scrapbook>(
                 JobId,
@@ -72,7 +72,7 @@ public class RJobRegistrationTests
     public async Task ConstructedJobIsCompletedSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         await rFunctions
             .RegisterJob<Scrapbook>(
                 JobId,
@@ -101,7 +101,7 @@ public class RJobRegistrationTests
     public async Task ConstructedJobWithReturnIsCompletedSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         await rFunctions
             .RegisterJob<Scrapbook>(
                 JobId,
@@ -130,7 +130,7 @@ public class RJobRegistrationTests
     public async Task ConstructedFuncWithSerializerCreatedAndInvoked()
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         
         var flag = new SyncedFlag();
         var serializer = new Serializer();
@@ -160,20 +160,20 @@ public class RJobRegistrationTests
 
         public object DeserializeParameter(string json, string type) => Default.DeserializeParameter(json, type);
 
-        public string SerializeScrapbook(RScrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
+        public string SerializeScrapbook(Domain.Scrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
 
-        public RScrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
+        public Domain.Scrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
 
-        public string SerializeError(RError error) => Default.SerializeError(error);
+        public string SerializeError(Error error) => Default.SerializeError(error);
 
-        public RError DeserializeError(string json) => Default.DeserializeError(json);
+        public Error DeserializeError(string json) => Default.DeserializeError(json);
 
         public string SerializeResult(object result) => Default.SerializeResult(result);
 
         public object DeserializeResult(string json, string type) => Default.DeserializeResult(json, type);
     }
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public string Value { get; set; } = "";
     }

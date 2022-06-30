@@ -9,7 +9,7 @@ public static class Workflow
 {
     public static async Task Do()
     {
-        var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        var rFunctions = new FunctionContainer(new InMemoryFunctionStore());
         var transferSaga = new TransferSaga(rFunctions, new BankClient());
         var transfer = new Transfer(
             "FAccount",

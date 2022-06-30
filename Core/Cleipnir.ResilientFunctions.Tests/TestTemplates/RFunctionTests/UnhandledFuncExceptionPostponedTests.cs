@@ -20,7 +20,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions.RegisterFunc(
             functionType,
@@ -77,7 +77,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions.RegisterFunc(
             functionType,
@@ -156,7 +156,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var syncedException = new Synced<Exception>();
         var rAction = rFunctions
             .RegisterAction(
@@ -214,7 +214,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
     {
         var functionType = "SomeFunctionType".ToFunctionTypeId();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var syncedException = new Synced<Exception>();
         var rFunc = rFunctions.RegisterAction(
             functionType,
