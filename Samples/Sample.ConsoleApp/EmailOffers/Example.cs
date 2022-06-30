@@ -11,7 +11,7 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = new RFunctions(
+        var functions = new FunctionContainer(
             store,
             new Settings(UnhandledExceptionHandler: Console.WriteLine)
         );

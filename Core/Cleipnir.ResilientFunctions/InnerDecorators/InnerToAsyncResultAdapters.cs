@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.InnerDecorators;
 
 public static class InnerToAsyncResultAdapters
 {
-    public static Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(Func<TParam, TReturn> inner) where TParam : notnull
+    public static System.Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(System.Func<TParam, TReturn> inner) where TParam : notnull
     {
         return param =>
         {
@@ -16,7 +16,7 @@ public static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(Func<TParam, Task<TReturn>> inner) where TParam : notnull
+    public static System.Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(System.Func<TParam, Task<TReturn>> inner) where TParam : notnull
     {
         return async param =>
         {
@@ -25,7 +25,7 @@ public static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(Func<TParam, Result<TReturn>> inner) where TParam : notnull
+    public static System.Func<TParam, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TReturn>(System.Func<TParam, Result<TReturn>> inner) where TParam : notnull
     {
         return param =>
         {
@@ -34,7 +34,7 @@ public static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
+    public static System.Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
     {
         return param =>
         {
@@ -44,7 +44,7 @@ public static class InnerToAsyncResultAdapters
     }
     
     public static Func<TParam, TScrapbook, Task<Result>> ToInnerWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Task> inner)
-        where TParam : notnull where TScrapbook : RScrapbook, new()
+        where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         return async (param, scrapbook) =>
         {
@@ -54,7 +54,7 @@ public static class InnerToAsyncResultAdapters
     }
     
     public static Func<TParam, TScrapbook, Task<Result>> ToInnerWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Result> inner)
-        where TParam : notnull where TScrapbook : RScrapbook, new()
+        where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         return (param, scrapbook) =>
         {
@@ -64,7 +64,7 @@ public static class InnerToAsyncResultAdapters
     }
     
     public static Func<TParam, TScrapbook, Task<Result>> ToInnerWithTaskResultReturn<TParam, TScrapbook>(Action<TParam, TScrapbook> inner) 
-        where TParam : notnull where TScrapbook : RScrapbook, new()
+        where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         return (param, scrapbook) =>
         {
@@ -73,7 +73,7 @@ public static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(Func<TParam, Result> inner) where TParam : notnull
+    public static System.Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(System.Func<TParam, Result> inner) where TParam : notnull
     {
         return param =>
         {
@@ -82,7 +82,7 @@ public static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(Func<TParam, Task> inner) where TParam : notnull
+    public static System.Func<TParam, Task<Result>> ToInnerWithTaskResultReturn<TParam>(System.Func<TParam, Task> inner) where TParam : notnull
     {
         return async param =>
         {
@@ -93,7 +93,7 @@ public static class InnerToAsyncResultAdapters
     
     public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, TReturn> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         return (param, scrapbook) =>
         {
@@ -104,7 +104,7 @@ public static class InnerToAsyncResultAdapters
     
     public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, Task<TReturn>> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         return async (param, scrapbook) =>
         {
@@ -115,7 +115,7 @@ public static class InnerToAsyncResultAdapters
     
     public static Func<TParam, TScrapbook, Task<Result<TReturn>>> ToInnerWithTaskResultReturn<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, Result<TReturn>> inner
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         return (param, scrapbook) =>
         {

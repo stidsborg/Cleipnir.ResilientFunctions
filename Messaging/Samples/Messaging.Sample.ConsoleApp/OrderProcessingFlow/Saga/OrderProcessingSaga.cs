@@ -20,7 +20,7 @@ public class OrderProcessingSaga
     private readonly IProductsClient _productsClient;
 
     public OrderProcessingSaga(
-        RFunctions rFunctions, IEventStore eventStore, 
+        FunctionContainer rFunctions, IEventStore eventStore, 
         IBankClient bankClient, IEmailClient emailClient, IMessageQueueClient messageQueueClient, 
         IProductsClient productsClient)
     {
@@ -76,7 +76,7 @@ public class OrderProcessingSaga
         }
     }
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : ResilientFunctions.Domain.Scrapbook
     {
         public Guid? BankTransactionId { get; set; }
         public bool EmailSent { get; set; }

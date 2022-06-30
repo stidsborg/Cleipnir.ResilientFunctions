@@ -26,7 +26,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(unhandledExceptionCatcher.Catch)
             );
@@ -54,7 +54,7 @@ public abstract class WatchdogCompoundTests
                 .AfterSetFunctionStateStream
                 .Take(1);
 
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -79,7 +79,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -102,7 +102,7 @@ public abstract class WatchdogCompoundTests
         }
         {
             //fourth invocation succeeds
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -137,7 +137,7 @@ public abstract class WatchdogCompoundTests
             //first invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(unhandledExceptionCatcher.Catch)
             );
@@ -168,7 +168,7 @@ public abstract class WatchdogCompoundTests
                 .Where(p => p.PostponedUntil != null)
                 .Take(1);
 
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -195,7 +195,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -220,7 +220,7 @@ public abstract class WatchdogCompoundTests
         }
         {
             //fourth invocation succeeds
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -266,7 +266,7 @@ public abstract class WatchdogCompoundTests
         {
             var crashableStore = store.ToCrashableFunctionStore();
             var tcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(unhandledExceptionCatcher.Catch)
             );
@@ -294,7 +294,7 @@ public abstract class WatchdogCompoundTests
                 .AfterSetFunctionStateStream
                 .Take(1);
             
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -322,7 +322,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var invocationStarted = new TaskCompletionSource();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -347,7 +347,7 @@ public abstract class WatchdogCompoundTests
         //fourth invocation succeeds
         {
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -385,7 +385,7 @@ public abstract class WatchdogCompoundTests
             //first invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(unhandledExceptionCatcher.Catch)
             );
@@ -415,7 +415,7 @@ public abstract class WatchdogCompoundTests
                 .Where(p => p.PostponedUntil != null)
                 .Take(1);
 
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -444,7 +444,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
             var invocationStarted = new TaskCompletionSource();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -472,7 +472,7 @@ public abstract class WatchdogCompoundTests
         {
             //fourth invocation succeeds
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -505,7 +505,7 @@ public abstract class WatchdogCompoundTests
         }
     }
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public List<int> Scraps { get; set; } = new();
     }

@@ -45,7 +45,7 @@ public interface IFunctionStore
         Action<TScrapbook> updater,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null,
-        ISerializer? serializer = null) where TScrapbook : RScrapbook, new()
+        ISerializer? serializer = null) where TScrapbook : Scrapbook, new()
     {
         var sf = await GetFunction(functionId);
         if (sf == null)

@@ -15,7 +15,7 @@ public static class Example
             
         var functionStore = new PostgreSqlFunctionStore(connectionString);
         await functionStore.Initialize();
-        var rFunctions = new RFunctions(functionStore);
+        var rFunctions = new FunctionContainer(functionStore);
             
         var eventStore = new PostgreSqlEventStore(connectionString);
         await eventStore.Initialize();

@@ -6,7 +6,7 @@ using Sample.WebApi.Utils;
 
 namespace Sample.WebApi.Saga;
 
-public class BookingScrapbook : RScrapbook
+public class BookingScrapbook : Scrapbook
 {
     public string? HotelBooking { get; set; }
     public string? FlightBooking { get; set; }
@@ -19,9 +19,9 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
     private const string FLIGHT_URL = "https://postman-echo.com/post";
     private const string HOTEL_URL = "https://postman-echo.com/post";
 
-    public RFunc.Invoke<OrderAndRequestIds, Booking> BookTravel { get; }
+    public Func.Invoke<OrderAndRequestIds, Booking> BookTravel { get; }
     
-    public BookingSaga(RFunctions rFunctions, ILogger<BookingSaga> logger)
+    public BookingSaga(FunctionContainer rFunctions, ILogger<BookingSaga> logger)
     {
         _logger = logger;
         

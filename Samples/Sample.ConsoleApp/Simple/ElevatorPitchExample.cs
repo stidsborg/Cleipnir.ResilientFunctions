@@ -16,7 +16,7 @@ public static class ElevatorPitchExample
         var store = new SqlServerFunctionStore(connectionString); //simple to use SqlServer as function storage layer - other stores also exist!
         await store.Initialize(); //create table in database - btw the invocation is idempotent!
 
-        var rFunctions = new RFunctions( //this is where you register different resilient function types
+        var rFunctions = new FunctionContainer( //this is where you register different resilient function types
             store,
             new Settings(
                 UnhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler

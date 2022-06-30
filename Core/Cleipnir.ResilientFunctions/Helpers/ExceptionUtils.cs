@@ -5,7 +5,7 @@ namespace Cleipnir.ResilientFunctions.Helpers;
 
 public static class ExceptionUtils
 {
-    public static void SafeTry(Action a, Action<Exception>? onException = null)
+    public static void SafeTry(System.Action a, Action<Exception>? onException = null)
     {
         try
         {

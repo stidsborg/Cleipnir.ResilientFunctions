@@ -15,7 +15,7 @@ public abstract class JobTests
     protected async Task JobCanBeRetried(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var counter = new SyncedCounter();
         var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
             nameof(JobCanBeRetried),
@@ -40,7 +40,7 @@ public abstract class JobTests
     protected async Task JobCanBeStartedMultipleTimesWithoutError(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionContainer(store);
         var counter = new SyncedCounter();
         var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
             nameof(JobCanBeRetried),
@@ -66,7 +66,7 @@ public abstract class JobTests
         using var disposables = new CombinableDisposable();
         var store = await storeTask;
         {
-            using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromDays(1)));
+            using var rFunctions = new FunctionContainer(store, new Settings(CrashedCheckFrequency: TimeSpan.FromDays(1)));
             disposables.Add(rFunctions);
             var rJob = rFunctions.RegisterJob<EmptyScrapbook>(
                 nameof(CrashedJobIsRetried),
@@ -76,7 +76,7 @@ public abstract class JobTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)));
+            using var rFunctions = new FunctionContainer(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)));
             disposables.Add(rFunctions);
             rFunctions.RegisterJob<EmptyScrapbook>(
                 nameof(CrashedJobIsRetried),
@@ -97,7 +97,7 @@ public abstract class JobTests
         using var disposables = new CombinableDisposable();
         var store = await storeTask;
         var unhandledExceptions = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptions.Catch,
@@ -122,7 +122,7 @@ public abstract class JobTests
         using var disposables = new CombinableDisposable();
         var store = await storeTask;
         var unhandledExceptions = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(unhandledExceptions.Catch, CrashedCheckFrequency: TimeSpan.FromDays(1))
         );

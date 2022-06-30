@@ -2,9 +2,9 @@
 
 public class ActionDisposable : IDisposable
 {
-    private readonly Action _dispose;
+    private readonly System.Action _dispose;
 
-    public ActionDisposable(Action dispose) => _dispose = dispose;
+    public ActionDisposable(System.Action dispose) => _dispose = dispose;
 
     public void Dispose() => _dispose();
 }

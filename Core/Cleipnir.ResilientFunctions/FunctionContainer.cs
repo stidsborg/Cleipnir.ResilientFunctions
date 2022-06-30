@@ -11,7 +11,7 @@ using Cleipnir.ResilientFunctions.Watchdogs;
 
 namespace Cleipnir.ResilientFunctions;
 
-public class RFunctions : IDisposable 
+public class FunctionContainer : IDisposable 
 {
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
 
@@ -22,16 +22,16 @@ public class RFunctions : IDisposable
     private volatile bool _disposed;
     private readonly object _sync = new();
     
-    public RFunctions(IFunctionStore functionStore, Settings? settings = null)
+    public FunctionContainer(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
     }
 
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public Func<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TReturn> inner,
+        System.Func<TParam, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
@@ -39,9 +39,9 @@ public class RFunctions : IDisposable
         settings
     );
     
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public Func<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<TReturn>> inner,
+        System.Func<TParam, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
@@ -49,9 +49,9 @@ public class RFunctions : IDisposable
         settings
     );
     
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public Func<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Result<TReturn>> inner,
+        System.Func<TParam, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
@@ -59,27 +59,27 @@ public class RFunctions : IDisposable
         settings        
     );
     
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public Func<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Result<TReturn>>> inner,
+        System.Func<TParam, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionContainer)} has been disposed");
 
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
             {
-                if (_functions[functionTypeId] is not RFunc<TParam, TReturn> r)
-                    throw new ArgumentException($"{typeof(RFunc<TParam, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                if (_functions[functionTypeId] is not Func<TParam, TReturn> r)
+                    throw new ArgumentException($"{typeof(Func<TParam, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
             var commonInvoker = new CommonInvoker(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
+            var rFuncInvoker = new FuncInvoker<TParam, TReturn>(
                 functionTypeId, 
                 inner, 
                 commonInvoker,
@@ -94,7 +94,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var registration = new RFunc<TParam, TReturn>(
+            var registration = new Func<TParam, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvocation,
@@ -107,7 +107,7 @@ public class RFunctions : IDisposable
 
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task> inner,
+        System.Func<TParam, Task> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
@@ -129,7 +129,7 @@ public class RFunctions : IDisposable
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Result> inner,
+        System.Func<TParam, Result> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
@@ -140,12 +140,12 @@ public class RFunctions : IDisposable
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Task<Result>> inner,
+        System.Func<TParam, Task<Result>> inner,
         Settings? settings = null
     ) where TParam : notnull 
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionContainer)} has been disposed");
         
         lock (_sync)
         {
@@ -158,7 +158,7 @@ public class RFunctions : IDisposable
 
             var settingsWithDefaults = _settings.Merge(settings);
             var commonInvoker = new CommonInvoker(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rActionInvoker = new RActionInvoker<TParam>(
+            var rActionInvoker = new ActionInvoker<TParam>(
                 functionTypeId, 
                 inner, 
                 commonInvoker,
@@ -188,7 +188,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
@@ -199,7 +199,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
@@ -210,7 +210,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
@@ -221,10 +221,10 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionContainer)} has been disposed");
         
         lock (_sync)
         {
@@ -267,7 +267,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
@@ -278,7 +278,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
@@ -289,7 +289,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+    ) where TParam : notnull where TScrapbook : Scrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
@@ -300,10 +300,10 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionContainer)} has been disposed");
             
         lock (_sync)
         {
@@ -342,47 +342,47 @@ public class RFunctions : IDisposable
         }
     }
 
-    public RJob<TScrapbook> RegisterJob<TScrapbook>(
+    public Job<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Action<TScrapbook> inner,
         Settings? settings = null
-    ) where TScrapbook : RScrapbook, new()
+    ) where TScrapbook : Scrapbook, new()
         => RegisterJob(
             jobId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings
         );
 
-    public RJob<TScrapbook> RegisterJob<TScrapbook>(
+    public Job<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
-        Func<TScrapbook, Result> inner,
+        System.Func<TScrapbook, Result> inner,
         Settings? settings = null
-    ) where TScrapbook : RScrapbook, new()
+    ) where TScrapbook : Scrapbook, new()
         => RegisterJob(
             jobId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings
         );
 
-    public RJob<TScrapbook> RegisterJob<TScrapbook>(
+    public Job<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
-        Func<TScrapbook, Task> inner,
+        System.Func<TScrapbook, Task> inner,
         Settings? settings = null
-    ) where TScrapbook : RScrapbook, new()
+    ) where TScrapbook : Scrapbook, new()
         => RegisterJob(
             jobId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings
         );
 
-    public RJob<TScrapbook> RegisterJob<TScrapbook>(
+    public Job<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
-        Func<TScrapbook, Task<Result>> inner,
+        System.Func<TScrapbook, Task<Result>> inner,
         Settings? settings = null
-    ) where TScrapbook : RScrapbook, new()
+    ) where TScrapbook : Scrapbook, new()
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionContainer)} has been disposed");
         
         lock (_sync)
         {
@@ -392,7 +392,7 @@ public class RFunctions : IDisposable
                 settings
             );
           
-            var registration = new RJob<TScrapbook>(
+            var registration = new Job<TScrapbook>(
                 () => actionRegistration.Schedule("Job", Nothing.Instance),
                 (statuses, epoch, scrapbookUpdater) => 
                     actionRegistration.ScheduleReInvocation("Job", statuses, epoch, scrapbookUpdater)

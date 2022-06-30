@@ -6,6 +6,8 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
+
+// TODO: Move to stores
 public class InMemoryFunctionStore : IFunctionStore
 {
     private readonly Dictionary<FunctionId, State> _states = new();

@@ -15,20 +15,20 @@ public class DefaultSerializer : ISerializer
     public object DeserializeParameter(string json, string type)
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
-    public string SerializeScrapbook(RScrapbook scrapbook)
+    public string SerializeScrapbook(Scrapbook scrapbook)
         => JsonSerializer.Serialize(scrapbook, scrapbook.GetType());
 
-    public RScrapbook DeserializeScrapbook(string? json, string type)
+    public Scrapbook DeserializeScrapbook(string? json, string type)
     {
         var scrapbookType = Type.GetType(type, throwOnError: true)!;
         if (json == null)
-            return (RScrapbook) Activator.CreateInstance(scrapbookType)!;
+            return (Scrapbook) Activator.CreateInstance(scrapbookType)!;
         
-        return (RScrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
+        return (Scrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
     }
 
-    public string SerializeError(RError error) => JsonSerializer.Serialize(error);
-    public RError DeserializeError(string json) => JsonSerializer.Deserialize<RError>(json)!;
+    public string SerializeError(Error error) => JsonSerializer.Serialize(error);
+    public Error DeserializeError(string json) => JsonSerializer.Deserialize<Error>(json)!;
     public string SerializeResult(object result) => JsonSerializer.Serialize(result);
     public object DeserializeResult(string json, string type) 
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;

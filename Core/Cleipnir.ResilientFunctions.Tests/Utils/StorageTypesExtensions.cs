@@ -9,7 +9,7 @@ public static class StorageTypesExtensions
     public static object DefaultDeserialize(this StoredParameter parameter)
         => parameter.Deserialize(DefaultSerializer.Instance);
 
-    public static RScrapbook DefaultDeserialize(this StoredScrapbook scrapbook)
+    public static Scrapbook DefaultDeserialize(this StoredScrapbook scrapbook)
         => scrapbook.Deserialize(DefaultSerializer.Instance);
 
     public static object? DefaultDeserialize(this StoredResult result)

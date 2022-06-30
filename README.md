@@ -494,7 +494,7 @@ A scrapbook is a user-specified subtype (of the abstract RScrapbook type) which 
 Commonly, a scrapbook type is specifically designed for the resilient function at hand. That is, the scrapbook type has properties which make sense for the use-case at hand. Furthermore, a scrapbook must inherit from the abstract RScrapbook framework class and have an empty constructor. 
 
 #### Return-type
-An inner function may optionally return a value and in either case may explicitly return the outcome of the invocation (e.g. if the invocation should be postponed).
+An inner function may optionally return a value and in either case may explicitly return the Status of the invocation (e.g. if the invocation should be postponed).
 
 Thus, returning a successful void-result can be accomplished as follows: 
 ```csharp

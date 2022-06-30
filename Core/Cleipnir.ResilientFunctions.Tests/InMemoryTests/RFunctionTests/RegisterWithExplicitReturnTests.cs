@@ -13,7 +13,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task FuncWithExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionContainer(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rFunc = rFunctions.RegisterFunc<string, string>(
             "FunctionTypeId".ToFunctionTypeId(),
@@ -32,7 +32,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task FuncWithScrapbookAndExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionContainer(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
             "FunctionTypeId".ToFunctionTypeId(),
@@ -51,7 +51,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task ActionWithExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionContainer(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
             .RegisterAction<string>(
@@ -71,7 +71,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task ActionWithScrapbookAndExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionContainer(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
             .RegisterAction<string, Scrapbook>(
@@ -88,5 +88,5 @@ public class RegisterWithExplicitReturnTests
         syncedParam.Value.ShouldBe("hello world");
     }
     
-    private class Scrapbook : RScrapbook {}
+    private class Scrapbook : Domain.Scrapbook {}
 }

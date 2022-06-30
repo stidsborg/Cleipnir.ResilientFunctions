@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
 
-public static class RAction
+public static class Action
 {
     public delegate Task Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
 
@@ -25,13 +25,13 @@ public static class RAction
 
 public class RAction<TParam> where TParam : notnull
 {
-    public RAction.Invoke<TParam> Invoke { get; }
-    public RAction.ReInvoke ReInvoke { get; }
+    public Action.Invoke<TParam> Invoke { get; }
+    public Action.ReInvoke ReInvoke { get; }
     public Schedule<TParam> Schedule { get; }
     public ScheduleReInvocation ScheduleReInvocation { get; }
 
     public RAction(
-        RAction.Invoke<TParam> invoke, RAction.ReInvoke reInvoke, 
+        Action.Invoke<TParam> invoke, Action.ReInvoke reInvoke, 
         Schedule<TParam> schedule, ScheduleReInvocation scheduleReInvocation)
     {
         Invoke = invoke;
@@ -43,13 +43,13 @@ public class RAction<TParam> where TParam : notnull
 
 public class RAction<TParam, TScrapbook> where TParam : notnull
 {
-    public RAction.Invoke<TParam> Invoke { get; }
-    public RAction.ReInvoke<TScrapbook> ReInvoke { get; }
+    public Action.Invoke<TParam> Invoke { get; }
+    public Action.ReInvoke<TScrapbook> ReInvoke { get; }
     public Schedule<TParam> Schedule { get; }
     public ScheduleReInvocation<TScrapbook> ScheduleReInvocation { get; }
 
     public RAction(
-        RAction.Invoke<TParam> invoke, RAction.ReInvoke<TScrapbook> reInvoke, 
+        Action.Invoke<TParam> invoke, Action.ReInvoke<TScrapbook> reInvoke, 
         Schedule<TParam> schedule, ScheduleReInvocation<TScrapbook> scheduleReInvocation)
     {
         Invoke = invoke;

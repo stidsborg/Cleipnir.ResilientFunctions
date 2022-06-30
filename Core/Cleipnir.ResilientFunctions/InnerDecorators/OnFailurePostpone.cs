@@ -9,8 +9,8 @@ public static partial class OnFailure
 {
     #region Func
     // sync with direct return
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, TReturn> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, TReturn> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -29,8 +29,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, TReturn> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, TReturn> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -49,8 +49,8 @@ public static partial class OnFailure
         };
     }
 
-    public static Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
-        Func<TParam, TReturn> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
+        System.Func<TParam, TReturn> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {
@@ -70,8 +70,8 @@ public static partial class OnFailure
     }
     
     //sync with result of return
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, Result<TReturn>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, Result<TReturn>> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -90,8 +90,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, Result<TReturn>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, Result<TReturn>> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -110,8 +110,8 @@ public static partial class OnFailure
         };
     }
 
-    public static Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
-        Func<TParam, Result<TReturn>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
+        System.Func<TParam, Result<TReturn>> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {
@@ -131,8 +131,8 @@ public static partial class OnFailure
     }
     
     //async with direct return
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, Task<TReturn>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, Task<TReturn>> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -151,8 +151,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, Task<TReturn>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, Task<TReturn>> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -171,8 +171,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
-        Func<TParam, Task<TReturn>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
+        System.Func<TParam, Task<TReturn>> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {
@@ -192,8 +192,8 @@ public static partial class OnFailure
     }
     
     //async with result of return
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, Task<Result<TReturn>>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, Task<Result<TReturn>>> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -211,8 +211,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
-        Func<TParam, Task<Result<TReturn>>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeFor<TParam, TReturn>(
+        System.Func<TParam, Task<Result<TReturn>>> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -230,8 +230,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
-        Func<TParam, Task<Result<TReturn>>> inner, 
+    public static System.Func<TParam, Task<Result<TReturn>>> PostponeUntil<TParam, TReturn>(
+        System.Func<TParam, Task<Result<TReturn>>> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {
@@ -252,7 +252,7 @@ public static partial class OnFailure
 
     #region Action
     // sync with direct return
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
         Action<TParam> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
@@ -272,7 +272,7 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
         Action<TParam> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
@@ -292,7 +292,7 @@ public static partial class OnFailure
         };
     }
 
-    public static Func<TParam, Task<Result>> PostponeUntil<TParam>(
+    public static System.Func<TParam, Task<Result>> PostponeUntil<TParam>(
         Action<TParam> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
@@ -313,8 +313,8 @@ public static partial class OnFailure
     }
     
     //sync with result of return
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
-        Func<TParam, Result> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
+        System.Func<TParam, Result> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -333,8 +333,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
-        Func<TParam, Result> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
+        System.Func<TParam, Result> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -353,8 +353,8 @@ public static partial class OnFailure
         };
     }
 
-    public static Func<TParam, Task<Result>> PostponeUntil<TParam>(
-        Func<TParam, Result> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeUntil<TParam>(
+        System.Func<TParam, Result> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {
@@ -374,8 +374,8 @@ public static partial class OnFailure
     }
     
     //async with direct return
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
-        Func<TParam, Task> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
+        System.Func<TParam, Task> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -394,8 +394,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
-        Func<TParam, Task> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
+        System.Func<TParam, Task> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -414,8 +414,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result>> PostponeUntil<TParam>(
-        Func<TParam, Task> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeUntil<TParam>(
+        System.Func<TParam, Task> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {
@@ -435,8 +435,8 @@ public static partial class OnFailure
     }
     
     //async with result of return
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
-        Func<TParam, Task<Result>> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
+        System.Func<TParam, Task<Result>> inner, 
         int delayMs, 
         Action<Exception>? onException = null)
     {
@@ -454,8 +454,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result>> PostponeFor<TParam>(
-        Func<TParam, Task<Result>> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeFor<TParam>(
+        System.Func<TParam, Task<Result>> inner, 
         TimeSpan delay, 
         Action<Exception>? onException = null)
     {
@@ -473,8 +473,8 @@ public static partial class OnFailure
         };
     }
     
-    public static Func<TParam, Task<Result>> PostponeUntil<TParam>(
-        Func<TParam, Task<Result>> inner, 
+    public static System.Func<TParam, Task<Result>> PostponeUntil<TParam>(
+        System.Func<TParam, Task<Result>> inner, 
         DateTime dateTime,
         Action<Exception>? onException = null)
     {

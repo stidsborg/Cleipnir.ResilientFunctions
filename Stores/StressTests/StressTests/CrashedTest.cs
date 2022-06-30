@@ -37,7 +37,7 @@ public static class CrashedTest
         Console.WriteLine("CRASHED_TEST: Initialization took: " + stopWatch.Elapsed);
 
         Console.WriteLine("CRASHED_TEST: Waiting for invocations to begin");
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             sqlStore,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
@@ -49,7 +49,7 @@ public static class CrashedTest
             void(string param) => { }
         );
         
-        using var rFunctions2 = new RFunctions(
+        using var rFunctions2 = new FunctionContainer(
             sqlStore,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,

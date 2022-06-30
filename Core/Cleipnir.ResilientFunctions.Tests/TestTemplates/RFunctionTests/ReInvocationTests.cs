@@ -19,7 +19,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -66,7 +66,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -125,7 +125,7 @@ public abstract class ReInvocationTests
         var functionId = new FunctionId(functionType, "something");
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionContainer(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = rFunctions.RegisterAction<string, Scrapbook>(
             functionType,
@@ -170,7 +170,7 @@ public abstract class ReInvocationTests
         var functionId = new FunctionId(functionType, "something");
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionContainer(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
             functionType,
@@ -209,7 +209,7 @@ public abstract class ReInvocationTests
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public int Value { get; set; }
     }
@@ -221,7 +221,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -266,7 +266,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -328,7 +328,7 @@ public abstract class ReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -357,7 +357,7 @@ public abstract class ReInvocationTests
         var store = await storeTask;
         const string functionType = "someFunctionType";
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,

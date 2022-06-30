@@ -7,15 +7,15 @@ public class Node
 {
     private readonly int _id;
     private readonly CrashableFunctionStore _crashableFunctionStore;
-    private readonly RFunctions _rFunctions;
-    private readonly RFunc.Invoke<string, string> _rFunc;
+    private readonly FunctionContainer _rFunctions;
+    private readonly Func.Invoke<string, string> _rFunc;
     private volatile bool _stop;
 
     public Node(int id, IFunctionStore store)
     {
         _id = id;
         _crashableFunctionStore = new CrashableFunctionStore(store);
-        _rFunctions = new RFunctions(
+        _rFunctions = new FunctionContainer(
             _crashableFunctionStore,
             new Settings(
                 CrashedCheckFrequency: TimeSpan.FromMilliseconds(1_000),
@@ -54,7 +54,7 @@ public class Node
         _crashableFunctionStore.Crash();
     } 
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public bool Postponed { get; set; }
     }

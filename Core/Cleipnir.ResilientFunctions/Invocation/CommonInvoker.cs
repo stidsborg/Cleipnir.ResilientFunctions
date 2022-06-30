@@ -115,7 +115,7 @@ internal class CommonInvoker
         }
     }
     
-    public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch) where TScrapbook : RScrapbook, new()
+    public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch) where TScrapbook : Scrapbook, new()
     {
         var scrapbook = new TScrapbook();
         scrapbook.Initialize(functionId, _functionStore, Serializer, expectedEpoch);
@@ -127,10 +127,10 @@ internal class CommonInvoker
         Action<TScrapbook> scrapbookUpdater,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch
-    ) where TScrapbook : RScrapbook, new() 
+    ) where TScrapbook : Scrapbook, new() 
         => _functionStore.UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch, _settings.Serializer);
 
-    public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook? scrapbook, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, Scrapbook? scrapbook, int expectedEpoch)
     {
         var scrapbookJson = scrapbook == null
             ? null
@@ -152,16 +152,16 @@ internal class CommonInvoker
     public async Task PersistResult(
         FunctionId functionId,
         Result result,
-        RScrapbook? scrapbook,
+        Scrapbook? scrapbook,
         int expectedEpoch)
     {
         var scrapbookJson = scrapbook == null
             ? null
             : Serializer.SerializeScrapbook(scrapbook);
 
-        switch (result.Outcome)
+        switch (result.Status)
         {
-            case Outcome.Succeed:
+            case Status.Succeeded:
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
@@ -173,7 +173,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Outcome.Postpone:
+            case Status.Postponed:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
@@ -185,7 +185,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Outcome.Fail:
+            case Status.Failed:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
@@ -205,16 +205,16 @@ internal class CommonInvoker
     public async Task PersistResult<TReturn>(
         FunctionId functionId, 
         Result<TReturn> result, 
-        RScrapbook? scrapbook,
+        Scrapbook? scrapbook,
         int expectedEpoch)
     {
         var scrapbookJson = scrapbook == null
             ? null
             : Serializer.SerializeScrapbook(scrapbook);
         
-        switch (result.Outcome)
+        switch (result.Status)
         {
-            case Outcome.Succeed:
+            case Status.Succeeded:
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
@@ -231,7 +231,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Outcome.Postpone:
+            case Status.Postponed:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
@@ -243,7 +243,7 @@ internal class CommonInvoker
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
-            case Outcome.Fail:
+            case Status.Failed:
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
@@ -262,16 +262,16 @@ internal class CommonInvoker
 
     public static void EnsureSuccess(FunctionId functionId, Result result, bool allowPostponed)
     {
-        switch (result.Outcome)
+        switch (result.Status)
         {
-            case Outcome.Succeed:
+            case Status.Succeeded:
                 return;
-            case Outcome.Postpone:
+            case Status.Postponed:
                 if (allowPostponed)
                     return;
                 else 
                     throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
-            case Outcome.Fail:
+            case Status.Failed:
                 throw result.Fail!;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -280,16 +280,16 @@ internal class CommonInvoker
 
     public static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result, bool allowPostponed)
     {
-        switch (result.Outcome)
+        switch (result.Status)
         {
-            case Outcome.Succeed:
+            case Status.Succeeded:
                 return;
-            case Outcome.Postpone:
+            case Status.Postponed:
                 if (allowPostponed)
                     return;
                 else
                     throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
-            case Outcome.Fail:
+            case Status.Failed:
                 throw result.Fail!;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -299,7 +299,7 @@ internal class CommonInvoker
     public async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch) where TParam : notnull where TScrapbook : RScrapbook, new()
+        int? expectedEpoch) where TParam : notnull where TScrapbook : Scrapbook, new()
     {
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation<TParam>(
             functionId,
@@ -330,7 +330,7 @@ internal class CommonInvoker
         return new PreparedReInvocation<TParam>(param, epoch, runningFunction);
     }
     
-    private async Task<PreparedReInvocation<TParam, RScrapbook>> PrepareForReInvocation<TParam>(
+    private async Task<PreparedReInvocation<TParam, Scrapbook>> PrepareForReInvocation<TParam>(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch,
@@ -364,7 +364,7 @@ internal class CommonInvoker
 
             var param = (TParam) Serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
             if (!hasScrapbook)
-                return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, default(RScrapbook), runningFunction);
+                return new PreparedReInvocation<TParam, Scrapbook>(param, epoch, default(Scrapbook), runningFunction);
 
             var scrapbook = Serializer.DeserializeScrapbook(
                 sf.Scrapbook!.ScrapbookJson,
@@ -372,7 +372,7 @@ internal class CommonInvoker
             );
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
 
-            return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, (RScrapbook?) scrapbook, runningFunction);
+            return new PreparedReInvocation<TParam, Scrapbook>(param, epoch, (Scrapbook?) scrapbook, runningFunction);
         }
         catch (Exception)
         {
@@ -383,7 +383,7 @@ internal class CommonInvoker
 
     internal record PreparedReInvocation<TParam>(TParam Param, int Epoch, IDisposable RunningFunction);
     internal record PreparedReInvocation<TParam, TScrapbook>(TParam Param, int Epoch, TScrapbook? Scrapbook, IDisposable RunningFunction)
-        where TScrapbook : RScrapbook;
+        where TScrapbook : Scrapbook;
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);

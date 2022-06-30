@@ -15,7 +15,7 @@ internal static class Program
         var sqlStore = new PostgreSqlFunctionStore($"Server=abul.db.elephantsql.com;Port=5432;Userid=utdbwvkk;Password={password};Database=utdbwvkk");
         var store = new CrashableFunctionStore(sqlStore);
 
-        var rFunctions = new RFunctions(
+        var rFunctions = new FunctionContainer(
             store,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
@@ -41,7 +41,7 @@ internal static class Program
         store.Crash();
     }
     
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Cleipnir.ResilientFunctions.Domain.Scrapbook
     {
         public string Message { get; set; } = "";
     }

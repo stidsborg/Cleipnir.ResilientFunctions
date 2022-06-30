@@ -18,7 +18,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (
                     store, 
                     new Settings(
@@ -35,7 +35,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -72,7 +72,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (
                     store, 
                     new Settings(
@@ -89,7 +89,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -134,7 +134,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (
                     store, 
                     new Settings(
@@ -152,7 +152,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -190,7 +190,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionContainer
                 (
                     store, 
                     new Settings(
@@ -207,7 +207,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(param, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionContainer(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -243,7 +243,7 @@ public abstract class CrashedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
 
-    private class Scrapbook : RScrapbook
+    private class Scrapbook : Domain.Scrapbook
     {
         public int Value { get; set; }
     }

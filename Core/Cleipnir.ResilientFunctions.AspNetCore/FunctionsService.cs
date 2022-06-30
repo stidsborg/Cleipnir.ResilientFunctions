@@ -8,13 +8,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace Cleipnir.ResilientFunctions.AspNetCore;
 
-public class RFunctionsService : IHostedService
+public class FunctionsService : IHostedService
 {
     private readonly IServiceProvider _services;
     private readonly Assembly _callingAssembly;
     private readonly bool _gracefulShutdown;
 
-    public RFunctionsService(IServiceProvider services, Assembly callingAssembly, bool gracefulShutdown)
+    public FunctionsService(IServiceProvider services, Assembly callingAssembly, bool gracefulShutdown)
     {
         _services = services;
         _callingAssembly = callingAssembly;
@@ -33,8 +33,8 @@ public class RFunctionsService : IHostedService
         foreach (var iRegisterRFuncOnInstantiationType in iRegisterRFuncOnInstantiationTypes)
             _ = _services.GetService(iRegisterRFuncOnInstantiationType); 
 
-        var rFunctions = _services.GetRequiredService<RFunctions>();
-        var iRegisterRFuncs = _services.GetServices<IRegisterRFunc>();
+        var rFunctions = _services.GetRequiredService<FunctionContainer>();
+        var iRegisterRFuncs = _services.GetServices<IRegisterFunc>();
 
         foreach (var iRegisterRFunc in iRegisterRFuncs)
             iRegisterRFunc.RegisterRFunc(rFunctions);
@@ -44,7 +44,7 @@ public class RFunctionsService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        var shutdownTask = _services.GetRequiredService<RFunctions>().ShutdownGracefully();
+        var shutdownTask = _services.GetRequiredService<FunctionContainer>().ShutdownGracefully();
         return _gracefulShutdown 
             ? shutdownTask 
             : Task.CompletedTask;

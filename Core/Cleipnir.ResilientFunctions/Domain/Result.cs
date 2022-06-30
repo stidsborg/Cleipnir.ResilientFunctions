@@ -4,7 +4,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class Result
 {
-    public Outcome Outcome { get; }
+    public Status Status { get; }
     public Postpone? Postpone { get; }
     public Exception? Fail { get; }
 
@@ -15,11 +15,11 @@ public class Result
     private Result(bool succeed, Postpone? postpone, Exception? fail)
     {
         if (succeed)
-            Outcome = Outcome.Succeed;
+            Status = Status.Succeeded;
         else if (postpone != null)
-            Outcome = Outcome.Postpone;
+            Status = Status.Postponed;
         else
-            Outcome = Outcome.Fail;
+            Status = Status.Failed;
         
         Postpone = postpone;
         Fail = fail;
@@ -64,8 +64,8 @@ public class Postpone
 
 public class Result<T>
 {
-    public Outcome Outcome { get; }
-    public bool Succeed { get; }
+    public Status Status { get; }
+    public bool Succeed => Status == Status.Succeeded;
     public T? SucceedWithValue { get; }
     public Postpone? Postpone { get; }
     public Exception? Fail { get; }
@@ -83,13 +83,12 @@ public class Result<T>
     private Result(bool succeed, T? succeedWithValue, Postpone? postpone, Exception? fail)
     {
         if (succeed)
-            Outcome = Outcome.Succeed;
+            Status = Status.Succeeded;
         else if (postpone != null)
-            Outcome = Outcome.Postpone;
+            Status = Status.Postponed;
         else
-            Outcome = Outcome.Fail;
-        
-        Succeed = succeed;
+            Status = Status.Failed;
+
         SucceedWithValue = succeedWithValue;
         Postpone = postpone;
         Fail = fail;
@@ -98,11 +97,4 @@ public class Result<T>
     public static implicit operator Result<T>(T succeedWithValue) => new Result<T>(succeedWithValue);
     public static implicit operator Result<T>(Fail fail) => new Result<T>(fail.Exception);
     public static implicit operator Result<T>(Postpone postpone) => new Result<T>(postpone);
-}
-
-public enum Outcome
-{
-    Succeed = 1,
-    Postpone = 2,
-    Fail = 3
 }

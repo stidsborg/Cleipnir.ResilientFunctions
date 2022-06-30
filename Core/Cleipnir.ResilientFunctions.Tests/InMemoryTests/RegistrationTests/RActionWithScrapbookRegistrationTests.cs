@@ -45,7 +45,7 @@ public class RActionWithScrapbookRegistrationTests
     }
 
     private async Task InnerAction(string param, Scrapbook scrapbook) => await Task.CompletedTask;
-    private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
+    private FunctionContainer CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
     {
@@ -59,18 +59,18 @@ public class RActionWithScrapbookRegistrationTests
 
         public object DeserializeParameter(string json, string type) => Default.DeserializeParameter(json, type);
 
-        public string SerializeScrapbook(RScrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
+        public string SerializeScrapbook(Domain.Scrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
 
-        public RScrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
+        public Domain.Scrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
 
-        public string SerializeError(RError error) => Default.SerializeError(error);
+        public string SerializeError(Error error) => Default.SerializeError(error);
 
-        public RError DeserializeError(string json) => Default.DeserializeError(json);
+        public Error DeserializeError(string json) => Default.DeserializeError(json);
 
         public string SerializeResult(object result) => Default.SerializeResult(result);
 
         public object DeserializeResult(string json, string type) => Default.DeserializeResult(json, type);
     }
     
-    private class Scrapbook : RScrapbook {}
+    private class Scrapbook : Domain.Scrapbook {}
 }

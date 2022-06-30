@@ -9,7 +9,7 @@ public sealed class TransferSaga
 {
     private IBankClient BankClient { get; }
 
-    public TransferSaga(RFunctions rFunctions, IBankClient bankClient)
+    public TransferSaga(FunctionContainer rFunctions, IBankClient bankClient)
     {
         BankClient = bankClient;
         Perform = rFunctions
@@ -20,7 +20,7 @@ public sealed class TransferSaga
             .Invoke;
     }
     
-    public RAction.Invoke<Transfer> Perform { get; }
+    public Cleipnir.ResilientFunctions.Action.Invoke<Transfer> Perform { get; }
     private async Task<Result> _Perform(Transfer transfer)
     {
         try
