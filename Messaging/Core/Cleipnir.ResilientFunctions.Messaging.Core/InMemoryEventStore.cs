@@ -34,7 +34,7 @@ public class InMemoryEventStore : IEventStore
         lock (_sync)
         {
             if (!_events.ContainsKey(functionId))
-                Enumerable.Empty<StoredEvent>().ToTask();
+                return Enumerable.Empty<StoredEvent>().ToTask();
 
             return _events[functionId].ToList().AsEnumerable().ToTask();
         }
