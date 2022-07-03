@@ -16,7 +16,7 @@ Out-of-the-box you also get:
 * ability to migrate non-completed functions
 * simple testability
 
-If you like a Resilient Functions presentation slideshow can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Documentation/raw/main/Presentation.pdf)  
+If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Documentation/raw/main/Presentation.pdf)  
 
 | What it is not? |
 | --- |
