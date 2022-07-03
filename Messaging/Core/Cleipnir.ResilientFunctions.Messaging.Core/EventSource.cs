@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Reactive.Subjects;
-using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
 
 namespace Cleipnir.ResilientFunctions.Messaging.Core;
 
@@ -11,6 +11,7 @@ public class EventSource : IDisposable
     private readonly FunctionId _functionId;
     private readonly IEventStore _eventStore;
     private readonly TimeSpan _pullFrequency;
+    private readonly IEventSerializer _eventSerializer;
 
     private readonly HashSet<string> _idempotencyKeys = new();
     
@@ -34,10 +35,15 @@ public class EventSource : IDisposable
     private readonly ReplaySubject<object> _allSubject = new();
     public IObservable<object> All => _allSubject;
     
-    public EventSource(FunctionId functionId, IEventStore eventStore, TimeSpan? pullFrequency)
+    public EventSource(
+        FunctionId functionId, 
+        IEventStore eventStore, 
+        TimeSpan? pullFrequency, 
+        IEventSerializer? eventSerializer)
     {
         _functionId = functionId;
         _eventStore = eventStore;
+        _eventSerializer = eventSerializer ?? DefaultEventSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
     }
 
@@ -102,7 +108,8 @@ public class EventSource : IDisposable
                             else
                                 _idempotencyKeys.Add(storedEvent.IdempotencyKey);
 
-                        var deserialized = storedEvent.Deserialize();
+                        var deserialized = _eventSerializer
+                            .DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
                         lock (_sync)
                             _existing = _existing.Add(deserialized);
                         _allSubject.OnNext(deserialized);
@@ -124,7 +131,7 @@ public class EventSource : IDisposable
 
     public async Task Emit(object @event, string? idempotencyKey = null)
     {
-        var json = JsonSerializer.Serialize(@event, @event.GetType());
+        var json = _eventSerializer.SerializeEvent(@event);
         var type = @event.GetType().SimpleQualifiedName();
         await _eventStore.AppendEvent(_functionId, json, type, idempotencyKey);
         await DeliverOutstandingEvents();
