@@ -31,9 +31,9 @@ public abstract class EventStoreTests
 
         var events = (await eventStore.GetEvents(functionId, 0)).ToList();
         events.Count.ShouldBe(2);
-        events[0].Deserialize().ShouldBe(msg1);
+        events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBeNull();
-        events[1].Deserialize().ShouldBe(msg2);
+        events[1].DefaultDeserialize().ShouldBe(msg2);
         events[1].IdempotencyKey.ShouldBeNull();
     }
 
@@ -52,9 +52,9 @@ public abstract class EventStoreTests
 
         var events = (await eventStore.GetEvents(functionId, 0)).ToList();
         events.Count.ShouldBe(2);
-        events[0].Deserialize().ShouldBe(msg1);
+        events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBe("1");
-        events[1].Deserialize().ShouldBe(msg2);
+        events[1].DefaultDeserialize().ShouldBe(msg2);
         events[1].IdempotencyKey.ShouldBe("2");
     }
 }

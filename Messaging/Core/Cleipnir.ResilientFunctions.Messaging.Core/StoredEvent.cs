@@ -4,5 +4,5 @@ namespace Cleipnir.ResilientFunctions.Messaging.Core;
 
 public record StoredEvent(string EventJson, string EventType, string? IdempotencyKey = null)
 {
-    public object Deserialize() => JsonSerializer.Deserialize(EventJson, Type.GetType(EventType, throwOnError: true)!)!;
+    public object DefaultDeserialize() => JsonSerializer.Deserialize(EventJson, Type.GetType(EventType, throwOnError: true)!)!;
 }
