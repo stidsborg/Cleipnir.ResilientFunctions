@@ -20,7 +20,7 @@ public abstract class RScrapbook
         Epoch = epoch;
     }
         
-    public async Task Save()
+    public virtual async Task Save()
     {
         if (FunctionStore == null)
             throw new InvalidOperationException($"'{GetType().Name}' scrapbook was uninitialized on save");
