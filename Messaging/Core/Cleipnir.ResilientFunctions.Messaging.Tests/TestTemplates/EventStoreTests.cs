@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Messaging.Tests.TestTemplates;
 public abstract class EventStoreTests
 {
     public abstract Task AppendedMessagesCanBeFetchedAgain();
-    public async Task AppendedMessagesCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
+    protected async Task AppendedMessagesCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
@@ -38,7 +38,7 @@ public abstract class EventStoreTests
     }
 
     public abstract Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain();
-    public async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
+    protected async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;

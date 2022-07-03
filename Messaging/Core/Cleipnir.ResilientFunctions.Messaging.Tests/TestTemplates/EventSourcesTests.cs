@@ -9,8 +9,8 @@ namespace Cleipnir.ResilientFunctions.Messaging.Tests.TestTemplates;
 
 public abstract class EventSourcesTests
 {
-    public abstract Task EventSourcesSunshineScenario();    
-    public async Task EventSourcesSunshineScenario(Task<IEventStore> eventStoreTask)
+    public abstract Task EventSourcesSunshineScenario();
+    protected async Task EventSourcesSunshineScenario(Task<IEventStore> eventStoreTask)
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
@@ -30,7 +30,7 @@ public abstract class EventSourcesTests
     }
 
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnored();
-    public async Task SecondEventWithExistingIdempotencyKeyIsIgnored(Task<IEventStore> eventStoreTask)
+    protected async Task SecondEventWithExistingIdempotencyKeyIsIgnored(Task<IEventStore> eventStoreTask)
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
@@ -56,8 +56,8 @@ public abstract class EventSourcesTests
         (await eventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
     }
 
-    public abstract Task EventSourcesSunshineScenarioUsingEventStore();    
-    public async Task EventSourcesSunshineScenarioUsingEventStore(Task<IEventStore> eventStoreTask)
+    public abstract Task EventSourcesSunshineScenarioUsingEventStore();
+    protected async Task EventSourcesSunshineScenarioUsingEventStore(Task<IEventStore> eventStoreTask)
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
@@ -80,7 +80,7 @@ public abstract class EventSourcesTests
     }
 
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore();
-    public async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Task<IEventStore> eventStoreTask)
+    protected async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Task<IEventStore> eventStoreTask)
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
