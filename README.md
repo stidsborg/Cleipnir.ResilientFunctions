@@ -237,7 +237,7 @@ public static async Task ProcessOrder(Order order, Scrapbook scrapbook)
 
 public class Scrapbook : RScrapbook
 {
-    public Guid RequestId { get; set; }
+    public Guid? RequestId { get; set; }
     public bool? ShipProductsCallCompleted { get; set; }
 }
 ```
