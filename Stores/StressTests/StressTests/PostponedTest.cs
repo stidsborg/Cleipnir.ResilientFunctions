@@ -16,7 +16,7 @@ public static class PostponedTest
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
 
-        var start = DateTime.UtcNow.AddSeconds(20);
+        var start = DateTime.UtcNow.AddSeconds(30);
         Console.WriteLine("POSTPONED_TEST: Expected start: " + start);
         var stopWatch = new Stopwatch();
         stopWatch.Start();
