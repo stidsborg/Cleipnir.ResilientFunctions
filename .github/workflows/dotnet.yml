@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Pipeline
     env:
-      Cleipnir.RFunctions.SqlServer.Tests.ConnectionString: Server=localhost;Database=rfunctionstest;User Id=sa;Password=Pa55word!
+      Cleipnir.RFunctions.SqlServer.Tests.ConnectionString: Server=localhost;Database=rfunctionstest;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;
       Cleipnir.RFunctions.PostgreSQL.Tests.ConnectionString: Server=localhost;Database=rfunctionstest;User Id=postgres;Password=Pa55word!
       POSTGRESQLPASSWORD: ${{ secrets.POSTGRESQLPASSWORD }}
 

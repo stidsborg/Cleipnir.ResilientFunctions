@@ -20,7 +20,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.SqlServer.Tests.ConnectionString")
-                ?? "Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!";
+                ?? "Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;";
 
             ConnFunc = async () =>
             {

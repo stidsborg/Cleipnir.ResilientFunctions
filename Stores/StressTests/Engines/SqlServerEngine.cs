@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 
 public class SqlServerEngine : IEngine
 {
-    private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!";
+    private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;";
 
     public async Task InitializeDatabaseAndInitializeAndTruncateTable()
     {
