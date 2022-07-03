@@ -1,7 +1,7 @@
 ﻿namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests;
 
 [TestClass]
-public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
+public class EventSourcesTests : Cleipnir.ResilientFunctions.Messaging.Tests.EventSourcesTests
 {
     [TestMethod]
     public override Task EventSourcesSunshineScenario() 

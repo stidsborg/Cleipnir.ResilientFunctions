@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Messaging.Tests.Utils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Messaging.Tests;
+namespace Cleipnir.ResilientFunctions.Messaging.Tests.TestTemplates;
 
 public abstract class EventStoreTests
 {

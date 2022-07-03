@@ -1,7 +1,7 @@
 ﻿namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests;
 
 [TestClass]
-public class EventStoreTests :  Messaging.Tests.TestTemplates.EventStoreTests
+public class EventStoreTests :  Cleipnir.ResilientFunctions.Messaging.Tests.EventStoreTests
 {
     [TestMethod]
     public override Task AppendedMessagesCanBeFetchedAgain()
