@@ -14,8 +14,10 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSource = await eventStore.GetEventSource(functionId);
+        var eventSources = new EventSources(eventStore);
+        using var eventSource = await eventSources.Get(functionId);
 
+        // ReSharper disable once AccessToDisposedClosure
         async Task<object> FirstAsync() => await eventSource.All.FirstAsync();
         var task = FirstAsync();
         
@@ -32,8 +34,10 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSource = await eventStore.GetEventSource(functionId);
+        var eventSources = new EventSources(eventStore);
+        using var eventSource = await eventSources.Get(functionId);
 
+        // ReSharper disable once AccessToDisposedClosure
         async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
         var task = TakeTwo();
         
@@ -57,8 +61,10 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSource = await eventStore.GetEventSource(functionId);
+        var eventSources = new EventSources(eventStore);
+        using var eventSource = await eventSources.Get(functionId);
 
+        // ReSharper disable once AccessToDisposedClosure
         async Task<object> FirstAsync() => await eventSource.All.FirstAsync();
         var task = FirstAsync();
         
@@ -78,8 +84,10 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSource = await eventStore.GetEventSource(functionId);
+        var eventSources = new EventSources(eventStore);
+        using var eventSource = await eventSources.Get(functionId);
 
+        // ReSharper disable once AccessToDisposedClosure
         async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
         var task = TakeTwo();
         

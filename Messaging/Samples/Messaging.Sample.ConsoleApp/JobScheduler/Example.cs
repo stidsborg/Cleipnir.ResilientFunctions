@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
+﻿using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.JobScheduler.ExternalEntities;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.JobScheduler.Saga;
 using Cleipnir.ResilientFunctions.PostgreSQL;
@@ -19,6 +20,7 @@ public static class Example
             
         var eventStore = new PostgreSqlEventStore(connectionString);
         await eventStore.Initialize();
+        var eventSources = new EventSources(eventStore);
 
         var messageQueue = new MessageQueue();
         
@@ -29,12 +31,13 @@ public static class Example
             new(capacity, messageQueue),
             new(capacity, messageQueue),
         };
+        _ = jobWorkers;
         
         var saga = new CoordinatorSaga(
             rFunctions,
-            eventStore,
+            eventSources,
             messageQueue,
-            3
+            numberOfWorkers: 3
         );
 
         var jobId = Guid.NewGuid();

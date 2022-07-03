@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
+﻿using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Clients;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Domain;
 using Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.OrderProcessingFlow.Saga;
@@ -19,12 +20,13 @@ public static class Example
         var rFunctions = new RFunctions(functionStore);
         var eventStore = new PostgreSqlEventStore(connectionString);
         await eventStore.Initialize();
+        var eventSources = new EventSources(eventStore);
 
         //clients
         var messageQueue = new MessageQueueClient();
         var saga = new OrderProcessingSaga(
             rFunctions,
-            eventStore,
+            eventSources,
             new BankClientStub(),
             new EmailClientStub(),
             messageQueue,

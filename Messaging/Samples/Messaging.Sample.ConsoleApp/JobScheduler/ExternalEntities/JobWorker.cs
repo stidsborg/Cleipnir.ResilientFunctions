@@ -16,21 +16,23 @@ public class JobWorker
     {
         _capacity = capacity;
         _messageQueue = messageQueue;
-        messageQueue.Subscribers += msg =>
+        messageQueue.Subscribe(msg =>
         {
             switch (msg)
             {
                 case JobReservation jr:
                     CanTakeJob(jr);
-                    return;
+                    break;
                 case JobOrder jo:
                     TakeJob(jo);
-                    return;
+                    break;
                 case JobCancellation jc:
                     CancelJob(jc);
-                    return;
+                    break;
             }
-        };
+
+            return Task.CompletedTask;
+        });
     }
 
     private void CanTakeJob(JobReservation jobReservation)

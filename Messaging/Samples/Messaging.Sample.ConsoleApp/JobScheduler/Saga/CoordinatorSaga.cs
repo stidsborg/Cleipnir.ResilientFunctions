@@ -8,43 +8,46 @@ namespace Cleipnir.ResilientFunctions.Messaging.SamplesConsoleApp.JobScheduler.S
 
 public class CoordinatorSaga
 {
-    private readonly IEventStore _eventStore;
+    private readonly FunctionTypeEventSources _eventSources;
     private readonly MessageQueue _messageQueue;
     private readonly int _numberOfWorkers;
-    
-    public const string FunctionTypeId = "JobScheduler";
+
+    private const string FunctionTypeId = "JobScheduler";
     
     public CoordinatorSaga(
         RFunctions rFunctions, 
-        IEventStore eventStore, 
+        EventSources eventSources, 
         MessageQueue messageQueue,
         int numberOfWorkers)
     {
-        _eventStore = eventStore;
+        _eventSources = eventSources.For(FunctionTypeId);
         _messageQueue = messageQueue;
         _numberOfWorkers = numberOfWorkers;
 
-        messageQueue.Subscribers += msg =>
+        messageQueue.Subscribe(async msg =>
         {
             switch (msg)
             {
                 case JobAccepted j:
-                    _eventStore
-                        .GetEventSource(FunctionTypeId, j.JobId.ToString())
-                        .ContinueWith(esTask => esTask.Result.Emit(j, $"{nameof(JobAccepted)}_{j.WorkerId}"));
+                {
+                    using var eventSource = await _eventSources.Get(functionInstanceId: j.JobId.ToString());
+                    await eventSource.Emit(j, idempotencyKey: $"{nameof(JobAccepted)}_{j.WorkerId}");
                     return;
+                }
                 case JobRefused j:
-                    _eventStore
-                        .GetEventSource(FunctionTypeId, j.JobId.ToString())
-                        .ContinueWith(esTask => esTask.Result.Emit(j, $"{nameof(JobRefused)}_{j.WorkerId}"));
+                {
+                    using var eventSource = await _eventSources.Get(functionInstanceId: j.JobId.ToString());
+                    await eventSource.Emit(j, idempotencyKey: $"{nameof(JobRefused)}_{j.WorkerId}");
                     return;
+                }
                 case JobCompleted j:
-                    _eventStore
-                        .GetEventSource(FunctionTypeId, j.JobId.ToString())
-                        .ContinueWith(esTask => esTask.Result.Emit(j, $"{nameof(JobCompleted)}_{j.WorkerId}"));
+                {
+                    using var eventSource = await _eventSources.Get(functionInstanceId: j.JobId.ToString());
+                    await eventSource.Emit(j, idempotencyKey: $"{nameof(JobCompleted)}_{j.WorkerId}");
                     return;
+                }
             }
-        };
+        });
 
         ScheduleJob = rFunctions.RegisterAction<Guid, Scrapbook>(
             FunctionTypeId,
@@ -56,8 +59,8 @@ public class CoordinatorSaga
 
     private async Task _ScheduleJob(Guid jobId, Scrapbook scrapbook)
     {
-        using var eventSource = await _eventStore
-            .GetEventSource(new FunctionId(FunctionTypeId, jobId.ToString()));
+        using var eventSource = await _eventSources
+            .Get(functionInstanceId: jobId.ToString());
 
         CancelJobAndThrowIfFailedSchedulation(jobId, scrapbook);
         
