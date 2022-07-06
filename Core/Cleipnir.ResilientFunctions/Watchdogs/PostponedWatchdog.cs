@@ -15,7 +15,7 @@ internal class PostponedWatchdog
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly WatchDogReInvokeFunc _reInvoke;
-    private readonly WorkQueue _workQueue;
+    private readonly AsyncSemaphore _asyncSemaphore;
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
@@ -24,7 +24,7 @@ internal class PostponedWatchdog
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke,
-        WorkQueue workQueue,
+        AsyncSemaphore asyncSemaphore,
         TimeSpan checkFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -35,7 +35,7 @@ internal class PostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
         _reInvoke = reInvoke;
-        _workQueue = workQueue;
+        _asyncSemaphore = asyncSemaphore;
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
     }
@@ -87,43 +87,39 @@ internal class PostponedWatchdog
 
         if (_shutdownCoordinator.ShutdownInitiated) return;
 
-        _workQueue.Enqueue(
-            functionId.InstanceId.ToString(),
-            async () =>
-            {
-                try
-                {
-                    while (DateTime.UtcNow < postponedUntil) //clock resolution means that we might wake up early 
-                        await Task.Yield();
-                    
-                    using var _ = _shutdownCoordinator.RegisterRunningRFunc();
-                    var success = await _functionStore.TryToBecomeLeader(
-                        functionId,
-                        Status.Executing,
-                        expectedEpoch: spf.Epoch,
-                        newEpoch: spf.Epoch + 1
-                    );
-                    if (!success) return;
-            
-                    await _reInvoke(
-                        spf.InstanceId,
-                        expectedStatuses: new[] {Status.Executing},
-                        expectedEpoch: spf.Epoch + 1
-                    );
-                }
-                catch (ObjectDisposedException) {} //ignore when rfunctions has been disposed
-                catch (UnexpectedFunctionState) {} //ignore when the functions state has changed since fetching it
-                catch (FunctionInvocationPostponedException) {}
-                catch (Exception innerException)
-                {
-                    _unhandledExceptionHandler.Invoke(
-                        new FrameworkException(
-                            _functionTypeId,
-                            $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
-                            innerException
-                        )
-                    );
-                }
-            });
+        using var @lock = await _asyncSemaphore.Take();
+        try
+        {
+            while (DateTime.UtcNow < postponedUntil) //clock resolution means that we might wake up early 
+                await Task.Yield();
+
+            using var _ = _shutdownCoordinator.RegisterRunningRFunc();
+            var success = await _functionStore.TryToBecomeLeader(
+                functionId,
+                Status.Executing,
+                expectedEpoch: spf.Epoch,
+                newEpoch: spf.Epoch + 1
+            );
+            if (!success) return;
+
+            await _reInvoke(
+                spf.InstanceId,
+                expectedStatuses: new[] { Status.Executing },
+                expectedEpoch: spf.Epoch + 1
+            );
+        }
+        catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
+        catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
+        catch (FunctionInvocationPostponedException) { }
+        catch (Exception innerException)
+        {
+            _unhandledExceptionHandler.Invoke(
+                new FrameworkException(
+                    _functionTypeId,
+                    $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
+                    innerException
+                )
+            );
+        }
     }
 }

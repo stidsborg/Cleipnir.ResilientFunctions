@@ -13,12 +13,12 @@ internal static class WatchDogsFactory
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
-        var workQueue = new WorkQueue(settings.MaxParallelRetryInvocations);
+        var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
         var crashedWatchdog = new CrashedWatchdog(
             functionTypeId,
             functionStore,
             reInvoke,
-            workQueue,
+            asyncSemaphore,
             settings.CrashedCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
@@ -29,7 +29,7 @@ internal static class WatchDogsFactory
             functionTypeId,
             functionStore,
             reInvoke,
-            workQueue,
+            asyncSemaphore,
             settings.PostponedCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,

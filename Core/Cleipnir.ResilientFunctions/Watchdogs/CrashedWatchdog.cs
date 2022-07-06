@@ -15,18 +15,21 @@ internal class CrashedWatchdog
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly WatchDogReInvokeFunc _reInvoke;
-    private readonly WorkQueue _workQueue;
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    
+    private readonly AsyncSemaphore _asyncSemaphore;
+    private readonly HashSet<string> _enqueued = new();
+    private readonly object _sync = new();
 
     public CrashedWatchdog(
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke,
-        WorkQueue workQueue,
+        AsyncSemaphore asyncSemaphore,
         TimeSpan checkFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -35,7 +38,7 @@ internal class CrashedWatchdog
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
         _reInvoke = reInvoke;
-        _workQueue = workQueue;
+        _asyncSemaphore = asyncSemaphore;
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -72,40 +75,9 @@ internal class CrashedWatchdog
                         equals (curr.Key, curr.Value.Epoch, curr.Value.SignOfLife)
                     select prev.Value;
 
-                var workItems = hangingFunctions
-                    .Select(sef => new WorkQueue.WorkItem(
-                        Id: sef.InstanceId.Value, 
-                        Work: async () =>
-                        {
-                            if (_shutdownCoordinator.ShutdownInitiated) return;
-                            
-                            try
-                            {
-                                await _reInvoke(
-                                    sef.InstanceId,
-                                    expectedStatuses: new[] {Status.Executing},
-                                    expectedEpoch: sef.Epoch
-                                );
-                            }
-                            catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
-                            catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
-                            catch (FunctionInvocationPostponedException) {}
-                            catch (Exception innerException)
-                            {
-                                var functionId = new FunctionId(_functionTypeId, sef.InstanceId);
-                                _unhandledExceptionHandler.Invoke(
-                                    new FrameworkException(
-                                        _functionTypeId,
-                                        $"{nameof(CrashedWatchdog)} failed while executing: '{functionId}'",
-                                        innerException
-                                    )
-                                );
-                            }
-                        }))
-                    .RandomlyPermutate();
-                
-                _workQueue.Enqueue(workItems);
-                
+                foreach (var sef in hangingFunctions.RandomlyPermutate())
+                    _ = ReInvokeCrashedFunction(sef);
+
                 prevExecutingFunctions = currExecutingFunctions;
             }
         }
@@ -118,6 +90,47 @@ internal class CrashedWatchdog
                     innerException: thrownException
                 )
             );
+        }
+    }
+
+    private async Task ReInvokeCrashedFunction(StoredExecutingFunction sef)
+    {
+        lock (_sync)
+            if (_enqueued.Contains(sef.InstanceId.Value))
+                return;
+            else
+                _enqueued.Add(sef.InstanceId.Value);
+        
+        using var @lock = await _asyncSemaphore.Take();
+        
+        try
+        {
+            if (_shutdownCoordinator.ShutdownInitiated) return;
+
+            await _reInvoke(
+                sef.InstanceId,
+                expectedStatuses: new[] { Status.Executing },
+                expectedEpoch: sef.Epoch
+            );
+        }
+        catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
+        catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
+        catch (FunctionInvocationPostponedException) { }
+        catch (Exception innerException)
+        {
+            var functionId = new FunctionId(_functionTypeId, sef.InstanceId);
+            _unhandledExceptionHandler.Invoke(
+                new FrameworkException(
+                    _functionTypeId,
+                    $"{nameof(CrashedWatchdog)} failed while executing: '{functionId}'",
+                    innerException
+                )
+            );
+        }
+        finally
+        {
+            lock (_sync)
+                _enqueued.Remove(sef.InstanceId.Value);
         }
     }
 }
