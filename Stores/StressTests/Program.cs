@@ -35,7 +35,7 @@ namespace Cleipnir.ResilientFunctions.StressTests
 
             Console.WriteLine();
             Console.WriteLine("RESULTS: ");
-            Console.WriteLine(JsonSerializer.Serialize(testResults));
+            Console.WriteLine(JsonSerializer.Serialize(testResults, new JsonSerializerOptions { WriteIndented = true }));
         }
     }
 }
