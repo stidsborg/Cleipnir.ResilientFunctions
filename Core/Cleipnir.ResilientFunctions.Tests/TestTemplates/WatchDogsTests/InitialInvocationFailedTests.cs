@@ -25,7 +25,8 @@ public abstract class InitialInvocationFailedTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();
@@ -56,7 +57,8 @@ public abstract class InitialInvocationFailedTests
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();
@@ -90,7 +92,8 @@ public abstract class InitialInvocationFailedTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();
@@ -127,7 +130,8 @@ public abstract class InitialInvocationFailedTests
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();

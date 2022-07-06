@@ -49,4 +49,16 @@ public class StoreTests : TestTemplates.StoreTests
         => InitializeCanBeInvokedMultipleTimesSuccessfully(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
         );
+
+    [TestMethod]
+    public override Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency()
+        => CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
+    [TestMethod]
+    public override Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency()
+        => LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }

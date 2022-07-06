@@ -27,7 +27,8 @@ public class SerializationTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         
         using var rFunctions = new RFunctions(

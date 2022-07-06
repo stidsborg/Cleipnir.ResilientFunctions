@@ -15,7 +15,7 @@ public record StoredFunction(
     int SignOfLife
 );
 
-public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, int SignOfLife);
+public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, int SignOfLife, long CrashedCheckFrequency);
 public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);
 
 public record StoredParameter(string ParamJson, string ParamType);

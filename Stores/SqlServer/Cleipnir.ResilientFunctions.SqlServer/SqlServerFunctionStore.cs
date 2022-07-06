@@ -34,9 +34,9 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await using var conn = await _connFunc();
-        try
-        {
-            var sql = @$"
+        var sql = @$"
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions' and xtype='U')
+            BEGIN
                 CREATE TABLE {_tablePrefix}RFunctions (
                     FunctionTypeId NVARCHAR(200) NOT NULL,
                     FunctionInstanceId NVARCHAR(200) NOT NULL,
@@ -53,25 +53,21 @@ public class SqlServerFunctionStore : IFunctionStore
                     SignOfLife INT NOT NULL,
                     PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
                 );
-
                 CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
-                    ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
-                    INCLUDE (Epoch, SignOfLife)
-                    WHERE Status = {(int) Status.Executing};
-
+                  ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
+                  INCLUDE (Epoch, SignOfLife)
+                  WHERE Status = {(int)Status.Executing};
                 CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
-                    ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
-                    INCLUDE (Epoch)
-                    WHERE Status = {(int) Status.Postponed};";
+                  ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
+                  INCLUDE (Epoch)
+                  WHERE Status = {(int)Status.Postponed};
+            END
+                
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[{_tablePrefix}RFunctions]') AND name = 'CrashedCheckFrequency')
+                ALTER TABLE {_tablePrefix}RFunctions ADD [CrashedCheckFrequency] BIGINT DEFAULT 0 NOT NULL;";
 
-            await using var command = new SqlCommand(sql, conn);
-            await command.ExecuteNonQueryAsync();
-        }
-        catch (SqlException e)
-        {
-            if (e.Number != SqlError.TABLE_ALREADY_EXISTS)
-                throw;
-        }
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task DropIfExists()
@@ -96,7 +92,8 @@ public class SqlServerFunctionStore : IFunctionStore
         string? scrapbookType,
         Status initialStatus,
         int initialEpoch,
-        int initialSignOfLife
+        int initialSignOfLife,
+        long crashedCheckFrequency
     )
     {
         await using var conn = await _connFunc();
@@ -108,13 +105,15 @@ public class SqlServerFunctionStore : IFunctionStore
                     ParamJson, ParamType, 
                     ScrapbookType, 
                     Status,
-                    Epoch, SignOfLife)
+                    Epoch, SignOfLife, 
+                    CrashedCheckFrequency)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
                     @ScrapbookType,
                     @Status,
-                    @Epoch, @SignOfLife)";
+                    @Epoch, @SignOfLife,
+                    @CrashedCheckFrequency)";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
@@ -124,6 +123,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@Status", (int) initialStatus);
             command.Parameters.AddWithValue("@Epoch", initialEpoch);
             command.Parameters.AddWithValue("@SignOfLife", initialSignOfLife);
+            command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -135,21 +135,22 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Epoch = @NewEpoch, Status = @NewStatus
+            SET Epoch = @NewEpoch, Status = @NewStatus, CrashedCheckFrequency = @CrashedCheckFrequency
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
         
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@NewEpoch", newEpoch);
         command.Parameters.AddWithValue("@NewStatus", newStatus);
+        command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
@@ -176,7 +177,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            SELECT FunctionInstanceId, Epoch, SignOfLife
+            SELECT FunctionInstanceId, Epoch, SignOfLife, CrashedCheckFrequency
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing}";
 
@@ -192,7 +193,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 var functionInstanceId = reader.GetString(0);
                 var epoch = reader.GetInt32(1);
                 var signOfLife = reader.GetInt32(2);
-                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife));    
+                var crashedCheckFrequency = reader.GetInt64(3);
+                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));    
             }
 
             reader.NextResult();

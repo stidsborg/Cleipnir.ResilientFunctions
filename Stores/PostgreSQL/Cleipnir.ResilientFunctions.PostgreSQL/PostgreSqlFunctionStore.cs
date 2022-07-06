@@ -43,6 +43,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL,
                 sign_of_life INT NOT NULL,
+                crashed_check_frequency BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
@@ -81,14 +82,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         string? scrapbookType, 
         Status initialStatus,
         int initialEpoch, 
-        int initialSignOfLife)
+        int initialSignOfLife,
+        long crashedCheckFrequency)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}RFunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -102,6 +104,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = (int) initialStatus},
                 new() {Value = initialEpoch},
                 new() {Value = initialSignOfLife},
+                new (){Value = crashedCheckFrequency}
             }
         };
 
@@ -113,13 +116,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         Status newStatus, 
         int expectedEpoch, 
-        int newEpoch)
+        int newEpoch,
+        long crashedCheckFrequency
+    )
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET epoch = $1, status = $2
-            WHERE function_type_id = $3 AND function_instance_id = $4 AND epoch = $5";
+            SET epoch = $1, status = $2, crashed_check_frequency = $3
+            WHERE function_type_id = $4 AND function_instance_id = $5 AND epoch = $6";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -127,6 +132,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() {Value = newEpoch},
                 new() {Value = (int) newStatus},
+                new() {Value = crashedCheckFrequency},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -137,10 +143,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> UpdateSignOfLife(
-        FunctionId functionId, 
-        int expectedEpoch, 
-        int newSignOfLife)
+    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -166,7 +169,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            SELECT function_instance_id, epoch, sign_of_life 
+            SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
             FROM {_tablePrefix}RFunctions
             WHERE function_type_id = $1 AND status = {(int) Status.Executing}";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -182,7 +185,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
             var signOfLife = reader.GetInt32(2);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife));
+            var crashedCheckFrequency = reader.GetInt64(3);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));
         }
 
         return functions;

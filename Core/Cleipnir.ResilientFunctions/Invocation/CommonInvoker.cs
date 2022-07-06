@@ -44,7 +44,8 @@ internal class CommonInvoker
                 scrapbookType: scrapbookType?.SimpleQualifiedName(),
                 initialEpoch: 0,
                 initialSignOfLife: 0,
-                initialStatus: Status.Executing
+                initialStatus: Status.Executing,
+                crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks
             );
 
             if (!created) runningFunction.Dispose();
@@ -356,7 +357,8 @@ internal class CommonInvoker
                 functionId,
                 Status.Executing,
                 expectedEpoch: sf.Epoch,
-                newEpoch: epoch
+                newEpoch: epoch,
+                _settings.CrashedCheckFrequency.Ticks
             );
 
             if (!success)

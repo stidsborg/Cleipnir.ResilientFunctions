@@ -19,7 +19,8 @@ public class InMemoryFunctionStore : IFunctionStore
         string? scrapbookType,
         Status initialStatus, 
         int initialEpoch, 
-        int initialSignOfLife
+        int initialSignOfLife,
+        long crashedCheckFrequency
     )
     {
         lock (_sync)
@@ -37,14 +38,15 @@ public class InMemoryFunctionStore : IFunctionStore
                 SignOfLife = initialSignOfLife,
                 ErrorJson = null,
                 Result = null,
-                PostponeUntil = null
+                PostponeUntil = null,
+                CrashedCheckFrequency = crashedCheckFrequency
             };
 
             return true.ToTask();
         }
     }
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
     {
         lock (_sync)
         {
@@ -57,6 +59,7 @@ public class InMemoryFunctionStore : IFunctionStore
 
             state.Epoch = newEpoch;
             state.Status = newStatus;
+            state.CrashedCheckFrequency = crashedCheckFrequency;
             return true.ToTask();
         }
     }
@@ -84,7 +87,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Executing)
-                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.SignOfLife))
+                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.SignOfLife, s.CrashedCheckFrequency))
                 .ToList()
                 .AsEnumerable()
                 .ToTask();
@@ -178,5 +181,6 @@ public class InMemoryFunctionStore : IFunctionStore
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
+        public long CrashedCheckFrequency { get; set; }
     }
 }

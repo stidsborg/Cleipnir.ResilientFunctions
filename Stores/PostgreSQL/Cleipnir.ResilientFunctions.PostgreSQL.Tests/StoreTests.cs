@@ -41,4 +41,16 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
         => InitializeCanBeInvokedMultipleTimesSuccessfully(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency()
+        => CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(
+            Sql.AutoCreateAndInitializeStore()
+        );
+
+    [TestMethod]
+    public override Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency()
+        => LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(
+            Sql.AutoCreateAndInitializeStore()
+        );
 }

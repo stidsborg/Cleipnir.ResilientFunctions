@@ -28,7 +28,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 1
+            initialSignOfLife: 1,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var nonCompletes = await store
@@ -83,7 +84,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
@@ -110,7 +112,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.UpdateSignOfLife(
@@ -139,11 +142,12 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1)
+            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100)
             .ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -165,11 +169,12 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 2,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1)
+            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100)
             .ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -191,7 +196,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
@@ -200,7 +206,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeFalseAsync();
     }
     
@@ -218,7 +225,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -252,7 +260,8 @@ public abstract class StoreTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -278,5 +287,58 @@ public abstract class StoreTests
         var store = await storeTask;
         await store.Initialize();
         await store.Initialize();
+    }
+    
+    public abstract Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency();
+    public async Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            nameof(StoreTests),
+            nameof(CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency)
+        );
+        var crashedCheckFrequency = TimeSpan.FromSeconds(10).Ticks;
+        
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            scrapbookType: null,
+            initialStatus: Status.Executing,
+            initialEpoch: 0,
+            initialSignOfLife: 0,
+            crashedCheckFrequency: crashedCheckFrequency
+        );
+
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+        storedFunctions.Count.ShouldBe(1);
+        var sf = storedFunctions[0];
+        sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
+    }
+    
+    public abstract Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency();
+    public async Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            nameof(StoreTests),
+            nameof(CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency)
+        );
+        var crashedCheckFrequency = TimeSpan.FromSeconds(10).Ticks;
+        
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            scrapbookType: null,
+            initialStatus: Status.Executing,
+            initialEpoch: 0,
+            initialSignOfLife: 0,
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+        );
+
+        await store.TryToBecomeLeader(functionId, Status.Executing, expectedEpoch: 0, newEpoch: 1, crashedCheckFrequency);
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+        storedFunctions.Count.ShouldBe(1);
+        var sf = storedFunctions[0];
+        sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
     }
 }

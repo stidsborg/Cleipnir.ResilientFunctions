@@ -34,6 +34,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL,
                 sign_of_life INT NOT NULL,
+                crashed_check_frequency BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -58,15 +59,19 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, string? scrapbookType, Status initialStatus,
-        int initialEpoch, int initialSignOfLife)
+    public async Task<bool> CreateFunction(
+        FunctionId functionId, 
+        StoredParameter param, string? scrapbookType, 
+        Status initialStatus,
+        int initialEpoch, int initialSignOfLife, long crashedCheckFrequency
+    )
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
             VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?)";
+                (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -79,6 +84,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = (int) initialStatus},
                 new() {Value = initialEpoch},
                 new() {Value = initialSignOfLife},
+                new() {Value = crashedCheckFrequency}
             }
         };
 
@@ -86,12 +92,12 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = ?, status = ?
+            SET epoch = ?, status = ?, crashed_check_frequency = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
         await using var command = new MySqlCommand(sql, conn)
@@ -100,6 +106,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() {Value = newEpoch},
                 new() {Value = (int) newStatus},
+                new () {Value = crashedCheckFrequency},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -136,7 +143,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
-            SELECT function_instance_id, epoch, sign_of_life 
+            SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(sql, conn)
@@ -152,7 +159,8 @@ public class MySqlFunctionStore : IFunctionStore
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
             var signOfLife = reader.GetInt32(2);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife));
+            var crashedCheckFrequency = reader.GetInt64(3);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));
         }
 
         return functions;
@@ -187,8 +195,12 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
-    public async Task<bool> SetFunctionState(FunctionId functionId, Status status, string? scrapbookJson, StoredResult? result,
-        string? errorJson, long? postponedUntil, int expectedEpoch)
+    public async Task<bool> SetFunctionState(
+        FunctionId functionId, Status status, 
+        string? scrapbookJson, StoredResult? result,
+        string? errorJson, long? postponedUntil, 
+        int expectedEpoch
+    )
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"

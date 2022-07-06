@@ -13,10 +13,11 @@ public delegate Task<bool> CreateFunction(
     string? scrapbookType, 
     Status initialStatus, 
     int initialEpoch, 
-    int initialSignOfLife
+    int initialSignOfLife,
+    long crashedCheckFrequency
 );
 
-public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch);
+public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency);
 
 public delegate Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
@@ -49,16 +50,25 @@ public class FunctionStoreMock : IFunctionStore
         string? scrapbookType,
         Status initialStatus,
         int initialEpoch,
-        int initialSignOfLife
+        int initialSignOfLife,
+        long crashedCheckFrequency
     ) => SetupCreateFunction == null
         ? true.ToTask()
-        : SetupCreateFunction.Invoke(functionId, param, scrapbookType, initialStatus, initialEpoch, initialSignOfLife);
+        : SetupCreateFunction.Invoke(
+            functionId, 
+            param, 
+            scrapbookType, 
+            initialStatus, 
+            initialEpoch, 
+            initialSignOfLife,
+            crashedCheckFrequency
+        );
 
     public TryToBecomeLeader? SetupTryToBecomeLeader { private get; init; }
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
         => SetupTryToBecomeLeader == null
             ? true.ToTask()
-            : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch);
+            : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency);
 
     public UpdateSignOfLife? SetupUpdateSignOfLife { private get; init; }
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)

@@ -16,16 +16,18 @@ internal class PostponedWatchdog
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly AsyncSemaphore _asyncSemaphore;
-    private readonly TimeSpan _checkFrequency;
+    private readonly TimeSpan _postponedCheckFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
+    private readonly TimeSpan _crashedCheckFrequency;
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke,
         AsyncSemaphore asyncSemaphore,
-        TimeSpan checkFrequency,
+        TimeSpan postponedCheckFrequency,
+        TimeSpan crashedCheckFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -34,22 +36,23 @@ internal class PostponedWatchdog
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
+        _crashedCheckFrequency = crashedCheckFrequency;
         _reInvoke = reInvoke;
         _asyncSemaphore = asyncSemaphore;
-        _checkFrequency = checkFrequency;
+        _postponedCheckFrequency = postponedCheckFrequency;
         _delayStartUp = delayStartUp;
     }
 
     public async Task Start()
     {
-        if (_checkFrequency == TimeSpan.Zero) return;
+        if (_postponedCheckFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         
         try
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                await Task.Delay(_checkFrequency);
+                await Task.Delay(_postponedCheckFrequency);
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var now = DateTime.UtcNow;
@@ -57,7 +60,7 @@ internal class PostponedWatchdog
                 var expiresSoon = await _functionStore
                     .GetPostponedFunctions(
                         _functionTypeId,
-                        now.Add(_checkFrequency).Ticks
+                        now.Add(_postponedCheckFrequency).Ticks
                     );
 
                 foreach (var expireSoon in expiresSoon)
@@ -98,7 +101,8 @@ internal class PostponedWatchdog
                 functionId,
                 Status.Executing,
                 expectedEpoch: spf.Epoch,
-                newEpoch: spf.Epoch + 1
+                newEpoch: spf.Epoch + 1,
+                _crashedCheckFrequency.Ticks
             );
             if (!success) return;
 

@@ -30,7 +30,8 @@ public abstract class StoreCrudTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -55,7 +56,8 @@ public abstract class StoreCrudTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -80,7 +82,8 @@ public abstract class StoreCrudTests
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -114,7 +117,8 @@ public abstract class StoreCrudTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1).ShouldBeTrueAsync();
@@ -133,7 +137,8 @@ public abstract class StoreCrudTests
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
@@ -165,7 +170,8 @@ public abstract class StoreCrudTests
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };

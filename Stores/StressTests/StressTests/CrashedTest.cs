@@ -29,7 +29,8 @@ public static class CrashedTest
                 scrapbookType: null,
                 initialStatus: Status.Executing,
                 initialEpoch: 0,
-                initialSignOfLife: 0
+                initialSignOfLife: 0, 
+                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
             );
         }
         

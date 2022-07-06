@@ -47,7 +47,14 @@ public class MongoDbFunctionStore : IFunctionStore
         return collection;
     }
 
-    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, string? scrapbookType, Status initialStatus, int initialEpoch, int initialSignOfLife)
+    public async Task<bool> CreateFunction(
+        FunctionId functionId, 
+        StoredParameter param, 
+        string? scrapbookType, 
+        Status initialStatus, 
+        int initialEpoch, 
+        int initialSignOfLife,
+        long crashedCheckFrequency)
     {
         var document = new Document
         {
@@ -61,7 +68,8 @@ public class MongoDbFunctionStore : IFunctionStore
             ScrapbookType = scrapbookType,
             Status = (int) initialStatus,
             Epoch = initialEpoch,
-            SignOfLife = initialSignOfLife
+            SignOfLife = initialSignOfLife,
+            CrashedCheckFrequency = crashedCheckFrequency
         };
 
         var collection = GetCollection();
@@ -77,7 +85,7 @@ public class MongoDbFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch)
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -88,7 +96,8 @@ public class MongoDbFunctionStore : IFunctionStore
         var update = Builders<Document>
             .Update
             .Set(d => d.Status, status)
-            .Set(d => d.Epoch, newEpoch);
+            .Set(d => d.Epoch, newEpoch)
+            .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency);
         
         var result = await collection.UpdateOneAsync(
             d =>
@@ -134,11 +143,11 @@ public class MongoDbFunctionStore : IFunctionStore
         var query =
             from d in collection.AsQueryable()
             where d.Id.FunctionTypeId == functionTypeIdStr && d.Status == executingStatus
-            select new { d.Id.FunctionInstanceId, d.Epoch, d.SignOfLife };
+            select new { d.Id.FunctionInstanceId, d.Epoch, d.SignOfLife, d.CrashedCheckFrequency };
         
         var sef = new List<StoredExecutingFunction>();
         foreach (var row in query)
-            sef.Add(new StoredExecutingFunction(row.FunctionInstanceId, row.Epoch, row.SignOfLife));
+            sef.Add(new StoredExecutingFunction(row.FunctionInstanceId, row.Epoch, row.SignOfLife, row.CrashedCheckFrequency));
 
         return sef.CastTo<IEnumerable<StoredExecutingFunction>>().ToTask();
     }
@@ -230,6 +239,7 @@ public class MongoDbFunctionStore : IFunctionStore
         public long? PostponedUntil { get; set; }
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
+        public long CrashedCheckFrequency { get; set; }
     }
 
     private class DbFunctionId

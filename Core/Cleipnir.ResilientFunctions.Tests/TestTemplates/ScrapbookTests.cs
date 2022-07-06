@@ -31,7 +31,8 @@ public abstract class ScrapbookTests
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
@@ -79,7 +80,8 @@ public abstract class ScrapbookTests
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
             initialStatus: Status.Executing,
             initialEpoch: 1,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};

@@ -25,7 +25,8 @@ public class DelayedStartUpTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -54,7 +55,8 @@ public class DelayedStartUpTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -80,7 +82,8 @@ public class DelayedStartUpTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
         await store.SetFunctionState(
             functionId,
@@ -115,7 +118,8 @@ public class DelayedStartUpTests
             scrapbookType: null,
             initialStatus: Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         );
         await store.SetFunctionState(
             functionId,

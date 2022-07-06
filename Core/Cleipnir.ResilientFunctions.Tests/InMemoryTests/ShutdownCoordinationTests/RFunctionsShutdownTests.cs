@@ -99,7 +99,8 @@ public class RFunctionsShutdownTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -147,7 +148,8 @@ public class RFunctionsShutdownTests
             scrapbookType: null,
             Status.Executing,
             initialEpoch: 0,
-            initialSignOfLife: 0
+            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         
         await store.SetFunctionState(

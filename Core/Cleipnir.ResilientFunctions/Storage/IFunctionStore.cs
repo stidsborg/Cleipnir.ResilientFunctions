@@ -19,11 +19,12 @@ public interface IFunctionStore
         string? scrapbookType,
         Status initialStatus,
         int initialEpoch,
-        int initialSignOfLife
+        int initialSignOfLife,
+        long crashedCheckFrequency
     );
 
     // ** LEADERSHIP ** //
-    Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch);
+    Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency);
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
