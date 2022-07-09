@@ -62,7 +62,8 @@ public abstract class CrashedTests
             await rFunc(param, param).ShouldBeAsync("TEST");
         }
 
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        if (unhandledExceptionHandler.ThrownExceptions.Any())
+            throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
 
     public abstract Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog();
@@ -124,7 +125,8 @@ public abstract class CrashedTests
             await rFunc(param, param).ShouldBeAsync("TEST");
         }
 
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        if (unhandledExceptionHandler.ThrownExceptions.Any())
+            throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
     
     public abstract Task NonCompletedActionIsCompletedByWatchDog();
@@ -180,7 +182,8 @@ public abstract class CrashedTests
             await rAction(param, param);
         }
 
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        if (unhandledExceptionHandler.ThrownExceptions.Any())
+            throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
 
     public abstract Task NonCompletedActionWithScrapbookIsCompletedByWatchDog();
