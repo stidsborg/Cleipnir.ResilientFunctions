@@ -28,7 +28,11 @@ public abstract class WatchdogCompoundTests
 
             using var rFunctions = new RFunctions(
                 crashableStore,
-                new Settings(unhandledExceptionCatcher.Catch)
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                )
             );
             var rFunc = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -139,7 +143,11 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             using var rFunctions = new RFunctions(
                 crashableStore,
-                new Settings(unhandledExceptionCatcher.Catch)
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                )
             );
             var rFunc = rFunctions.RegisterFunc(
                 functionTypeId,
@@ -268,7 +276,11 @@ public abstract class WatchdogCompoundTests
             var tcs = new TaskCompletionSource<Param>();
             using var rFunctions = new RFunctions(
                 crashableStore,
-                new Settings(unhandledExceptionCatcher.Catch)
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                )
             );
             var rAction = rFunctions
                 .RegisterAction(
@@ -387,7 +399,11 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             using var rFunctions = new RFunctions(
                 crashableStore,
-                new Settings(unhandledExceptionCatcher.Catch)
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                )
             );
             var rFunc = rFunctions.RegisterAction(
                 functionTypeId,

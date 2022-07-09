@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -22,7 +21,7 @@ internal class CrashedWatchdog
     private readonly ShutdownCoordinator _shutdownCoordinator;
     
     private readonly AsyncSemaphore _asyncSemaphore;
-    private readonly HashSet<string> _enqueued = new();
+    private readonly HashSet<FunctionInstanceId> _toBeExecuted = new();
     private readonly object _sync = new();
 
     public CrashedWatchdog(
@@ -52,7 +51,7 @@ internal class CrashedWatchdog
         
         try
         {
-            var prevExecutingFunctions = new Dictionary<FunctionInstanceId, StoredExecutingFunction>();
+            var prevFunctionCounts = new Dictionary<FunctionInstanceId, ObservationAndRemainingCount>();
 
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
@@ -60,25 +59,34 @@ internal class CrashedWatchdog
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var currExecutingFunctions = await _functionStore
-                    .GetExecutingFunctions(_functionTypeId)
-                    .SelectAsync(l =>
-                        l.ToDictionary(
-                            s => s.InstanceId,
-                            s => s
-                        )
-                    );
+                    .GetExecutingFunctions(_functionTypeId);
 
-                var hangingFunctions =
-                    from prev in prevExecutingFunctions
-                    join curr in currExecutingFunctions
-                        on (prev.Key, prev.Value.Epoch, prev.Value.SignOfLife) 
-                        equals (curr.Key, curr.Value.Epoch, curr.Value.SignOfLife)
-                    select prev.Value;
+                var hangingFunctions = new List<StoredExecutingFunction>();
+                var newFunctionCounts = new Dictionary<FunctionInstanceId, ObservationAndRemainingCount>();
+                foreach (var sef in currExecutingFunctions)
+                {
+                    if (!prevFunctionCounts.ContainsKey(sef.InstanceId))
+                        newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.SignOfLife, CalculateRemainingCount(sef));
+                    else
+                    {
+                        var prev = prevFunctionCounts[sef.InstanceId];
+                        if (sef.SignOfLife != prev.SignOfLife || sef.Epoch != prev.Epoch)
+                            newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.SignOfLife, CalculateRemainingCount(sef));
+                        else if (prevFunctionCounts[sef.InstanceId].RemainingCount == 0)
+                            hangingFunctions.Add(sef);
+                        else
+                            newFunctionCounts[sef.InstanceId] = prevFunctionCounts[sef.InstanceId]
+                                with
+                                {
+                                    RemainingCount = prev.RemainingCount - 1
+                                };
+                    }
+                }
 
-                foreach (var sef in hangingFunctions.RandomlyPermutate())
-                    _ = ReInvokeCrashedFunction(sef);
+                foreach (var hangingFunction in hangingFunctions.RandomlyPermutate())
+                    _ = ReInvokeCrashedFunction(hangingFunction);
 
-                prevExecutingFunctions = currExecutingFunctions;
+                prevFunctionCounts = newFunctionCounts;
             }
         }
         catch (Exception thrownException)
@@ -96,17 +104,20 @@ internal class CrashedWatchdog
     private async Task ReInvokeCrashedFunction(StoredExecutingFunction sef)
     {
         lock (_sync)
-            if (_enqueued.Contains(sef.InstanceId.Value))
+            if (_toBeExecuted.Contains(sef.InstanceId))
                 return;
             else
-                _enqueued.Add(sef.InstanceId.Value);
+                _toBeExecuted.Add(sef.InstanceId);
         
         using var @lock = await _asyncSemaphore.Take();
+
+        lock (_sync)
+            _toBeExecuted.Remove(sef.InstanceId);
+        
+        if (_shutdownCoordinator.ShutdownInitiated) return;
         
         try
         {
-            if (_shutdownCoordinator.ShutdownInitiated) return;
-
             await _reInvoke(
                 sef.InstanceId,
                 expectedStatuses: new[] { Status.Executing },
@@ -127,10 +138,16 @@ internal class CrashedWatchdog
                 )
             );
         }
-        finally
-        {
-            lock (_sync)
-                _enqueued.Remove(sef.InstanceId.Value);
-        }
     }
+
+    private int CalculateRemainingCount(StoredExecutingFunction sef) =>
+        Math.Max(
+            1,
+            sef.CrashedCheckFrequency / _checkFrequency.Ticks
+            + sef.CrashedCheckFrequency % _checkFrequency.Ticks == 0
+                ? 0
+                : 1
+        ) - 1;
+
+    private record ObservationAndRemainingCount(int Epoch, int SignOfLife, int RemainingCount);
 }
