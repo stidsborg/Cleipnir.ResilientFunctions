@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -240,7 +241,8 @@ public abstract class CrashedTests
             await rAction(param, param);
         }
 
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        if (unhandledExceptionHandler.ThrownExceptions.Any())
+            throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
 
     private class Scrapbook : RScrapbook
