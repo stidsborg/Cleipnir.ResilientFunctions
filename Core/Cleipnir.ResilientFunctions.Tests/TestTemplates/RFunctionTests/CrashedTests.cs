@@ -95,7 +95,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
 
@@ -159,7 +159,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
 
@@ -215,7 +215,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
 
