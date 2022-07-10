@@ -110,12 +110,9 @@ internal class CrashedWatchdog
                 _toBeExecuted.Add(sef.InstanceId);
         
         using var @lock = await _asyncSemaphore.Take();
-
-        lock (_sync)
-            _toBeExecuted.Remove(sef.InstanceId);
         
         if (_shutdownCoordinator.ShutdownInitiated) return;
-        
+
         try
         {
             await _reInvoke(
@@ -137,6 +134,11 @@ internal class CrashedWatchdog
                     innerException
                 )
             );
+        }
+        finally
+        {
+            lock (_sync)
+                _toBeExecuted.Remove(sef.InstanceId);
         }
     }
 
