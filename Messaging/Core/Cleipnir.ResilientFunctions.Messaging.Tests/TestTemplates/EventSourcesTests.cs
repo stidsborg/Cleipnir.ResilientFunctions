@@ -55,6 +55,35 @@ public abstract class EventSourcesTests
         
         (await eventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
     }
+    
+    public abstract Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully();
+    protected async Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+        var eventSources = new EventSources(eventStore);
+        using var eventSource = await eventSources.Get(functionId);
+
+        // ReSharper disable once AccessToDisposedClosure
+        async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
+        var task = TakeTwo();
+        
+        await Task.Delay(10);
+        task.IsCompleted.ShouldBeFalse();
+        await eventSource.Emit(new EventAndIdempotencyKey[]
+        {
+            new("hello world", "1"),
+            new("hello world", "1"),
+            new("hello universe")
+        });
+
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        task.Result.Count.ShouldBe(2);
+        task.Result[0].ShouldBe("hello world");
+        task.Result[1].ShouldBe("hello universe");
+        
+        (await eventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
+    }
 
     public abstract Task EventSourcesSunshineScenarioUsingEventStore();
     protected async Task EventSourcesSunshineScenarioUsingEventStore(Task<IEventStore> eventStoreTask)

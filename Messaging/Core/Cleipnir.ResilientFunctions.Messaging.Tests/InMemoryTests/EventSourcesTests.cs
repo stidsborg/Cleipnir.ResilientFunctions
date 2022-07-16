@@ -16,6 +16,10 @@ public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
         => SecondEventWithExistingIdempotencyKeyIsIgnored(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
+    public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
+        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
     public override Task EventSourcesSunshineScenarioUsingEventStore()
         => EventSourcesSunshineScenarioUsingEventStore(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 

@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.Messaging.PostgreSQL.Tests;
+﻿namespace Cleipnir.ResilientFunctions.Messaging.SqlServer.Tests;
 
 [TestClass]
 public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
@@ -14,7 +14,7 @@ public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
     [TestMethod]
     public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
         => Sql.CreateAndInitializeEventStore();
-
+    
     [TestMethod]
     public override Task EventSourcesSunshineScenarioUsingEventStore()
         => EventSourcesSunshineScenarioUsingEventStore(Sql.CreateAndInitializeEventStore());
