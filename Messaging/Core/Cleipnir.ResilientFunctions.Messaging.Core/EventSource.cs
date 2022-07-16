@@ -141,13 +141,15 @@ public class EventSource : IDisposable
     {
         await _eventStore.AppendEvents(
             _functionId,
-            storedEvents: events.Select(@event =>
-                new StoredEvent(
+            storedEvents: events.Select(eventAndIdempotencyKey =>
+            {
+                var (@event, idempotencyKey) = eventAndIdempotencyKey;
+                return new StoredEvent(
                     EventJson: _eventSerializer.SerializeEvent(@event),
                     EventType: @event.GetType().SimpleQualifiedName(),
-                    IdempotencyKey: @event.IdempotencyKey
-                )
-            )
+                    idempotencyKey
+                );
+            })
         );
         await DeliverOutstandingEvents();
     }

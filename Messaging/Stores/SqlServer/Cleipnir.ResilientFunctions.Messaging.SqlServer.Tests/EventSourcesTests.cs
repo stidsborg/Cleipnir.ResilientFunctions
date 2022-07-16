@@ -13,7 +13,7 @@ public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
 
     [TestMethod]
     public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
-        => Sql.CreateAndInitializeEventStore();
+        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(Sql.CreateAndInitializeEventStore());
     
     [TestMethod]
     public override Task EventSourcesSunshineScenarioUsingEventStore()
