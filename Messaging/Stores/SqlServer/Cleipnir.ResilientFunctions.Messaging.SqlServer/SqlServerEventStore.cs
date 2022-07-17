@@ -25,7 +25,9 @@ public class SqlServerEventStore : IEventStore
                     FunctionTypeId NVARCHAR(255),
                     FunctionInstanceId NVARCHAR(255),
                     Position INT NOT NULL,
-                    EventsJson NVARCHAR(MAX) NOT NULL,
+                    EventJson NVARCHAR(MAX) NOT NULL,
+                    EventType NVARCHAR(255) NOT NULL,   
+                    IdempotencyKey VARCHAR(255),          
                     PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
                 );";
         var command = new SqlCommand(sql, conn);
@@ -50,38 +52,87 @@ public class SqlServerEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
-        => AppendEvents(functionId, storedEvents: new[] { storedEvent });
+    public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    {
+        await using var conn = await CreateConnection();
+
+        var sql = @$"    
+            INSERT INTO {_tablePrefix}Events
+                (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
+            VALUES ( 
+                @FunctionTypeId, 
+                @FunctionInstanceId, 
+                (SELECT COUNT(*) FROM {_tablePrefix}events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                @EventJson, @EventType, @IdempotencyKey
+            );";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
+        command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
+        command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
+        await command.ExecuteNonQueryAsync();
+    }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
     public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
+        var position = await GetCount(functionId);
+        
         await using var conn = await CreateConnection();
-        var json = StoredEventsBulkJsonSerializer.SerializeToJson(storedEvents);
-
-        var sql = @$"    
+        await using var transaction = conn.BeginTransaction();
+        foreach (var storedEvent in storedEvents)
+        {
+            var sql = @$"    
             INSERT INTO {_tablePrefix}Events
-                (FunctionTypeId, FunctionInstanceId, Position, EventsJson)
+                (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                (SELECT COUNT(*) FROM {_tablePrefix}events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                @EventsJson
+                @Position, 
+                @EventJson, @EventType, @IdempotencyKey
             );";
-        await using var command = new SqlCommand(sql, conn);
+            await using var command = new SqlCommand(sql, conn, transaction);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@Position", position);
+            command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
+            command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
+            command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
+            await command.ExecuteNonQueryAsync();
+            position++;
+        }
+
+        await transaction.CommitAsync();
+    }
+
+    private async Task<int> GetCount(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            SELECT COUNT(*) FROM {_tablePrefix}Events
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
+
+        var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@EventsJson", json);
-        await command.ExecuteNonQueryAsync();
+
+        var count = await command.ExecuteScalarAsync();
+        return count switch
+        {
+            null => 0,
+            int i => i,
+            _ => (int) (long) count
+        };
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
-            SELECT EventsJson
+            SELECT EventJson, EventType, IdempotencyKey
             FROM {_tablePrefix}Events
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position >= @Position
             ORDER BY Position ASC;";
@@ -95,9 +146,10 @@ public class SqlServerEventStore : IEventStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var eventsJson = reader.GetString(0);
-            var deserializedStoredEvents = StoredEventsBulkJsonSerializer.DeserializeToStoredEvents(eventsJson);
-            storedEvents.AddRange(deserializedStoredEvents);
+            var eventJson = reader.GetString(0);
+            var eventType = reader.GetString(1);
+            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
+            storedEvents.Add(new StoredEvent(eventJson, eventType, idempotencyKey));
         }
 
         return storedEvents;

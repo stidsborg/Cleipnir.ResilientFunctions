@@ -22,4 +22,8 @@ public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore()
         => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
+        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Sql.CreateAndInitializeEventStore());
 }

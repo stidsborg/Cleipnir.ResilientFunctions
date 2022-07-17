@@ -28,4 +28,10 @@ public class EventSourcesTests : Messaging.Tests.TestTemplates.EventSourcesTests
         => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(
             new InMemoryEventStore().CastTo<IEventStore>().ToTask()
         );
+
+    [TestMethod]
+    public override Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
+        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(
+            new InMemoryEventStore().CastTo<IEventStore>().ToTask()
+        );
 }

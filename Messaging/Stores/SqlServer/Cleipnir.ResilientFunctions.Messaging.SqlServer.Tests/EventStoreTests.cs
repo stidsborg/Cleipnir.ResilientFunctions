@@ -10,4 +10,8 @@ public class EventStoreTests :  Messaging.Tests.TestTemplates.EventStoreTests
     [TestMethod]
     public override Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain()
         => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Sql.CreateAndInitializeEventStore());
+    
+    [TestMethod]
+    public override Task SkippedMessagesAreNotFetched()
+        => SkippedMessagesAreNotFetched(Sql.CreateAndInitializeEventStore());
 }

@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
 using Cleipnir.ResilientFunctions.Messaging.Tests.Utils;
 using Shouldly;
 
@@ -141,5 +142,39 @@ public abstract class EventSourcesTests
         task.Result[1].ShouldBe("hello universe");
         
         (await eventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
+    }
+    
+    public abstract Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
+    protected async Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+        var eventSources = new EventSources(eventStore, eventSerializer: new ExceptionThrowingEventSerializer(typeof(int)));
+        using var eventSource = await eventSources.Get(functionId);
+
+        await eventSource.Emit("hello world");
+        await Should.ThrowAsync<EventProcessingException>(eventSource.Emit(1));
+        await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.All.Skip(1).NextEvent());
+        Should.Throw<EventProcessingException>(() => eventSource.Existing.ToList());
+    }
+    
+    private class ExceptionThrowingEventSerializer : IEventSerializer
+    {
+        private readonly Type _failDeserializationOnType;
+
+        public ExceptionThrowingEventSerializer(Type failDeserializationOnType) 
+            => _failDeserializationOnType = failDeserializationOnType;
+
+        public string SerializeEvent(object @event) 
+            => DefaultEventSerializer.Instance.SerializeEvent(@event);
+
+        public object DeserializeEvent(string json, string type)
+        {
+            var eventType = Type.GetType(type)!;
+            if (eventType == _failDeserializationOnType)
+                throw new Exception("Deserialization exception");
+
+            return DefaultEventSerializer.Instance.DeserializeEvent(json, type);
+        }
     }
 }
