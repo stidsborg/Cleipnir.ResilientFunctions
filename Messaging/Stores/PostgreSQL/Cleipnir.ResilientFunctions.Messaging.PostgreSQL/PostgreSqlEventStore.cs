@@ -89,6 +89,7 @@ public class PostgreSqlEventStore : IEventStore
         await using var conn = await CreateConnection();
         var transaction =  await conn.BeginTransactionAsync();
 
+        var batch = new NpgsqlBatch(conn, transaction);
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
             var sql = @$"    
@@ -96,7 +97,7 @@ public class PostgreSqlEventStore : IEventStore
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
                     ($1, $2, $3, $4, $5, $6);";
-            await using var command = new NpgsqlCommand(sql, conn, transaction)
+            var command = new NpgsqlBatchCommand(sql)
             {
                 Parameters =
                 {
@@ -108,10 +109,11 @@ public class PostgreSqlEventStore : IEventStore
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
                 }
             };
-            await command.ExecuteNonQueryAsync();
             position++;
+            batch.BatchCommands.Add(command);
         }
-
+        
+        await batch.ExecuteNonQueryAsync();
         await transaction.CommitAsync();
     }
     
