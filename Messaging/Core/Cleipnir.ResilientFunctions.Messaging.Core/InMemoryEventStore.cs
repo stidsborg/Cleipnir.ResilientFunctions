@@ -36,7 +36,7 @@ public class InMemoryEventStore : IEventStore
             if (!_events.ContainsKey(functionId))
                 return Enumerable.Empty<StoredEvent>().ToTask();
 
-            return _events[functionId].ToList().AsEnumerable().ToTask();
+            return _events[functionId].Skip(skip).ToList().AsEnumerable().ToTask();
         }
     }
 }
