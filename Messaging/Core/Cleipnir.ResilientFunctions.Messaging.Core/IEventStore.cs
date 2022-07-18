@@ -9,5 +9,8 @@ public interface IEventStore
     Task AppendEvent(FunctionId functionId, StoredEvent storedEvent);
     Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null);
     Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);
+    
+    Task Truncate(FunctionId functionId);
+    
     Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip);
 }

@@ -91,4 +91,33 @@ public abstract class EventStoreTests
         events[0].DefaultDeserialize().ShouldBe(msg2);
         events[0].IdempotencyKey.ShouldBeNull();
     }
+    
+    public abstract Task TruncatedEventSourceContainsNoEvents();
+    protected async Task TruncatedEventSourceContainsNoEvents(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+
+        const string msg1 = "hello here";
+        const string msg2 = "hello world";
+
+        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+
+        await eventStore.Truncate(functionId);
+        var events = await eventStore.GetEvents(functionId, skip: 0);
+        events.ShouldBeEmpty();
+    }
+    
+    public abstract Task NoExistingEventSourceCanBeTruncated();
+    protected async Task NoExistingEventSourceCanBeTruncated(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+        
+        await eventStore.Truncate(functionId);
+        var events = await eventStore.GetEvents(functionId, skip: 0);
+        events.ShouldBeEmpty();
+    }
 }

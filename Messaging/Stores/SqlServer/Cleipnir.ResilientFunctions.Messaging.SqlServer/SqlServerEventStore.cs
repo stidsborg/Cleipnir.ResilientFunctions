@@ -104,6 +104,19 @@ public class SqlServerEventStore : IEventStore
         await transaction.CommitAsync();
     }
 
+    public async Task Truncate(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+
+        var sql = @$"    
+            DELETE FROM {_tablePrefix}Events
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();

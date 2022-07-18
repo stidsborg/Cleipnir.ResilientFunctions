@@ -111,6 +111,24 @@ public class PostgreSqlEventStore : IEventStore
         await batch.ExecuteNonQueryAsync();
     }
 
+    public async Task Truncate(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+
+        var sql = @$"    
+                DELETE FROM {_tablePrefix}events
+                WHERE function_type_id = $1 AND function_instance_id = $2;";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
