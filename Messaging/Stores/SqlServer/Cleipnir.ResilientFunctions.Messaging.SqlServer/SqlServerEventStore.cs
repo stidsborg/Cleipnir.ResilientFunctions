@@ -79,8 +79,6 @@ public class SqlServerEventStore : IEventStore
 
     public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
-        var position = await GetCount(functionId);
-        
         await using var conn = await CreateConnection();
         await using var transaction = conn.BeginTransaction();
         foreach (var storedEvent in storedEvents)
@@ -91,41 +89,19 @@ public class SqlServerEventStore : IEventStore
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                @Position, 
+                (SELECT COUNT(*) FROM {_tablePrefix}events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @EventJson, @EventType, @IdempotencyKey
             );";
             await using var command = new SqlCommand(sql, conn, transaction);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@Position", position);
             command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
             command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
             command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
             await command.ExecuteNonQueryAsync();
-            position++;
         }
 
         await transaction.CommitAsync();
-    }
-
-    private async Task<int> GetCount(FunctionId functionId)
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            SELECT COUNT(*) FROM {_tablePrefix}Events
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
-
-        var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-
-        var count = await command.ExecuteScalarAsync();
-        return count switch
-        {
-            null => 0,
-            int i => i,
-            _ => (int) (long) count
-        };
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
