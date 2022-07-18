@@ -84,62 +84,31 @@ public class PostgreSqlEventStore : IEventStore
     
     public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
-        var position = await GetCount(functionId);
-        
         await using var conn = await CreateConnection();
-        var transaction =  await conn.BeginTransactionAsync();
 
-        var batch = new NpgsqlBatch(conn, transaction);
+        var batch = new NpgsqlBatch(conn);
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
             var sql = @$"    
                 INSERT INTO {_tablePrefix}events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
-                    ($1, $2, $3, $4, $5, $6);";
+                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
             var command = new NpgsqlBatchCommand(sql)
             {
                 Parameters =
                 {
                     new() {Value = functionId.TypeId.Value},
                     new() {Value = functionId.InstanceId.Value},
-                    new() {Value = position},
                     new() {Value = eventJson},
                     new() {Value = eventType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
                 }
             };
-            position++;
             batch.BatchCommands.Add(command);
         }
         
         await batch.ExecuteNonQueryAsync();
-        await transaction.CommitAsync();
-    }
-    
-    private async Task<int> GetCount(FunctionId functionId)
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            SELECT COUNT(*) FROM {_tablePrefix}events
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
-
-        var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-            }
-        };
-
-        var count = await command.ExecuteScalarAsync();
-        return count switch
-        {
-            null => 0,
-            int i => i,
-            _ => (int) (long) count
-        };
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
