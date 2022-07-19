@@ -42,9 +42,6 @@ internal class CommonInvoker
                 functionId,
                 param: new StoredParameter(paramJson, paramType),
                 scrapbookType: scrapbookType?.SimpleQualifiedName(),
-                initialEpoch: 0,
-                initialSignOfLife: 0,
-                initialStatus: Status.Executing,
                 crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks
             );
 

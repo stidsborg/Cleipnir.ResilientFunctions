@@ -26,9 +26,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 1,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -40,7 +37,7 @@ public abstract class StoreTests
         var nonCompleted = nonCompletes[0];
         nonCompleted.InstanceId.ShouldBe(FunctionId.InstanceId);
         nonCompleted.Epoch.ShouldBe(0);
-        nonCompleted.SignOfLife.ShouldBe(1);
+        nonCompleted.SignOfLife.ShouldBe(0);
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
@@ -49,7 +46,7 @@ public abstract class StoreTests
         storedFunction.Parameter.ParamType.ShouldBe(paramType);
         storedFunction.Scrapbook.ShouldBeNull();
         storedFunction.Epoch.ShouldBe(0);
-        storedFunction.SignOfLife.ShouldBe(1);
+        storedFunction.SignOfLife.ShouldBe(0);
         storedFunction.PostponedUntil.ShouldBeNull();
 
         const string result = "hello world";
@@ -82,9 +79,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -110,9 +104,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -140,9 +131,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -167,9 +155,13 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 2,
-            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
+        ).ShouldBeTrueAsync();
+
+        await store.TryToBecomeLeader(
+            FunctionId, 
+            Status.Executing, 
+            expectedEpoch: 0, newEpoch: 2,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -194,9 +186,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -204,9 +193,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeFalseAsync();
     }
@@ -223,9 +209,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -258,9 +241,6 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -303,9 +283,6 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: crashedCheckFrequency
         );
 
@@ -329,9 +306,6 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
         );
 

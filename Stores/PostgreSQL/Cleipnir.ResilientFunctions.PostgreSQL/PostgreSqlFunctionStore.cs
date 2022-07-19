@@ -79,10 +79,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, 
-        string? scrapbookType, 
-        Status initialStatus,
-        int initialEpoch, 
-        int initialSignOfLife,
+        string? scrapbookType,
         long crashedCheckFrequency)
     {
         await using var conn = await CreateConnection();
@@ -90,7 +87,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             INSERT INTO {_tablePrefix}RFunctions
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ($1, $2, $3, $4, $5, {(int) Status.Executing}, 0, 0, $6)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -101,9 +98,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamJson},
                 new() {Value =  param.ParamType},
                 new() {Value = scrapbookType ?? (object) DBNull.Value},
-                new() {Value = (int) initialStatus},
-                new() {Value = initialEpoch},
-                new() {Value = initialSignOfLife},
                 new (){Value = crashedCheckFrequency}
             }
         };

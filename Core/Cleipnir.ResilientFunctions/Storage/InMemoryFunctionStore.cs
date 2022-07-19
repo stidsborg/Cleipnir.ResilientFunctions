@@ -17,9 +17,6 @@ public class InMemoryFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         string? scrapbookType,
-        Status initialStatus, 
-        int initialEpoch, 
-        int initialSignOfLife,
         long crashedCheckFrequency
     )
     {
@@ -34,8 +31,8 @@ public class InMemoryFunctionStore : IFunctionStore
                 Param = param,
                 Scrapbook = scrapbookType == null ? null : new StoredScrapbook(ScrapbookJson: null, scrapbookType),
                 Status = Status.Executing,
-                Epoch = initialEpoch,
-                SignOfLife = initialSignOfLife,
+                Epoch = 0,
+                SignOfLife = 0,
                 ErrorJson = null,
                 Result = null,
                 PostponeUntil = null,

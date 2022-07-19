@@ -90,9 +90,6 @@ public class SqlServerFunctionStore : IFunctionStore
         FunctionId functionId,
         StoredParameter param,
         string? scrapbookType,
-        Status initialStatus,
-        int initialEpoch,
-        int initialSignOfLife,
         long crashedCheckFrequency
     )
     {
@@ -111,8 +108,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
                     @ScrapbookType,
-                    @Status,
-                    @Epoch, @SignOfLife,
+                    {(int) Status.Executing},
+                    0, 0,
                     @CrashedCheckFrequency)";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
@@ -120,9 +117,6 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ParamJson", param.ParamJson);
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
             command.Parameters.AddWithValue("@ScrapbookType", scrapbookType ?? (object) DBNull.Value);
-            command.Parameters.AddWithValue("@Status", (int) initialStatus);
-            command.Parameters.AddWithValue("@Epoch", initialEpoch);
-            command.Parameters.AddWithValue("@SignOfLife", initialSignOfLife);
             command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
 
             await command.ExecuteNonQueryAsync();

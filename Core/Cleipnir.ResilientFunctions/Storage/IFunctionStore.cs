@@ -17,9 +17,6 @@ public interface IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         string? scrapbookType,
-        Status initialStatus,
-        int initialEpoch,
-        int initialSignOfLife,
         long crashedCheckFrequency
     );
 

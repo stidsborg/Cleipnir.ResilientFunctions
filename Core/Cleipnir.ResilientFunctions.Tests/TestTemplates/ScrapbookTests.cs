@@ -29,9 +29,6 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
             
@@ -78,9 +75,12 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-            initialStatus: Status.Executing,
-            initialEpoch: 1,
-            initialSignOfLife: 0,
+            crashedCheckFrequency: 100
+        ).ShouldBeTrueAsync();
+        await store.TryToBecomeLeader(
+            FunctionId,
+            Status.Executing,
+            expectedEpoch: 0, newEpoch: 1,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
             

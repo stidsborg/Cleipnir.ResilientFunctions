@@ -97,9 +97,6 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         
@@ -146,9 +143,6 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         

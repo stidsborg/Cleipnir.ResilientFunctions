@@ -28,9 +28,6 @@ public static class PostponedTest
                 functionId,
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
                 scrapbookType: null,
-                initialStatus: Status.Executing,
-                initialEpoch: 0,
-                initialSignOfLife: 0,
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
             );
             await store.SetFunctionState(

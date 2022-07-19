@@ -33,20 +33,14 @@ public class CrashableFunctionStore : IFunctionStore
     public Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, 
-        string? scrapbookType, 
-        Status initialStatus,
-        int initialEpoch, 
-        int initialSignOfLife,
+        string? scrapbookType,
         long crashedCheckFrequency
     ) => _crashed 
         ? Task.FromException<bool>(new TimeoutException()) 
         : _inner.CreateFunction(
             functionId, 
             param, 
-            scrapbookType, 
-            initialStatus, 
-            initialEpoch, 
-            initialSignOfLife,
+            scrapbookType,
             crashedCheckFrequency
         );
 

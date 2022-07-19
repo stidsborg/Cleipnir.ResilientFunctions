@@ -62,8 +62,7 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, string? scrapbookType, 
-        Status initialStatus,
-        int initialEpoch, int initialSignOfLife, long crashedCheckFrequency
+        long crashedCheckFrequency
     )
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -71,7 +70,7 @@ public class MySqlFunctionStore : IFunctionStore
             INSERT IGNORE INTO {_tablePrefix}rfunctions
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
             VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (?, ?, ?, ?, ?, {(int) Status.Executing}, 0, 0, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -81,9 +80,6 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamJson},
                 new() {Value =  param.ParamType},
                 new() {Value = scrapbookType ?? (object) DBNull.Value},
-                new() {Value = (int) initialStatus},
-                new() {Value = initialEpoch},
-                new() {Value = initialSignOfLife},
                 new() {Value = crashedCheckFrequency}
             }
         };

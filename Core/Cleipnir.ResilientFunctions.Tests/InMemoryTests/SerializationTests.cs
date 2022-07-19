@@ -25,9 +25,6 @@ public class SerializationTests
             new FunctionId("typeId", "instanceId"),
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
             scrapbookType: null,
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         

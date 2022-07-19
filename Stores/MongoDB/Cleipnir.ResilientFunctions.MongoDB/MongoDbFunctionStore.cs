@@ -50,10 +50,7 @@ public class MongoDbFunctionStore : IFunctionStore
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, 
-        string? scrapbookType, 
-        Status initialStatus, 
-        int initialEpoch, 
-        int initialSignOfLife,
+        string? scrapbookType,
         long crashedCheckFrequency)
     {
         var document = new Document
@@ -66,9 +63,9 @@ public class MongoDbFunctionStore : IFunctionStore
             ParameterJson = param.ParamJson,
             ParameterType = param.ParamType,
             ScrapbookType = scrapbookType,
-            Status = (int) initialStatus,
-            Epoch = initialEpoch,
-            SignOfLife = initialSignOfLife,
+            Status = (int) Status.Executing,
+            Epoch = 0,
+            SignOfLife = 0,
             CrashedCheckFrequency = crashedCheckFrequency
         };
 

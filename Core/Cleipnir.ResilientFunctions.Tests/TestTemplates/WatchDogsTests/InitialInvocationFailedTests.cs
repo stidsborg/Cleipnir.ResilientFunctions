@@ -23,9 +23,6 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         );
 
@@ -55,9 +52,6 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         );
 
@@ -90,9 +84,6 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         );
 
@@ -128,9 +119,6 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         );
 

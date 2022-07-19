@@ -28,9 +28,6 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -54,9 +51,6 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -80,9 +74,6 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -115,9 +106,6 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: null,
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -135,9 +123,6 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
-            initialStatus: Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -168,9 +153,6 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
-            Status.Executing,
-            initialEpoch: 0,
-            initialSignOfLife: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 

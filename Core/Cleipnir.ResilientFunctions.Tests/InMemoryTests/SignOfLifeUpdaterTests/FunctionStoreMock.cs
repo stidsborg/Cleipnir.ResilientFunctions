@@ -10,10 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests
 public delegate Task<bool> CreateFunction(
     FunctionId functionId, 
     StoredParameter param,
-    string? scrapbookType, 
-    Status initialStatus, 
-    int initialEpoch, 
-    int initialSignOfLife,
+    string? scrapbookType,
     long crashedCheckFrequency
 );
 
@@ -48,19 +45,13 @@ public class FunctionStoreMock : IFunctionStore
         FunctionId functionId,
         StoredParameter param,
         string? scrapbookType,
-        Status initialStatus,
-        int initialEpoch,
-        int initialSignOfLife,
         long crashedCheckFrequency
     ) => SetupCreateFunction == null
         ? true.ToTask()
         : SetupCreateFunction.Invoke(
             functionId, 
             param, 
-            scrapbookType, 
-            initialStatus, 
-            initialEpoch, 
-            initialSignOfLife,
+            scrapbookType,
             crashedCheckFrequency
         );
 
