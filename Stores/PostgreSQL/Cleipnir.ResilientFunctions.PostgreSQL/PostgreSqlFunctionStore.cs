@@ -29,7 +29,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         var sql = $@"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}RFunctions (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
                 param_json TEXT NULL,
@@ -54,7 +54,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_postponed
             ON {_tablePrefix}rfunctions(function_type_id, postponed_until, function_instance_id)
             INCLUDE (epoch)
-            WHERE status = {(int) Status.Postponed};";
+            WHERE status = {(int) Status.Postponed};
+
+            ALTER TABLE {_tablePrefix}rfunctions ALTER COLUMN status SET DEFAULT {(int) Status.Executing};
+            ALTER TABLE {_tablePrefix}rfunctions ALTER COLUMN epoch SET DEFAULT 0;
+            ALTER TABLE {_tablePrefix}rfunctions ALTER COLUMN sign_of_life SET DEFAULT 0;";
 
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -63,7 +67,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task DropIfExists()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -71,7 +75,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions";
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -84,17 +88,17 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            INSERT INTO {_tablePrefix}RFunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
+            INSERT INTO {_tablePrefix}rfunctions
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, crashed_check_frequency)
             VALUES
-                ($1, $2, $3, $4, $5, {(int) Status.Executing}, 0, 0, $6)
+                ($1, $2, $3, $4, $5, $6)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = functionId.TypeId.Value},
-                new() {Value =  functionId.InstanceId.Value},
+                new() {Value = functionId.InstanceId.Value},
                 new() {Value = param.ParamJson},
                 new() {Value =  param.ParamType},
                 new() {Value = scrapbookType ?? (object) DBNull.Value},
@@ -141,7 +145,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         var sql = $@"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}rfunctions
             SET sign_of_life = $1
             WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -164,7 +168,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND status = {(int) Status.Executing}";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -191,7 +195,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT function_instance_id, epoch, postponed_until
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND status = {(int) Status.Postponed} AND postponed_until <= $2";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -226,7 +230,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         var sql = $@"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}rfunctions
             SET status = $1, scrapbook_json = $2, 
                 result_json = $3, result_type = $4, 
                 error_json = $5, postponed_until = $6
@@ -270,7 +274,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 sign_of_life
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
