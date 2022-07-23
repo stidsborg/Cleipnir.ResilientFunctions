@@ -6,16 +6,32 @@ namespace Cleipnir.ResilientFunctions.StressTests
 {
     internal static class Program
     {
-        private static async Task Main()
+        private static async Task<int> Main(string[] args)
         {
-            var testResults = new Dictionary<string, Dictionary<string, int>>();
-            var engines = new IEngine[]
+            if (args.Length != 1)
             {
-                new MongoDbEngine(),
-                new MySqlEngine(),
-                new PostgreSqlEngine(),
-                new SqlServerEngine()
-            };
+                Console.WriteLine("Usage: StressTests <all, mongo, mysql, postgres, sqlserver>");
+                return 1;
+            }
+
+            var arg = args[0].ToLower();
+            var engines = new List<IEngine>();
+            if (arg == "mongo" || arg == "all")
+                engines.Add(new MongoDbEngine());
+            if (arg == "mysql" || arg == "all")
+                engines.Add(new MySqlEngine());
+            if (arg == "postgres" || arg == "all")
+                engines.Add(new PostgreSqlEngine());
+            if (arg == "sqlserver" || arg == "all")
+                engines.Add(new SqlServerEngine());
+            
+            if (engines.Count == 0) 
+            {
+                Console.WriteLine("Usage: StressTests <all, mongo, mysql, postgres, sqlserver>");
+                return 1;
+            }
+                
+            var testResults = new Dictionary<string, Dictionary<string, int>>();
 
             foreach (var engine in engines)
             {
@@ -36,6 +52,8 @@ namespace Cleipnir.ResilientFunctions.StressTests
             Console.WriteLine();
             Console.WriteLine("RESULTS: ");
             Console.WriteLine(JsonSerializer.Serialize(testResults, new JsonSerializerOptions { WriteIndented = true }));
+
+            return 0;
         }
     }
 }
