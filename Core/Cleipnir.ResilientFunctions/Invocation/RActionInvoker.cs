@@ -189,15 +189,18 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly Func<TScrapbook> _scrapbookFactory;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
+        Func<TScrapbook>? scrapbookFactory,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
+        _scrapbookFactory = scrapbookFactory ?? (() => new TScrapbook());
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -323,7 +326,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     }
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
-        => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch);
+        => _commonInvoker.CreateScrapbook(functionId, epoch, _scrapbookFactory);
 
     private Task UpdateScrapbook(FunctionId functionId, Action<TScrapbook> updater, IEnumerable<Status> expectedStatuses, int? expectedEpoch) 
         => _commonInvoker.UpdateScrapbook(functionId, updater, expectedStatuses, expectedEpoch);
