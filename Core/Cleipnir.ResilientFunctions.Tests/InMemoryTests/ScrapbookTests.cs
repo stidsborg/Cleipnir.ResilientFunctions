@@ -22,6 +22,12 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             );
 
         [TestMethod]
+        public override Task ScrapbookIsUsedWhenSpecifiedAtRegistration()
+            => ScrapbookIsUsedWhenSpecifiedAtRegistration(
+                new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            );
+
+        [TestMethod]
         public async Task ScrapbookThrowsExceptionWhenSavedBeforeInitialized()
         {
             var scrapbook = new TestScrapbook();

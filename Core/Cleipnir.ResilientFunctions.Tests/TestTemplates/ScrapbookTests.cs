@@ -99,4 +99,28 @@ public abstract class ScrapbookTests
             .Name!
             .ShouldBe("Peter");
     }
+    
+    public abstract Task ScrapbookIsUsedWhenSpecifiedAtRegistration();
+    public async Task ScrapbookIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var rFunctions = new RFunctions(store);
+        var functionId = new FunctionId(
+            functionTypeId: nameof(ScrapbookIsUsedWhenSpecifiedAtRegistration),
+            functionInstanceId: "instance"
+        );
+        var synced = new Synced<ParentScrapbook>();
+        var rAction = rFunctions.RegisterAction<string, ParentScrapbook>(
+            functionId.TypeId,
+            (_, scrapbook) => synced.Value = scrapbook,
+            scrapbookFactory: () => new ChildScrapbook()
+        ).Invoke;
+
+        await rAction("instance", "param");
+
+        await BusyWait.UntilAsync(() => synced.Value != null);
+    }
+
+    private class ParentScrapbook : RScrapbook { }
+    private class ChildScrapbook : ParentScrapbook { }
 }
