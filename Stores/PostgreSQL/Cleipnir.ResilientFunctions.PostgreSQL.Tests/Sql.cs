@@ -19,7 +19,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.PostgreSQL.Tests.ConnectionString")
-                ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!";
+                ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!; Include Error Detail=true;";
             ConnFunc = async () =>
             {
                 var conn = new NpgsqlConnection(ConnectionString);
