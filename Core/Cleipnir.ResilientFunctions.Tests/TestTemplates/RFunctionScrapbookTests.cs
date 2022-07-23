@@ -43,10 +43,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             );
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
-            var storedResult = storedFunction.Result.Deserialize(_serializer);
+            var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
             storedResult.ShouldBe("HELLO");
             storedFunction.Scrapbook.ShouldNotBeNull();
-            var scrapbook = (Scrapbook) storedFunction.Scrapbook.Deserialize(_serializer);
+            var scrapbook = storedFunction.Scrapbook.Deserialize<Scrapbook>(_serializer);
             scrapbook.Scrap.ShouldBe("HELLO");
             
             unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();

@@ -67,13 +67,12 @@ public class SerializationTests
         
         public string SerializeParameter(object parameter)
             => JsonConvert.SerializeObject(parameter);
-
-        public object DeserializeParameter(string json, string type)
+        public TParam DeserializeParameter<TParam>(string json, string type)
         {
             if (type.Contains(nameof(PersonPrev)))
-                return JsonConvert.DeserializeObject<PersonCurr>(json)!;
+                return (TParam) (object) JsonConvert.DeserializeObject<PersonCurr>(json)!;
 
-            return JsonConvert.DeserializeObject(
+            return (TParam) JsonConvert.DeserializeObject(
                 json,
                 Type.GetType(type, throwOnError: true)!
             )!;
@@ -81,20 +80,17 @@ public class SerializationTests
 
         public string SerializeScrapbook(RScrapbook scrapbook)
             => _defaultSerializer.SerializeScrapbook(scrapbook);
-
-        public RScrapbook DeserializeScrapbook(string? json, string type)
-            => _defaultSerializer.DeserializeScrapbook(json, type);
+        public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
+            => _defaultSerializer.DeserializeScrapbook<TScrapbook>(json, type);
 
         public string SerializeError(RError error)
             => _defaultSerializer.SerializeError(error);
-
         public RError DeserializeError(string json)
             => _defaultSerializer.DeserializeError(json);
         
         public string SerializeResult(object result)
             => _defaultSerializer.SerializeResult(result);
-
-        public object DeserializeResult(string json, string type)
-            => _defaultSerializer.DeserializeResult(json, type);
+        public TResult DeserializeResult<TResult>(string json, string type)
+            => _defaultSerializer.DeserializeResult<TResult>(json, type);
     }
 }

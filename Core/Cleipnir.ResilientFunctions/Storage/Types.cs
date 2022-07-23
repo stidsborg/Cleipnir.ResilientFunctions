@@ -24,14 +24,15 @@ public record StoredScrapbook(string? ScrapbookJson, string ScrapbookType);
 
 internal static class StorageTypeExtensions
 {
-    public static object Deserialize(this StoredParameter parameter, ISerializer serializer)
-        => serializer.DeserializeParameter(parameter.ParamJson, parameter.ParamType);
+    public static TParam Deserialize<TParam>(this StoredParameter parameter, ISerializer serializer)
+        => serializer.DeserializeParameter<TParam>(parameter.ParamJson, parameter.ParamType);
         
-    public static RScrapbook Deserialize(this StoredScrapbook scrapbook, ISerializer serializer)
-        => serializer.DeserializeScrapbook(scrapbook.ScrapbookJson!, scrapbook.ScrapbookType);
+    public static TScrapbook Deserialize<TScrapbook>(this StoredScrapbook scrapbook, ISerializer serializer)
+        where TScrapbook : RScrapbook
+        => serializer.DeserializeScrapbook<TScrapbook>(scrapbook.ScrapbookJson!, scrapbook.ScrapbookType);
 
-    public static object? Deserialize(this StoredResult result, ISerializer serializer)
+    public static TResult? Deserialize<TResult>(this StoredResult result, ISerializer serializer)
         => result.ResultJson == null || result.ResultType == null
-            ? null 
-            : serializer.DeserializeResult(result.ResultJson, result.ResultType);
+            ? default(TResult?) 
+            : serializer.DeserializeResult<TResult>(result.ResultJson, result.ResultType);
 }

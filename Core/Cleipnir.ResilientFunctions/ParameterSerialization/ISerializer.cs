@@ -5,11 +5,11 @@ namespace Cleipnir.ResilientFunctions.ParameterSerialization;
 public interface ISerializer
 {
     string SerializeParameter(object parameter);
-    object DeserializeParameter(string json, string type);
+    TParam DeserializeParameter<TParam>(string json, string type);
     string SerializeScrapbook(RScrapbook scrapbook);
-    RScrapbook DeserializeScrapbook(string? json, string type);
+    TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook;
     string SerializeError(RError error);
     RError DeserializeError(string json);
     string SerializeResult(object result);
-    object DeserializeResult(string json, string type);
+    TResult DeserializeResult<TResult>(string json, string type);
 }

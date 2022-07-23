@@ -11,25 +11,25 @@ public class DefaultSerializer : ISerializer
     private DefaultSerializer() {}
     
     public string SerializeParameter(object parameter) => JsonSerializer.Serialize(parameter);
-
-    public object DeserializeParameter(string json, string type)
-        => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
+    public TParam DeserializeParameter<TParam>(string json, string type)
+        => (TParam) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
     public string SerializeScrapbook(RScrapbook scrapbook)
         => JsonSerializer.Serialize(scrapbook, scrapbook.GetType());
-
-    public RScrapbook DeserializeScrapbook(string? json, string type)
+    public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type)
+        where TScrapbook : RScrapbook
     {
         var scrapbookType = Type.GetType(type, throwOnError: true)!;
         if (json == null)
-            return (RScrapbook) Activator.CreateInstance(scrapbookType)!;
+            return (TScrapbook) Activator.CreateInstance(scrapbookType)!;
         
-        return (RScrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
+        return (TScrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
     }
 
     public string SerializeError(RError error) => JsonSerializer.Serialize(error);
     public RError DeserializeError(string json) => JsonSerializer.Deserialize<RError>(json)!;
+    
     public string SerializeResult(object result) => JsonSerializer.Serialize(result);
-    public object DeserializeResult(string json, string type) 
-        => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
+    public TResult DeserializeResult<TResult>(string json, string type) 
+        => (TResult) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 }

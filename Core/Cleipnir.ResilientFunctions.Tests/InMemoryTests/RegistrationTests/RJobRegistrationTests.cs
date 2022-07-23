@@ -31,10 +31,10 @@ public class RJobRegistrationTests
                 .Map(sf => sf?.Status == Status.Succeeded)
         );
         var sf = await store.GetFunction(FunctionId);
-        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook(
+        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook<Scrapbook>(
             sf!.Scrapbook!.ScrapbookJson,
             sf.Scrapbook!.ScrapbookType
-        ).CastTo<Scrapbook>();
+        );
         
         scrapbook.Value.ShouldBe("invoked");
     }
@@ -60,10 +60,10 @@ public class RJobRegistrationTests
                 .Map(sf => sf?.Status == Status.Succeeded)
         );
         var sf = await store.GetFunction(FunctionId);
-        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook(
+        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook<Scrapbook>(
             sf!.Scrapbook!.ScrapbookJson,
             sf.Scrapbook!.ScrapbookType
-        ).CastTo<Scrapbook>();
+        );
         
         scrapbook.Value.ShouldBe("invoked");
     }
@@ -89,10 +89,10 @@ public class RJobRegistrationTests
                 .Map(sf => sf?.Status == Status.Succeeded)
         );
         var sf = await store.GetFunction(FunctionId);
-        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook(
+        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook<Scrapbook>(
             sf!.Scrapbook!.ScrapbookJson,
             sf.Scrapbook!.ScrapbookType
-        ).CastTo<Scrapbook>();
+        );
         
         scrapbook.Value.ShouldBe("invoked");
     }
@@ -118,10 +118,10 @@ public class RJobRegistrationTests
                 .Map(sf => sf?.Status == Status.Succeeded)
         );
         var sf = await store.GetFunction(FunctionId);
-        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook(
+        var scrapbook = DefaultSerializer.Instance.DeserializeScrapbook<Scrapbook>(
             sf!.Scrapbook!.ScrapbookJson,
             sf.Scrapbook!.ScrapbookType
-        ).CastTo<Scrapbook>();
+        );
         
         scrapbook.Value.ShouldBe("invoked");
     }
@@ -157,20 +157,19 @@ public class RJobRegistrationTests
             Invoked = true;
             return Default.SerializeParameter(parameter);
         }
-
-        public object DeserializeParameter(string json, string type) => Default.DeserializeParameter(json, type);
+        public TParam DeserializeParameter<TParam>(string json, string type) 
+            => Default.DeserializeParameter<TParam>(json, type);
 
         public string SerializeScrapbook(RScrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
-
-        public RScrapbook DeserializeScrapbook(string? json, string type) => Default.DeserializeScrapbook(json, type);
+        public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
+            => Default.DeserializeScrapbook<TScrapbook>(json, type);
 
         public string SerializeError(RError error) => Default.SerializeError(error);
-
         public RError DeserializeError(string json) => Default.DeserializeError(json);
 
         public string SerializeResult(object result) => Default.SerializeResult(result);
-
-        public object DeserializeResult(string json, string type) => Default.DeserializeResult(json, type);
+        public TResult DeserializeResult<TResult>(string json, string type) 
+            => Default.DeserializeResult<TResult>(json, type);
     }
 
     private class Scrapbook : RScrapbook

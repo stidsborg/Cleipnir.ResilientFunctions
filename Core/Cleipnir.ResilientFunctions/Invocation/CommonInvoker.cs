@@ -25,7 +25,7 @@ internal class CommonInvoker
         ShutdownCoordinator shutdownCoordinator)
     {
         _settings = settings;
-        Serializer = settings.Serializer;
+        Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
         _functionStore = functionStore;
     }
@@ -69,7 +69,7 @@ internal class CommonInvoker
                     await Task.Delay(100);
                     continue;
                 case Status.Succeeded:
-                    return (TReturn) storedFunction.Result!.Deserialize(Serializer)!;
+                    return storedFunction.Result!.Deserialize<TReturn>(Serializer)!;
                 case Status.Failed:
                     var error = Serializer.DeserializeError(storedFunction.ErrorJson!);
                     throw new PreviousFunctionInvocationException(functionId, error);
@@ -299,7 +299,7 @@ internal class CommonInvoker
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation<TParam>(
+        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation<TParam, TScrapbook>(
             functionId,
             expectedStatuses,
             expectedEpoch,
@@ -319,7 +319,7 @@ internal class CommonInvoker
         int? expectedEpoch)
         where TParam : notnull
     {
-        var (param, epoch, _, runningFunction) = await PrepareForReInvocation<TParam>(
+        var (param, epoch, _, runningFunction) = await PrepareForReInvocation<TParam, UnitScrapbook>(
             functionId,
             expectedStatuses,
             expectedEpoch,
@@ -328,12 +328,9 @@ internal class CommonInvoker
         return new PreparedReInvocation<TParam>(param, epoch, runningFunction);
     }
     
-    private async Task<PreparedReInvocation<TParam, RScrapbook>> PrepareForReInvocation<TParam>(
-        FunctionId functionId, 
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch,
-        bool hasScrapbook)
-        where TParam : notnull
+    private async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
+        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, bool hasScrapbook
+    ) where TParam : notnull where TScrapbook : RScrapbook 
     {
         expectedStatuses = expectedStatuses.ToList();
         var sf = await _functionStore.GetFunction(functionId);
@@ -347,9 +344,9 @@ internal class CommonInvoker
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
 
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
+        var epoch = sf.Epoch + 1;
         try
         {
-            var epoch = sf.Epoch + 1;
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
                 Status.Executing,
@@ -361,17 +358,30 @@ internal class CommonInvoker
             if (!success)
                 throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'");
 
-            var param = (TParam) Serializer.DeserializeParameter(sf.Parameter.ParamJson, sf.Parameter.ParamType);
+            var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
             if (!hasScrapbook)
-                return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, default(RScrapbook), runningFunction);
+                return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, default(TScrapbook), runningFunction);
 
-            var scrapbook = Serializer.DeserializeScrapbook(
+            var scrapbook = Serializer.DeserializeScrapbook<TScrapbook>(
                 sf.Scrapbook!.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
 
-            return new PreparedReInvocation<TParam, RScrapbook>(param, epoch, (RScrapbook?) scrapbook, runningFunction);
+            return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, (TScrapbook?) scrapbook, runningFunction);
+        }
+        catch (DeserializationException e)
+        {
+            await _functionStore.SetFunctionState(
+                functionId,
+                Status.Failed,
+                sf.Scrapbook?.ScrapbookJson,
+                sf.Result,
+                Serializer.SerializeError(e.ToError()),
+                postponedUntil: null,
+                expectedEpoch: epoch
+            );
+            throw;
         }
         catch (Exception)
         {

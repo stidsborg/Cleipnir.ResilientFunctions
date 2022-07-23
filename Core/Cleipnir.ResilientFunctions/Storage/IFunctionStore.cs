@@ -57,7 +57,7 @@ public interface IFunctionStore
         
         serializer ??= DefaultSerializer.Instance;
 
-        var scrapbook = (TScrapbook) serializer.DeserializeScrapbook(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
+        var scrapbook = serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
 
         updater(scrapbook);
 

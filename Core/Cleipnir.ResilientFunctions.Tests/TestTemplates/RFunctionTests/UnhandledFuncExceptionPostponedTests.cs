@@ -107,8 +107,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
-            .Deserialize(DefaultSerializer.Instance)
-            .CastTo<ListScrapbook<string>>()
+            .Deserialize<ListScrapbook<string>>(DefaultSerializer.Instance)
             .List
             .Single()
             .ShouldBe("onException");
@@ -122,8 +121,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
         );
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.Scrapbook!
-            .Deserialize(DefaultSerializer.Instance)
-            .CastTo<ListScrapbook<string>>()
+            .Deserialize<ListScrapbook<string>>(DefaultSerializer.Instance)
             .List
             .Single()
             .ShouldBe("onException");
@@ -144,8 +142,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
-            .Deserialize(DefaultSerializer.Instance)
-            .CastTo<ListScrapbook<string>>()
+            .Deserialize<ListScrapbook<string>>(DefaultSerializer.Instance)
             .List
             .Count
             .ShouldBe(2);
@@ -244,8 +241,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
         var sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
-            .Deserialize(DefaultSerializer.Instance)
-            .CastTo<ListScrapbook<string>>()
+            .Deserialize<ListScrapbook<string>>(DefaultSerializer.Instance)
             .List
             .Single()
             .ShouldBe("onException");
@@ -259,8 +255,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
         );
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.Scrapbook!
-            .Deserialize(DefaultSerializer.Instance)
-            .CastTo<ListScrapbook<string>>()
+            .Deserialize<ListScrapbook<string>>(DefaultSerializer.Instance)
             .List
             .Single()
             .ShouldBe("onException");
@@ -281,8 +276,7 @@ public abstract class UnhandledFuncExceptionPostponedTests
         sf = await store.GetFunction(new FunctionId(functionType, "1")).ShouldNotBeNullAsync();
         sf.PostponedUntil.ShouldNotBeNull();
         sf.Scrapbook!
-            .Deserialize(DefaultSerializer.Instance)
-            .CastTo<ListScrapbook<string>>()
+            .Deserialize<ListScrapbook<string>>(DefaultSerializer.Instance)
             .List
             .Count
             .ShouldBe(2);

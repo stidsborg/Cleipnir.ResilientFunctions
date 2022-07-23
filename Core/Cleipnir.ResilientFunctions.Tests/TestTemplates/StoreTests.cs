@@ -65,7 +65,7 @@ public abstract class StoreTests
         storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Result.ShouldNotBeNull();
-        storedFunction.Result.Deserialize(DefaultSerializer.Instance).ShouldBe(result);
+        storedFunction.Result.Deserialize<object>(DefaultSerializer.Instance).ShouldBe(result);
     }
 
     public abstract Task SignOfLifeIsUpdatedWhenAsExpected();

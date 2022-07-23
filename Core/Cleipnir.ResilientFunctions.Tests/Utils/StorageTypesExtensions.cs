@@ -7,11 +7,11 @@ namespace Cleipnir.ResilientFunctions.Tests.Utils;
 public static class StorageTypesExtensions
 {
     public static object DefaultDeserialize(this StoredParameter parameter)
-        => parameter.Deserialize(DefaultSerializer.Instance);
+        => parameter.Deserialize<object>(DefaultSerializer.Instance);
 
     public static RScrapbook DefaultDeserialize(this StoredScrapbook scrapbook)
-        => scrapbook.Deserialize(DefaultSerializer.Instance);
+        => scrapbook.Deserialize<RScrapbook>(DefaultSerializer.Instance);
 
     public static object? DefaultDeserialize(this StoredResult result)
-        => result.Deserialize(DefaultSerializer.Instance);
+        => result.Deserialize<object>(DefaultSerializer.Instance);
 }
