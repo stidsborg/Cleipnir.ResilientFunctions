@@ -35,7 +35,8 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
             scrapbookType: null,
-            TimeSpan.FromMilliseconds(10).Ticks
+            TimeSpan.FromMilliseconds(10).Ticks,
+            version: 0
         ).ShouldBeTrueAsync();
 
         _ = rFunctions.RegisterFunc(
@@ -70,8 +71,9 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-            scrapbookType: null,
-            TimeSpan.FromMilliseconds(10).Ticks
+           scrapbookType: null,
+           TimeSpan.FromMilliseconds(10).Ticks,
+           version: 0   
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -114,7 +116,8 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
             scrapbookType: null,
-            TimeSpan.FromMilliseconds(10).Ticks
+            TimeSpan.FromMilliseconds(10).Ticks,
+            version: 0
         ).ShouldBeTrueAsync();
         await store.CreateFunction(
             new FunctionId(
@@ -126,7 +129,8 @@ public abstract class VersioningTests
                 typeof(PersonV2).SimpleQualifiedName()
             ),
             scrapbookType: null,
-            TimeSpan.FromMilliseconds(10).Ticks
+            TimeSpan.FromMilliseconds(10).Ticks,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var invocations = new SyncedList<Person>();

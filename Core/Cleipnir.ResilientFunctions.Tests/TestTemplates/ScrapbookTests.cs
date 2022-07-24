@@ -31,7 +31,8 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
@@ -77,13 +78,15 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
         await store.TryToBecomeLeader(
             FunctionId,
             Status.Executing,
             expectedEpoch: 0, newEpoch: 1,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};

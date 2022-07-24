@@ -23,7 +23,8 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -50,7 +51,8 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -74,7 +76,8 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         );
         await store.SetFunctionState(
             functionId,
@@ -107,7 +110,8 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         );
         await store.SetFunctionState(
             functionId,

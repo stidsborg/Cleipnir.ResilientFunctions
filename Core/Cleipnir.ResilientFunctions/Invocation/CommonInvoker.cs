@@ -17,14 +17,19 @@ internal class CommonInvoker
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
+    private readonly int _version;
+    
     private ISerializer Serializer { get; }
 
     public CommonInvoker(
         SettingsWithDefaults settings,
+        int version,
         IFunctionStore functionStore, 
         ShutdownCoordinator shutdownCoordinator)
     {
         _settings = settings;
+        _version = version;
+        
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
         _functionStore = functionStore;
@@ -42,7 +47,8 @@ internal class CommonInvoker
                 functionId,
                 param: new StoredParameter(paramJson, paramType),
                 scrapbookType: scrapbookType?.SimpleQualifiedName(),
-                crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks
+                crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks,
+                _version
             );
 
             if (!created) runningFunction.Dispose();
@@ -356,7 +362,8 @@ internal class CommonInvoker
                 Status.Executing,
                 expectedEpoch: sf.Epoch,
                 newEpoch: epoch,
-                _settings.CrashedCheckFrequency.Ticks
+                _settings.CrashedCheckFrequency.Ticks,
+                _version
             );
 
             if (!success)

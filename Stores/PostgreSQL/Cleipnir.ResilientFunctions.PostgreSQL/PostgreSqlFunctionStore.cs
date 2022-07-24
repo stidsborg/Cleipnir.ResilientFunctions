@@ -44,6 +44,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL,
                 sign_of_life INT NOT NULL,
                 crashed_check_frequency BIGINT NOT NULL,
+                version INT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
@@ -84,14 +85,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         string? scrapbookType,
-        long crashedCheckFrequency)
+        long crashedCheckFrequency,
+        int version)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, crashed_check_frequency)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, crashed_check_frequency, version)
             VALUES
-                ($1, $2, $3, $4, $5, $6)
+                ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -102,7 +104,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamJson},
                 new() {Value =  param.ParamType},
                 new() {Value = scrapbookType ?? (object) DBNull.Value},
-                new (){Value = crashedCheckFrequency}
+                new () {Value = crashedCheckFrequency},
+                new () {Value = version}
             }
         };
 
@@ -115,14 +118,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         Status newStatus, 
         int expectedEpoch, 
         int newEpoch,
-        long crashedCheckFrequency
+        long crashedCheckFrequency,
+        int version
     )
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET epoch = $1, status = $2, crashed_check_frequency = $3
-            WHERE function_type_id = $4 AND function_instance_id = $5 AND epoch = $6";
+            SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4
+            WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -131,6 +135,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = newEpoch},
                 new() {Value = (int) newStatus},
                 new() {Value = crashedCheckFrequency},
+                new() {Value = version},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},

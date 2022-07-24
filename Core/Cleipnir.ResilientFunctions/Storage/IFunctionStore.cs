@@ -17,11 +17,20 @@ public interface IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         string? scrapbookType,
-        long crashedCheckFrequency
+        long crashedCheckFrequency,
+        int version
     );
 
     // ** LEADERSHIP ** //
-    Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency);
+    Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
+        int version
+    );
+    
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);

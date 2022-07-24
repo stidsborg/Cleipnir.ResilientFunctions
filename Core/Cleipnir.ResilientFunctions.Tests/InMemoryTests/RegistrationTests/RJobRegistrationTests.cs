@@ -138,6 +138,7 @@ public class RJobRegistrationTests
             .RegisterJob<Scrapbook>(
                 JobId,
                 _ => flag.Raise(),
+                version: 0,
                 new Settings(Serializer: serializer)
             ).Start;
 

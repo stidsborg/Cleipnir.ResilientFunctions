@@ -11,10 +11,11 @@ public delegate Task<bool> CreateFunction(
     FunctionId functionId, 
     StoredParameter param,
     string? scrapbookType,
-    long crashedCheckFrequency
+    long crashedCheckFrequency,
+    int version
 );
 
-public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency);
+public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version);
 
 public delegate Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
@@ -45,21 +46,29 @@ public class FunctionStoreMock : IFunctionStore
         FunctionId functionId,
         StoredParameter param,
         string? scrapbookType,
-        long crashedCheckFrequency
+        long crashedCheckFrequency,
+        int version
     ) => SetupCreateFunction == null
         ? true.ToTask()
         : SetupCreateFunction.Invoke(
             functionId, 
             param, 
             scrapbookType,
-            crashedCheckFrequency
+            crashedCheckFrequency,
+            version
         );
 
     public TryToBecomeLeader? SetupTryToBecomeLeader { private get; init; }
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
-        => SetupTryToBecomeLeader == null
+    public Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
+        int version
+    ) => SetupTryToBecomeLeader == null
             ? true.ToTask()
-            : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency);
+            : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
 
     public UpdateSignOfLife? SetupUpdateSignOfLife { private get; init; }
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)

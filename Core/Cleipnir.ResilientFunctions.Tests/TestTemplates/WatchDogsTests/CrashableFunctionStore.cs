@@ -34,20 +34,28 @@ public class CrashableFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         string? scrapbookType,
-        long crashedCheckFrequency
+        long crashedCheckFrequency,
+        int version
     ) => _crashed 
         ? Task.FromException<bool>(new TimeoutException()) 
         : _inner.CreateFunction(
             functionId, 
             param, 
             scrapbookType,
-            crashedCheckFrequency
+            crashedCheckFrequency,
+            version
         );
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
-        => _crashed
+    public Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
+        int version
+    ) => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency);
+            : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         => _crashed

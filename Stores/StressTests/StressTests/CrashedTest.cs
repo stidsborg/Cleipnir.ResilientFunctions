@@ -27,7 +27,8 @@ public static class CrashedTest
                 new FunctionId("CrashedTest", i.ToString()),
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
                 scrapbookType: null,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
+                version: 0
             );
         }
         

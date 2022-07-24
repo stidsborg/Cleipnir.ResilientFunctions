@@ -26,7 +26,8 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var nonCompletes = await store
@@ -79,7 +80,8 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store
@@ -104,7 +106,8 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store.UpdateSignOfLife(
@@ -131,11 +134,12 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100)
+            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100, version: 0)
             .ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -155,18 +159,20 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store.TryToBecomeLeader(
             FunctionId, 
             Status.Executing, 
             expectedEpoch: 0, newEpoch: 2,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100)
+            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100, version: 0)
             .ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -186,14 +192,16 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeFalseAsync();
     }
     
@@ -209,7 +217,8 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -241,7 +250,8 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -283,7 +293,8 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: crashedCheckFrequency
+            crashedCheckFrequency: crashedCheckFrequency,
+            version: 0
         );
 
         var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
@@ -306,10 +317,11 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
+            version: 0
         );
 
-        await store.TryToBecomeLeader(functionId, Status.Executing, expectedEpoch: 0, newEpoch: 1, crashedCheckFrequency);
+        await store.TryToBecomeLeader(functionId, Status.Executing, expectedEpoch: 0, newEpoch: 1, crashedCheckFrequency, version: 0);
         var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];

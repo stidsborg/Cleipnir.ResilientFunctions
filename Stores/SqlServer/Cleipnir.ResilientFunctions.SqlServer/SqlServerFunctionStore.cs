@@ -64,7 +64,9 @@ public class SqlServerFunctionStore : IFunctionStore
             END
                 
             IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[{_tablePrefix}RFunctions]') AND name = 'CrashedCheckFrequency')
-                ALTER TABLE {_tablePrefix}RFunctions ADD [CrashedCheckFrequency] BIGINT DEFAULT 0 NOT NULL;";
+                ALTER TABLE {_tablePrefix}RFunctions ADD [CrashedCheckFrequency] BIGINT DEFAULT 0 NOT NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[{_tablePrefix}RFunctions]') AND name = 'Version')
+                ALTER TABLE {_tablePrefix}RFunctions ADD [Version] INT DEFAULT 0 NOT NULL;";
 
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -90,7 +92,8 @@ public class SqlServerFunctionStore : IFunctionStore
         FunctionId functionId,
         StoredParameter param,
         string? scrapbookType,
-        long crashedCheckFrequency
+        long crashedCheckFrequency,
+        int version
     )
     {
         await using var conn = await _connFunc();
@@ -103,14 +106,16 @@ public class SqlServerFunctionStore : IFunctionStore
                     ScrapbookType, 
                     Status,
                     Epoch, SignOfLife, 
-                    CrashedCheckFrequency)
+                    CrashedCheckFrequency,
+                    Version)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
                     @ScrapbookType,
                     {(int) Status.Executing},
                     0, 0,
-                    @CrashedCheckFrequency)";
+                    @CrashedCheckFrequency,
+                    @Version)";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
@@ -118,6 +123,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
             command.Parameters.AddWithValue("@ScrapbookType", scrapbookType ?? (object) DBNull.Value);
             command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+            command.Parameters.AddWithValue("@Version", version);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -129,18 +135,25 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
+    public async Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
+        int version)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Epoch = @NewEpoch, Status = @NewStatus, CrashedCheckFrequency = @CrashedCheckFrequency
+            SET Epoch = @NewEpoch, Status = @NewStatus, CrashedCheckFrequency = @CrashedCheckFrequency, Version = @Version
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
         
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@NewEpoch", newEpoch);
         command.Parameters.AddWithValue("@NewStatus", newStatus);
         command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+        command.Parameters.AddWithValue("@Version", version);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);

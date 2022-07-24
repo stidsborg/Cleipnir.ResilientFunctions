@@ -17,7 +17,8 @@ public class InMemoryFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         string? scrapbookType,
-        long crashedCheckFrequency
+        long crashedCheckFrequency,
+        int version
     )
     {
         lock (_sync)
@@ -36,14 +37,21 @@ public class InMemoryFunctionStore : IFunctionStore
                 ErrorJson = null,
                 Result = null,
                 PostponeUntil = null,
-                CrashedCheckFrequency = crashedCheckFrequency
+                CrashedCheckFrequency = crashedCheckFrequency,
+                Version = version
             };
 
             return true.ToTask();
         }
     }
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
+    public Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
+        int version)
     {
         lock (_sync)
         {
@@ -57,6 +65,7 @@ public class InMemoryFunctionStore : IFunctionStore
             state.Epoch = newEpoch;
             state.Status = newStatus;
             state.CrashedCheckFrequency = crashedCheckFrequency;
+            state.Version = version;
             return true.ToTask();
         }
     }
@@ -179,5 +188,6 @@ public class InMemoryFunctionStore : IFunctionStore
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
         public long CrashedCheckFrequency { get; set; }
+        public int Version { get; set; }
     }
 }

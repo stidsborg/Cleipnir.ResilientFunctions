@@ -51,7 +51,8 @@ public class MongoDbFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         string? scrapbookType,
-        long crashedCheckFrequency)
+        long crashedCheckFrequency,
+        int version)
     {
         var document = new Document
         {
@@ -66,7 +67,8 @@ public class MongoDbFunctionStore : IFunctionStore
             Status = (int) Status.Executing,
             Epoch = 0,
             SignOfLife = 0,
-            CrashedCheckFrequency = crashedCheckFrequency
+            CrashedCheckFrequency = crashedCheckFrequency,
+            Version = version
         };
 
         var collection = GetCollection();
@@ -82,7 +84,13 @@ public class MongoDbFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency)
+    public async Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
+        int version)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -94,7 +102,8 @@ public class MongoDbFunctionStore : IFunctionStore
             .Update
             .Set(d => d.Status, status)
             .Set(d => d.Epoch, newEpoch)
-            .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency);
+            .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency)
+            .Set(d => d.Version, version);
         
         var result = await collection.UpdateOneAsync(
             d =>
@@ -237,6 +246,7 @@ public class MongoDbFunctionStore : IFunctionStore
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
         public long CrashedCheckFrequency { get; set; }
+        public int Version { get; set; }
     }
 
     private class DbFunctionId

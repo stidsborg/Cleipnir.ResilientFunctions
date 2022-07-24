@@ -97,7 +97,8 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -143,7 +144,8 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
         
         await store.SetFunctionState(

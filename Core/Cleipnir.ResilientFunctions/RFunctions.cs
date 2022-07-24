@@ -32,36 +32,43 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TReturn> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
         InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+        version,
         settings
     );
     
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<TReturn>> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
         InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+        version,
         settings
     );
     
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result<TReturn>> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
         functionTypeId,
         InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+        version,
         settings        
     );
     
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result<TReturn>>> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
     {
@@ -78,7 +85,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var commonInvoker = new CommonInvoker(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -91,6 +98,7 @@ public class RFunctions : IDisposable
                 _functionStore,
                 reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
                 settingsWithDefaults,
+                version,
                 _shutdownCoordinator
             );
 
@@ -108,39 +116,46 @@ public class RFunctions : IDisposable
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings
         );
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Action<TParam> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings
         );
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings
         );
     
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result>> inner,
+        int version = 0,
         Settings? settings = null
     ) where TParam : notnull 
     {
@@ -157,7 +172,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var commonInvoker = new CommonInvoker(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionInvoker<TParam>(
                 functionTypeId, 
                 inner, 
@@ -170,6 +185,7 @@ public class RFunctions : IDisposable
                 _functionStore,
                 reInvoke: (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch),
                 settingsWithDefaults,
+                version,
                 _shutdownCoordinator
             );
 
@@ -187,12 +203,14 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings,
             concreteScrapbookType
         );
@@ -200,12 +218,14 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings,
             concreteScrapbookType
         );
@@ -213,12 +233,14 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings,
             concreteScrapbookType
         );
@@ -226,6 +248,7 @@ public class RFunctions : IDisposable
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -245,7 +268,7 @@ public class RFunctions : IDisposable
             }
         
             var settingsWithDefaults = _settings.Merge(settings);
-            var commonInvoker = new CommonInvoker(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -259,6 +282,7 @@ public class RFunctions : IDisposable
                 _functionStore,
                 reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
                 settingsWithDefaults,
+                version,
                 _shutdownCoordinator
             );
 
@@ -276,12 +300,14 @@ public class RFunctions : IDisposable
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings,
             concreteScrapbookType
         );
@@ -289,12 +315,14 @@ public class RFunctions : IDisposable
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings,
             concreteScrapbookType
         );
@@ -302,12 +330,14 @@ public class RFunctions : IDisposable
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings,
             concreteScrapbookType
         );
@@ -315,6 +345,7 @@ public class RFunctions : IDisposable
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
+        int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -334,7 +365,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var commonInvoker = new CommonInvoker(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
                 functionTypeId, 
                 inner, 
@@ -348,6 +379,7 @@ public class RFunctions : IDisposable
                 _functionStore,
                 (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch),
                 settingsWithDefaults,
+                version,
                 _shutdownCoordinator
             );
 
@@ -365,39 +397,46 @@ public class RFunctions : IDisposable
     public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Action<TScrapbook> inner,
+        int version = 0,
         Settings? settings = null
     ) where TScrapbook : RScrapbook, new()
         => RegisterJob(
             jobId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings
         );
 
     public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Result> inner,
+        int version = 0,
         Settings? settings = null
     ) where TScrapbook : RScrapbook, new()
         => RegisterJob(
             jobId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings
         );
 
     public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Task> inner,
+        int version = 0,
         Settings? settings = null
     ) where TScrapbook : RScrapbook, new()
         => RegisterJob(
             jobId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+            version,
             settings
         );
 
     public RJob<TScrapbook> RegisterJob<TScrapbook>(
         string jobId,
         Func<TScrapbook, Task<Result>> inner,
+        int version = 0,
         Settings? settings = null
     ) where TScrapbook : RScrapbook, new()
     {
@@ -409,6 +448,7 @@ public class RFunctions : IDisposable
             var actionRegistration = RegisterAction(
                 jobId,
                 RJobExtensions.ToNothingFunc(inner),
+                version,
                 settings
             );
           

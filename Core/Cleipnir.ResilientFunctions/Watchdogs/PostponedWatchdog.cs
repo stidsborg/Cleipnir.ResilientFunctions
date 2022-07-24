@@ -20,6 +20,7 @@ internal class PostponedWatchdog
     private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
     private readonly TimeSpan _crashedCheckFrequency;
+    private readonly int _version;
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId,
@@ -29,6 +30,7 @@ internal class PostponedWatchdog
         TimeSpan postponedCheckFrequency,
         TimeSpan crashedCheckFrequency,
         TimeSpan delayStartUp,
+        int version,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
@@ -37,6 +39,7 @@ internal class PostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
         _crashedCheckFrequency = crashedCheckFrequency;
+        _version = version;
         _reInvoke = reInvoke;
         _asyncSemaphore = asyncSemaphore;
         _postponedCheckFrequency = postponedCheckFrequency;
@@ -102,7 +105,8 @@ internal class PostponedWatchdog
                 Status.Executing,
                 expectedEpoch: spf.Epoch,
                 newEpoch: spf.Epoch + 1,
-                _crashedCheckFrequency.Ticks
+                _crashedCheckFrequency.Ticks,
+                _version
             );
             if (!success) return;
 

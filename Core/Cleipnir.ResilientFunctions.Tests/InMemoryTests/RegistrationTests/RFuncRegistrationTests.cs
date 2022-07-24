@@ -37,6 +37,7 @@ public class RFuncRegistrationTests
             .RegisterFunc<string, string>(
                 _functionTypeId,
                 InnerFunc,
+                version: 0,
                 new Settings(Serializer: serializer)
             )
             .Invoke;

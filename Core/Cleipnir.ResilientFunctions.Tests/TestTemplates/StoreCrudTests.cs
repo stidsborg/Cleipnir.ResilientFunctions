@@ -28,7 +28,8 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -51,7 +52,8 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -74,7 +76,8 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -106,7 +109,8 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: null,
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store.UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1).ShouldBeTrueAsync();
@@ -123,7 +127,8 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
@@ -153,7 +158,8 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 100,
+            version: 0
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };

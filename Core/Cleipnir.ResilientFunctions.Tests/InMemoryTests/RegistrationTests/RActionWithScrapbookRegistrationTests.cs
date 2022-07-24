@@ -36,6 +36,7 @@ public class RActionWithScrapbookRegistrationTests
             .RegisterAction<string, Scrapbook>(
                 _functionTypeId,
                 InnerAction,
+                version: 0,
                 new Settings(Serializer: serializer)
             )
             .Invoke;
