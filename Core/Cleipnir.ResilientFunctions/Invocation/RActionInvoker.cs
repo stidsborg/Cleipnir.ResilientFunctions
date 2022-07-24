@@ -189,18 +189,18 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly Func<TScrapbook> _scrapbookFactory;
+    private readonly Type? _concreteScrapbookType;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
-        Func<TScrapbook>? scrapbookFactory,
+        Type? concreteScrapbookType,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
-        _scrapbookFactory = scrapbookFactory ?? (() => new TScrapbook());
+        _concreteScrapbookType = concreteScrapbookType;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -208,11 +208,11 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     public async Task Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
+        var scrapbook = CreateScrapbook(functionId);
+        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, scrapbook.GetType());
         if (!created) { await WaitForActionCompletion(functionId); return; }
 
         using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
-        var scrapbook = CreateScrapbook(functionId);
         Result result;
         try
         {
@@ -326,7 +326,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     }
 
     private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
-        => _commonInvoker.CreateScrapbook(functionId, epoch, _scrapbookFactory);
+        => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch, _concreteScrapbookType);
 
     private Task UpdateScrapbook(FunctionId functionId, Action<TScrapbook> updater, IEnumerable<Status> expectedStatuses, int? expectedEpoch) 
         => _commonInvoker.UpdateScrapbook(functionId, updater, expectedStatuses, expectedEpoch);

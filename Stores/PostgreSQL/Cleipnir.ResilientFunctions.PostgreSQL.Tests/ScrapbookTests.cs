@@ -15,6 +15,10 @@ public class ScrapbookTests : ResilientFunctions.Tests.TestTemplates.ScrapbookTe
         => await ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
-    public override Task ScrapbookIsUsedWhenSpecifiedAtRegistration()
-        => ScrapbookIsUsedWhenSpecifiedAtRegistration(Sql.AutoCreateAndInitializeStore());
+    public override Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration()
+        => ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration()
+        => WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(Sql.AutoCreateAndInitializeStore());
 }

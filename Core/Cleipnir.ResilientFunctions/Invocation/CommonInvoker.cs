@@ -113,9 +113,13 @@ internal class CommonInvoker
         }
     }
     
-    public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch, Func<TScrapbook> factory) where TScrapbook : RScrapbook, new()
+    public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch, Type? concreteScrapbookType) where TScrapbook : RScrapbook, new()
     {
-        var scrapbook = factory();
+        var scrapbook = (TScrapbook) (
+            concreteScrapbookType == null 
+                ? new TScrapbook()
+                : Activator.CreateInstance(concreteScrapbookType)!
+            );
         scrapbook.Initialize(functionId, _functionStore, Serializer, expectedEpoch);
         return scrapbook;
     }

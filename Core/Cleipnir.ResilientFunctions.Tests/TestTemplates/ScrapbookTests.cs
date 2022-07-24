@@ -1,9 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
+using Cleipnir.ResilientFunctions.Utils.Scrapbooks;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
@@ -100,27 +102,47 @@ public abstract class ScrapbookTests
             .ShouldBe("Peter");
     }
     
-    public abstract Task ScrapbookIsUsedWhenSpecifiedAtRegistration();
-    public async Task ScrapbookIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
+    public abstract Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration();
+    public async Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
         var functionId = new FunctionId(
-            functionTypeId: nameof(ScrapbookIsUsedWhenSpecifiedAtRegistration),
+            functionTypeId: nameof(ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration),
             functionInstanceId: "instance"
         );
         var synced = new Synced<ParentScrapbook>();
         var rAction = rFunctions.RegisterAction<string, ParentScrapbook>(
             functionId.TypeId,
             (_, scrapbook) => synced.Value = scrapbook,
-            scrapbookFactory: () => new ChildScrapbook()
+            concreteScrapbookType: typeof(ChildScrapbook)
         ).Invoke;
 
         await rAction("instance", "param");
 
         await BusyWait.UntilAsync(() => synced.Value != null);
+        synced.Value.ShouldBeOfType<ChildScrapbook>();
     }
 
     private class ParentScrapbook : RScrapbook { }
     private class ChildScrapbook : ParentScrapbook { }
+    
+    public abstract Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration();
+    public async Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var rFunctions = new RFunctions(store);
+        var functionId = new FunctionId(
+            functionTypeId: nameof(WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration),
+            functionInstanceId: "instance"
+        );
+
+        Should.Throw<ArgumentException>(() =>
+            rFunctions.RegisterAction<string, ParentScrapbook>(
+                functionId.TypeId,
+                (_, _) => { },
+                concreteScrapbookType: typeof(ListScrapbook<int>)
+            )
+        );
+    }
 }

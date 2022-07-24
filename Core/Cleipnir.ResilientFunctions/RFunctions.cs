@@ -188,51 +188,53 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings,
-            scrapbookFactory
+            concreteScrapbookType
         );
 
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings,
-            scrapbookFactory
+            concreteScrapbookType
         );
 
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings,
-            scrapbookFactory
+            concreteScrapbookType
         );
 
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        
+        if (concreteScrapbookType != null && !concreteScrapbookType.IsSubclassOf(typeof(TScrapbook)))
+            throw new ArgumentException($"Concrete scrapbook type '{concreteScrapbookType.FullName}' must be child of '{typeof(TScrapbook).FullName}'");
+
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
@@ -247,7 +249,7 @@ public class RFunctions : IDisposable
             var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
-                scrapbookFactory,
+                concreteScrapbookType,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -275,51 +277,53 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings,
-            scrapbookFactory
+            concreteScrapbookType
         );
     
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings,
-            scrapbookFactory
+            concreteScrapbookType
         );
 
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             settings,
-            scrapbookFactory
+            concreteScrapbookType
         );
 
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         Settings? settings = null,
-        Func<TScrapbook>? scrapbookFactory = null
+        Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-            
+        if (concreteScrapbookType != null && !concreteScrapbookType.IsSubclassOf(typeof(TScrapbook)))
+            throw new ArgumentException($"Concrete scrapbook type '{concreteScrapbookType.FullName}' must be child of '{typeof(TScrapbook).FullName}'");
+        
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
@@ -334,7 +338,7 @@ public class RFunctions : IDisposable
             var rActionInvoker = new RActionInvoker<TParam, TScrapbook>(
                 functionTypeId, 
                 inner, 
-                scrapbookFactory,
+                concreteScrapbookType,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
