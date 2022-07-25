@@ -180,16 +180,17 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, SignOfLife, CrashedCheckFrequency
             FROM {_tablePrefix}RFunctions
-            WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing}";
+            WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing} AND Version <= @Version";
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
+        command.Parameters.AddWithValue("@Version", version);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredExecutingFunction>(); 
@@ -210,18 +211,24 @@ public class SqlServerFunctionStore : IFunctionStore
         return rows;
     }
 
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(
+        FunctionTypeId functionTypeId, 
+        long expiresBefore,
+        int version)
     {
-
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, PostponedUntil
             FROM {_tablePrefix}RFunctions
-            WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Postponed} AND PostponedUntil <= @PostponedUntil";
+            WHERE FunctionTypeId = @FunctionTypeId 
+              AND Status = {(int) Status.Postponed} 
+              AND PostponedUntil <= @PostponedUntil
+              AND Version <= @Version";
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
         command.Parameters.AddWithValue("@PostponedUntil", expiresBefore);
+        command.Parameters.AddWithValue("@Version", version);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredPostponedFunction>(); 

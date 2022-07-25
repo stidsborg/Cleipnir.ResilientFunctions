@@ -139,16 +139,20 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND status = {(int) Status.Executing}";
+            WHERE function_type_id = ? AND status = {(int) Status.Executing} AND version <= ?";
         await using var command = new MySqlCommand(sql, conn)
         {
-            Parameters = { new() {Value = functionTypeId.Value} }
+            Parameters =
+            {
+                new() {Value = functionTypeId.Value},
+                new() {Value = version}
+            }
         };
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -166,19 +170,23 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(
+        FunctionTypeId functionTypeId, 
+        long expiresBefore,
+        int version)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             SELECT function_instance_id, epoch, postponed_until
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
+            WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ? AND version <= ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() {Value = expiresBefore}
+                new() {Value = expiresBefore},
+                new() {Value = version},
             }
         };
         

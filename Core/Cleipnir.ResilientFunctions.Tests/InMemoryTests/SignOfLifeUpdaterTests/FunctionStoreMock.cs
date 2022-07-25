@@ -19,8 +19,8 @@ public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newSt
 
 public delegate Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
-public delegate Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
-public delegate Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
+public delegate Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int version);
+public delegate Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version);
 
 public delegate Task<bool> SetFunctionState(
     FunctionId functionId,
@@ -31,8 +31,6 @@ public delegate Task<bool> SetFunctionState(
     long? postponedUntil,
     int expectedEpoch
 );
-
-public delegate Task<bool> Barricade(FunctionId functionId);
 
 public delegate Task<StoredFunction?> GetFunction(FunctionId functionId);
 
@@ -77,16 +75,16 @@ public class FunctionStoreMock : IFunctionStore
             : SetupUpdateSignOfLife(functionId, expectedEpoch, newSignOfLife);
     
     public GetExecutingFunctions? SetupGetExecutingFunctions { private get; init; }
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
         => SetupGetExecutingFunctions == null
             ? Enumerable.Empty<StoredExecutingFunction>().ToTask()
-            : SetupGetExecutingFunctions(functionTypeId);
+            : SetupGetExecutingFunctions(functionTypeId, version);
 
     public GetPostponedFunctions? SetupGetPostponedFunctions { private get; init; }
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int version)
         => SetupGetPostponedFunctions == null
             ? Enumerable.Empty<StoredPostponedFunction>().ToTask()
-            : SetupGetPostponedFunctions(functionTypeId, expiresBefore);
+            : SetupGetPostponedFunctions(functionTypeId, expiresBefore, version);
     
     public SetFunctionState? SetupSetFunctionState { private get; init; }
     public Task<bool> SetFunctionState(
@@ -100,12 +98,6 @@ public class FunctionStoreMock : IFunctionStore
     ) => SetupSetFunctionState == null
         ? true.ToTask()
         : SetupSetFunctionState(functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch);
-
-    public Barricade? SetupBarricade { private get; init; }
-    public Task<bool> Barricade(FunctionId functionId)
-        => SetupBarricade == null
-            ? true.ToTask()
-            : SetupBarricade(functionId);
 
     public GetFunction? SetupGetFunction { private get; init; }
 

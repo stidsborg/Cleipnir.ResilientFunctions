@@ -63,7 +63,8 @@ internal class PostponedWatchdog
                 var expiresSoon = await _functionStore
                     .GetPostponedFunctions(
                         _functionTypeId,
-                        now.Add(_postponedCheckFrequency).Ticks
+                        now.Add(_postponedCheckFrequency).Ticks,
+                        _version
                     );
 
                 foreach (var expireSoon in expiresSoon)

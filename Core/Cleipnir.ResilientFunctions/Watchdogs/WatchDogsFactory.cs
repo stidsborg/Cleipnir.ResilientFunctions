@@ -21,6 +21,7 @@ internal static class WatchDogsFactory
             reInvoke,
             asyncSemaphore,
             settings.CrashedCheckFrequency,
+            version,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
