@@ -9,7 +9,7 @@ public delegate Task Schedule<in TParam>(string functionInstanceId, TParam param
 public delegate Task ScheduleReInvocation(
     string functionInstanceId, 
     IEnumerable<Status> expectedStatuses, 
-    int? expectedEpoch,
+    int? expectedEpoch = null,
     bool throwOnUnexpectedFunctionState = true
 );
 
