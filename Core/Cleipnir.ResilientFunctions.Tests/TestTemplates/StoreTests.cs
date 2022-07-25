@@ -31,7 +31,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         var nonCompletes = await store
-            .GetExecutingFunctions(FunctionId.TypeId, version: 0)
+            .GetExecutingFunctions(FunctionId.TypeId, versionUpperBound: 0)
             .ToTaskAsync();
             
         nonCompletes.Count.ShouldBe(1);
@@ -89,7 +89,7 @@ public abstract class StoreTests
             .ShouldBeTrueAsync();
 
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(FunctionId.TypeId, version: 0);
+            await store.GetExecutingFunctions(FunctionId.TypeId, versionUpperBound: 0);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(1);
@@ -117,7 +117,7 @@ public abstract class StoreTests
         ).ShouldBeFalseAsync();
 
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(FunctionId.TypeId, version: 0);
+            await store.GetExecutingFunctions(FunctionId.TypeId, versionUpperBound: 0);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(0);
@@ -234,7 +234,7 @@ public abstract class StoreTests
         var postponedFunctions = await store.GetPostponedFunctions(
             FunctionId.TypeId,
             expiresBefore: nowTicks - 100,
-            version: 0
+            versionUpperBound: 0
         );
         postponedFunctions.ShouldBeEmpty();
     }
@@ -268,7 +268,7 @@ public abstract class StoreTests
         var postponedFunctions = await store.GetPostponedFunctions(
             FunctionId.TypeId,
             expiresBefore: nowTicks + 100,
-            version: 0
+            versionUpperBound: 0
         );
         postponedFunctions.Count().ShouldBe(1);
     }
@@ -299,7 +299,7 @@ public abstract class StoreTests
             version: 0
         );
 
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, version: 0).ToListAsync();
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, versionUpperBound: 0).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
@@ -324,7 +324,7 @@ public abstract class StoreTests
         );
 
         await store.TryToBecomeLeader(functionId, Status.Executing, expectedEpoch: 0, newEpoch: 1, crashedCheckFrequency, version: 0);
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, version: 0).ToListAsync();
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, versionUpperBound: 0).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);

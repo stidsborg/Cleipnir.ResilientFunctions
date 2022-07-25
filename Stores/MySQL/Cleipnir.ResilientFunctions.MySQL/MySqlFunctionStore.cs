@@ -139,7 +139,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
@@ -151,7 +151,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() {Value = version}
+                new() {Value = versionUpperBound}
             }
         };
 
@@ -173,7 +173,7 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(
         FunctionTypeId functionTypeId, 
         long expiresBefore,
-        int version)
+        int versionUpperBound)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
@@ -186,7 +186,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() {Value = functionTypeId.Value},
                 new() {Value = expiresBefore},
-                new() {Value = version},
+                new() {Value = versionUpperBound},
             }
         };
         

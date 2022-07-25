@@ -140,7 +140,7 @@ public class MongoDbFunctionStore : IFunctionStore
         return modified == 1;
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
     {
         var functionTypeIdStr = functionTypeId.Value;
         var executingStatus = (int) Status.Executing;
@@ -148,7 +148,7 @@ public class MongoDbFunctionStore : IFunctionStore
 
         var query =
             from d in collection.AsQueryable()
-            where d.Id.FunctionTypeId == functionTypeIdStr && d.Status == executingStatus && d.Version <= version
+            where d.Id.FunctionTypeId == functionTypeIdStr && d.Status == executingStatus && d.Version <= versionUpperBound
             select new { d.Id.FunctionInstanceId, d.Epoch, d.SignOfLife, d.CrashedCheckFrequency };
         
         var sef = new List<StoredExecutingFunction>();
@@ -158,7 +158,7 @@ public class MongoDbFunctionStore : IFunctionStore
         return sef.CastTo<IEnumerable<StoredExecutingFunction>>().ToTask();
     }
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int version)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
     {
         var functionTypeIdStr = functionTypeId.Value;
         var postponedStatus = (int) Status.Postponed;
@@ -167,7 +167,7 @@ public class MongoDbFunctionStore : IFunctionStore
         var query =
             from d in collection.AsQueryable()
             where d.Id.FunctionTypeId == functionTypeIdStr && d.Status == postponedStatus && 
-                  d.PostponedUntil <= expiresBefore && d.Version <= version
+                  d.PostponedUntil <= expiresBefore && d.Version <= versionUpperBound
             select new { d.Id.FunctionInstanceId, d.Epoch, d.PostponedUntil };
         
         var sef = new List<StoredPostponedFunction>();

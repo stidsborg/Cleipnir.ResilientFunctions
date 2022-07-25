@@ -168,7 +168,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -180,7 +180,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() {Value = version}
+                new() {Value = versionUpperBound}
             }
         };
 
@@ -202,7 +202,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(
         FunctionTypeId functionTypeId, 
         long expiresBefore,
-        int version)
+        int versionUpperBound)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -215,7 +215,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() {Value = functionTypeId.Value},
                 new() {Value = expiresBefore},
-                new() {Value = version}
+                new() {Value = versionUpperBound}
             }
         };
         

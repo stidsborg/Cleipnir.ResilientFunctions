@@ -62,15 +62,15 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.UpdateSignOfLife(functionId, expectedEpoch, newSignOfLife);
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
         => _crashed
             ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
-            : _inner.GetExecutingFunctions(functionTypeId, version);
+            : _inner.GetExecutingFunctions(functionTypeId, versionUpperBound);
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int version)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
         => _crashed
             ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
-            : _inner.GetPostponedFunctions(functionTypeId, expiresBefore, version);
+            : _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
 
     public record SetFunctionStateParams(
         FunctionId FunctionId,

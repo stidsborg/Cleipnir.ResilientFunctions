@@ -180,7 +180,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -190,7 +190,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
-        command.Parameters.AddWithValue("@Version", version);
+        command.Parameters.AddWithValue("@Version", versionUpperBound);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredExecutingFunction>(); 
@@ -214,7 +214,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(
         FunctionTypeId functionTypeId, 
         long expiresBefore,
-        int version)
+        int versionUpperBound)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -228,7 +228,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
         command.Parameters.AddWithValue("@PostponedUntil", expiresBefore);
-        command.Parameters.AddWithValue("@Version", version);
+        command.Parameters.AddWithValue("@Version", versionUpperBound);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredPostponedFunction>(); 

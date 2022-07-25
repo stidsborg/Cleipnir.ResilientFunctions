@@ -75,16 +75,16 @@ public class FunctionStoreMock : IFunctionStore
             : SetupUpdateSignOfLife(functionId, expectedEpoch, newSignOfLife);
     
     public GetExecutingFunctions? SetupGetExecutingFunctions { private get; init; }
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int version)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
         => SetupGetExecutingFunctions == null
             ? Enumerable.Empty<StoredExecutingFunction>().ToTask()
-            : SetupGetExecutingFunctions(functionTypeId, version);
+            : SetupGetExecutingFunctions(functionTypeId, versionUpperBound);
 
     public GetPostponedFunctions? SetupGetPostponedFunctions { private get; init; }
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int version)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
         => SetupGetPostponedFunctions == null
             ? Enumerable.Empty<StoredPostponedFunction>().ToTask()
-            : SetupGetPostponedFunctions(functionTypeId, expiresBefore, version);
+            : SetupGetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
     
     public SetFunctionState? SetupSetFunctionState { private get; init; }
     public Task<bool> SetFunctionState(
