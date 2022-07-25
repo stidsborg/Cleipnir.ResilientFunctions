@@ -296,6 +296,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultJson, ResultType,
                     ErrorJson,
                     PostponedUntil,
+                    Version,
                     Epoch, SignOfLife
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
@@ -319,8 +320,9 @@ public class SqlServerFunctionStore : IFunctionStore
                 var resultType = reader.IsDBNull(6) ? null : reader.GetString(6);
                 var errorJson = reader.IsDBNull(7) ? null : reader.GetString(7);
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
-                var epoch = reader.GetInt32(9);
-                var signOfLife = reader.GetInt32(10);
+                var version = reader.GetInt32(9);
+                var epoch = reader.GetInt32(10);
+                var signOfLife = reader.GetInt32(11);
 
                 return new StoredFunction(
                     functionId,
@@ -330,6 +332,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     resultType == null ? null : new StoredResult(resultJson, resultType),
                     errorJson,
                     postponedUntil,
+                    version,
                     epoch,
                     signOfLife
                 );

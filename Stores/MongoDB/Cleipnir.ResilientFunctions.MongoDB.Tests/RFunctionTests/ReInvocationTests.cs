@@ -29,4 +29,7 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(NoSql.AutoCreateAndInitializeStore());
+    [TestMethod]
+    public override Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion()
+        => ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion(NoSql.AutoCreateAndInitializeStore());
 }

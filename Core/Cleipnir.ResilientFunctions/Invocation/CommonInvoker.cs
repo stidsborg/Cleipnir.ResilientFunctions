@@ -69,6 +69,9 @@ internal class CommonInvoker
             if (storedFunction == null)
                 throw new FrameworkException(functionId.TypeId, $"Function {functionId} does not exist");
 
+            if (storedFunction.Version > _version)
+                throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{_version}'");
+            
             switch (storedFunction.Status)
             {
                 case Status.Executing:
@@ -353,6 +356,9 @@ internal class CommonInvoker
         if (expectedEpoch != null && sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
 
+        if (sf.Version > _version)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{sf.Version}'");
+        
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var epoch = sf.Epoch + 1;
         try

@@ -170,6 +170,7 @@ public class InMemoryFunctionStore : IFunctionStore
                     state.Result,
                     state.ErrorJson,
                     state.PostponeUntil,
+                    state.Version,
                     state.Epoch,
                     state.SignOfLife
                 )

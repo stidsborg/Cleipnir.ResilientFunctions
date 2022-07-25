@@ -247,6 +247,41 @@ public abstract class CrashedTests
         if (unhandledExceptionHandler.ThrownExceptions.Any())
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
+    
+    public abstract Task CrashedActionIsNotInvokedOnHigherVersion();
+    protected async Task CrashedActionIsNotInvokedOnHigherVersion(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            functionTypeId: nameof(CrashedActionIsNotInvokedOnHigherVersion),
+            functionInstanceId: "test"
+        );
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            scrapbookType: null,
+            crashedCheckFrequency: 10,
+            version: 2
+        ).ShouldBeTrueAsync();
+
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
+        );
+        rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
+
+        await Task.Delay(500);
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Executing);
+        sf.Version.ShouldBe(2);
+    }
 
     private class Scrapbook : RScrapbook
     {

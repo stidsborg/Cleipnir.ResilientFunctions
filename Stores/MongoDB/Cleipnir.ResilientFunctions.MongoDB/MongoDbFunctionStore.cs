@@ -227,6 +227,7 @@ public class MongoDbFunctionStore : IFunctionStore
             document.ResultType == null ? null : new StoredResult(document.ResultJson, document.ResultType),
             document.ErrorJson,
             document.PostponedUntil,
+            document.Version,
             document.Epoch,
             document.SignOfLife
         );

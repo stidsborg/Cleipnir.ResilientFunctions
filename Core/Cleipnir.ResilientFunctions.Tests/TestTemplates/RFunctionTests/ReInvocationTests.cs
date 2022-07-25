@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils.Scrapbooks;
 using Shouldly;
@@ -376,5 +378,57 @@ public abstract class ReInvocationTests
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion();
+    protected async Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        {
+            var crashableStore = new CrashableFunctionStore(store);
+            using var rFunctions = new RFunctions(
+                crashableStore,
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.Zero
+                )
+            );
+
+            var rFunc = rFunctions.RegisterFunc(
+                functionType,
+                (string _) => NeverCompletingTask.OfType<string>(),
+                version: 2
+            ).Schedule;
+            await rFunc("instance", "hello world");
+        }
+
+        {
+            using var rFunctions = new RFunctions(
+                store,
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    CrashedCheckFrequency: TimeSpan.Zero,
+                    PostponedCheckFrequency: TimeSpan.Zero
+                )
+            );
+
+            var registration = rFunctions.RegisterFunc(
+                functionType,
+                (string _) => NeverCompletingTask.OfType<string>(),
+                version: 1
+            );
+            await Should.ThrowAsync<UnexpectedFunctionState>(
+                () => registration.Invoke("instance", "hello world")
+            );
+            await Should.ThrowAsync<UnexpectedFunctionState>(
+                () => registration.ReInvoke("instance", new[] {Status.Executing})
+            );
+            await Should.ThrowAsync<UnexpectedFunctionState>(
+                () => registration.ScheduleReInvocation("instance", new[] {Status.Executing})
+            );
+        }
     }
 }

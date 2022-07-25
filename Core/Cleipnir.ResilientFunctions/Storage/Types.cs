@@ -11,6 +11,7 @@ public record StoredFunction(
     StoredResult? Result,
     string? ErrorJson,
     long? PostponedUntil,
+    int Version,
     int Epoch,
     int SignOfLife
 );

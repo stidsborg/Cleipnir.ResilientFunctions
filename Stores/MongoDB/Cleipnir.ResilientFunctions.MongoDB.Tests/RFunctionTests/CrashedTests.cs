@@ -20,4 +20,8 @@ public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTest
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
         => NonCompletedActionWithScrapbookIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task CrashedActionIsNotInvokedOnHigherVersion()
+        => CrashedActionIsNotInvokedOnHigherVersion(NoSql.AutoCreateAndInitializeStore());
 }

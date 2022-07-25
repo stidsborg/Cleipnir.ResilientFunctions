@@ -285,6 +285,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type,
                 error_json,
                 postponed_until,
+                version,
                 epoch, 
                 sign_of_life
             FROM {_tablePrefix}rfunctions
@@ -316,8 +317,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Result: hasResult ? new StoredResult(reader.GetString(5), reader.GetString(6)) : null,
                 hasError ? reader.GetString(7) : null,
                 postponedUntil ? reader.GetInt64(8) : null,
-                Epoch: reader.GetInt32(9),
-                SignOfLife: reader.GetInt32(10)
+                Version: reader.GetInt32(9),
+                Epoch: reader.GetInt32(10),
+                SignOfLife: reader.GetInt32(11)
             );
         }
 

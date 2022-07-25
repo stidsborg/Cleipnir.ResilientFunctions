@@ -323,6 +323,50 @@ public abstract class PostponedTests
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
         }
     }
+    
+    public abstract Task PostponedActionIsNotInvokedOnHigherVersion();
+    protected async Task PostponedActionIsNotInvokedOnHigherVersion(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            functionTypeId: nameof(PostponedActionIsNotInvokedOnHigherVersion),
+            functionInstanceId: "test"
+        );
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            scrapbookType: null,
+            crashedCheckFrequency: 10,
+            version: 2
+        ).ShouldBeTrueAsync();
+        await store.SetFunctionState(
+            functionId,
+            Status.Postponed,
+            scrapbookJson: null,
+            result: null,
+            errorJson: null,
+            postponedUntil: DateTime.UtcNow.Ticks - 1000,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+        
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            )
+        );
+        rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
+
+        await Task.Delay(500);
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Postponed);
+        sf.Version.ShouldBe(2);
+    }
 
     private class Scrapbook : RScrapbook
     {
