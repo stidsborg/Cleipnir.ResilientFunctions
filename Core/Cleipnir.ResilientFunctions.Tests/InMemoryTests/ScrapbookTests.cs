@@ -16,8 +16,8 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             => SunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
         [TestMethod]
-        public override Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected()
-            => ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(
+        public override Task ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected()
+            => ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected(
                 new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
             );
 

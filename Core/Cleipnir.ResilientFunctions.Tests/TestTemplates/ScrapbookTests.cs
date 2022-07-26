@@ -24,7 +24,7 @@ public abstract class ScrapbookTests
     }
         
     public abstract Task SunshineScenario();
-    public async Task SunshineScenario(Task<IFunctionStore> storeTask)
+    protected async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -70,8 +70,8 @@ public abstract class ScrapbookTests
         storedScrapbook.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>()!.Name.ShouldBe("Ole");
     }
 
-    public abstract Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected();
-    public async Task ScrapbookIsNotUpdatedWhenVersionStampIsNotAsExpected(Task<IFunctionStore> storeTask)
+    public abstract Task ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected();
+    protected async Task ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -90,11 +90,11 @@ public abstract class ScrapbookTests
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};
-        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance,1);
+        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance, epoch: 1);
         await scrapbook.Save();
             
         scrapbook = new Scrapbook() {Name = "Ole"};
-        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance,0);
+        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance, epoch: 0);
         await Should.ThrowAsync<ScrapbookSaveFailedException>(scrapbook.Save);
             
         (await store.GetFunction(FunctionId))!
@@ -106,7 +106,7 @@ public abstract class ScrapbookTests
     }
     
     public abstract Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration();
-    public async Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
+    protected async Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
@@ -131,7 +131,7 @@ public abstract class ScrapbookTests
     private class ChildScrapbook : ParentScrapbook { }
     
     public abstract Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration();
-    public async Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(Task<IFunctionStore> storeTask)
+    protected async Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var rFunctions = new RFunctions(store);
