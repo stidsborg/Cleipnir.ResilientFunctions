@@ -10,20 +10,24 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
         => FunctionCanBeCreatedWithASingleParameterSuccessfully(NoSql.AutoCreateAndInitializeStore());
         
     [TestMethod]
-    public override Task FunctionCanBeCreatedWithATwoParametersSuccessfully()
-        => FunctionCanBeCreatedWithATwoParametersSuccessfully(NoSql.AutoCreateAndInitializeStore());
+    public override Task FunctionCanBeCreatedWithTwoParametersSuccessfully()
+        => FunctionCanBeCreatedWithTwoParametersSuccessfully(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
-    public override Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
-        => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(NoSql.AutoCreateAndInitializeStore());
+    public override Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully()
+        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task FetchingNonExistingFunctionReturnsNull()
         => FetchingNonExistingFunctionReturnsNull(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
-    public override Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
+    public override Task SignOfLifeIsUpdatedWhenCurrentEpochMatches()
+        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent()
+        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(NoSql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task UpdateScrapbookSunshineScenario()

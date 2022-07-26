@@ -13,20 +13,24 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
         => FunctionCanBeCreatedWithASingleParameterSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task FunctionCanBeCreatedWithATwoParametersSuccessfully()
-        => FunctionCanBeCreatedWithATwoParametersSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+    public override Task FunctionCanBeCreatedWithTwoParametersSuccessfully()
+        => FunctionCanBeCreatedWithTwoParametersSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully()
-        => FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+    public override Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully()
+        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task FetchingNonExistingFunctionReturnsNull()
         => FetchingNonExistingFunctionReturnsNull(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+    public override Task SignOfLifeIsUpdatedWhenCurrentEpochMatches()
+        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent()
+        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task UpdateScrapbookSunshineScenario()

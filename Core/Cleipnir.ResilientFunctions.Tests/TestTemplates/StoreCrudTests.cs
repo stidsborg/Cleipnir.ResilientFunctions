@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -21,7 +20,7 @@ public abstract class StoreCrudTests
     }
         
     public abstract Task FunctionCanBeCreatedWithASingleParameterSuccessfully();
-    public async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(Task<IFunctionStore> storeTask)
+    protected async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -44,8 +43,8 @@ public abstract class StoreCrudTests
         stored.SignOfLife.ShouldBe(0);
     }
 
-    public abstract Task FunctionCanBeCreatedWithATwoParametersSuccessfully();
-    public async Task FunctionCanBeCreatedWithATwoParametersSuccessfully(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionCanBeCreatedWithTwoParametersSuccessfully();
+    protected async Task FunctionCanBeCreatedWithTwoParametersSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -68,8 +67,8 @@ public abstract class StoreCrudTests
         stored.SignOfLife.ShouldBe(0);
     }
         
-    public abstract Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully();
-    public async Task FunctionCanBeCreatedWithATwoParametersAndScrapbookTypeSuccessfully(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully();
+    protected async Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -95,14 +94,14 @@ public abstract class StoreCrudTests
     }
 
     public abstract Task FetchingNonExistingFunctionReturnsNull();
-    public async Task FetchingNonExistingFunctionReturnsNull(Task<IFunctionStore> storeTask)
+    protected async Task FetchingNonExistingFunctionReturnsNull(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.GetFunction(FunctionId).ShouldBeNullAsync();
     }  
-        
-    public abstract Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected();
-    public async Task SignOfLifeIsNotUpdatedWhenItIsNotAsExpected(Task<IFunctionStore> storeTask)
+   
+    public abstract Task SignOfLifeIsUpdatedWhenCurrentEpochMatches();
+    protected async Task SignOfLifeIsUpdatedWhenCurrentEpochMatches(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -117,10 +116,30 @@ public abstract class StoreCrudTests
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);
+        storedFunction!.SignOfLife.ShouldBe(1);
+    }
+    
+    public abstract Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent();
+    protected async Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            scrapbookType: null,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 1, newSignOfLife: 1).ShouldBeFalseAsync();
+
+        var storedFunction = await store.GetFunction(FunctionId);
+        storedFunction!.Epoch.ShouldBe(0);
+        storedFunction!.SignOfLife.ShouldBe(0);
     }
 
     public abstract Task UpdateScrapbookSunshineScenario();
-    public async Task UpdateScrapbookSunshineScenario(Task<IFunctionStore> storeTask)
+    protected async Task UpdateScrapbookSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -151,7 +170,7 @@ public abstract class StoreCrudTests
     }
         
     public abstract Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected();
-    public async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    protected async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
