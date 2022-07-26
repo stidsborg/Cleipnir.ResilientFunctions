@@ -14,6 +14,10 @@ public class VersioningTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
         => WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown()
+        => WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype()
         => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(Sql.AutoCreateAndInitializeStore());
 }

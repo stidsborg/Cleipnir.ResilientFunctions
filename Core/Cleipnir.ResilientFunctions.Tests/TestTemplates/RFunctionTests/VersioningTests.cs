@@ -92,6 +92,49 @@ public abstract class VersioningTests
         
         unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
     }
+    
+    public abstract Task WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown();
+    protected async Task WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = new InMemoryFunctionStore();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+            )
+        );
+        var functionId = new FunctionId(nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown), "v1");
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter(
+                "Hello World".ToJson(),
+                typeof(string).SimpleQualifiedName()
+            ),
+            scrapbookType: typeof(Scrapbook1).SimpleQualifiedName(),
+            TimeSpan.FromMilliseconds(10).Ticks,
+            version: 0   
+        ).ShouldBeTrueAsync();
+
+        var flag = new SyncedFlag();
+        _ = rFunctions.RegisterAction(
+            nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown),
+            void (string param, Scrapbook2 scrapbook) => flag.Raise()
+        );
+
+        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0);
+
+        flag.IsRaised.ShouldBeFalse();
+        await store
+            .GetFunction(functionId)
+            .Map(sf => sf!.Status == Status.Failed)
+            .ShouldBeTrueAsync();
+        
+        unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
+    }
+    private class Scrapbook1 : RScrapbook {}
+    private class Scrapbook2 : RScrapbook {}
 
     public abstract Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype();
     protected async Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(Task<IFunctionStore> storeTask)
