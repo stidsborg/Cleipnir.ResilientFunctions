@@ -44,9 +44,8 @@ public static class BrandExample
 
     private static void Version2()
     {
-        var crashableStore = new CrashableFunctionStore(Store);
         using var rFunctions = new RFunctions(
-            crashableStore, 
+            Store, 
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
                 CrashedCheckFrequency: TimeSpan.FromMilliseconds(100)
