@@ -16,7 +16,7 @@ public abstract class StoreTests
     private const string PARAM = "param";
 
     public abstract Task SunshineScenarioTest();
-    public async Task SunshineScenarioTest(Task<IFunctionStore> storeTask)
+    protected async Task SunshineScenarioTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -70,7 +70,7 @@ public abstract class StoreTests
     }
 
     public abstract Task SignOfLifeIsUpdatedWhenAsExpected();
-    public async Task SignOfLifeIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
+    protected async Task SignOfLifeIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -96,7 +96,7 @@ public abstract class StoreTests
     }
 
     public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
-    public async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
+    protected async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -124,7 +124,7 @@ public abstract class StoreTests
     }
         
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
-    public async Task BecomeLeaderSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
+    protected async Task BecomeLeaderSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -149,7 +149,7 @@ public abstract class StoreTests
     }
         
     public abstract Task BecomeLeaderFailsWhenEpochIsNotAsExpected();
-    public async Task BecomeLeaderFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    protected async Task BecomeLeaderFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -182,7 +182,7 @@ public abstract class StoreTests
     }
     
     public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
-    public async Task CreatingTheSameFunctionTwiceReturnsFalse(Task<IFunctionStore> storeTask)
+    protected async Task CreatingTheSameFunctionTwiceReturnsFalse(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -206,7 +206,7 @@ public abstract class StoreTests
     }
     
     public abstract Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut();
-    public async Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Task<IFunctionStore> storeTask)
+    protected async Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -240,7 +240,7 @@ public abstract class StoreTests
     }
     
     public abstract Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut();
-    public async Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Task<IFunctionStore> storeTask)
+    protected async Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -274,7 +274,7 @@ public abstract class StoreTests
     }
     
     public abstract Task InitializeCanBeInvokedMultipleTimesSuccessfully();
-    public async Task InitializeCanBeInvokedMultipleTimesSuccessfully(Task<IFunctionStore> storeTask)
+    protected async Task InitializeCanBeInvokedMultipleTimesSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.Initialize();
@@ -282,7 +282,7 @@ public abstract class StoreTests
     }
     
     public abstract Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency();
-    public async Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
+    protected async Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = new FunctionId(
@@ -306,7 +306,7 @@ public abstract class StoreTests
     }
     
     public abstract Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency();
-    public async Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
+    protected async Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = new FunctionId(
