@@ -95,19 +95,14 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        await store.UpdateScrapbook<ListScrapbook<string>>(
-            new FunctionId(functionType, "something"),
-            s =>
-            {
-                syncedListFromScrapbook.Value = new List<string>(s.List);
-                s.List.Clear();
-            },
-            expectedStatuses: new [] {Status.Failed}
-        );
-        
         await rAction.ReInvoke(
             "something",
-            new[] {Status.Failed}
+            new[] {Status.Failed},
+            scrapbookUpdater: scrapbook =>
+            {
+                syncedListFromScrapbook.Value = new List<string>(scrapbook.List);
+                scrapbook.List.Clear();
+            }
         );
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
@@ -297,19 +292,14 @@ public abstract class ReInvocationTests
 
         var scrapbookList = new Synced<List<string>>();
 
-        await store.UpdateScrapbook<ListScrapbook<string>>(
-            new FunctionId(functionType, "something"),
-            s =>
-            {
-                scrapbookList.Value = new List<string>(s.List);
-                s.List.Clear();
-            },
-            new [] {Status.Failed}
-        );
-            
         var result = await rFunc.ReInvoke(
             "something",
-            new[] {Status.Failed}
+            new[] {Status.Failed},
+            scrapbookUpdater: scrapbook =>
+            {
+                scrapbookList.Value = new List<string>(scrapbook.List);
+                scrapbook.List.Clear();
+            }
         );
         
         result.ShouldBe("something");

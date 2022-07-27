@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
@@ -141,24 +142,49 @@ public class SqlServerFunctionStore : IFunctionStore
         int expectedEpoch, 
         int newEpoch, 
         long crashedCheckFrequency,
-        int version)
+        int version,
+        Option<string> scrapbookJson)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        int affectedRows;
+        if (scrapbookJson.HasValue)
+        {
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET Epoch = @NewEpoch, Status = @NewStatus, CrashedCheckFrequency = @CrashedCheckFrequency, Version = @Version, ScrapbookJson = @ScrapbookJson
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
+        
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@NewEpoch", newEpoch);
+            command.Parameters.AddWithValue("@NewStatus", newStatus);
+            command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+            command.Parameters.AddWithValue("@Version", version);
+            command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+            affectedRows = await command.ExecuteNonQueryAsync();
+        }
+        else
+        {
+            var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET Epoch = @NewEpoch, Status = @NewStatus, CrashedCheckFrequency = @CrashedCheckFrequency, Version = @Version
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
         
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@NewEpoch", newEpoch);
-        command.Parameters.AddWithValue("@NewStatus", newStatus);
-        command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
-        command.Parameters.AddWithValue("@Version", version);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@NewEpoch", newEpoch);
+            command.Parameters.AddWithValue("@NewStatus", newStatus);
+            command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+            command.Parameters.AddWithValue("@Version", version);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
+            affectedRows = await command.ExecuteNonQueryAsync();
+        }
+        
         return affectedRows > 0;
     }
 

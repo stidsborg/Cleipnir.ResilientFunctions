@@ -132,15 +132,7 @@ internal class CommonInvoker
         scrapbook.Initialize(functionId, _functionStore, Serializer, expectedEpoch);
         return scrapbook;
     }
-
-    public Task UpdateScrapbook<TScrapbook>(
-        FunctionId functionId, 
-        Action<TScrapbook> scrapbookUpdater,
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch
-    ) where TScrapbook : RScrapbook, new() 
-        => _functionStore.UpdateScrapbook(functionId, scrapbookUpdater, expectedStatuses, expectedEpoch, _settings.Serializer);
-
+    
     public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook? scrapbook, int expectedEpoch)
     {
         var scrapbookJson = scrapbook == null
@@ -310,13 +302,16 @@ internal class CommonInvoker
     public async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch) where TParam : notnull where TScrapbook : RScrapbook, new()
+        int? expectedEpoch,
+        Action<TScrapbook>? scrapbookUpdater
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation<TParam, TScrapbook>(
             functionId,
             expectedStatuses,
             expectedEpoch,
-            hasScrapbook: true
+            hasScrapbook: true,
+            scrapbookUpdater
         );
         return new PreparedReInvocation<TParam, TScrapbook>(
             param,
@@ -336,28 +331,40 @@ internal class CommonInvoker
             functionId,
             expectedStatuses,
             expectedEpoch,
-            hasScrapbook: false
+            hasScrapbook: false,
+            scrapbookUpdater: null
         );
         return new PreparedReInvocation<TParam>(param, epoch, runningFunction);
     }
     
     private async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
-        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, bool hasScrapbook
+        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, 
+        bool hasScrapbook, Action<TScrapbook>? scrapbookUpdater
     ) where TParam : notnull where TScrapbook : RScrapbook 
     {
         expectedStatuses = expectedStatuses.ToList();
         var sf = await _functionStore.GetFunction(functionId);
         if (sf == null)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
-
         if (expectedStatuses.All(expectedStatus => expectedStatus != sf.Status))
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{sf.Status}'");
-
         if (expectedEpoch != null && sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
-
         if (sf.Version > _version)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{sf.Version}'");
+        if (hasScrapbook && sf.Scrapbook == null)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have a scrapbook as expected");
+
+        var updatedScrapbookJsonOption = Option<string>.None;
+        if (scrapbookUpdater != null)
+        {
+            var scrapbook = _settings.Serializer.DeserializeScrapbook<TScrapbook>(
+                sf.Scrapbook!.ScrapbookJson,
+                sf.Scrapbook.ScrapbookType
+            );
+            scrapbookUpdater(scrapbook);
+            updatedScrapbookJsonOption = Option.Some(Serializer.SerializeScrapbook(scrapbook));
+        }
         
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var epoch = sf.Epoch + 1;
@@ -369,7 +376,8 @@ internal class CommonInvoker
                 expectedEpoch: sf.Epoch,
                 newEpoch: epoch,
                 _settings.CrashedCheckFrequency.Ticks,
-                _version
+                _version,
+                updatedScrapbookJsonOption
             );
 
             if (!success)
@@ -379,12 +387,11 @@ internal class CommonInvoker
             if (!hasScrapbook)
                 return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, default(TScrapbook), runningFunction);
 
-            var scrapbook = Serializer.DeserializeScrapbook<TScrapbook>(
-                sf.Scrapbook!.ScrapbookJson,
-                sf.Scrapbook.ScrapbookType
-            );
+            var scrapbook = updatedScrapbookJsonOption.HasValue
+                ? Serializer.DeserializeScrapbook<TScrapbook>(updatedScrapbookJsonOption.Value, sf.Scrapbook!.ScrapbookType)
+                : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook!.ScrapbookJson, sf.Scrapbook.ScrapbookType);
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
-
+            
             return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, (TScrapbook?) scrapbook, runningFunction);
         }
         catch (DeserializationException e)

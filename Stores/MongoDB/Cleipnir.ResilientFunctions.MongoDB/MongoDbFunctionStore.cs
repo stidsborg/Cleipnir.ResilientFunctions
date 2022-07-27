@@ -90,7 +90,8 @@ public class MongoDbFunctionStore : IFunctionStore
         int expectedEpoch, 
         int newEpoch, 
         long crashedCheckFrequency,
-        int version)
+        int version,
+        Option<string> scrapbookJson)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -104,6 +105,9 @@ public class MongoDbFunctionStore : IFunctionStore
             .Set(d => d.Epoch, newEpoch)
             .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency)
             .Set(d => d.Version, version);
+
+        if (scrapbookJson.HasValue)
+            update.Set(d => d.ScrapbookJson, scrapbookJson.Value);
         
         var result = await collection.UpdateOneAsync(
             d =>

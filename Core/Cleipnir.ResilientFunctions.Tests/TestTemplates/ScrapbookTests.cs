@@ -86,7 +86,8 @@ public abstract class ScrapbookTests
             Status.Executing,
             expectedEpoch: 0, newEpoch: 1,
             crashedCheckFrequency: 100,
-            version: 0
+            version: 0,
+            scrapbookJson: Option<string>.None
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};
@@ -104,7 +105,7 @@ public abstract class ScrapbookTests
             .Name!
             .ShouldBe("Peter");
     }
-    
+
     public abstract Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration();
     protected async Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
     {

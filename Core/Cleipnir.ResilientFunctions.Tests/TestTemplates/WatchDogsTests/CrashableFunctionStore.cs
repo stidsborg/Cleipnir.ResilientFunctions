@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -47,15 +48,16 @@ public class CrashableFunctionStore : IFunctionStore
         );
 
     public Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
-        int expectedEpoch, 
-        int newEpoch, 
+        FunctionId functionId,
+        Status newStatus,
+        int expectedEpoch,
+        int newEpoch,
         long crashedCheckFrequency,
-        int version
+        int version,
+        Option<string> scrapbookJson
     ) => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
+        ? Task.FromException<bool>(new TimeoutException())
+        : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         => _crashed

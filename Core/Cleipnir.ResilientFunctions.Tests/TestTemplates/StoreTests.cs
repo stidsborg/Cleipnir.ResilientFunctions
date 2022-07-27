@@ -139,8 +139,15 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100, version: 0)
-            .ShouldBeTrueAsync();
+            .TryToBecomeLeader(
+                FunctionId, 
+                Status.Executing, 
+                expectedEpoch: 0, 
+                newEpoch: 1, 
+                crashedCheckFrequency: 100, 
+                version: 0, 
+                scrapbookJson: Option<string>.None
+            ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
@@ -168,12 +175,20 @@ public abstract class StoreTests
             Status.Executing, 
             expectedEpoch: 0, newEpoch: 2,
             crashedCheckFrequency: 100,
-            version: 0
+            version: 0,
+            scrapbookJson: Option<string>.None
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(FunctionId, Status.Executing, 0, 1, crashedCheckFrequency: 100, version: 0)
-            .ShouldBeFalseAsync();
+            .TryToBecomeLeader(
+                FunctionId, 
+                Status.Executing, 
+                expectedEpoch: 0, 
+                newEpoch: 1, 
+                crashedCheckFrequency: 100, 
+                version: 0,
+                scrapbookJson: Option<string>.None
+            ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
@@ -323,7 +338,15 @@ public abstract class StoreTests
             version: 0
         );
 
-        await store.TryToBecomeLeader(functionId, Status.Executing, expectedEpoch: 0, newEpoch: 1, crashedCheckFrequency, version: 0);
+        await store.TryToBecomeLeader(
+            functionId, 
+            Status.Executing, 
+            expectedEpoch: 0, 
+            newEpoch: 1, 
+            crashedCheckFrequency, 
+            version: 0,
+            scrapbookJson: Option<string>.None
+        );
         var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, versionUpperBound: 0).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];

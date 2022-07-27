@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
 
@@ -119,30 +120,60 @@ public class PostgreSqlFunctionStore : IFunctionStore
         int expectedEpoch, 
         int newEpoch,
         long crashedCheckFrequency,
-        int version
+        int version,
+        Option<string> scrapbookJson
     )
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        int affectedRows;
+        if (scrapbookJson.HasValue)
+        {
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4, scrapbook_json = $5
+            WHERE function_type_id = $6 AND function_instance_id = $7 AND epoch = $8";
+
+            await using var command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = newEpoch},
+                    new() {Value = (int) newStatus},
+                    new() {Value = crashedCheckFrequency},
+                    new() {Value = version},
+                    new() {Value = scrapbookJson.Value},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        
+            affectedRows = await command.ExecuteNonQueryAsync();
+        }
+        else
+        {
+            var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4
             WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
 
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
+            await using var command = new NpgsqlCommand(sql, conn)
             {
-                new() {Value = newEpoch},
-                new() {Value = (int) newStatus},
-                new() {Value = crashedCheckFrequency},
-                new() {Value = version},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEpoch},
-            }
-        };
+                Parameters =
+                {
+                    new() {Value = newEpoch},
+                    new() {Value = (int) newStatus},
+                    new() {Value = crashedCheckFrequency},
+                    new() {Value = version},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
         
-        var affectedRows = await command.ExecuteNonQueryAsync();
+            affectedRows = await command.ExecuteNonQueryAsync();
+        }
+        
         return affectedRows == 1;
     }
 

@@ -103,20 +103,16 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        await store.UpdateScrapbook<ListScrapbook<string>>(
-            new FunctionId(functionType, "something"),
-            s =>
-            {
-                syncedListFromScrapbook.Value = new List<string>(s.List);
-                s.List.Clear();
-            },
-            expectedStatuses: new [] {Status.Failed}
-        );
-        
+
         await rAction.ScheduleReInvocation(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Failed},
-            expectedEpoch: null
+            expectedEpoch: null,
+            scrapbookUpdater: scrapbook =>
+            {
+                syncedListFromScrapbook.Value = new List<string>(scrapbook.List);
+                scrapbook.List.Clear();
+            }
         ); 
         
         var functionId = new FunctionId(functionType, "something");
@@ -220,20 +216,15 @@ public abstract class ScheduleReInvocationTests
 
         var scrapbookList = new Synced<List<string>>();
 
-        await store.UpdateScrapbook<ListScrapbook<string>>(
-            new FunctionId(functionType, "something"),
-            s =>
-            {
-                scrapbookList.Value = new List<string>(s.List);
-                s.List.Clear();
-            },
-            new [] {Status.Failed}
-        );
-            
         await rFunc.ScheduleReInvocation(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Failed},
-            expectedEpoch: null
+            expectedEpoch: null,
+            scrapbookUpdater: scrapbook =>
+            {
+                scrapbookList.Value = new List<string>(scrapbook.List);
+                scrapbook.List.Clear();
+            }
         );
 
         var functionId = new FunctionId(functionType, "something");

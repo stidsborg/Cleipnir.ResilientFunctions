@@ -51,7 +51,8 @@ public class InMemoryFunctionStore : IFunctionStore
         int expectedEpoch, 
         int newEpoch, 
         long crashedCheckFrequency,
-        int version)
+        int version,
+        Option<string> scrapbookJsonOption)
     {
         lock (_sync)
         {
@@ -66,6 +67,8 @@ public class InMemoryFunctionStore : IFunctionStore
             state.Status = newStatus;
             state.CrashedCheckFrequency = crashedCheckFrequency;
             state.Version = version;
+            if (scrapbookJsonOption.HasValue)
+                state.Scrapbook =  new StoredScrapbook(scrapbookJsonOption.Value, state.Scrapbook?.ScrapbookType!);
             return true.ToTask();
         }
     }

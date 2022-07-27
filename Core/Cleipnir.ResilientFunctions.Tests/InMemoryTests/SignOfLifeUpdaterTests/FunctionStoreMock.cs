@@ -15,7 +15,7 @@ public delegate Task<bool> CreateFunction(
     int version
 );
 
-public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version);
+public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, Option<string> scrapbookJson);
 
 public delegate Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
@@ -57,16 +57,18 @@ public class FunctionStoreMock : IFunctionStore
         );
 
     public TryToBecomeLeader? SetupTryToBecomeLeader { private get; init; }
+
     public Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
-        int expectedEpoch, 
-        int newEpoch, 
+        FunctionId functionId,
+        Status newStatus,
+        int expectedEpoch,
+        int newEpoch,
         long crashedCheckFrequency,
-        int version
+        int version,
+        Option<string> scrapbookJson
     ) => SetupTryToBecomeLeader == null
-            ? true.ToTask()
-            : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
+        ? true.ToTask()
+        : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson);
 
     public UpdateSignOfLife? SetupUpdateSignOfLife { private get; init; }
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
