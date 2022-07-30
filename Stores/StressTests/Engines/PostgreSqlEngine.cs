@@ -11,6 +11,8 @@ public class PostgreSqlEngine : IEngine
     private const string ConnectionString 
         = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=rfunctions_stresstest;";
 
+    public async Task RecreateDatabase() => await DatabaseHelper.RecreateDatabase(ConnectionString);
+
     public async Task InitializeDatabaseAndInitializeAndTruncateTable()
     {
         await DatabaseHelper.CreateDatabaseIfNotExists(ConnectionString);

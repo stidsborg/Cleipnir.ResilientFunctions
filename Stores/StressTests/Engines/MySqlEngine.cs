@@ -11,6 +11,12 @@ public class MySqlEngine : IEngine
     private const string ConnectionString 
         = "server=localhost;userid=root;password=Pa55word!;database=rfunctions_tests;";
 
+    public async Task RecreateDatabase()
+    {
+        await DatabaseHelper.DropDatabaseIfExists(ConnectionString);
+        await InitializeDatabaseAndInitializeAndTruncateTable();
+    }
+
     public async Task InitializeDatabaseAndInitializeAndTruncateTable()
     {
         await DatabaseHelper.CreateDatabaseIfNotExists(ConnectionString);

@@ -9,6 +9,14 @@ namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 public class MongoDbEngine : IEngine
 {
     private const string ConnectionString = "mongodb://root:Pa55word!@localhost:27017?authSource=admin";
+    private const string DatabaseName = "rfunctions_stresstest";
+
+    public Task RecreateDatabase()
+    {
+        var dbClient = new MongoClient(ConnectionString);
+        dbClient.DropDatabase(DatabaseName);
+        return InitializeDatabaseAndInitializeAndTruncateTable();
+    }
 
     public async Task InitializeDatabaseAndInitializeAndTruncateTable()
     {

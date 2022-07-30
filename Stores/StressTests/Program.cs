@@ -11,7 +11,22 @@ namespace Cleipnir.ResilientFunctions.StressTests
             if (args.Length != 1)
             {
                 Console.WriteLine("Usage: StressTests <all, mongo, mysql, postgres, sqlserver>");
+                Console.WriteLine("       StressTests recreate_dbs");
                 return 1;
+            }
+
+            if (args[0].ToLower() == "recreate_dbs")
+            {
+                Console.WriteLine("Recreating Databases:");
+                Console.WriteLine("MongoDB...");
+                await new MongoDbEngine().RecreateDatabase();
+                Console.WriteLine("MySQL...");
+                await new MySqlEngine().RecreateDatabase();
+                Console.WriteLine("Postgres...");
+                await new PostgreSqlEngine().RecreateDatabase();
+                Console.WriteLine("SQL Server...");
+                await new SqlServerEngine().RecreateDatabase();
+                return 0;
             }
 
             var arg = args[0].ToLower();

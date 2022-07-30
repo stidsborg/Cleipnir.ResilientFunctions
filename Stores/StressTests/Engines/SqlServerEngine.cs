@@ -10,6 +10,8 @@ public class SqlServerEngine : IEngine
 {
     private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;";
 
+    public Task RecreateDatabase() => DatabaseHelper.RecreateDatabase(ConnectionString);
+
     public async Task InitializeDatabaseAndInitializeAndTruncateTable()
     {
         await DatabaseHelper.CreateDatabaseIfNotExists(ConnectionString);
