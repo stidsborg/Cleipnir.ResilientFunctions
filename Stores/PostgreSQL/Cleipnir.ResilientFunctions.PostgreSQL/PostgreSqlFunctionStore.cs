@@ -33,17 +33,17 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
-                param_json TEXT NULL,
-                param_type VARCHAR(255) NULL,
+                param_json TEXT NOT NULL,
+                param_type VARCHAR(255) NOT NULL,
                 scrapbook_json TEXT NULL,
                 scrapbook_type VARCHAR(255) NULL,
-                status INT NOT NULL,
+                status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
                 result_type VARCHAR(255) NULL,
                 error_json TEXT NULL,
                 postponed_until BIGINT NULL,
-                epoch INT NOT NULL,
-                sign_of_life INT NOT NULL,
+                epoch INT NOT NULL DEFAULT 0,
+                sign_of_life INT NOT NULL DEFAULT 0,
                 crashed_check_frequency BIGINT NOT NULL,
                 version INT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
@@ -56,11 +56,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_postponed
             ON {_tablePrefix}rfunctions(function_type_id, postponed_until, function_instance_id)
             INCLUDE (epoch)
-            WHERE status = {(int) Status.Postponed};
-
-            ALTER TABLE {_tablePrefix}rfunctions ALTER COLUMN status SET DEFAULT {(int) Status.Executing};
-            ALTER TABLE {_tablePrefix}rfunctions ALTER COLUMN epoch SET DEFAULT 0;
-            ALTER TABLE {_tablePrefix}rfunctions ALTER COLUMN sign_of_life SET DEFAULT 0;";
+            WHERE status = {(int) Status.Postponed};";
 
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();

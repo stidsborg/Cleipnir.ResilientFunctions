@@ -41,8 +41,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 CREATE TABLE {_tablePrefix}RFunctions (
                     FunctionTypeId NVARCHAR(200) NOT NULL,
                     FunctionInstanceId NVARCHAR(200) NOT NULL,
-                    ParamJson NVARCHAR(MAX) NULL,
-                    ParamType NVARCHAR(255) NULL,
+                    ParamJson NVARCHAR(MAX) NOT NULL,
+                    ParamType NVARCHAR(255) NOT NULL,
                     ScrapbookJson NVARCHAR(MAX) NULL,
                     ScrapbookType NVARCHAR(255) NULL,
                     Status INT NOT NULL,
@@ -52,6 +52,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     PostponedUntil BIGINT NULL,
                     Epoch INT NOT NULL,
                     SignOfLife INT NOT NULL,
+                    CrashedCheckFrequency BIGINT NOT NULL,
+                    Version INT NOT NULL,
                     PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
                 );
                 CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
@@ -62,12 +64,7 @@ public class SqlServerFunctionStore : IFunctionStore
                   ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
                   INCLUDE (Epoch)
                   WHERE Status = {(int)Status.Postponed};
-            END
-                
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[{_tablePrefix}RFunctions]') AND name = 'CrashedCheckFrequency')
-                ALTER TABLE {_tablePrefix}RFunctions ADD [CrashedCheckFrequency] BIGINT DEFAULT 0 NOT NULL;
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[{_tablePrefix}RFunctions]') AND name = 'Version')
-                ALTER TABLE {_tablePrefix}RFunctions ADD [Version] INT DEFAULT 0 NOT NULL;";
+            END";
 
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();

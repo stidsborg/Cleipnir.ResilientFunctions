@@ -24,8 +24,8 @@ public class MySqlFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
-                param_json TEXT NULL,
-                param_type VARCHAR(255) NULL,
+                param_json TEXT NOT NULL,
+                param_type VARCHAR(255) NOT NULL,
                 scrapbook_json TEXT NULL,
                 scrapbook_type VARCHAR(255) NULL,
                 status INT NOT NULL,
