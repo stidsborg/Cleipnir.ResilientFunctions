@@ -210,6 +210,36 @@ public abstract class FailedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
+    public abstract Task PassingInNullParameterResultsInArgumentNullException();
+    public async Task PassingInNullParameterResultsInException(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var flag = new SyncedFlag();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+            )
+        );
+        var rFunc = rFunctions
+            .RegisterAction(
+                functionTypeId,
+                inner: (string _) => flag.Raise()
+            )
+            .Invoke;
+        await Task.Delay(100);
+        flag.Position.ShouldBe(Lowered);
+
+        await Should.ThrowAsync<ArgumentNullException>(
+            () => rFunc("someFunctionInstanceId", null!)
+        );
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+
     public abstract Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog();
     protected Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
         => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);

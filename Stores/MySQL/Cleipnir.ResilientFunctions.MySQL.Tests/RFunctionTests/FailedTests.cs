@@ -25,6 +25,10 @@ public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests
         => ExceptionThrowingActionIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task PassingInNullParameterResultsInArgumentNullException()
+        => PassingInNullParameterResultsInException(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
 

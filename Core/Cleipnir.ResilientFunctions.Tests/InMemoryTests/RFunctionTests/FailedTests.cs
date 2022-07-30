@@ -29,6 +29,10 @@ public class FailedTests : TestTemplates.RFunctionTests.FailedTests
         => ExceptionThrowingActionIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
+    public override Task PassingInNullParameterResultsInArgumentNullException()
+        => PassingInNullParameterResultsInException(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
         => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 

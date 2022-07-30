@@ -38,6 +38,7 @@ internal class CommonInvoker
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore<TParam>(FunctionId functionId, TParam param, Type? scrapbookType)
         where TParam : notnull
     {
+        ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var paramJson = Serializer.SerializeParameter(param);
         var paramType = param.GetType().SimpleQualifiedName();
