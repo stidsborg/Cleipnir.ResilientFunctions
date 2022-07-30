@@ -1,15 +1,39 @@
+using System;
+
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public record FunctionTypeId(string Value)
+public class FunctionTypeId
 {
+    public string Value { get; }
+    public FunctionTypeId(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Value = value;
+    }
+    
     public static implicit operator FunctionTypeId(string functionTypeId) => new(functionTypeId);
     public override string ToString() => Value;
+    
+    public override bool Equals(object? obj)
+        => obj is FunctionTypeId id && id.Value == Value;
+    public override int GetHashCode() => Value.GetHashCode();
 }
 
-public record FunctionInstanceId(string Value)
+public class FunctionInstanceId
 {
+    public string Value { get; }
+    public FunctionInstanceId(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Value = value;
+    }
+    
     public static implicit operator FunctionInstanceId(string functionInstanceId) => new(functionInstanceId);
     public override string ToString() => Value;
+
+    public override bool Equals(object? obj)
+        => obj is FunctionInstanceId id && id.Value == Value;
+    public override int GetHashCode() => Value.GetHashCode();
 }
 
 public record FunctionId(FunctionTypeId TypeId, FunctionInstanceId InstanceId)
@@ -24,7 +48,7 @@ public record FunctionId(FunctionTypeId TypeId, FunctionInstanceId InstanceId)
         : this(functionTypeId.ToFunctionTypeId(), functionInstanceId) { }
 
     public override string ToString() 
-        => $"{InstanceId.Value}@{TypeId.Value}";
+        => $"{InstanceId}@{TypeId}";
 }
     
 public static class DomainExtensions
