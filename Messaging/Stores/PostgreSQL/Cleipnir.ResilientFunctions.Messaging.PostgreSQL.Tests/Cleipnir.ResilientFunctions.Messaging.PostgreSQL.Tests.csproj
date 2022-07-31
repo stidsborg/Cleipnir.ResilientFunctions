@@ -12,7 +12,6 @@
         <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
         <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
         <PackageReference Include="coverlet.collector" Version="3.1.2" />
-        <PackageReference Include="Npgsql" Version="6.0.4" />
         <PackageReference Include="Shouldly" Version="4.0.3" />
     </ItemGroup>
 
