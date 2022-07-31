@@ -46,14 +46,14 @@ namespace Cleipnir.ResilientFunctions.StressTests
                 return 1;
             }
                 
-            var testResults = new Dictionary<string, Dictionary<string, int>>();
+            var testResults = new Dictionary<string, Dictionary<string, TestResult>>();
 
             foreach (var engine in engines)
             {
                 Console.WriteLine("*************************************************************");
                 Console.WriteLine($"* {engine.GetType().Name.ToUpper()} *");
                 Console.WriteLine("*************************************************************");
-                var engineTestResults = new Dictionary<string, int>();
+                var engineTestResults = new Dictionary<string, TestResult>();
                 testResults[engine.GetType().Name] = engineTestResults;
                 Console.WriteLine();
                 Console.WriteLine(nameof(CrashedTest).ToUpper()); 

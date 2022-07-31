@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 public static class CrashedTest
 {
-    public static async Task<int> Perform(IEngine helper)
+    public static async Task<TestResult> Perform(IEngine helper)
     {
         const int testSize = 5000;
 
@@ -33,7 +33,8 @@ public static class CrashedTest
         }
         
         stopWatch.Stop();
-        Console.WriteLine("CRASHED_TEST: Initialization took: " + stopWatch.Elapsed);
+        var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
+        Console.WriteLine($"CRASHED_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
 
         Console.WriteLine("CRASHED_TEST: Waiting for invocations to begin");
         using var rFunctions = new RFunctions(
@@ -60,6 +61,9 @@ public static class CrashedTest
             void(string param) => { }
         );
 
-        return await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
+        var executionAverageSpeed = await 
+            WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CRASHED_TEST: ");
+
+        return new TestResult(insertionAverageSpeed, executionAverageSpeed);
     }
 }

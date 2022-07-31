@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
 public static class PostponedTest
 {
-    public static async Task<int> Perform(IEngine helper)
+    public static async Task<TestResult> Perform(IEngine helper)
     {
         const int testSize = 5000;
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
@@ -42,7 +42,8 @@ public static class PostponedTest
             );
         }
         stopWatch.Stop();
-        Console.WriteLine("POSTPONED_TEST: Initialization took: " + stopWatch.Elapsed);
+        var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
+        Console.WriteLine($"POSTPONED_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
 
         using var rFunctions1 = new RFunctions(
             store,
@@ -79,6 +80,7 @@ public static class PostponedTest
            await Task.Delay(500);
        }
        
-       return await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
+       var executionAverageSpeed = await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
+       return new TestResult(insertionAverageSpeed, executionAverageSpeed);
     }
 }
