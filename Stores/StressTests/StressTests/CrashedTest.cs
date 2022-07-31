@@ -15,7 +15,7 @@ public static class CrashedTest
         const int testSize = 5000;
 
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
-        var sqlStore = await helper.CreateFunctionStore();
+        var store = await helper.CreateFunctionStore();
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -23,7 +23,7 @@ public static class CrashedTest
         Console.WriteLine("CRASHED_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
-            await sqlStore.CreateFunction(
+            await store.CreateFunction(
                 new FunctionId("CrashedTest", i.ToString()),
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
                 scrapbookType: null,
@@ -38,7 +38,7 @@ public static class CrashedTest
 
         Console.WriteLine("CRASHED_TEST: Waiting for invocations to begin");
         using var rFunctions = new RFunctions(
-            sqlStore,
+            store,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
                 CrashedCheckFrequency: TimeSpan.FromSeconds(1)
@@ -50,7 +50,7 @@ public static class CrashedTest
         );
         
         using var rFunctions2 = new RFunctions(
-            sqlStore,
+            store,
             new Settings(
                 UnhandledExceptionHandler: Console.WriteLine,
                 CrashedCheckFrequency: TimeSpan.FromSeconds(1)
