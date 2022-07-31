@@ -20,7 +20,7 @@ public static class WaitFor
         }
 
         var averageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
-        Console.WriteLine($"{logPrefix} Average Speed: {averageSpeed}" );
+        Console.WriteLine($"{logPrefix} Average Speed (s): {averageSpeed}" );
         Console.WriteLine($"{logPrefix} Settled in: {stopWatch.Elapsed}");
 
         return averageSpeed;
