@@ -208,7 +208,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, SignOfLife, CrashedCheckFrequency
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}RFunctions WITH (NOLOCK)
             WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing} AND Version <= @Version";
 
         await using var command = new SqlCommand(sql, conn);
@@ -242,7 +242,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, PostponedUntil
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}RFunctions WITH (NOLOCK)
             WHERE FunctionTypeId = @FunctionTypeId 
               AND Status = {(int) Status.Postponed} 
               AND PostponedUntil <= @PostponedUntil
