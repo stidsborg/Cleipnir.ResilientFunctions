@@ -25,7 +25,7 @@ public abstract class EventSourcesTests
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
 
-        await eventSource.Emit("hello world");
+        await eventSource.Append("hello world");
 
         (await task).ShouldBe("hello world");
     }
@@ -45,9 +45,9 @@ public abstract class EventSourcesTests
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
 
-        await eventSource.Emit("hello world", "1");
-        await eventSource.Emit("hello world", "1");
-        await eventSource.Emit("hello universe");
+        await eventSource.Append("hello world", "1");
+        await eventSource.Append("hello world", "1");
+        await eventSource.Append("hello universe");
 
         task.IsCompletedSuccessfully.ShouldBeTrue();
         task.Result.Count.ShouldBe(2);
@@ -71,7 +71,7 @@ public abstract class EventSourcesTests
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
-        await eventSource.Emit(new EventAndIdempotencyKey[]
+        await eventSource.Append(new EventAndIdempotencyKey[]
         {
             new("hello world", "1"),
             new("hello world", "1"),
@@ -152,8 +152,8 @@ public abstract class EventSourcesTests
         var eventSources = new EventSources(eventStore, eventSerializer: new ExceptionThrowingEventSerializer(typeof(int)));
         using var eventSource = await eventSources.Get(functionId);
 
-        await eventSource.Emit("hello world");
-        await Should.ThrowAsync<EventProcessingException>(eventSource.Emit(1));
+        await eventSource.Append("hello world");
+        await Should.ThrowAsync<EventProcessingException>(eventSource.Append(1));
         await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.All.Skip(1).NextEvent());
         Should.Throw<EventProcessingException>(() => eventSource.Existing.ToList());
     }

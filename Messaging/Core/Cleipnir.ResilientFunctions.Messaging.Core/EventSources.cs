@@ -50,7 +50,19 @@ public class EventSources
         IEventSerializer? eventSerializer = null
     )
     {
-        var eventSource = new EventSource(functionId, _eventStore, pullFrequency, eventSerializer ?? _eventSerializer);
+        var writer = new EventSourceWriter(
+            functionId.TypeId,
+            _eventStore,
+            eventSerializer ?? _eventSerializer,
+            reInvoke: null
+        ).For(functionId.InstanceId);
+        
+        var eventSource = new EventSource(
+            functionId, 
+            _eventStore,
+            writer,
+            pullFrequency, 
+            eventSerializer ?? _eventSerializer);
         await eventSource.Initialize();
 
         return eventSource;

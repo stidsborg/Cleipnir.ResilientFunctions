@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Reactive.Subjects;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
 using Cleipnir.ResilientFunctions.Watchdogs;
 
@@ -11,6 +10,7 @@ public class EventSource : IDisposable
 {
     private readonly FunctionId _functionId;
     private readonly IEventStore _eventStore;
+    private readonly EventSourceInstanceWriter _eventWriter;
     private readonly TimeSpan _pullFrequency;
     private readonly IEventSerializer _eventSerializer;
     
@@ -43,11 +43,13 @@ public class EventSource : IDisposable
     public EventSource(
         FunctionId functionId, 
         IEventStore eventStore, 
+        EventSourceInstanceWriter eventWriter,
         TimeSpan? pullFrequency, 
         IEventSerializer? eventSerializer)
     {
         _functionId = functionId;
         _eventStore = eventStore;
+        _eventWriter = eventWriter;
         _eventSerializer = eventSerializer ?? DefaultEventSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
     }
@@ -115,35 +117,20 @@ public class EventSource : IDisposable
         }
     }
 
-    public async Task Emit(object @event, string? idempotencyKey = null)
+    public async Task Append(object @event, string? idempotencyKey = null)
     {
-        var json = _eventSerializer.SerializeEvent(@event);
-        var type = @event.GetType().SimpleQualifiedName();
-        await _eventStore.AppendEvent(_functionId, json, type, idempotencyKey);
+        await _eventWriter.Append(@event, idempotencyKey, awakeIfSuspended: false);
         await DeliverOutstandingEvents();
     }
 
-    public async Task Emit(IEnumerable<EventAndIdempotencyKey> events)
+    public async Task Append(IEnumerable<EventAndIdempotencyKey> events)
     {
-        await _eventStore.AppendEvents(
-            _functionId,
-            storedEvents: events.Select(eventAndIdempotencyKey =>
-            {
-                var (@event, idempotencyKey) = eventAndIdempotencyKey;
-                return new StoredEvent(
-                    EventJson: _eventSerializer.SerializeEvent(@event),
-                    EventType: @event.GetType().SimpleQualifiedName(),
-                    idempotencyKey
-                );
-            })
-        );
+        await _eventWriter.Append(events, awakeIfSuspended: false);
         await DeliverOutstandingEvents();
     }
 
-    public Task Pull() => DeliverOutstandingEvents();
-
+    public Task Sync() => DeliverOutstandingEvents();
     public Task Truncate() => _eventStore.Truncate(_functionId);
-
     public void Dispose() => _disposed = true;
 }
 

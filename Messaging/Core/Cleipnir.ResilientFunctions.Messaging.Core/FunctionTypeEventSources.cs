@@ -33,9 +33,17 @@ public class FunctionTypeEventSources
         TimeSpan? pullFrequency = null,
         IEventSerializer? eventSerializer = null)
     {
+        var eventWriter = new EventSourceWriter(
+            _functionTypeId,
+            _eventStore,
+            eventSerializer ?? _eventSerializer,
+            reInvoke: null
+        ).For(functionInstanceId);
+        
         var eventSource = new EventSource(
             new FunctionId(_functionTypeId, functionInstanceId),
             _eventStore,
+            eventWriter,
             pullFrequency ?? _pullFrequency,
             eventSerializer ?? _eventSerializer
         );
@@ -43,4 +51,30 @@ public class FunctionTypeEventSources
 
         return eventSource;
     }
+
+    public EventSourceWriter CreateWriter(ScheduleReInvocation reInvoke)
+        => CreateWriter(functionInstanceId =>
+            reInvoke(
+                functionInstanceId.Value,
+                new[] { Status.Postponed },
+                throwOnUnexpectedFunctionState: false
+            )
+        );
+
+    public EventSourceWriter CreateWriter<TScrapbook>(ScheduleReInvocation<TScrapbook> reInvoke)
+        => CreateWriter(functionInstanceId =>
+            reInvoke(
+                functionInstanceId.Value,
+                new[] { Status.Postponed },
+                throwOnUnexpectedFunctionState: false
+            )
+        );
+
+    private EventSourceWriter CreateWriter(Func<FunctionInstanceId, Task> reInvoke)
+        => new EventSourceWriter(
+            _functionTypeId,
+            _eventStore,
+            _eventSerializer,
+            reInvoke
+        );
 }

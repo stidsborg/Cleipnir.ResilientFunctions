@@ -18,7 +18,7 @@ public abstract class CustomEventSerializerTests
             functionInstanceId: nameof(CustomEventSerializerIsUsedWhenSpecified)
         );
 
-        await eventSource.Emit("hello world");
+        await eventSource.Append("hello world");
         
         eventSerializer.EventToSerialize.Count.ShouldBe(1);
         eventSerializer.EventToSerialize[0].ShouldBe("hello world");
