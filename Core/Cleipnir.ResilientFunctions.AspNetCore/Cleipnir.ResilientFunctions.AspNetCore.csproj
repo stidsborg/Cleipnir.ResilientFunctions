@@ -23,6 +23,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\Messaging\Core\Cleipnir.ResilientFunctions.Messaging.Core\Cleipnir.ResilientFunctions.Messaging.Core.csproj" />
       <ProjectReference Include="..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
