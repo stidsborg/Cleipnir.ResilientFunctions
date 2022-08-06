@@ -42,11 +42,8 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param);
         }
-        catch (Exception exception)
-        {
-            await PersistFailure(functionId, exception);
-            throw;
-        }
+        catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+        catch (Exception exception) { await PersistFailure(functionId, exception); throw; }
 
         await PersistResultAndEnsureSuccess(functionId, result);
         return result.SucceedWithValue!;
@@ -70,11 +67,8 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param);
                 }
-                catch (Exception exception)
-                {
-                    await PersistFailure(functionId, exception);
-                    throw;
-                }
+                catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+                catch (Exception exception) { await PersistFailure(functionId, exception); throw; }
 
                 await PersistResultAndEnsureSuccess(functionId, result, allowPostponed: true);
             }
@@ -97,11 +91,8 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param);
         }
-        catch (Exception exception)
-        {
-            await PersistFailure(functionId, exception, epoch);
-            throw;
-        }
+        catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+        catch (Exception exception) { await PersistFailure(functionId, exception, epoch); throw; }
 
         await PersistResultAndEnsureSuccess(functionId, result, epoch);
         return result.SucceedWithValue!;
@@ -125,11 +116,8 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
                         // *** USER FUNCTION INVOCATION *** 
                         result = await _inner(param);
                     }
-                    catch (Exception exception)
-                    {
-                        await PersistFailure(functionId, exception, epoch);
-                        throw;
-                    }
+                    catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+                    catch (Exception exception) { await PersistFailure(functionId, exception, epoch); throw; }
 
                     await PersistResultAndEnsureSuccess(functionId, result, epoch, allowPostponed: true);
                 }
@@ -222,11 +210,8 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, scrapbook);
         }
-        catch (Exception exception)
-        {
-            await PersistFailure(functionId, exception, scrapbook);
-            throw;
-        }
+        catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
         await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
         return result.SucceedWithValue!;
@@ -250,11 +235,8 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param, scrapbook);
                 }
-                catch (Exception exception)
-                {
-                    await PersistFailure(functionId, exception, scrapbook);
-                    throw;
-                }
+                catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+                catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
                 await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponed: true);
             }
@@ -278,11 +260,8 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, scrapbook);
         }
-        catch (Exception exception)
-        {
-            await PersistFailure(functionId, exception, scrapbook, epoch);
-            throw;
-        }
+        catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
         await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
         return result.SucceedWithValue!;
@@ -312,11 +291,8 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                         // *** USER FUNCTION INVOCATION *** 
                         result = await _inner(param, scrapbook);
                     }
-                    catch (Exception exception)
-                    {
-                        await PersistFailure(functionId, exception, scrapbook, epoch);
-                        throw;
-                    }
+                    catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+                    catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
                     await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
                 }

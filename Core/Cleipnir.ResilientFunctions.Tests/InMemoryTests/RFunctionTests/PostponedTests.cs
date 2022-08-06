@@ -35,4 +35,20 @@ public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
     [TestMethod]
     public override Task PostponedActionIsNotInvokedOnHigherVersion()
         => PostponedActionIsNotInvokedOnHigherVersion(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedAction()
+        => ThrownPostponeExceptionResultsInPostponedAction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook()
+        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedFunc()
+        => ThrownPostponeExceptionResultsInPostponedFunc(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook()
+        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
@@ -60,6 +61,8 @@ public class Postpone
     public static Postpone For(TimeSpan timeSpan) => new(DateTime.UtcNow.Add(timeSpan));
 
     public static Postpone For(int ms) => new(DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)));
+    public static void Throw(DateTime postponeUntil) => throw new PostponeInvocationException(postponeUntil);
+    public static void Throw(TimeSpan postponeFor) => throw new PostponeInvocationException(DateTime.UtcNow.Add(postponeFor));
 }
 
 public class Result<T>

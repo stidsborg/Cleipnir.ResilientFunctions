@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using UnitScrapbook = Cleipnir.ResilientFunctions.Helpers.UnitScrapbook;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
@@ -367,7 +368,357 @@ public abstract class PostponedTests
         sf.Status.ShouldBe(Status.Postponed);
         sf.Version.ShouldBe(2);
     }
+    
+    public abstract Task ThrownPostponeExceptionResultsInPostponedAction();
+    protected async Task ThrownPostponeExceptionResultsInPostponedAction(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedAction);
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(UnhandledExceptionHandler: unhandledExceptionCatcher.Catch)
+        );
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            (string _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
+        );
 
+        //invoke
+        {
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rAction.Invoke("invoke", "hello")
+            );
+            var (status, postponedUntil) = await store
+                .GetFunction(new FunctionId(functionTypeId, "invoke"))
+                .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //schedule
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule");
+            await rAction.Schedule("schedule", "hello");
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            
+            var (status, postponedUntil) = await store
+                .GetFunction(functionId)
+                .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: null,
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+            
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rAction.ReInvoke(functionId.InstanceId.Value, expectedStatuses: new []{Status.Executing})
+            );
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //schedule re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: null,
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+
+            await rAction.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook();
+    protected async Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedActionWithScrapbook);
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(UnhandledExceptionHandler: unhandledExceptionCatcher.Catch)
+        );
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            (string _, UnitScrapbook _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
+        );
+
+        //invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "invoke");
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rAction.Invoke(functionId.InstanceId.Value, "hello")
+            );
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);            
+        }
+        //schedule
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule");
+            await rAction.Schedule("schedule", "hello");
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            
+            var (status, postponedUntil) = await store
+                .GetFunction(functionId)
+                .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+            
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rAction.ReInvoke(functionId.InstanceId.Value, expectedStatuses: new []{Status.Executing})
+            );
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //schedule re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+
+            await rAction.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+
+    public abstract Task ThrownPostponeExceptionResultsInPostponedFunc();
+    protected async Task ThrownPostponeExceptionResultsInPostponedFunc(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedAction);
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(UnhandledExceptionHandler: unhandledExceptionCatcher.Catch)
+        );
+        var rFunc = rFunctions.RegisterFunc<string, string>(
+            functionTypeId,
+            string (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
+        );
+
+        //invoke
+        {
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rFunc.Invoke("invoke", "hello")
+            );
+            var (status, postponedUntil) = await store
+                .GetFunction(new FunctionId(functionTypeId, "invoke"))
+                .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //schedule
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule");
+
+            await rFunc.Schedule("schedule", "hello");
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            var (status, postponedUntil) = await store
+                .GetFunction(functionId)
+                .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: null,
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+            
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rFunc.ReInvoke(functionId.InstanceId.Value, expectedStatuses: new []{Status.Executing})
+            );
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //schedule re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: null,
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+
+            await rFunc.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook();
+    protected async Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedActionWithScrapbook);
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(UnhandledExceptionHandler: unhandledExceptionCatcher.Catch)
+        );
+        var rFunc = rFunctions.RegisterFunc<string, string>(
+            functionTypeId,
+            string (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
+        );
+
+        //invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "invoke");
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rFunc.Invoke(functionId.InstanceId.Value, "hello")
+            );
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);            
+        }
+        //schedule
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule");
+
+            await rFunc.Schedule("schedule", "hello");
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            var (status, postponedUntil) = await store
+                .GetFunction(functionId)
+                .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+            
+            Should.Throw<FunctionInvocationPostponedException>(
+                () => rFunc.ReInvoke(functionId.InstanceId.Value, expectedStatuses: new []{Status.Executing})
+            );
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+        //schedule re-invoke
+        {
+            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            await store.CreateFunction(
+                functionId,
+                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                crashedCheckFrequency: 1000,
+                version: 0
+            ).ShouldBeTrueAsync();
+
+            await rFunc.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+
+            await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
+            
+            var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
+            status.ShouldBe(Status.Postponed);
+            postponedUntil.HasValue.ShouldBeTrue();
+            postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
+            postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
+        }
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     private class Scrapbook : RScrapbook
     {
         public int Value { get; set; }

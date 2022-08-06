@@ -32,4 +32,20 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
     [TestMethod]
     public override Task PostponedActionIsNotInvokedOnHigherVersion()
         => PostponedActionIsNotInvokedOnHigherVersion(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedAction()
+        => ThrownPostponeExceptionResultsInPostponedAction(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook()
+        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedFunc()
+        => ThrownPostponeExceptionResultsInPostponedFunc(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook()
+        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(NoSql.AutoCreateAndInitializeStore());
 }
