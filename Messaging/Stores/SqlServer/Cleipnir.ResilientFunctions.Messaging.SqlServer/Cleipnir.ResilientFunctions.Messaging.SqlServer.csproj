@@ -44,10 +44,6 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     </ItemGroup>
 
-    <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-    </ItemGroup>
-
     <ItemGroup>
         <ProjectReference Include="..\..\..\Core\Cleipnir.ResilientFunctions.Messaging.Core\Cleipnir.ResilientFunctions.Messaging.Core.csproj" />
     </ItemGroup>

@@ -42,9 +42,4 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
     <ItemGroup Label="SourceLink">
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     </ItemGroup>
-
-    <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-    </ItemGroup>
-
 </Project>

@@ -43,10 +43,6 @@
     <ItemGroup Label="SourceLink">
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     </ItemGroup>
-
-    <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-    </ItemGroup>
     
     <ItemGroup>
         <PackageReference Include="Npgsql" Version="6.0.5" />

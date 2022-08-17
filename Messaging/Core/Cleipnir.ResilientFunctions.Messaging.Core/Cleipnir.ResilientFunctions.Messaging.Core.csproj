@@ -43,11 +43,7 @@
     <ItemGroup Label="SourceLink">
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     </ItemGroup>
-
-    <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-    </ItemGroup>
-
+    
     <ItemGroup>
       <PackageReference Include="System.Reactive" Version="5.0.0" />
     </ItemGroup>
