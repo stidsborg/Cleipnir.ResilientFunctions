@@ -23,38 +23,16 @@ public static class RAction
     );
 }
 
-public class RAction<TParam> where TParam : notnull
-{
-    public RAction.Invoke<TParam> Invoke { get; }
-    public RAction.ReInvoke ReInvoke { get; }
-    public Schedule<TParam> Schedule { get; }
-    public ScheduleReInvocation ScheduleReInvocation { get; }
+public record RAction<TParam>(
+    RAction.Invoke<TParam> Invoke,
+    RAction.ReInvoke ReInvoke,
+    Schedule<TParam> Schedule,
+    ScheduleReInvocation ScheduleReInvocation
+) where TParam : notnull;
 
-    public RAction(
-        RAction.Invoke<TParam> invoke, RAction.ReInvoke reInvoke, 
-        Schedule<TParam> schedule, ScheduleReInvocation scheduleReInvocation)
-    {
-        Invoke = invoke;
-        ReInvoke = reInvoke;
-        Schedule = schedule;
-        ScheduleReInvocation = scheduleReInvocation;
-    }
-} 
-
-public class RAction<TParam, TScrapbook> where TParam : notnull
-{
-    public RAction.Invoke<TParam> Invoke { get; }
-    public RAction.ReInvoke<TScrapbook> ReInvoke { get; }
-    public Schedule<TParam> Schedule { get; }
-    public ScheduleReInvocation<TScrapbook> ScheduleReInvocation { get; }
-
-    public RAction(
-        RAction.Invoke<TParam> invoke, RAction.ReInvoke<TScrapbook> reInvoke, 
-        Schedule<TParam> schedule, ScheduleReInvocation<TScrapbook> scheduleReInvocation)
-    {
-        Invoke = invoke;
-        ReInvoke = reInvoke;
-        Schedule = schedule;
-        ScheduleReInvocation = scheduleReInvocation;
-    }
-} 
+public record RAction<TParam, TScrapbook>(
+    RAction.Invoke<TParam> Invoke,
+    RAction.ReInvoke<TScrapbook> ReInvoke,
+    Schedule<TParam> Schedule,
+    ScheduleReInvocation<TScrapbook> ScheduleReInvocation
+) where TParam : notnull;

@@ -24,39 +24,17 @@ public static class RFunc
     );
 }
 
-public class RFunc<TParam, TReturn> where TParam : notnull
-{
-    public RFunc.Invoke<TParam, TReturn> Invoke { get; }
-    public RFunc.ReInvoke<TReturn> ReInvoke { get; }
-    public Schedule<TParam> Schedule { get; }
-    public ScheduleReInvocation ScheduleReInvocation { get; }
-    
-    public RFunc(
-        RFunc.Invoke<TParam, TReturn> invoke, RFunc.ReInvoke<TReturn> reInvoke, 
-        Schedule<TParam> schedule, ScheduleReInvocation scheduleReInvocation)
-    {
-        Invoke = invoke;
-        ReInvoke = reInvoke;
-        Schedule = schedule;
-        ScheduleReInvocation = scheduleReInvocation;
-    }
-} 
+public record RFunc<TParam, TReturn>(
+    RFunc.Invoke<TParam, TReturn> Invoke,
+    RFunc.ReInvoke<TReturn> ReInvoke,
+    Schedule<TParam> Schedule,
+    ScheduleReInvocation ScheduleReInvocation
+) where TParam : notnull;
 
-public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull
-{
-    public RFunc.Invoke<TParam, TReturn> Invoke { get; }
-    public RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke { get; }
-    public Schedule<TParam> Schedule { get; }
-    public ScheduleReInvocation<TScrapbook> ScheduleReInvocation { get; }
-    
-    public RFunc(
-        RFunc.Invoke<TParam, TReturn> invoke, RFunc.ReInvoke<TScrapbook, TReturn> reInvoke, 
-        Schedule<TParam> schedule, ScheduleReInvocation<TScrapbook> scheduleReInvocation)
-    {
-        Invoke = invoke;
-        ReInvoke = reInvoke;
-        Schedule = schedule;
-        ScheduleReInvocation = scheduleReInvocation;
-    }
-}
+public record RFunc<TParam, TScrapbook, TReturn>(
+    RFunc.Invoke<TParam, TReturn> Invoke,
+    RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke,
+    Schedule<TParam> Schedule,
+    ScheduleReInvocation<TScrapbook> ScheduleReInvocation
+) where TParam : notnull;
     
