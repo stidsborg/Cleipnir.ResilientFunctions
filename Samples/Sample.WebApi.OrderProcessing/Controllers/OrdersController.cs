@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 using Sample.WebApi.OrderProcessing.Domain;
 
 namespace Sample.WebApi.OrderProcessing.Controllers;
@@ -7,10 +8,10 @@ namespace Sample.WebApi.OrderProcessing.Controllers;
 [Route("[controller]")]
 public class OrdersController : ControllerBase
 {
-    private readonly BusinessLogic.MessageBased.OrderProcessor _orderProcessor;
+    private readonly OrderProcessor _orderProcessor;
     private readonly ILogger<OrdersController> _logger;
 
-    public OrdersController(BusinessLogic.MessageBased.OrderProcessor orderProcessor, ILogger<OrdersController> logger)
+    public OrdersController(OrderProcessor orderProcessor, ILogger<OrdersController> logger)
     {
         _orderProcessor = orderProcessor;
         _logger = logger;

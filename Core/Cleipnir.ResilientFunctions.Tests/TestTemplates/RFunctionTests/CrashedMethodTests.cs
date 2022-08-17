@@ -10,8 +10,9 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-public abstract class CrashedTests
+public abstract class CrashedMethodTests
 {
+    private class Entity {}
     public abstract Task NonCompletedFuncIsCompletedByWatchDog();
     protected async Task NonCompletedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
@@ -26,41 +27,47 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        PostponedCheckFrequency: TimeSpan.Zero,
+                        EntityFactory: new EntityFuncFactory(_ => new Entity())
                     )
                 )
-                .RegisterFunc(
+                .RegisterMethod<Entity>()
+                .RegisterFunc<string, string>(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfType<string>()
+                    entity => _ => NeverCompletingTask.OfType<string>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
         }
         {
+            var constructedEntity = new Entity();
+            var inputParameterEntity = new Synced<Entity>();
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
                 )
             );
 
             var rFunc = rFunctions
-                .RegisterFunc(
+                .RegisterMethod<Entity>()
+                .RegisterFunc<string, string>(
                     functionTypeId,
-                    (string s) => s.ToUpper().ToTask()
-                ).Invoke;
+                    entity => s =>
+                    {
+                        inputParameterEntity.Value = entity;
+                        return s.ToUpper().ToTask();
+                    }).Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(
-                async () => await store
-                    .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
+                () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
             );
-
-            var status = await store.GetFunction(functionId).Map(f => f?.Status);
-            status.ShouldBe(Status.Succeeded);
+            
             await rFunc(param, param).ShouldBeAsync("TEST");
+            inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -81,30 +88,38 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        PostponedCheckFrequency: TimeSpan.Zero,
+                        EntityFactory: new EntityFuncFactory(_ => new Entity())
                     )
                 )
-                .RegisterFunc(
+                .RegisterMethod<Entity>()
+                .RegisterFunc<string, Scrapbook, string>(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<Result<string>>()
+                    entity => (_, _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
         }
         {
+            var constructedEntity = new Entity();
+            var inputParameterEntity = new Synced<Entity>();
+            
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
                 )
             );
-
+            
             var rFunc = rFunctions
-                .RegisterFunc(
+                .RegisterMethod<Entity>()
+                .RegisterFunc<string, Scrapbook, string>(
                     functionTypeId,
-                    async (string s, Scrapbook scrapbook) =>
+                    entity => async (s, scrapbook) =>
                     {
+                        inputParameterEntity.Value = entity;
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                         return s.ToUpper();
@@ -124,6 +139,7 @@ public abstract class CrashedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             await rFunc(param, param).ShouldBeAsync("TEST");
+            inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -144,43 +160,52 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        PostponedCheckFrequency: TimeSpan.Zero,
+                        EntityFactory: new EntityFuncFactory(_ => new Entity())
                     )
                 )
-                .RegisterAction(
+                .RegisterMethod<Entity>()
+                .RegisterAction<string>(
                     functionTypeId,
-                    (string _) => NeverCompletingTask.OfVoidType
+                    entity => _ => NeverCompletingTask.OfVoidType
                 )
                 .Invoke;
 
             _ = nonCompletingRFunctions(param, param);
         }
         {
+            var constructedEntity = new Entity();
+            var inputParameterEntity = new Synced<Entity>();
+            
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
                 )
             );
 
             var rAction = rFunctions
-                .RegisterAction(
+                .RegisterMethod<Entity>()
+                .RegisterAction<string>(
                     functionTypeId,
-                    (string _) => Task.CompletedTask
-                )
+                    entity => _ =>
+                    {
+                        inputParameterEntity.Value = constructedEntity;
+                        return Task.CompletedTask;
+                    })
                 .Invoke;
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(
-                async () => await store
+                () => store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
+                    .Map(sf => sf?.Status == Status.Succeeded)
             );
-
-            var status = await store.GetFunction(functionId).Map(f => f?.Status);
-            status.ShouldBe(Status.Succeeded);
+            
             await rAction(param, param);
+            inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -201,30 +226,38 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        PostponedCheckFrequency: TimeSpan.Zero,
+                        EntityFactory: new EntityFuncFactory(_ => new Entity())
                     )
                 )
-                .RegisterAction(
+                .RegisterMethod<Entity>()
+                .RegisterAction<string, Scrapbook>(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfVoidType
+                    entity => (_, _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
             _ = nonCompletingRFunctions(param, param);
         }
         {
+            var constructedEntity = new Entity();
+            var inputParameterEntity = new Synced<Entity>();
+            
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
                 )
             );
 
             var rAction = rFunctions
-                .RegisterAction(
+                .RegisterMethod<Entity>()
+                .RegisterAction<string, Scrapbook>(
                     functionTypeId,
-                    async (string _, Scrapbook scrapbook) =>
+                    entity => async (_, scrapbook) =>
                     {
+                        inputParameterEntity.Value = entity;
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                     }
@@ -232,9 +265,7 @@ public abstract class CrashedTests
 
             var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             await BusyWait.Until(
-                async () => await store
-                    .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
+                () => store.GetFunction(functionId).Map(f => f?.Status == Status.Succeeded)
             );
 
             var storedFunction = await store.GetFunction(functionId);
@@ -243,86 +274,13 @@ public abstract class CrashedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
             await rAction(param, param);
+            inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
     
-    public abstract Task CrashedActionIsNotInvokedOnHigherVersion();
-    protected async Task CrashedActionIsNotInvokedOnHigherVersion(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(CrashedActionIsNotInvokedOnHigherVersion),
-            functionInstanceId: "test"
-        );
-        await store.CreateFunction(
-            functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
-            crashedCheckFrequency: 10,
-            version: 2
-        ).ShouldBeTrueAsync();
-
-        using var rFunctions = new RFunctions
-        (
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-        rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
-
-        await Task.Delay(500);
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.Status.ShouldBe(Status.Executing);
-        sf.Version.ShouldBe(2);
-    }
-    
-    public abstract Task CrashedActionReInvocationModeShouldBeRetry();
-    protected async Task CrashedActionReInvocationModeShouldBeRetry(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(CrashedActionReInvocationModeShouldBeRetry),
-            functionInstanceId: "test"
-        );
-        await store.CreateFunction(
-            functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
-            crashedCheckFrequency: 10,
-            version: 0
-        ).ShouldBeTrueAsync();
-
-        using var rFunctions = new RFunctions
-        (
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-
-        var syncedInvocationMode = new Synced<InvocationMode>();
-        rFunctions.RegisterAction(
-            functionId.TypeId,
-            (string _) => syncedInvocationMode.Value = ResilientInvocation.Mode
-        );
-
-        await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf!.Status == Status.Succeeded)
-        );
-        syncedInvocationMode.Value.ShouldBe(InvocationMode.Retry);
-    }
-
     private class Scrapbook : RScrapbook
     {
         public int Value { get; set; }

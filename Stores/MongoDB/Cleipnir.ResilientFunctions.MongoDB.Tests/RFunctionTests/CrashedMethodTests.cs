@@ -1,9 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿namespace Cleipnir.ResilientFunctions.MongoDB.Tests.RFunctionTests;
 
-namespace Cleipnir.ResilientFunctions.MongoDB.Tests.RFunctionTests;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 [TestClass]
-public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedTests
+public class CrashedMethodTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedMethodTests
 {
     [TestMethod]
     public override Task NonCompletedFuncIsCompletedByWatchDog()
@@ -20,12 +21,4 @@ public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTest
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
         => NonCompletedActionWithScrapbookIsCompletedByWatchDog(NoSql.AutoCreateAndInitializeStore());
-    
-    [TestMethod]
-    public override Task CrashedActionIsNotInvokedOnHigherVersion()
-        => CrashedActionIsNotInvokedOnHigherVersion(NoSql.AutoCreateAndInitializeStore());
-
-    [TestMethod]
-    public override Task CrashedActionReInvocationModeShouldBeRetry()
-        => CrashedActionReInvocationModeShouldBeRetry(NoSql.AutoCreateAndInitializeStore());
 }

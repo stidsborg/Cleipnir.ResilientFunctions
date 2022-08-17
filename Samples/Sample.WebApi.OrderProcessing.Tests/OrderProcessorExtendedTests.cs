@@ -23,7 +23,7 @@ public class OrderProcessorExtendedTests
         var emailClientMock = new Mock<IEmailClient>();
         var logisticsClientMock = new Mock<ILogisticsClient>();
         var ordersRepositoryMock = new Mock<IOrdersRepository>();
-        var scrapbookMock = new Mock<OrderProcessorExtended.Scrapbook>();
+        var scrapbookMock = new Mock<OrderProcessorExtended.Inner.Scrapbook>();
         
         var order = new Order(
             "SomeOrderId",
@@ -32,15 +32,14 @@ public class OrderProcessorExtendedTests
         );
 
         var scrapbook = scrapbookMock.Object;
-        var sut = new OrderProcessorExtended(
+        var sut = new OrderProcessorExtended.Inner(
             paymentProviderClientMock.Object,
             productsClientMock.Object,
             emailClientMock.Object,
             logisticsClientMock.Object,
-            ordersRepositoryMock.Object,
-            new RFunctions(new InMemoryFunctionStore())
+            ordersRepositoryMock.Object
         );
-        await sut._ProcessOrder(order, scrapbook);
+        await sut.ProcessOrder(order, scrapbook);
         
         scrapbookMock.Verify(s => s.Save(), Times.Exactly(4));
     }
@@ -53,7 +52,7 @@ public class OrderProcessorExtendedTests
         var emailClientMock = new Mock<IEmailClient>();
         var logisticsClientMock = new Mock<ILogisticsClient>();
         var ordersRepositoryMock = new Mock<IOrdersRepository>();
-        var scrapbookMock = new Mock<OrderProcessorExtended.Scrapbook>();
+        var scrapbookMock = new Mock<OrderProcessorExtended.Inner.Scrapbook>();
         
         var order = new Order(
             "SomeOrderId",
@@ -64,16 +63,15 @@ public class OrderProcessorExtendedTests
         var scrapbook = scrapbookMock.Object;
         scrapbook.TotalPrice = 100M;
         scrapbook.TransactionId = Guid.NewGuid();
-        scrapbook.ShipProductsStatus = OrderProcessorExtended.Status.Started;
+        scrapbook.ShipProductsStatus = OrderProcessorExtended.Inner.Status.Started;
         
-        var sut = new OrderProcessorExtended(
+        var sut = new OrderProcessorExtended.Inner(
             paymentProviderClientMock.Object,
             productsClientMock.Object,
             emailClientMock.Object,
             logisticsClientMock.Object,
-            ordersRepositoryMock.Object,
-            new RFunctions(new InMemoryFunctionStore())
+            ordersRepositoryMock.Object
         );
-        await Should.ThrowAsync<OrderProcessorExtended.ProductShipmentStartedButNotCompleted>(sut._ProcessOrder(order, scrapbook));
+        await Should.ThrowAsync<OrderProcessorExtended.Inner.ProductShipmentStartedButNotCompleted>(sut.ProcessOrder(order, scrapbook));
     }
 }

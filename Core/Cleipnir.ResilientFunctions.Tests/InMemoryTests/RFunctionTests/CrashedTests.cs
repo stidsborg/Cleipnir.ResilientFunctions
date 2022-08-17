@@ -27,4 +27,8 @@ public class CrashedTests : TestTemplates.RFunctionTests.CrashedTests
     [TestMethod]
     public override Task CrashedActionIsNotInvokedOnHigherVersion()
         => CrashedActionIsNotInvokedOnHigherVersion(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task CrashedActionReInvocationModeShouldBeRetry()
+        => CrashedActionReInvocationModeShouldBeRetry(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

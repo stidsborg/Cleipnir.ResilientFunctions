@@ -18,12 +18,19 @@ public static class RFunctionsModule
         services.AddSingleton(store);
         if (settings != null)
             services.AddSingleton(settings);
-        
+        services.AddSingleton<ServiceProviderEntityFactory>();
         services.AddSingleton(s =>
         {
             var functionStore = s.GetRequiredService<IFunctionStore>();
             functionStore.Initialize().Wait();
-            return new RFunctions(functionStore, s.GetService<Settings>());
+            var resolvedSettings = s.GetService<Settings>() ?? new Settings();
+            if (resolvedSettings.EntityFactory == null)
+            {
+                var entityFactory = s.GetRequiredService<ServiceProviderEntityFactory>();
+                resolvedSettings = resolvedSettings with { EntityFactory = entityFactory };
+            }
+            
+            return new RFunctions(functionStore, resolvedSettings);
         });
         
         rootAssembly ??= Assembly.GetCallingAssembly();

@@ -3,6 +3,8 @@ using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 using Dapper;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 using Sample.WebApi.OrderProcessing.Communication;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
 using Sample.WebApi.OrderProcessing.DataAccess;
@@ -23,7 +25,9 @@ internal static class Program
 
         // Add services to the container.
         builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
-        builder.Services.AddSingleton<BusinessLogic.MessageBased.OrderProcessor>();
+        builder.Services.AddSingleton<OrderProcessor>();
+        builder.Services.AddScoped<OrderProcessor.Inner>();
+        builder.Services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         builder.Services.AddSingleton<IOrdersRepository, OrdersRepository>();
         
         builder.Services.AddSingleton<IPaymentProviderClient, PaymentProviderClientStub>();
@@ -34,12 +38,16 @@ internal static class Program
         var messageQueue = CreateAndSetupMessageQueue();
         builder.Services.AddSingleton(messageQueue);
 
+        var store = new PostgreSqlFunctionStore(connectionString);
         builder.Services.AddRFunctionsService(
-            new PostgreSqlFunctionStore(connectionString),
-            _ => new Settings(UnhandledExceptionHandler: Console.WriteLine)
+            store,
+            _ => new Settings(
+                UnhandledExceptionHandler: Console.WriteLine,
+                CrashedCheckFrequency: TimeSpan.FromSeconds(1)
+            )
         );
         builder.Services.AddEventSources(new PostgreSqlEventStore(connectionString));
-        
+
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();

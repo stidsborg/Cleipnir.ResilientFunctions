@@ -462,6 +462,223 @@ public class RFunctions : IDisposable
         }
     }
 
+    public MethodRegistrationBuilder<TEntity> RegisterMethod<TEntity>() where TEntity : notnull => new(this);
+
+    internal RFunc<TParam, TReturn> RegisterMethodFunc<TEntity, TParam, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TEntity, Func<TParam, Task<Result<TReturn>>>> innerMethodSelector,
+        int version = 0,
+        Func<EntityAndScope<TEntity>>? entityFactory = null,
+        Settings? settings = null
+    ) where TParam : notnull where TEntity : notnull
+    {
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+
+        lock (_sync)
+        {
+            if (_functions.ContainsKey(functionTypeId))
+            {
+                if (_functions[functionTypeId] is not RFunc<TParam, TReturn> r)
+                    throw new ArgumentException($"{typeof(RFunc<TParam, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
+
+            var settingsWithDefaults = _settings.Merge(settings);
+            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
+                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var rFuncInvoker = new RFuncMethodInvoker<TEntity, TParam, TReturn>(
+                functionTypeId, 
+                innerMethodSelector, 
+                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                commonInvoker,
+                settingsWithDefaults.UnhandledExceptionHandler
+            );
+
+            WatchDogsFactory.CreateAndStart(
+                functionTypeId,
+                _functionStore,
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                settingsWithDefaults,
+                version,
+                _shutdownCoordinator
+            );
+
+            var registration = new RFunc<TParam, TReturn>(
+                rFuncInvoker.Invoke,
+                rFuncInvoker.ReInvoke,
+                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleReInvoke
+            );
+            _functions[functionTypeId] = registration;
+            return registration;
+        }
+    }
+    
+    internal RAction<TParam> RegisterMethodAction<TEntity, TParam>(
+        FunctionTypeId functionTypeId,
+        Func<TEntity, Func<TParam, Task<Result>>> innerMethodSelector,
+        int version = 0,
+        Func<EntityAndScope<TEntity>>? entityFactory = null,
+        Settings? settings = null
+    ) where TParam : notnull where TEntity : notnull
+    {
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+
+        lock (_sync)
+        {
+            if (_functions.ContainsKey(functionTypeId))
+            {
+                if (_functions[functionTypeId] is not RAction<TParam> r)
+                    throw new ArgumentException($"{typeof(RAction<TParam>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
+
+            var settingsWithDefaults = _settings.Merge(settings);
+            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
+                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var rActionInvoker = new RActionMethodInvoker<TEntity, TParam>(
+                functionTypeId, 
+                innerMethodSelector, 
+                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                commonInvoker,
+                settingsWithDefaults.UnhandledExceptionHandler
+            );
+
+            WatchDogsFactory.CreateAndStart(
+                functionTypeId,
+                _functionStore,
+                reInvoke: (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                settingsWithDefaults,
+                version,
+                _shutdownCoordinator
+            );
+
+            var registration = new RAction<TParam>(
+                rActionInvoker.Invoke,
+                rActionInvoker.ReInvoke,
+                rActionInvoker.ScheduleInvocation,
+                rActionInvoker.ScheduleReInvoke
+            );
+            _functions[functionTypeId] = registration;
+            return registration;
+        }
+    }
+    
+    internal RFunc<TParam, TScrapbook, TReturn> RegisterMethodFunc<TEntity, TParam, TScrapbook, TReturn>(
+        FunctionTypeId functionTypeId,
+        Func<TEntity, Func<TParam, TScrapbook, Task<Result<TReturn>>>> innerMethodSelector,
+        int version = 0,
+        Func<EntityAndScope<TEntity>>? entityFactory = null,
+        Settings? settings = null,
+        Type? concreteScrapbookType = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
+    {
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+
+        lock (_sync)
+        {
+            if (_functions.ContainsKey(functionTypeId))
+            {
+                if (_functions[functionTypeId] is not RFunc<TParam, TScrapbook, TReturn> r)
+                    throw new ArgumentException($"{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
+
+            var settingsWithDefaults = _settings.Merge(settings);
+            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
+                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var rFuncInvoker = new RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>(
+                functionTypeId, 
+                innerMethodSelector, 
+                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                concreteScrapbookType,
+                commonInvoker,
+                settingsWithDefaults.UnhandledExceptionHandler
+            );
+
+            WatchDogsFactory.CreateAndStart(
+                functionTypeId,
+                _functionStore,
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                settingsWithDefaults,
+                version,
+                _shutdownCoordinator
+            );
+
+            var registration = new RFunc<TParam, TScrapbook, TReturn>(
+                rFuncInvoker.Invoke,
+                rFuncInvoker.ReInvoke,
+                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleReInvoke
+            );
+            _functions[functionTypeId] = registration;
+            return registration;
+        }
+    }
+
+    internal RAction<TParam, TScrapbook> RegisterMethodAction<TEntity, TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> innerMethodSelector,
+        int version = 0,
+        Func<EntityAndScope<TEntity>>? entityFactory = null,
+        Settings? settings = null,
+        Type? concreteScrapbookType = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
+    {
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+
+        lock (_sync)
+        {
+            if (_functions.ContainsKey(functionTypeId))
+            {
+                if (_functions[functionTypeId] is not RAction<TParam, TScrapbook> r)
+                    throw new ArgumentException($"{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                return r;
+            }
+
+            var settingsWithDefaults = _settings.Merge(settings);
+            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
+                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            
+            var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var rFuncInvoker = new RActionMethodInvoker<TEntity, TParam, TScrapbook>(
+                functionTypeId, 
+                innerMethodSelector, 
+                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                concreteScrapbookType,
+                commonInvoker,
+                settingsWithDefaults.UnhandledExceptionHandler
+            );
+
+            WatchDogsFactory.CreateAndStart(
+                functionTypeId,
+                _functionStore,
+                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                settingsWithDefaults,
+                version,
+                _shutdownCoordinator
+            );
+
+            var registration = new RAction<TParam, TScrapbook>(
+                rFuncInvoker.Invoke,
+                rFuncInvoker.ReInvoke,
+                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleReInvoke
+            );
+            _functions[functionTypeId] = registration;
+            return registration;
+        }
+    }
+    
     public void Dispose() => _ = ShutdownGracefully();
 
     public Task ShutdownGracefully(TimeSpan? maxWait = null)
@@ -482,4 +699,15 @@ public class RFunctions : IDisposable
 
         return tcs.Task;
     }
+
+    private Func<ScopedEntity<TEntity>>? ConvertToScopedEntity<TEntity>(Func<EntityAndScope<TEntity>>? createEntity)
+    {
+        if (createEntity == null) return null;
+        
+        return () =>
+        {
+            var (entity, disposeScope) = createEntity();
+            return new ScopedEntity<TEntity>(entity, disposeScope);
+        };
+    } 
 }

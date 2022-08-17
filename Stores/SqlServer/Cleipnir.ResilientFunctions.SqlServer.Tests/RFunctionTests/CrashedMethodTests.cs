@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
 [TestClass]
-public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedTests
+public class CrashedMethodTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedMethodTests
 {
     [TestMethod]
     public override Task NonCompletedFuncIsCompletedByWatchDog()
@@ -21,12 +21,4 @@ public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTest
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
         => NonCompletedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
-    
-    [TestMethod]
-    public override Task CrashedActionIsNotInvokedOnHigherVersion()
-        => CrashedActionIsNotInvokedOnHigherVersion(Sql.AutoCreateAndInitializeStore());
-
-    [TestMethod]
-    public override Task CrashedActionReInvocationModeShouldBeRetry()
-        => CrashedActionReInvocationModeShouldBeRetry(Sql.AutoCreateAndInitializeStore());
 }
