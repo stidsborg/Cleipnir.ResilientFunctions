@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -112,6 +113,7 @@ internal class PostponedWatchdog
             );
             if (!success) return;
 
+            ResilientInvocation.Mode = InvocationMode.Retry;
             await _reInvoke(
                 spf.InstanceId,
                 expectedStatuses: new[] { Status.Executing },
