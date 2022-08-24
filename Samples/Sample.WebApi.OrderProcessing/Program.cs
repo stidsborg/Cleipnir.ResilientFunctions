@@ -1,4 +1,3 @@
-using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.PostgreSQL;

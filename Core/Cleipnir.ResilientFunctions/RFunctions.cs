@@ -468,7 +468,6 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<Result<TReturn>>>> innerMethodSelector,
         int version = 0,
-        Func<EntityAndScope<TEntity>>? entityFactory = null,
         Settings? settings = null
     ) where TParam : notnull where TEntity : notnull
     {
@@ -485,13 +484,13 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
-                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            if (settingsWithDefaults.DependencyResolver == null)
+                throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncMethodInvoker<TEntity, TParam, TReturn>(
                 functionTypeId, 
                 innerMethodSelector, 
-                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                settingsWithDefaults.DependencyResolver,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -520,7 +519,6 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<Result>>> innerMethodSelector,
         int version = 0,
-        Func<EntityAndScope<TEntity>>? entityFactory = null,
         Settings? settings = null
     ) where TParam : notnull where TEntity : notnull
     {
@@ -537,14 +535,14 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
-                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            if (settingsWithDefaults.DependencyResolver == null)
+                throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new RActionMethodInvoker<TEntity, TParam>(
                 functionTypeId, 
                 innerMethodSelector, 
-                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                settingsWithDefaults.DependencyResolver,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -573,7 +571,6 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result<TReturn>>>> innerMethodSelector,
         int version = 0,
-        Func<EntityAndScope<TEntity>>? entityFactory = null,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
@@ -591,14 +588,14 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
-                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            if (settingsWithDefaults.DependencyResolver == null)
+                throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 innerMethodSelector, 
-                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                settingsWithDefaults.DependencyResolver,
                 concreteScrapbookType,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
@@ -628,7 +625,6 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> innerMethodSelector,
         int version = 0,
-        Func<EntityAndScope<TEntity>>? entityFactory = null,
         Settings? settings = null,
         Type? concreteScrapbookType = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
@@ -646,14 +642,14 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            if (settingsWithDefaults.EntityFactory == null && entityFactory == null)
-                throw new ArgumentNullException(nameof(entityFactory), "Entity factory method must be non-null when settings' entity factory is null");
+            if (settingsWithDefaults.DependencyResolver == null)
+                throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new RActionMethodInvoker<TEntity, TParam, TScrapbook>(
                 functionTypeId, 
                 innerMethodSelector, 
-                ConvertToScopedEntity(entityFactory) ?? (() => settingsWithDefaults.EntityFactory!.Create<TEntity>()),
+                settingsWithDefaults.DependencyResolver,
                 concreteScrapbookType,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
@@ -699,15 +695,4 @@ public class RFunctions : IDisposable
 
         return tcs.Task;
     }
-
-    private Func<ScopedEntity<TEntity>>? ConvertToScopedEntity<TEntity>(Func<EntityAndScope<TEntity>>? createEntity)
-    {
-        if (createEntity == null) return null;
-        
-        return () =>
-        {
-            var (entity, disposeScope) = createEntity();
-            return new ScopedEntity<TEntity>(entity, disposeScope);
-        };
-    } 
 }

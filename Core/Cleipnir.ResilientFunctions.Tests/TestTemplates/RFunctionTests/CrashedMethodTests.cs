@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -28,7 +27,7 @@ public abstract class CrashedMethodTests
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
                         PostponedCheckFrequency: TimeSpan.Zero,
-                        EntityFactory: new EntityFuncFactory(_ => new Entity())
+                        DependencyResolver: new FuncDependencyResolver(_ => new Entity())
                     )
                 )
                 .RegisterMethod<Entity>()
@@ -47,7 +46,7 @@ public abstract class CrashedMethodTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
+                    DependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
 
@@ -89,7 +88,7 @@ public abstract class CrashedMethodTests
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
                         PostponedCheckFrequency: TimeSpan.Zero,
-                        EntityFactory: new EntityFuncFactory(_ => new Entity())
+                        DependencyResolver: new FuncDependencyResolver(_ => new Entity())
                     )
                 )
                 .RegisterMethod<Entity>()
@@ -109,7 +108,7 @@ public abstract class CrashedMethodTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
+                    DependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
             
@@ -161,7 +160,7 @@ public abstract class CrashedMethodTests
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
                         PostponedCheckFrequency: TimeSpan.Zero,
-                        EntityFactory: new EntityFuncFactory(_ => new Entity())
+                        DependencyResolver: new FuncDependencyResolver(_ => new Entity())
                     )
                 )
                 .RegisterMethod<Entity>()
@@ -182,7 +181,7 @@ public abstract class CrashedMethodTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
+                    DependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
 
@@ -227,7 +226,7 @@ public abstract class CrashedMethodTests
                         unhandledExceptionHandler.Catch,
                         CrashedCheckFrequency: TimeSpan.Zero, 
                         PostponedCheckFrequency: TimeSpan.Zero,
-                        EntityFactory: new EntityFuncFactory(_ => new Entity())
+                        DependencyResolver: new FuncDependencyResolver(_ => new Entity())
                     )
                 )
                 .RegisterMethod<Entity>()
@@ -247,7 +246,7 @@ public abstract class CrashedMethodTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    EntityFactory: new EntityFuncFactory(_ => constructedEntity)
+                    DependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
 

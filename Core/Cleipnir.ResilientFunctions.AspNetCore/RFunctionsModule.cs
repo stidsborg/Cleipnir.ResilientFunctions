@@ -18,18 +18,14 @@ public static class RFunctionsModule
         services.AddSingleton(store);
         if (settings != null)
             services.AddSingleton(settings);
-        services.AddSingleton<ServiceProviderEntityFactory>();
+        services.AddSingleton<ServiceProviderDependencyResolver>();
         services.AddSingleton(s =>
         {
             var functionStore = s.GetRequiredService<IFunctionStore>();
             functionStore.Initialize().Wait();
-            var resolvedSettings = s.GetService<Settings>() ?? new Settings();
-            if (resolvedSettings.EntityFactory == null)
-            {
-                var entityFactory = s.GetRequiredService<ServiceProviderEntityFactory>();
-                resolvedSettings = resolvedSettings with { EntityFactory = entityFactory };
-            }
-            
+            var dependencyResolver = s.GetRequiredService<ServiceProviderDependencyResolver>();
+            var resolvedSettings = (s.GetService<Settings>() ?? new Settings()).MapToRFunctionsSettings(dependencyResolver);
+
             return new RFunctions(functionStore, resolvedSettings);
         });
         
@@ -62,6 +58,20 @@ public static class RFunctionsModule
     ) => AddRFunctionsService(
         services,
         _ => store,
+        settings == null ? null : _ => settings,
+        gracefulShutdown,
+        rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()
+    );
+    
+    public static IServiceCollection AddRFunctionsService(
+        this IServiceCollection services,
+        Func<IServiceProvider, IFunctionStore> store,
+        Settings? settings = null,
+        bool gracefulShutdown = false,
+        Assembly? rootAssembly = null
+    ) => AddRFunctionsService(
+        services,
+        store,
         settings == null ? null : _ => settings,
         gracefulShutdown,
         rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()

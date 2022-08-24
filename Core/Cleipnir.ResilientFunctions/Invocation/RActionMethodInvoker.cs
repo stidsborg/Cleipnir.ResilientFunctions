@@ -9,11 +9,11 @@ using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull
+public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull where TEntity : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TEntity, Func<TParam, Task<Result>>> _innerMethodSelector;
-    private readonly Func<ScopedEntity<TEntity>> _entityFactory;
+    private readonly IDependencyResolver _dependencyResolver;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -21,13 +21,13 @@ public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull
     internal RActionMethodInvoker(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<Result>>> innerMethodSelector,
-        Func<ScopedEntity<TEntity>> entityFactory,
+        IDependencyResolver dependencyResolver,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _innerMethodSelector = innerMethodSelector;
-        _entityFactory = entityFactory;
+        _dependencyResolver = dependencyResolver;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -35,8 +35,8 @@ public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull
     public async Task Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
         if (!created) { await WaitForActionResult(functionId); return; }
 
@@ -56,8 +56,8 @@ public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var dependencyScope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(dependencyScope.Resolve<TEntity>());
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
         if (!created) return;
 
@@ -87,8 +87,8 @@ public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull
     public async Task ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
         using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
@@ -111,8 +111,8 @@ public class RActionMethodInvoker<TEntity, TParam> where TParam : notnull
         bool throwOnUnexpectedFunctionState = true)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         try
         {
             var (param, epoch, runningFunction) =
@@ -185,7 +185,7 @@ public class RActionMethodInvoker<TEntity, TParam, TScrapbook> where TParam : no
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> _innerMethodSelector;
-    private readonly Func<ScopedEntity<TEntity>> _entityFactory;
+    private readonly IDependencyResolver _dependencyResolver;
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -194,14 +194,14 @@ public class RActionMethodInvoker<TEntity, TParam, TScrapbook> where TParam : no
     internal RActionMethodInvoker(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> innerMethodSelector,
-        Func<ScopedEntity<TEntity>> entityFactory,
+        IDependencyResolver dependencyResolver,
         Type? concreteScrapbookType,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _innerMethodSelector = innerMethodSelector;
-        _entityFactory = entityFactory;
+        _dependencyResolver = dependencyResolver;
 
         _concreteScrapbookType = concreteScrapbookType;
         _commonInvoker = commonInvoker;
@@ -211,8 +211,8 @@ public class RActionMethodInvoker<TEntity, TParam, TScrapbook> where TParam : no
     public async Task Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var scrapbook = CreateScrapbook(functionId);
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, scrapbook.GetType());
         if (!created) { await WaitForActionCompletion(functionId); return; }
@@ -233,8 +233,8 @@ public class RActionMethodInvoker<TEntity, TParam, TScrapbook> where TParam : no
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return;
 
@@ -265,8 +265,8 @@ public class RActionMethodInvoker<TEntity, TParam, TScrapbook> where TParam : no
     public async Task ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
 
         using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
@@ -290,8 +290,8 @@ public class RActionMethodInvoker<TEntity, TParam, TScrapbook> where TParam : no
         bool throwOnUnexpectedFunctionState = true)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         try
         {
             var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);

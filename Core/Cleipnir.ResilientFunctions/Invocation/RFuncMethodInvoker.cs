@@ -9,11 +9,11 @@ using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
+public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull where TEntity : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TEntity, Func<TParam, Task<Result<TReturn>>>> _innerMethodSelector;
-    private readonly Func<ScopedEntity<TEntity>> _entityFactory;
+    private readonly IDependencyResolver _dependencyResolver;
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -21,13 +21,13 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
     internal RFuncMethodInvoker(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<Result<TReturn>>>> innerMethodSelector,
-        Func<ScopedEntity<TEntity>> entityFactory,
+        IDependencyResolver dependencyResolver,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _innerMethodSelector = innerMethodSelector;
-        _entityFactory = entityFactory;
+        _dependencyResolver = dependencyResolver;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -35,8 +35,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
         if (!created) { runningFunction.Dispose(); return await WaitForFunctionResult(functionId);}
 
@@ -57,8 +57,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
         if (!created) { runningFunction.Dispose(); return; }
@@ -89,8 +89,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
     public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
         using var __ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
 
@@ -110,8 +110,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
     public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, bool throwOnUnexpectedFunctionState = true)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         try
         {
             var (param, epoch, runningFunction) =
@@ -174,9 +174,6 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
         );
     }
 
-    private IDisposable RegisterRunningFunction() 
-        => _commonInvoker.RegisterRunningFunction();
-
     private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
 }
@@ -184,10 +181,11 @@ public class RFuncMethodInvoker<TEntity, TParam, TReturn> where TParam : notnull
 public class RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn> 
     where TParam : notnull 
     where TScrapbook : RScrapbook, new()
+    where TEntity : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TEntity,Func<TParam,TScrapbook,Task<Result<TReturn>>>> _innerMethodSelector;
-    private readonly Func<ScopedEntity<TEntity>> _entityFactory;
+    private readonly IDependencyResolver _dependencyResolver;
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -196,14 +194,14 @@ public class RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>
     internal RFuncMethodInvoker(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result<TReturn>>>> innerMethodSelector,
-        Func<ScopedEntity<TEntity>> entityFactory,
+        IDependencyResolver dependencyResolver,
         Type? concreteScrapbookType,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _innerMethodSelector = innerMethodSelector;
-        _entityFactory = entityFactory;
+        _dependencyResolver = dependencyResolver;
         _concreteScrapbookType = concreteScrapbookType;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -212,8 +210,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return await WaitForFunctionResult(functionId);
 
@@ -236,8 +234,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
         if (!created) return;
 
@@ -268,8 +266,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>
     public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        using var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        using var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
 
         using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
@@ -295,8 +293,8 @@ public class RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>
         bool throwOnUnexpectedFunctionState = true)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var scopedEntity = _entityFactory();
-        var inner = _innerMethodSelector(scopedEntity.Entity);
+        var scope = _dependencyResolver.CreateScope();
+        var inner = _innerMethodSelector(scope.Resolve<TEntity>());
         try
         {
             var (param, epoch, scrapbook, runningFunction) =

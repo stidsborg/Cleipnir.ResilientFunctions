@@ -1,4 +1,3 @@
-using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.Storage;
 using Sample.WebApi.Saga;
