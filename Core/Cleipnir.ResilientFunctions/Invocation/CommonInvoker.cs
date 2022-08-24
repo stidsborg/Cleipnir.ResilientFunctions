@@ -422,6 +422,4 @@ internal class CommonInvoker
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
-    
-    public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFunc(); //todo remove
 }

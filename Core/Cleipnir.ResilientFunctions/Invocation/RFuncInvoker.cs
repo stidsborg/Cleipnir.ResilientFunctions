@@ -163,9 +163,6 @@ public class RFuncInvoker<TParam, TReturn> where TParam : notnull
         );
     }
 
-    private IDisposable RegisterRunningFunction() 
-        => _commonInvoker.RegisterRunningFunction();
-
     private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
 }
