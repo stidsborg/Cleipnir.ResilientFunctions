@@ -19,7 +19,7 @@ public class Settings
     internal IDependencyResolver? DependencyResolver { get; }
     
     private readonly List<MiddlewareOrResolver> _middlewares = new();
-    internal IEnumerable<MiddlewareOrResolver> Middlewares => _middlewares;
+    internal IReadOnlyList<MiddlewareOrResolver> Middlewares => _middlewares;
 
     public Settings(
         Action<RFunctionException>? UnhandledExceptionHandler = null, 
@@ -29,15 +29,31 @@ public class Settings
         int? MaxParallelRetryInvocations = null, 
         ISerializer? Serializer = null, 
         IDependencyResolver? DependencyResolver = null
+    ) :this(
+        UnhandledExceptionHandler, CrashedCheckFrequency, PostponedCheckFrequency, DelayStartup, 
+        MaxParallelRetryInvocations, Serializer, DependencyResolver, 
+        middlewares: new List<MiddlewareOrResolver>()
+    ) { }
+
+    internal Settings(
+        Action<RFunctionException>? unhandledExceptionHandler, 
+        TimeSpan? crashedCheckFrequency, 
+        TimeSpan? postponedCheckFrequency, 
+        TimeSpan? delayStartup, 
+        int? maxParallelRetryInvocations, 
+        ISerializer? serializer, 
+        IDependencyResolver? dependencyResolver,
+        List<MiddlewareOrResolver> middlewares
     )
     {
-        this.UnhandledExceptionHandler = UnhandledExceptionHandler;
-        this.CrashedCheckFrequency = CrashedCheckFrequency;
-        this.PostponedCheckFrequency = PostponedCheckFrequency;
-        this.DelayStartup = DelayStartup;
-        this.MaxParallelRetryInvocations = MaxParallelRetryInvocations;
-        this.Serializer = Serializer;
-        this.DependencyResolver = DependencyResolver;
+        UnhandledExceptionHandler = unhandledExceptionHandler;
+        CrashedCheckFrequency = crashedCheckFrequency;
+        PostponedCheckFrequency = postponedCheckFrequency;
+        DelayStartup = delayStartup;
+        MaxParallelRetryInvocations = maxParallelRetryInvocations;
+        Serializer = serializer;
+        DependencyResolver = dependencyResolver;
+        _middlewares = middlewares;
     }
 
     public Settings RegisterMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
@@ -72,7 +88,7 @@ public record SettingsWithDefaults(
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
     IDependencyResolver? DependencyResolver,
-    IEnumerable<MiddlewareOrResolver> Middlewares
+    IReadOnlyList<MiddlewareOrResolver> Middlewares
 )
 {
     public SettingsWithDefaults Merge(Settings? child)
@@ -102,6 +118,6 @@ public record SettingsWithDefaults(
             MaxParallelRetryInvocations: 10,
             Serializer: DefaultSerializer.Instance,
             DependencyResolver: null,
-            Middlewares: Enumerable.Empty<MiddlewareOrResolver>()
+            Middlewares: new List<MiddlewareOrResolver>()
         );
 }

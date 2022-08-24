@@ -8,15 +8,13 @@ namespace Cleipnir.ResilientFunctions.AspNetCore;
 
 public class Settings
 {
-    internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
-    internal TimeSpan? CrashedCheckFrequency { get; }
-    internal TimeSpan? PostponedCheckFrequency { get; }
-    internal TimeSpan? DelayStartup { get; }
-    internal int? MaxParallelRetryInvocations { get; }
-    internal ISerializer? Serializer { get; }
-
+    private readonly Action<RFunctionException>? _unhandledExceptionHandler;
+    private readonly TimeSpan? _crashedCheckFrequency;
+    private readonly TimeSpan? _postponedCheckFrequency;
+    private readonly TimeSpan? _delayStartup;
+    private readonly int? _maxParallelRetryInvocations;
+    private readonly ISerializer? _serializer;
     private readonly List<MiddlewareOrResolver> _middlewares = new();
-    internal IEnumerable<MiddlewareOrResolver> Middlewares => _middlewares;
 
     public Settings(
         Action<RFunctionException>? UnhandledExceptionHandler = null, 
@@ -27,12 +25,12 @@ public class Settings
         ISerializer? Serializer = null
     )
     {
-        this.UnhandledExceptionHandler = UnhandledExceptionHandler;
-        this.CrashedCheckFrequency = CrashedCheckFrequency;
-        this.PostponedCheckFrequency = PostponedCheckFrequency;
-        this.DelayStartup = DelayStartup;
-        this.MaxParallelRetryInvocations = MaxParallelRetryInvocations;
-        this.Serializer = Serializer;
+        _unhandledExceptionHandler = UnhandledExceptionHandler;
+        _crashedCheckFrequency = CrashedCheckFrequency;
+        _postponedCheckFrequency = PostponedCheckFrequency;
+        _delayStartup = DelayStartup;
+        _maxParallelRetryInvocations = MaxParallelRetryInvocations;
+        _serializer = Serializer;
     }
 
     public Settings RegisterMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
@@ -55,12 +53,13 @@ public class Settings
 
     internal Cleipnir.ResilientFunctions.Settings MapToRFunctionsSettings(IDependencyResolver dependencyResolver)
         => new(
-            UnhandledExceptionHandler,
-            CrashedCheckFrequency,
-            PostponedCheckFrequency,
-            DelayStartup,
-            MaxParallelRetryInvocations,
-            Serializer,
-            dependencyResolver
+            _unhandledExceptionHandler,
+            _crashedCheckFrequency,
+            _postponedCheckFrequency,
+            _delayStartup,
+            _maxParallelRetryInvocations,
+            _serializer,
+            dependencyResolver,
+            _middlewares
         );
 }
