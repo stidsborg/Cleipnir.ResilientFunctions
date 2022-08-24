@@ -40,10 +40,10 @@ internal class CommonInvoker
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
-        var paramJson = Serializer.SerializeParameter(param);
-        var paramType = param.GetType().SimpleQualifiedName();
         try
         {
+            var paramJson = Serializer.SerializeParameter(param);
+            var paramType = param.GetType().SimpleQualifiedName();
             var created = await _functionStore.CreateFunction(
                 functionId,
                 param: new StoredParameter(paramJson, paramType),
@@ -397,6 +397,7 @@ internal class CommonInvoker
         }
         catch (DeserializationException e)
         {
+            runningFunction.Dispose();
             await _functionStore.SetFunctionState(
                 functionId,
                 Status.Failed,
@@ -422,5 +423,5 @@ internal class CommonInvoker
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
     
-    public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFunc();
+    public IDisposable RegisterRunningFunction() => _shutdownCoordinator.RegisterRunningRFunc(); //todo remove
 }
