@@ -37,7 +37,7 @@ public static class Helpers
         return randomInt;
     }
 
-    public static T[] RandomlyPermutate<T>(this IEnumerable<T> t)
+    public static T[] RandomlyPermute<T>(this IEnumerable<T> t)
     {
         var random = new Random(GenerateRandomInt());
 

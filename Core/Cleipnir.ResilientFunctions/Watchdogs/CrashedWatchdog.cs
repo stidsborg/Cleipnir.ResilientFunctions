@@ -87,7 +87,7 @@ internal class CrashedWatchdog
                     }
                 }
 
-                foreach (var hangingFunction in hangingFunctions.RandomlyPermutate())
+                foreach (var hangingFunction in hangingFunctions.RandomlyPermute())
                     _ = ReInvokeCrashedFunction(hangingFunction);
 
                 prevFunctionCounts = newFunctionCounts;
