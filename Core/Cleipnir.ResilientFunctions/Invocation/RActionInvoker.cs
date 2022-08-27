@@ -139,21 +139,39 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
     {
-        var scopedDependencyResolver = _dependencyResolver?.CreateScope();
-        var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
-            functionId,
-            InvocationMode.Direct,
-            _inner,
-            scopedDependencyResolver
-        );
-        var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
+        var disposable = default(IDisposable);
+        try
+        {
+            var scopedDependencyResolver = _dependencyResolver?.CreateScope();
+            disposable = scopedDependencyResolver;
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+                functionId,
+                InvocationMode.Direct,
+                _inner,
+                scopedDependencyResolver
+            );
+            var (persisted, runningFunction) =
+                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
-        return new PreparedInvocation(
-            persisted,
-            wrappedInner,
-            Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
-        );
+            if (!persisted)
+            {
+                scopedDependencyResolver?.Dispose();
+                scopedDependencyResolver = null;
+            }
+
+            return new PreparedInvocation(
+                persisted,
+                wrappedInner,
+                Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
+            );
+        }
+        catch (Exception)
+        {
+            disposable?.Dispose();
+            throw;
+        }
     }
+    private record PreparedInvocation(bool Persisted, Func<TParam, Task<Result>> Inner, IDisposable Disposables);
     
     private async Task WaitForActionResult(FunctionId functionId)
         => await _commonInvoker.WaitForActionCompletion(functionId);
@@ -182,6 +200,7 @@ public class RActionInvoker<TParam> where TParam : notnull
             Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
         );
     }
+    private record PreparedReInvocation(Func<TParam, Task<Result>> Inner, TParam Param, int Epoch, IDisposable Disposables);
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook: null, expectedEpoch);
@@ -207,9 +226,6 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
-
-    private record PreparedInvocation(bool Persisted, Func<TParam, Task<Result>> Inner, IDisposable Disposables);
-    private record PreparedReInvocation(Func<TParam, Task<Result>> Inner, TParam Param, int Epoch, IDisposable Disposables);
 }
 
 public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -349,22 +365,39 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
 
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
     {
-        var scopedDependencyResolver = _dependencyResolver?.CreateScope();
-        var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
-            functionId,
-            InvocationMode.Direct,
-            _inner,
-            scopedDependencyResolver
-        );
-        var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
-        var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: scrapbook.GetType());
+        var disposable = default(IDisposable);
+        try
+        {
+            var scopedDependencyResolver = _dependencyResolver?.CreateScope();
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+                functionId,
+                InvocationMode.Direct,
+                _inner,
+                scopedDependencyResolver
+            );
+            var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
+            var (persisted, runningFunction) =
+                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: scrapbook.GetType());
 
-        return new PreparedInvocation(
-            persisted,
-            wrappedInner,
-            scrapbook,
-            Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
-        );
+            if (!persisted)
+            {
+                scopedDependencyResolver?.Dispose();
+                scopedDependencyResolver = null;
+            }
+            
+            return new PreparedInvocation(
+                persisted,
+                wrappedInner,
+                scrapbook,
+                Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
+            );
+        }
+        catch (Exception)
+        {
+            disposable?.Dispose();
+            throw;
+        }
+
     }
     private record PreparedInvocation(bool Persisted, Func<TParam, TScrapbook, Task<Result>> Inner, TScrapbook Scrapbook, IDisposable Disposables);
     
