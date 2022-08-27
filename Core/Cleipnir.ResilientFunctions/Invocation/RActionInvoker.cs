@@ -13,6 +13,8 @@ public class RActionInvoker<TParam> where TParam : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, Task<Result>> _inner;
+    private readonly MiddlewarePipeline _middlewarePipeline;
+    private readonly IDependencyResolver? _dependencyResolver;
 
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -20,11 +22,15 @@ public class RActionInvoker<TParam> where TParam : notnull
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result>> inner,
+        MiddlewarePipeline middlewarePipeline,
+        IDependencyResolver? dependencyResolver,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
+        _middlewarePipeline = middlewarePipeline;
+        _dependencyResolver = dependencyResolver;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -32,15 +38,15 @@ public class RActionInvoker<TParam> where TParam : notnull
     public async Task Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
+        var (created, inner, disposables) = await PrepareForInvocation(functionId, param);
         if (!created) { await WaitForActionResult(functionId); return; }
 
-        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
+        using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId));
         Result result;
         try
         {
             // *** USER FUNCTION INVOCATION *** 
-            result = await _inner(param);
+            result = await inner(param);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
         catch (Exception exception) { await PersistFailure(functionId, exception); throw; }
@@ -51,19 +57,19 @@ public class RActionInvoker<TParam> where TParam : notnull
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param);
+        var (created, inner, disposables) = await PrepareForInvocation(functionId, param);
         if (!created) return;
 
         _ = Task.Run(async () =>
         {
-            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
+            using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId));
             try
             {
                 Result result;
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param);
+                    result = await inner(param);
                 }
                 catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                 catch (Exception exception) { await PersistFailure(functionId, exception); throw; }
@@ -80,14 +86,14 @@ public class RActionInvoker<TParam> where TParam : notnull
     public async Task ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var (inner, param, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
-        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
+        using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId, epoch));
         Result result;
         try
         {
             // *** USER FUNCTION INVOCATION *** 
-            result = await _inner(param);
+            result = await inner(param);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
         catch (Exception exception) { await PersistFailure(functionId, exception, epoch); throw; }
@@ -104,19 +110,18 @@ public class RActionInvoker<TParam> where TParam : notnull
         try
         {
             var functionId = new FunctionId(_functionTypeId, instanceId);
-            var (param, epoch, runningFunction) =
-                await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+            var (inner, param, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
             _ = Task.Run(async () =>
             {
-                using var _ = Disposable.Combine(runningFunction);
+                using var _ = Disposable.Combine(disposables);
                 try
                 {
                     Result result;
                     try
                     {
                         // *** USER FUNCTION INVOCATION *** 
-                        result = await _inner(param);
+                        result = await inner(param);
                     }
                     catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                     catch (Exception exception) { await PersistFailure(functionId, exception, epoch); throw; }
@@ -132,17 +137,51 @@ public class RActionInvoker<TParam> where TParam : notnull
         catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
-    private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param)
-        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
+    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
+    {
+        var scopedDependencyResolver = _dependencyResolver?.CreateScope();
+        var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+            functionId,
+            InvocationMode.Direct,
+            _inner,
+            scopedDependencyResolver
+        );
+        var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
 
+        return new PreparedInvocation(
+            persisted,
+            wrappedInner,
+            Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
+        );
+    }
+    
     private async Task WaitForActionResult(FunctionId functionId)
         => await _commonInvoker.WaitForActionCompletion(functionId);
 
-    private async Task<CommonInvoker.PreparedReInvocation<TParam>> PrepareForReInvocation(
+    private async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId,
         IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch)
-        => await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses, expectedEpoch);
+        int? expectedEpoch
+    )
+    {
+        var scopedDependencyResolver = _dependencyResolver?.CreateScope();
+        var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+            functionId,
+            InvocationMode.Direct,
+            _inner,
+            scopedDependencyResolver
+        );
+        
+        var (param, epoch, runningFunction) = 
+            await _commonInvoker.PrepareForReInvocation<TParam>(functionId, expectedStatuses, expectedEpoch);
+
+        return new PreparedReInvocation(
+            wrappedInner,
+            param,
+            epoch,
+            Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
+        );
+    }
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook: null, expectedEpoch);
@@ -168,12 +207,18 @@ public class RActionInvoker<TParam> where TParam : notnull
 
     private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
         => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
+
+    private record PreparedInvocation(bool Persisted, Func<TParam, Task<Result>> Inner, IDisposable Disposables);
+    private record PreparedReInvocation(Func<TParam, Task<Result>> Inner, TParam Param, int Epoch, IDisposable Disposables);
 }
 
 public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, TScrapbook, Task<Result>> _inner;
+    
+    private readonly MiddlewarePipeline _middlewarePipeline;
+    private readonly IDependencyResolver? _dependencyResolver;
     
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -183,6 +228,8 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         Type? concreteScrapbookType,
+        MiddlewarePipeline middlewarePipeline, 
+        IDependencyResolver? dependencyResolver,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
@@ -191,21 +238,22 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         _concreteScrapbookType = concreteScrapbookType;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _middlewarePipeline = middlewarePipeline;
+        _dependencyResolver = dependencyResolver;
     }
 
     public async Task Invoke(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var scrapbook = CreateScrapbook(functionId);
-        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, scrapbook.GetType());
+        var (created, inner, scrapbook, disposables) = await PrepareForInvocation(functionId, param);
         if (!created) { await WaitForActionCompletion(functionId); return; }
 
-        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
+        using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId));
         Result result;
         try
         {
             // *** USER FUNCTION INVOCATION *** 
-            result = await _inner(param, scrapbook);
+            result = await inner(param, scrapbook);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
         catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
@@ -216,20 +264,19 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var (created, runningFunction) = await PersistNewFunctionInStore(functionId, param, typeof(TScrapbook));
+        var (created, inner, scrapbook, disposables) = await PrepareForInvocation(functionId, param);
         if (!created) return;
 
         _ = Task.Run(async () =>
         {
-            using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId));
-            var scrapbook = CreateScrapbook(functionId);
+            using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId));
             try
             {
                 Result result;
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param, scrapbook);
+                    result = await inner(param, scrapbook);
                 }
                 catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
@@ -246,14 +293,14 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     public async Task ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
+        var (inner, param, scrapbook, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
 
-        using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
+        using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId, epoch));
         Result result;
         try
         {
             // *** USER FUNCTION INVOCATION *** 
-            result = await _inner(param, scrapbook);
+            result = await inner(param, scrapbook);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
         catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
@@ -271,18 +318,18 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         try
         {
             var functionId = new FunctionId(_functionTypeId, instanceId);
-            var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
+            var (inner, param, scrapbook, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
 
             _ = Task.Run(async () =>
             {
-                using var _ = Disposable.Combine(runningFunction, StartSignOfLife(functionId, epoch));
+                using var _ = Disposable.Combine(disposables, StartSignOfLife(functionId, epoch));
                 try
                 {
                     Result result;
                     try
                     {
                         // *** USER FUNCTION INVOCATION *** 
-                        result = await _inner(param, scrapbook);
+                        result = await inner(param, scrapbook);
                     }
                     catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                     catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
@@ -297,29 +344,52 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         } catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
-    private TScrapbook CreateScrapbook(FunctionId functionId, int epoch = 0)
-        => _commonInvoker.CreateScrapbook<TScrapbook>(functionId, epoch, _concreteScrapbookType);
-
-    private async Task<Tuple<bool, IDisposable>> PersistNewFunctionInStore(FunctionId functionId, TParam param, Type scrapbookType)
-        => await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType);
-
     private async Task WaitForActionCompletion(FunctionId functionId)
         => await _commonInvoker.WaitForActionCompletion(functionId);
 
-    private async Task<Tuple<TParam, int, TScrapbook, IDisposable>> PrepareForReInvocation(
+    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
+    {
+        var scopedDependencyResolver = _dependencyResolver?.CreateScope();
+        var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+            functionId,
+            InvocationMode.Direct,
+            _inner,
+            scopedDependencyResolver
+        );
+        var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
+        var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: scrapbook.GetType());
+
+        return new PreparedInvocation(
+            persisted,
+            wrappedInner,
+            scrapbook,
+            Disposable.Combine(scopedDependencyResolver ?? Disposable.NoOp(), runningFunction)
+        );
+    }
+    private record PreparedInvocation(bool Persisted, Func<TParam, TScrapbook, Task<Result>> Inner, TScrapbook Scrapbook, IDisposable Disposables);
+    
+    private async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch,
         Action<TScrapbook>? scrapbookUpdater
     )
     {
-        var (param, epoch, rScrapbook, runningFunction) = await 
+        var scopedDependencyResolver = _dependencyResolver?.CreateScope();
+        var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+            functionId,
+            InvocationMode.Direct,
+            _inner,
+            scopedDependencyResolver
+        );
+        var (param, epoch, scrapbook, runningFunction) = await 
             _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(
                 functionId, 
                 expectedStatuses, expectedEpoch ?? 0,
                 scrapbookUpdater
             );
 
-        return Tuple.Create(param, epoch, rScrapbook!, runningFunction);
+        return new PreparedReInvocation(wrappedInner, param, scrapbook!, epoch, runningFunction);
     }
+    private record PreparedReInvocation(Func<TParam, TScrapbook, Task<Result>> Inner, TParam Param, TScrapbook Scrapbook, int Epoch, IDisposable Disposables);
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
