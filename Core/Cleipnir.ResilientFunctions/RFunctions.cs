@@ -499,6 +499,7 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 innerMethodSelector, 
                 settingsWithDefaults.DependencyResolver,
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -605,6 +606,7 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 innerMethodSelector, 
                 settingsWithDefaults.DependencyResolver,
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 concreteScrapbookType,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
