@@ -131,6 +131,9 @@ public class RActionInvoker<TParam> where TParam : notnull
         catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
 
+    private async Task WaitForActionResult(FunctionId functionId) 
+        => await _commonInvoker.WaitForActionCompletion(functionId);
+    
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
     {
         var disposables = new List<IDisposable>(capacity: 3);
@@ -163,9 +166,6 @@ public class RActionInvoker<TParam> where TParam : notnull
         }
     }
     private record PreparedInvocation(bool Persisted, Func<TParam, Task<Result>> Inner, IDisposable Disposables);
-    
-    private async Task WaitForActionResult(FunctionId functionId) 
-        => await _commonInvoker.WaitForActionCompletion(functionId);
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId,
