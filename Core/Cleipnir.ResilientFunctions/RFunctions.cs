@@ -89,6 +89,8 @@ public class RFunctions : IDisposable
             var rFuncInvoker = new RFuncInvoker<TParam, TReturn>(
                 functionTypeId, 
                 inner, 
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
+                settingsWithDefaults.DependencyResolver,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -275,6 +277,8 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 inner, 
                 concreteScrapbookType,
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
+                settingsWithDefaults.DependencyResolver,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
