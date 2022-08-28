@@ -176,7 +176,7 @@ public class RFunctions : IDisposable
             var rActionInvoker = new RActionInvoker<TParam>(
                 functionTypeId, 
                 inner, 
-                new MiddlewarePipeline(_settings.Middlewares),
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 _settings.DependencyResolver,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
@@ -372,7 +372,7 @@ public class RFunctions : IDisposable
                 functionTypeId, 
                 inner, 
                 concreteScrapbookType,
-                new MiddlewarePipeline(_settings.Middlewares),
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 settingsWithDefaults.DependencyResolver,
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
