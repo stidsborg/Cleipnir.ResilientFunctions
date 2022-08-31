@@ -6,7 +6,7 @@ namespace ConsoleApp
     {
         private static async Task Main()
         {
-            await Job.Example.RegisterAndStart();
+            await Task.CompletedTask;
         }
     }
 }
