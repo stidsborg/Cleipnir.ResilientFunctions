@@ -210,6 +210,29 @@ public class MongoDbFunctionStore : IFunctionStore
         return modified == 1;
     }
 
+    public async Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    {
+        var functionTypeId = functionId.TypeId.Value;
+        var functionInstanceId = functionId.InstanceId.Value;
+
+        var collection = GetCollection();
+
+        var update = Builders<Document>
+            .Update
+            .Set(d => d.ScrapbookJson, scrapbookJson);
+
+        var updateResult = await collection.UpdateOneAsync(
+            d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId &&
+                d.Epoch == expectedEpoch,
+            update
+        );
+
+        var modified = updateResult.ModifiedCount;
+        return modified == 1;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         var functionTypeId = functionId.TypeId.Value;

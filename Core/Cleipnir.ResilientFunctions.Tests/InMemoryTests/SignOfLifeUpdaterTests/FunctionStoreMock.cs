@@ -32,6 +32,8 @@ public delegate Task<bool> SetFunctionState(
     int expectedEpoch
 );
 
+public delegate Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int epoch);
+
 public delegate Task<StoredFunction?> GetFunction(FunctionId functionId);
 
 public class FunctionStoreMock : IFunctionStore
@@ -100,6 +102,13 @@ public class FunctionStoreMock : IFunctionStore
     ) => SetupSetFunctionState == null
         ? true.ToTask()
         : SetupSetFunctionState(functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch);
+
+    public SetScrapbook? SetupSetScrapbook { private get; init; }
+
+    public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+        => SetupSetScrapbook == null
+            ? true.ToTask()
+            : SetupSetScrapbook(functionId, scrapbookJson, expectedEpoch);
 
     public GetFunction? SetupGetFunction { private get; init; }
 

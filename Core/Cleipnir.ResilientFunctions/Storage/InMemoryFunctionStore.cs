@@ -156,6 +156,19 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
+    public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+
+            state.Scrapbook = state.Scrapbook! with { ScrapbookJson = scrapbookJson };
+            return true.ToTask();
+        }
+    }
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)

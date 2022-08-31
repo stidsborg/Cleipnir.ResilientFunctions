@@ -298,6 +298,31 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET scrapbook_json = $1
+            WHERE 
+                function_type_id = $2 AND 
+                function_instance_id = $3 AND 
+                epoch = $4";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = scrapbookJson},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
+            }
+        };
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();

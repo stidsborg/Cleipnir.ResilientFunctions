@@ -26,15 +26,7 @@ public abstract class RScrapbook
             throw new InvalidOperationException($"'{GetType().Name}' scrapbook was uninitialized on save");
 
         var scrapbookJson = Serializer!.SerializeScrapbook(this);
-        var success = await FunctionStore!.SetFunctionState(
-            FunctionId!,
-            Status.Executing,
-            scrapbookJson,
-            errorJson: null,
-            result: null,
-            postponedUntil: null,
-            expectedEpoch: Epoch!.Value
-        );
+        var success = await FunctionStore!.SetScrapbook(FunctionId!, scrapbookJson, Epoch!.Value);
 
         if (!success)
             throw new ScrapbookSaveFailedException(
