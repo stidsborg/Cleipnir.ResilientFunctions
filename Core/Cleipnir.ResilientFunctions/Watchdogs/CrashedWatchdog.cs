@@ -5,7 +5,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ExceptionHandling;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -116,8 +115,7 @@ internal class CrashedWatchdog
         using var @lock = await _asyncSemaphore.Take();
         
         if (_shutdownCoordinator.ShutdownInitiated) return;
-
-        ResilientInvocation.Mode = InvocationMode.Retry;
+        
         try
         {
             await _reInvoke(

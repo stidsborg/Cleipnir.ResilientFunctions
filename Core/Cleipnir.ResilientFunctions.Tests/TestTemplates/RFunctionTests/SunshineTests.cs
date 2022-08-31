@@ -2,7 +2,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -195,8 +194,11 @@ public abstract class SunshineTests
     }
     
     public abstract Task InvocationModeShouldBeDirectInSunshineScenario();
-    protected async Task InvocationModeShouldBeDirectInSunshineScenario(Task<IFunctionStore> storeTask)
+    protected Task InvocationModeShouldBeDirectInSunshineScenario(Task<IFunctionStore> storeTask)
     {
+        //todo refactor when invocation mode is supported again
+        return Task.CompletedTask;
+        /*
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
@@ -210,7 +212,7 @@ public abstract class SunshineTests
 
         await rFunc("hello world", "hello world");
         
-        syncedInvocationMode.Value.ShouldBe(InvocationMode.Direct);
+        syncedInvocationMode.Value.ShouldBe(InvocationMode.Direct);*/
     }
 
     private class Scrapbook : RScrapbook {}
