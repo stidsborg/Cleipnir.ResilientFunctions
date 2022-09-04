@@ -7,32 +7,28 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 public interface IMiddleware
 {
     Task<Result> InvokeAction<TParam>(
-        FunctionId functionId,
         TParam param,
-        Func<TParam, Task<Result>> next,
-        InvocationMode invocationMode
+        Context context,
+        Func<TParam, Context, Task<Result>> next
     ) where TParam : notnull;
         
     Task<Result> InvokeAction<TParam, TScrapbook>(
-        FunctionId functionId,
         TParam param,
         TScrapbook scrapbook,
-        Func<TParam, TScrapbook, Task<Result>> next,
-        InvocationMode invocationMode
-    ) where TParam : notnull where TScrapbook : RScrapbook;
+        Context context,
+        Func<TParam, TScrapbook, Context, Task<Result>> next 
+    ) where TParam : notnull where TScrapbook : RScrapbook, new();
         
     Task<Result<TResult>> InvokeFunc<TParam, TResult>(
-        FunctionId functionId,
         TParam param,
-        Func<TParam, Task<Result<TResult>>> next,
-        InvocationMode invocationMode
+        Context context,
+        Func<TParam, Context, Task<Result<TResult>>> next 
     ) where TParam : notnull;
         
     Task<Result<TResult>> InvokeFunc<TParam, TScrapbook, TResult>(
-        FunctionId functionId,
         TParam param,
         TScrapbook scrapbook,
-        Func<TParam, TScrapbook, Task<Result<TResult>>> next,
-        InvocationMode invocationMode
-    ) where TParam : notnull where TScrapbook : RScrapbook;
+        Context context,
+        Func<TParam, TScrapbook, Context, Task<Result<TResult>>> next 
+    ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }

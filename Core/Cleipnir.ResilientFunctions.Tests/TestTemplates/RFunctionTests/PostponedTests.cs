@@ -83,9 +83,9 @@ public abstract class PostponedTests
                         PostponedCheckFrequency: TimeSpan.Zero
                     )
                 );
-            var rFunc = rFunctions.RegisterFunc(
+            var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
                     functionTypeId,
-                    Result<string> (string _, Scrapbook _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
+                    (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
                 )
                 .Invoke;
 

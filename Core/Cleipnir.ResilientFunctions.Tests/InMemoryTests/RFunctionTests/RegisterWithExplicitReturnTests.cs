@@ -76,7 +76,7 @@ public class RegisterWithExplicitReturnTests
         var rAction = rFunctions
             .RegisterAction<string, Scrapbook>(
                 "FunctionTypeId".ToFunctionTypeId(),
-                inner: async (param, scrapbook) =>
+                inner: async (param, scrapbook, _) =>
                 {
                     await Task.CompletedTask;
                     syncedParam.Value = param;

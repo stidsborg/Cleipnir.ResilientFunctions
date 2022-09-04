@@ -92,7 +92,9 @@ public abstract class ReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
+        await Should.ThrowAsync<Exception>(() =>
+            rAction.Invoke("something", "something")
+        );
 
         var syncedListFromScrapbook = new Synced<List<string>>();
         await rAction.ReInvoke(

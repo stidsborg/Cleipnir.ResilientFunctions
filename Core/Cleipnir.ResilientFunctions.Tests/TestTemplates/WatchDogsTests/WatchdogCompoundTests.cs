@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -186,7 +187,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = rFunctions.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
-                async Task<Result<string>> (Param p, Scrapbook scrapbook) =>
+                async (p, scrapbook) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     scrapbook.Scraps.Add(2);
@@ -442,7 +443,7 @@ public abstract class WatchdogCompoundTests
             _ = rFunctions
                 .RegisterAction(
                     functionTypeId,
-                    async (Param p, Scrapbook scrapbook) =>
+                    async (Param p, Scrapbook scrapbook, Context __) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
                         scrapbook.Scraps.Add(2);
