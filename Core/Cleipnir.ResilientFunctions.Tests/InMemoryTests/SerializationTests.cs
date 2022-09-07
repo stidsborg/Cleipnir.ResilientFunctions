@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -85,6 +86,11 @@ public class SerializationTests
         public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
             => _defaultSerializer.DeserializeScrapbook<TScrapbook>(json, type);
 
+        public string SerializeScrapbooks(IEnumerable<OwnedScrapbook> scrapbooks)
+            => _defaultSerializer.SerializeScrapbooks(scrapbooks);
+        public Dictionary<string, RScrapbook> DeserializeScrapbooks(string json)
+            => _defaultSerializer.DeserializeScrapbooks(json);
+        
         public string SerializeError(RError error)
             => _defaultSerializer.SerializeError(error);
         public RError DeserializeError(string json)

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
+using static Cleipnir.ResilientFunctions.Helpers.Helpers;
 
 namespace Cleipnir.ResilientFunctions.ParameterSerialization;
 
@@ -17,7 +19,7 @@ public class ErrorHandlingDecorator : ISerializer
         {
             return _inner.DeserializeParameter<TParam>(json, type)
                    ?? throw new DeserializationException(
-                       $"Deserialized parameter was null with type: '{type}' and json: '{json}'", 
+                       $"Deserialized parameter was null with type: '{type}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -28,7 +30,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize parameter with type: '{type}' and json: '{json}'", 
+                $"Unable to deserialize parameter with type: '{type}' and json: '{MinifyJson(json)}'", 
                 e
             );
         }
@@ -42,7 +44,7 @@ public class ErrorHandlingDecorator : ISerializer
         {
             return _inner.DeserializeScrapbook<TScrapbook>(json, type)
                    ?? throw new DeserializationException(
-                       $"Deserialized scrapbook was null with type: '{type}' and json: '{json}'", 
+                       $"Deserialized scrapbook was null with type: '{type}' and json: '{(json == null ? "null" : MinifyJson(json))}'", 
                        new NullReferenceException()
                    );
         }
@@ -53,7 +55,33 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize scrapbook with type: '{type}' and json: '{json}'", 
+                $"Unable to deserialize scrapbook with type: '{type}' and json: '{(json == null ? "null" : MinifyJson(json))}'", 
+                e
+            );
+        }
+    }
+
+    public string SerializeScrapbooks(IEnumerable<OwnedScrapbook> scrapbooks)
+        => _inner.SerializeScrapbooks(scrapbooks);
+
+    public Dictionary<string, RScrapbook> DeserializeScrapbooks(string json)
+    {
+        try
+        {
+            return _inner.DeserializeScrapbooks(json)
+                   ?? throw new DeserializationException(
+                       $"Scrapbooks was deserialized to null from json: '{MinifyJson(json)}", 
+                       new NullReferenceException()
+                   );
+        }
+        catch (DeserializationException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new DeserializationException(
+                $"Unable to deserialize scrapbook with from data: '{MinifyJson(json)}'", 
                 e
             );
         }
@@ -69,7 +97,7 @@ public class ErrorHandlingDecorator : ISerializer
         {
             return _inner.DeserializeResult<TResult>(json, type)
                    ?? throw new DeserializationException(
-                       $"Deserialized result was null with type: '{type}' and json: '{json}'", 
+                       $"Deserialized result was null with type: '{type}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -80,7 +108,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize result with type: '{type}' and json: '{json}'", 
+                $"Unable to deserialize result with type: '{type}' and json: '{MinifyJson(json)}'", 
                 e
             );
         }
