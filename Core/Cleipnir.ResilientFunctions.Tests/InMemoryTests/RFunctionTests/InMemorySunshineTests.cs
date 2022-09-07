@@ -20,7 +20,7 @@ public class InMemorySunshineTests
     public async Task SyncFuncSunshineTest()
     {
         await ExecuteFunc((rFunctions, callback)
-            => rFunctions.RegisterAction(
+            => rFunctions.RegisterFunc(
                 functionTypeId: "",
                 callback
             )
@@ -32,6 +32,304 @@ public class InMemorySunshineTests
     public async Task SyncFuncWithContextSunshineTest()
     {
         await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                string(string param, Context context) => callback(param)
+            )
+        );
+    }
+        
+    // ** ASYNC ** //
+    [TestMethod]
+    public async Task AsyncFuncSunshineTest()
+    {
+        await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<string>(string param) => Task.FromResult(callback(param))
+            )
+        );
+    }
+    
+    
+    // ** ASYNC W. CONTEXT * //
+    [TestMethod]
+    public async Task AsyncFuncWithContextSunshineTest()
+    {
+        await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<string>(string param, Context context)
+                    => Task.FromResult(callback(param))
+            )
+        );
+    }
+    
+    // ** SYNC W. RESULT ** //
+    [TestMethod]
+    public async Task SyncFuncWithResultSunshineTest()
+    {
+        await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Result<string>(string param) => callback(param)
+            )
+        );
+    }    
+    
+    // ** SYNC W. RESULT AND CONTEXT ** //
+    [TestMethod]
+    public async Task SyncFuncWithContextAndResultSunshineTest()
+    {
+        await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Result<string>(string param, Context context) 
+                    => Result.SucceedWithValue(callback(param))
+               )
+            );
+    }    
+   
+    // ** ASYNC W. RESULT ** //
+    [TestMethod]
+    public async Task AsyncFuncWithResultSunshineTest()
+    {
+        await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<Result<string>>(string param) 
+                    => Task.FromResult(Result.SucceedWithValue(callback(param)))
+               )
+            );
+    }    
+
+    // ** ASYNC W. RESULT AND CONTEXT ** //   
+    [TestMethod]
+    public async Task AsyncFuncWithContextAndResultSunshineTest()
+    {
+        await ExecuteFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<Result<string>>(string param, Context context)
+                    => Task.FromResult(Result.SucceedWithValue(callback(param))))
+            );
+    }    
+
+    private async Task ExecuteFunc(Func<RFunctions, Func<string, string>, RFunc<string, string>> createRegistration)
+    {
+        var store = new InMemoryFunctionStore();
+        using var rFunctions = new RFunctions(store);
+
+        var syncedParam = new Synced<string>();
+        var toReturn = "returned";
+        // ReSharper disable once AccessToModifiedClosure
+        var registration = createRegistration(rFunctions, param =>
+        {
+            syncedParam.Value = param;
+            return toReturn;
+        });
+
+        var returned = await registration.Invoke("id1", "hello world");
+        returned.ShouldBe(toReturn);
+        syncedParam.Value.ShouldBe("hello world");
+
+        syncedParam = new Synced<string>();
+        returned = await registration.ReInvoke("id1", new [] { Status.Succeeded });
+        returned.ShouldBe(toReturn);
+        syncedParam.Value.ShouldBe("hello world");
+        
+        syncedParam = new Synced<string>();
+        await registration.Schedule("id2", "hello universe");
+        await BusyWait.UntilAsync(() => syncedParam.Value != null);
+        syncedParam.Value.ShouldBe("hello universe");
+        returned = await registration.Invoke("id2", "hello universe");
+        returned.ShouldBe(toReturn);
+        
+        syncedParam = new Synced<string>();
+        await registration.ScheduleReInvocation("id2", new [] { Status.Succeeded });
+        await BusyWait.UntilAsync(() => syncedParam.Value != null);
+        syncedParam.Value.ShouldBe("hello universe");
+        returned = await registration.Invoke("id2", "hello universe");
+        returned.ShouldBe(toReturn);
+    }
+
+    #endregion
+    
+    #region Func_with_Scrapbook
+
+    // ** SYNC ** //
+    [TestMethod]
+    public async Task SyncScrapbookFuncSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                callback
+            )
+        );
+    }
+    
+    // ** SYNC W. CONTEXT ** //
+    [TestMethod]
+    public async Task SyncScrapbookFuncWithContextSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                string (string param, Scrapbook scrapbook, Context context) => callback(param, scrapbook)
+            )
+        );
+    }
+        
+    // ** ASYNC ** //
+    [TestMethod]
+    public async Task AsyncScrapbookFuncSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<string>(string param, Scrapbook scrapbook) => Task.FromResult(callback(param, scrapbook))
+            )
+        );
+    }
+    
+    
+    // ** ASYNC W. CONTEXT * //
+    [TestMethod]
+    public async Task AsyncScrapbookFuncWithContextSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<string>(string param, Scrapbook scrapbook, Context context)
+                    => Task.FromResult(callback(param, scrapbook))
+            )
+        );
+    }
+    
+    // ** SYNC W. RESULT ** //
+    [TestMethod]
+    public async Task SyncScrapbookFuncWithResultSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc<string, Scrapbook, string>(
+                functionTypeId: "",
+                Result<string> (param, scrapbook) => callback(param, scrapbook)
+            )
+        );
+    }
+
+    // ** SYNC W. RESULT AND CONTEXT ** //
+    [TestMethod]
+    public async Task SyncScrapbookFuncWithContextAndResultSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Result<string>(string param, Scrapbook scrapbook, Context context)
+                    => callback(param, scrapbook)
+            )
+        );
+    }    
+   
+    // ** ASYNC W. RESULT ** //
+    [TestMethod]
+    public async Task AsyncScrapbookFuncWithResultSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<Result<string>>(string param, Scrapbook scrapbook)
+                    => Task.FromResult(Result.SucceedWithValue(callback(param, scrapbook)))
+            )
+        );
+    }    
+
+    // ** ASYNC W. RESULT AND CONTEXT ** //   
+    [TestMethod]
+    public async Task AsyncScrapbookFuncWithContextAndResultSunshineTest()
+    {
+        await ExecuteScrapbookFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc(
+                functionTypeId: "",
+                Task<Result<string>>(string param, Scrapbook scrapbook, Context context)
+                    => Task.FromResult(Result.SucceedWithValue(callback(param, scrapbook)))
+            )
+        );
+    }    
+
+    private async Task ExecuteScrapbookFunc(Func<RFunctions, Func<string, Scrapbook, string>, RFunc<string, Scrapbook, string>> createRegistration)
+    {
+        var store = new InMemoryFunctionStore();
+        using var rFunctions = new RFunctions(store);
+
+        var syncedParam = new Synced<string>();
+        var syncedScrapbook = new Synced<Scrapbook>();
+        var toReturn = "returned";
+        // ReSharper disable once AccessToModifiedClosure
+        var registration = createRegistration(
+            rFunctions,
+            (param, scrapbook) =>
+            {
+                syncedParam.Value = param;
+                syncedScrapbook.Value = scrapbook;
+                return toReturn;
+            });
+
+        var returned = await registration.Invoke("id1", "hello world");
+        returned.ShouldBe(toReturn);
+        syncedParam.Value.ShouldBe("hello world");
+        syncedScrapbook.Value.ShouldNotBeNull();
+
+        syncedParam = new Synced<string>();
+        syncedScrapbook = new Synced<Scrapbook>();
+        returned = await registration.ReInvoke("id1", new [] { Status.Succeeded });
+        returned.ShouldBe(toReturn);
+        syncedParam.Value.ShouldBe("hello world");
+        syncedScrapbook.Value.ShouldNotBeNull();
+        
+        syncedParam = new Synced<string>();
+        syncedScrapbook = new Synced<Scrapbook>();
+        await registration.Schedule("id2", "hello universe");
+        await BusyWait.UntilAsync(() => syncedParam.Value != null);
+        syncedParam.Value.ShouldBe("hello universe");
+        syncedScrapbook.Value.ShouldNotBeNull();
+        returned = await registration.Invoke("id2", "hello universe");
+        returned.ShouldBe(toReturn);
+        
+        syncedParam = new Synced<string>();
+        syncedScrapbook = new Synced<Scrapbook>();
+        await registration.ScheduleReInvocation("id2", new [] { Status.Succeeded });
+        await BusyWait.UntilAsync(() => syncedParam.Value != null);
+        syncedParam.Value.ShouldBe("hello universe");
+        syncedScrapbook.Value.ShouldNotBeNull();
+        returned = await registration.Invoke("id2", "hello universe");
+        returned.ShouldBe(toReturn);
+    }
+
+    private class Scrapbook : RScrapbook { }
+    
+    #endregion
+    
+    #region Action
+
+    // ** SYNC ** //
+    [TestMethod]
+    public async Task SyncActionSunshineTest()
+    {
+        await ExecuteAction((rFunctions, callback)
+            => rFunctions.RegisterAction(
+                functionTypeId: "",
+                callback
+            )
+        );
+    }
+    
+    // ** SYNC W. CONTEXT ** //
+    [TestMethod]
+    public async Task SyncActionWithContextSunshineTest()
+    {
+        await ExecuteAction((rFunctions, callback)
                 => rFunctions.RegisterAction(
                     functionTypeId: "",
                     void(string param, Context context) => callback(param)
@@ -41,9 +339,9 @@ public class InMemorySunshineTests
         
     // ** ASYNC ** //
     [TestMethod]
-    public async Task AsyncFuncSunshineTest()
+    public async Task AsyncActionSunshineTest()
     {
-        await ExecuteFunc((rFunctions, callback)
+        await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task (string param) =>
@@ -57,9 +355,9 @@ public class InMemorySunshineTests
     
     // ** ASYNC W. CONTEXT * //
     [TestMethod]
-    public async Task AsyncFuncWithContextSunshineTest()
+    public async Task AsyncActionWithContextSunshineTest()
     {
-        await ExecuteFunc((rFunctions, callback)
+        await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task (string param, Context context) =>
@@ -72,9 +370,9 @@ public class InMemorySunshineTests
     
     // ** SYNC W. RESULT ** //
     [TestMethod]
-    public async Task SyncFuncWithResultSunshineTest()
+    public async Task SyncActionWithResultSunshineTest()
     {
-        await ExecuteFunc((rFunctions, callback)
+        await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Result(string param) => { callback(param); return Result.Succeed; }
@@ -84,9 +382,9 @@ public class InMemorySunshineTests
     
     // ** SYNC W. RESULT AND CONTEXT ** //
     [TestMethod]
-    public async Task SyncFuncWithContextAndResultSunshineTest()
+    public async Task SyncActionWithContextAndResultSunshineTest()
     {
-        await ExecuteFunc((rFunctions, callback)
+        await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Result(string param, Context context) => { callback(param); return Result.Succeed; }
@@ -96,9 +394,9 @@ public class InMemorySunshineTests
    
     // ** ASYNC W. RESULT ** //
     [TestMethod]
-    public async Task AsyncFuncWithResultSunshineTest()
+    public async Task AsyncActionWithResultSunshineTest()
     {
-        await ExecuteFunc((rFunctions, callback)
+        await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task<Result> (string param) => { callback(param); return Task.FromResult(Result.Succeed); }
@@ -108,9 +406,9 @@ public class InMemorySunshineTests
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
     [TestMethod]
-    public async Task AsyncFuncWithContextAndResultSunshineTest()
+    public async Task AsyncActionWithContextAndResultSunshineTest()
     {
-        await ExecuteFunc((rFunctions, callback)
+        await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task<Result> (string param, Context context) => { callback(param); return Task.FromResult(Result.Succeed); }
@@ -118,7 +416,7 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteFunc(Func<RFunctions, Action<string>, RAction<string>> createRegistration)
+    private async Task ExecuteAction(Func<RFunctions, Action<string>, RAction<string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
@@ -148,13 +446,13 @@ public class InMemorySunshineTests
 
     #endregion
     
-    #region Func_with_Scrapbook
+    #region Action_with_Scrapbook
 
     // ** SYNC ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncSunshineTest()
+    public async Task SyncScrapbookActionSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 void (string param, Scrapbook scrapbook) => callback(param, scrapbook)
@@ -164,9 +462,9 @@ public class InMemorySunshineTests
     
     // ** SYNC W. CONTEXT ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncWithContextSunshineTest()
+    public async Task SyncScrapbookActionWithContextSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 void (string param, Scrapbook scrapbook, Context context) => callback(param, scrapbook)
@@ -176,9 +474,9 @@ public class InMemorySunshineTests
         
     // ** ASYNC ** //
     [TestMethod]
-    public async Task AsyncScrapbookFuncSunshineTest()
+    public async Task AsyncScrapbookActionSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task (string param, Scrapbook scrapbook) =>
@@ -192,9 +490,9 @@ public class InMemorySunshineTests
     
     // ** ASYNC W. CONTEXT * //
     [TestMethod]
-    public async Task AsyncScrapbookFuncWithContextSunshineTest()
+    public async Task AsyncScrapbookActionWithContextSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task (string param, Scrapbook scrapbook, Context context) =>
@@ -207,9 +505,9 @@ public class InMemorySunshineTests
     
     // ** SYNC W. RESULT ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncWithResultSunshineTest()
+    public async Task SyncScrapbookActionWithResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Result(string param, Scrapbook scrapbook) =>
@@ -222,9 +520,9 @@ public class InMemorySunshineTests
 
     // ** SYNC W. RESULT AND CONTEXT ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncWithContextAndResultSunshineTest()
+    public async Task SyncScrapbookActionWithContextAndResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Result(string param, Scrapbook scrapbook, Context context) =>
@@ -237,9 +535,9 @@ public class InMemorySunshineTests
    
     // ** ASYNC W. RESULT ** //
     [TestMethod]
-    public async Task AsyncScrapbookFuncWithResultSunshineTest()
+    public async Task AsyncScrapbookActionWithResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task<Result> (string param, Scrapbook scrapbook) =>
@@ -252,9 +550,9 @@ public class InMemorySunshineTests
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
     [TestMethod]
-    public async Task AsyncScrapbookFuncWithContextAndResultSunshineTest()
+    public async Task AsyncScrapbookActionWithContextAndResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteScrapbookAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
                 Task<Result> (string param, Scrapbook scrapbook, Context context) =>
@@ -265,7 +563,7 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteScrapbookFunc(Func<RFunctions, Action<string, Scrapbook>, RAction<string, Scrapbook>> createRegistration)
+    private async Task ExecuteScrapbookAction(Func<RFunctions, Action<string, Scrapbook>, RAction<string, Scrapbook>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
@@ -307,7 +605,5 @@ public class InMemorySunshineTests
         syncedScrapbook.Value.ShouldNotBeNull();
     }
 
-    private class Scrapbook : RScrapbook { }
-    
     #endregion
 }
