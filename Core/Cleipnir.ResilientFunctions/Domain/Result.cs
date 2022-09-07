@@ -30,6 +30,7 @@ public class Result
     public static Result Succeed { get; } = new Result();
     public static implicit operator Result(Fail fail) => new Result(fail.Exception);
     public static implicit operator Result(Postpone postpone) => new Result(postpone);
+    public static Result<T> SucceedWithValue<T>(T value) => new(value);
 }
 
 public static class Succeed
