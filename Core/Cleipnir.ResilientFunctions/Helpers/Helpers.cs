@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
@@ -52,4 +53,6 @@ public static class Helpers
 
         return arr;
     }
+
+    public static string MinifyJson(string json) => Regex.Replace(json, "(\"(?:[^\"\\\\]|\\\\.)*\")|\\s+", "$1");
 }
