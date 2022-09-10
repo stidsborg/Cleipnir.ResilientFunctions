@@ -1,16 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public abstract class RScrapbook
+public class RScrapbook
 {
     private IFunctionStore? FunctionStore { get; set; }
     private ISerializer? Serializer { get; set; }
     private FunctionId? FunctionId { get; set; }
     private int? Epoch { get; set; }
+
+    public Dictionary<string, string> StateDictionary { get; set; } = new(); //allows for state accessible from middleware etc
 
     public void Initialize(FunctionId functionId, IFunctionStore functionStore, ISerializer serializer, int epoch)
     {

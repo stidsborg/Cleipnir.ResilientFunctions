@@ -149,4 +149,25 @@ public abstract class ScrapbookTests
             )
         );
     }
+
+    public abstract Task ChangesToStateDictionaryArePersisted();
+    protected async Task ChangesToStateDictionaryArePersisted(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var rFunctions = new RFunctions(store);
+        
+        var rAction = rFunctions.RegisterAction<string, RScrapbook>(
+            nameof(ChangesToStateDictionaryArePersisted),
+            (_, scrapbook) => scrapbook.StateDictionary["hello"] = "world"
+        ).Invoke;
+
+        await rAction.Invoke("instance", "test");
+        var sf = await store.GetFunction(
+            new FunctionId(nameof(ChangesToStateDictionaryArePersisted), "instance")
+        ).ShouldNotBeNullAsync();
+
+        var scrapbook = sf.Scrapbook!.Deserialize<RScrapbook>(DefaultSerializer.Instance);
+        scrapbook.StateDictionary.Count.ShouldBe(1);
+        scrapbook.StateDictionary["hello"].ShouldBe("world");
+    }
 }

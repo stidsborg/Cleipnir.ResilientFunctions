@@ -20,4 +20,8 @@ public class ScrapbookTests : ResilientFunctions.Tests.TestTemplates.ScrapbookTe
     [TestMethod]
     public override Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration()
         => WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ChangesToStateDictionaryArePersisted()
+        => ChangesToStateDictionaryArePersisted(NoSql.AutoCreateAndInitializeStore());
 }
