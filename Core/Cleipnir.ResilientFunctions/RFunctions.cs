@@ -382,7 +382,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
             {
                 if (_functions[functionTypeId] is not RFunc<TParam, TScrapbook, TReturn> r)
-                    throw new ArgumentException($"{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                    throw new ArgumentException($"<{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
         
@@ -551,7 +551,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
             {
                 if (_functions[functionTypeId] is not RAction<TParam, TScrapbook> r)
-                    throw new ArgumentException($"{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                    throw new ArgumentException($"<{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
 
@@ -624,7 +624,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
             {
                 if (_functions[functionTypeId] is not RFunc<TParam, TScrapbook, TReturn> r)
-                    throw new ArgumentException($"{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                    throw new ArgumentException($"<{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
 
@@ -681,7 +681,7 @@ public class RFunctions : IDisposable
             if (_functions.ContainsKey(functionTypeId))
             {
                 if (_functions[functionTypeId] is not RAction<TParam, TScrapbook> r)
-                    throw new ArgumentException($"{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
+                    throw new ArgumentException($"<{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
                 return r;
             }
 
