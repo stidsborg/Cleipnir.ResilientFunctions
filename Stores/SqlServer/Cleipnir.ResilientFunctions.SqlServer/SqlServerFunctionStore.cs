@@ -351,8 +351,8 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var paramJson = reader.GetString(0);
                 var paramType = reader.GetString(1);
-                var scrapbookJson = reader.IsDBNull(2) ? null : reader.GetString(2);
-                var scrapbookType = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var scrapbookJson = reader.GetString(2);
+                var scrapbookType = reader.GetString(3);
                 var status = (Status) reader.GetInt32(4);
                 var resultJson = reader.IsDBNull(5) ? null : reader.GetString(5);
                 var resultType = reader.IsDBNull(6) ? null : reader.GetString(6);
@@ -365,7 +365,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 return new StoredFunction(
                     functionId,
                     new StoredParameter(paramJson, paramType),
-                    scrapbookType == null ? null : new StoredScrapbook(scrapbookJson, scrapbookType),
+                    new StoredScrapbook(scrapbookJson, scrapbookType),
                     status,
                     resultType == null ? null : new StoredResult(resultJson, resultType),
                     errorJson,

@@ -375,15 +375,13 @@ internal class CommonInvoker
                 throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'");
 
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-            if (!hasScrapbook)
-                return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, default(TScrapbook), runningFunction);
-
+            
             var scrapbook = updatedScrapbookJsonOption.HasValue
                 ? Serializer.DeserializeScrapbook<TScrapbook>(updatedScrapbookJsonOption.Value, sf.Scrapbook!.ScrapbookType)
                 : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook!.ScrapbookJson, sf.Scrapbook.ScrapbookType);
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
             
-            return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, (TScrapbook?) scrapbook, runningFunction);
+            return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, scrapbook, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -391,7 +389,7 @@ internal class CommonInvoker
             await _functionStore.SetFunctionState(
                 functionId,
                 Status.Failed,
-                sf.Scrapbook?.ScrapbookJson,
+                sf.Scrapbook.ScrapbookJson,
                 sf.Result,
                 Serializer.SerializeError(e.ToError()),
                 postponedUntil: null,

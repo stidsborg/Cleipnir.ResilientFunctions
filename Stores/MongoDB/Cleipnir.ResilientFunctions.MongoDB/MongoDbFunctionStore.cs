@@ -245,7 +245,7 @@ public class MongoDbFunctionStore : IFunctionStore
         return new StoredFunction(
             new FunctionId(document.Id.FunctionTypeId, document.Id.FunctionInstanceId),
             new StoredParameter(document.ParameterJson, document.ParameterType),
-            document.ScrapbookType == null ? null : new StoredScrapbook(document.ScrapbookJson, document.ScrapbookType),
+            new StoredScrapbook(document.ScrapbookJson, document.ScrapbookType),
             (Status) document.Status,
             document.ResultType == null ? null : new StoredResult(document.ResultJson, document.ResultType),
             document.ErrorJson,
@@ -261,8 +261,8 @@ public class MongoDbFunctionStore : IFunctionStore
         public DbFunctionId Id { get; set; } = new();
         public string ParameterJson { get; set; } = "";
         public string ParameterType { get; set; } = "";
-        public string? ScrapbookJson { get; set; }
-        public string? ScrapbookType { get; set; }
+        public string ScrapbookJson { get; set; } = "";
+        public string ScrapbookType { get; set; } = "";
         public int Status { get; set; }
         public string? ResultJson { get; set; }
         public string? ResultType { get; set; }

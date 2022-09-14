@@ -350,17 +350,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         while (await reader.ReadAsync())
         {
-            var hasScrapbookJson = !await reader.IsDBNullAsync(2);
-            var hasScrapbookType = !await reader.IsDBNullAsync(3);
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasError = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
-                Scrapbook: hasScrapbookType ? new StoredScrapbook(
-                    hasScrapbookJson ? reader.GetString(2) : null,  
-                    reader.GetString(3)) : null,
+                Scrapbook: new StoredScrapbook(reader.GetString(2),reader.GetString(3)),
                 Status: (Status) reader.GetInt32(4),
                 Result: hasResult ? new StoredResult(reader.GetString(5), reader.GetString(6)) : null,
                 hasError ? reader.GetString(7) : null,
