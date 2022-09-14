@@ -7,9 +7,9 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 
 public class MiddlewarePipeline
 {
-    private readonly IReadOnlyList<MiddlewareOrResolver> _middlewares;
+    private readonly IReadOnlyList<MiddlewareInstanceOrResolverFunc> _middlewares;
     
-    public MiddlewarePipeline(IReadOnlyList<MiddlewareOrResolver> middlewares) => _middlewares = middlewares;
+    public MiddlewarePipeline(IReadOnlyList<MiddlewareInstanceOrResolverFunc> middlewares) => _middlewares = middlewares;
 
     public Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> WrapPipelineAroundInner<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner, 

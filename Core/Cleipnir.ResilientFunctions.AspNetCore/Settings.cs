@@ -14,7 +14,7 @@ public class Settings
     private readonly TimeSpan? _delayStartup;
     private readonly int? _maxParallelRetryInvocations;
     private readonly ISerializer? _serializer;
-    private readonly List<MiddlewareOrResolver> _middlewares = new();
+    private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares = new();
 
     public Settings(
         Action<RFunctionException>? UnhandledExceptionHandler = null, 
@@ -36,9 +36,9 @@ public class Settings
     public Settings RegisterMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
     {
         _middlewares.Add(
-            new MiddlewareOrResolver(
-                Middleware: null,
-                MiddlewareResolver: resolver => resolver.Resolve<TMiddleware>()
+            new MiddlewareInstanceOrResolverFunc(
+                Instance: null,
+                Resolver: resolver => resolver.Resolve<TMiddleware>()
             )
         );
 
@@ -47,7 +47,7 @@ public class Settings
 
     public Settings RegisterMiddleware(IMiddleware middleware) 
     {
-        _middlewares.Add(new MiddlewareOrResolver(middleware, MiddlewareResolver: null));
+        _middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
         return this;
     }
 

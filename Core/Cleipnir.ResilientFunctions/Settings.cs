@@ -18,8 +18,8 @@ public class Settings
     internal ISerializer? Serializer { get; }
     internal IDependencyResolver? DependencyResolver { get; }
     
-    private readonly List<MiddlewareOrResolver> _middlewares = new();
-    internal IReadOnlyList<MiddlewareOrResolver> Middlewares => _middlewares;
+    private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares = new();
+    internal IReadOnlyList<MiddlewareInstanceOrResolverFunc> Middlewares => _middlewares;
 
     public Settings(
         Action<RFunctionException>? UnhandledExceptionHandler = null, 
@@ -32,7 +32,7 @@ public class Settings
     ) :this(
         UnhandledExceptionHandler, CrashedCheckFrequency, PostponedCheckFrequency, DelayStartup, 
         MaxParallelRetryInvocations, Serializer, DependencyResolver, 
-        middlewares: new List<MiddlewareOrResolver>()
+        middlewares: new List<MiddlewareInstanceOrResolverFunc>()
     ) { }
 
     internal Settings(
@@ -43,7 +43,7 @@ public class Settings
         int? maxParallelRetryInvocations, 
         ISerializer? serializer, 
         IDependencyResolver? dependencyResolver,
-        List<MiddlewareOrResolver> middlewares
+        List<MiddlewareInstanceOrResolverFunc> middlewares
     )
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
@@ -64,9 +64,9 @@ public class Settings
             );
 
         _middlewares.Add(
-            new MiddlewareOrResolver(
-                Middleware: null,
-                MiddlewareResolver: resolver => resolver.Resolve<TMiddleware>()
+            new MiddlewareInstanceOrResolverFunc(
+                Instance: null,
+                Resolver: resolver => resolver.Resolve<TMiddleware>()
             )
         );
 
@@ -75,7 +75,7 @@ public class Settings
 
     public Settings RegisterMiddleware(IMiddleware middleware) 
     {
-        _middlewares.Add(new MiddlewareOrResolver(middleware, MiddlewareResolver: null));
+        _middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
         return this;
     }
 }
@@ -88,7 +88,7 @@ public record SettingsWithDefaults(
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
     IDependencyResolver? DependencyResolver,
-    IReadOnlyList<MiddlewareOrResolver> Middlewares
+    IReadOnlyList<MiddlewareInstanceOrResolverFunc> Middlewares
 )
 {
     public SettingsWithDefaults Merge(Settings? child)
@@ -118,6 +118,6 @@ public record SettingsWithDefaults(
             MaxParallelRetryInvocations: 10,
             Serializer: DefaultSerializer.Instance,
             DependencyResolver: null,
-            Middlewares: new List<MiddlewareOrResolver>()
+            Middlewares: new List<MiddlewareInstanceOrResolverFunc>()
         );
 }
