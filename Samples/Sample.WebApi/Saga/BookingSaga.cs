@@ -19,7 +19,7 @@ public class BookingSaga : IRegisterRFuncOnInstantiation
     private const string FLIGHT_URL = "https://postman-echo.com/post";
     private const string HOTEL_URL = "https://postman-echo.com/post";
 
-    public RFunc.Invoke<OrderAndRequestIds, Booking> BookTravel { get; }
+    public RFunc.Invoke<OrderAndRequestIds, BookingScrapbook, Booking> BookTravel { get; }
     
     public BookingSaga(RFunctions rFunctions, ILogger<BookingSaga> logger)
     {

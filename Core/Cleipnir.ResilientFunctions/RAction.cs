@@ -7,7 +7,8 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RAction
 {
-    public delegate Task Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
+    public delegate Task Invoke<in TParam, in TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
+        where TParam : notnull where TScrapbook : RScrapbook, new();
 
     public delegate Task ReInvoke(
         string functionInstanceId,
@@ -24,18 +25,18 @@ public static class RAction
 }
 
 public record RAction<TParam>(
-    RAction.Invoke<TParam> Invoke,
+    RAction.Invoke<TParam, RScrapbook> Invoke,
     RAction.ReInvoke<RScrapbook> ReInvoke,
-    Schedule<TParam> Schedule,
+    Schedule<TParam, RScrapbook> Schedule,
     ScheduleReInvocation<RScrapbook> ScheduleReInvocation
 ) : RAction<TParam, RScrapbook>(Invoke, ReInvoke, Schedule, ScheduleReInvocation) where TParam : notnull;
 
 public record RAction<TParam, TScrapbook>(
-    RAction.Invoke<TParam> Invoke,
+    RAction.Invoke<TParam, TScrapbook> Invoke,
     RAction.ReInvoke<TScrapbook> ReInvoke,
-    Schedule<TParam> Schedule,
+    Schedule<TParam, TScrapbook> Schedule,
     ScheduleReInvocation<TScrapbook> ScheduleReInvocation
-) where TParam : notnull;
+) where TParam : notnull where TScrapbook : RScrapbook, new(); 
 
 public static class RActionExtensions
 {

@@ -106,6 +106,9 @@ internal class CommonInvoker
         scrapbook.Initialize(functionId, _functionStore, Serializer, expectedEpoch);
         return scrapbook;
     }
+
+    public void InitializeScrapbook(FunctionId functionId, RScrapbook scrapbook, int epoch) 
+        => scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
     
     public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch)
     {

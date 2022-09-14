@@ -9,7 +9,7 @@ namespace Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 
 public class OrderProcessorExtended : IRegisterRFuncOnInstantiation
 {
-    public RAction.Invoke<Order> ProcessOrder { get; }
+    public RAction.Invoke<Order, Inner.Scrapbook> ProcessOrder { get; }
     
     public OrderProcessorExtended(RFunctions rFunctions)
     {

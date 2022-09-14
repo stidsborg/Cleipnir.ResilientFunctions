@@ -20,7 +20,7 @@ public sealed class TransferSaga
             .Invoke;
     }
     
-    public RAction.Invoke<Transfer> Perform { get; }
+    public RAction.Invoke<Transfer, RScrapbook> Perform { get; }
     private async Task<Result> _Perform(Transfer transfer)
     {
         try

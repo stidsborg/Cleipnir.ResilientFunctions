@@ -5,7 +5,8 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
 
-public delegate Task Schedule<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
+public delegate Task Schedule<in TParam, TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
+    where TParam : notnull where TScrapbook : RScrapbook, new();
 public delegate Task ScheduleReInvocation(
     string functionInstanceId, 
     IEnumerable<Status> expectedStatuses, 

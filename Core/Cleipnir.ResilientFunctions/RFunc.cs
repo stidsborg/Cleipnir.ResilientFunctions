@@ -7,15 +7,9 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RFunc
 {
-    public delegate Task<TReturn> Invoke<in TParam, TReturn>(string functionInstanceId, TParam param)
-        where TParam : notnull;
+    public delegate Task<TReturn> Invoke<in TParam, in TScrapbook, TReturn>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
+        where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task<TReturn> ReInvoke<TReturn>(
-        string functionInstanceId,
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch = null
-    );
-    
     public delegate Task<TReturn> ReInvoke<TScrapbook, TReturn>(
         string functionInstanceId,
         IEnumerable<Status> expectedStatuses,
@@ -25,18 +19,18 @@ public static class RFunc
 }
 
 public record RFunc<TParam, TReturn>(
-    RFunc.Invoke<TParam, TReturn> Invoke,
+    RFunc.Invoke<TParam, RScrapbook, TReturn> Invoke,
     RFunc.ReInvoke<RScrapbook, TReturn> ReInvoke,
-    Schedule<TParam> Schedule,
+    Schedule<TParam, RScrapbook> Schedule,
     ScheduleReInvocation<RScrapbook> ScheduleReInvocation
 ) : RFunc<TParam, RScrapbook, TReturn>(Invoke, ReInvoke, Schedule, ScheduleReInvocation) where TParam : notnull;
 
 public record RFunc<TParam, TScrapbook, TReturn>(
-    RFunc.Invoke<TParam, TReturn> Invoke,
+    RFunc.Invoke<TParam, TScrapbook, TReturn> Invoke,
     RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke,
-    Schedule<TParam> Schedule,
+    Schedule<TParam, TScrapbook> Schedule,
     ScheduleReInvocation<TScrapbook> ScheduleReInvocation
-) where TParam : notnull;
+) where TParam : notnull where TScrapbook : RScrapbook, new();
 
 public static class RFuncExtensions
 {

@@ -1,5 +1,6 @@
 ﻿using System.Reactive.Linq;
 using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Sample.WebApi.OrderProcessing.Communication;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
@@ -35,7 +36,7 @@ public class OrderProcessor
         _messageBroker.Subscribe(HandleMessage);
     }
 
-    public RAction.Invoke<OrderAndPaymentProviderTransactionId> ProcessOrder { get; }
+    public RAction.Invoke<OrderAndPaymentProviderTransactionId, RScrapbook> ProcessOrder { get; }
 
     private async Task _ProcessOrder(OrderAndPaymentProviderTransactionId orderAndTransactionId)
     {

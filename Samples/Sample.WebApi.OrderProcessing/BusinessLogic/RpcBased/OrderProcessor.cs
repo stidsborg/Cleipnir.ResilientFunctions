@@ -1,5 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore;
+using Cleipnir.ResilientFunctions.Domain;
 using Sample.WebApi.OrderProcessing.Communication;
 using Sample.WebApi.OrderProcessing.DataAccess;
 using Sample.WebApi.OrderProcessing.Domain;
@@ -8,7 +9,7 @@ namespace Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 
 public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
-    public RAction.Invoke<OrderAndPaymentProviderTransactionId> ProcessOrder { get; }
+    public RAction.Invoke<OrderAndPaymentProviderTransactionId, RScrapbook> ProcessOrder { get; }
 
     public OrderProcessor(RFunctions rFunctions)
     {

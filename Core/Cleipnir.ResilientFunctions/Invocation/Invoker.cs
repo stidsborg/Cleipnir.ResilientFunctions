@@ -44,10 +44,10 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
-    public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
+    public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var (created, inner, scrapbook, context, disposables) = await PrepareForInvocation(functionId, param);
+        (var created, var inner, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
         if (!created) return await WaitForFunctionResult(functionId);
         using var _ = disposables;
 
@@ -64,10 +64,10 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvocation(string functionInstanceId, TParam param)
+    public async Task ScheduleInvocation(string functionInstanceId, TParam param, TScrapbook? scrapbook)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var (created, inner, scrapbook, context, disposables) = await PrepareForInvocation(functionId, param);
+        (var created, var inner, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
         if (!created) return;
 
         _ = Task.Run(async () =>
@@ -145,7 +145,7 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
 
-    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
+    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -165,7 +165,11 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
             
             
             var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(inner, scopedDependencyResolver);
-            var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
+            if (scrapbook != null)
+                _commonInvoker.InitializeScrapbook(functionId, scrapbook, epoch: 0);
+            else
+                scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
+        
             var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
             disposables.Add(runningFunction);
             disposables.Add(_commonInvoker.StartSignOfLife(functionId, epoch: 0));
