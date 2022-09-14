@@ -533,9 +533,24 @@ public class RFunctions : IDisposable
         );
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    internal RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result>> inner,
+        int version = 0,
+        Settings? settings = null,
+        Type? concreteScrapbookType = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+        => RegisterAction(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
+            version,
+            settings,
+            concreteScrapbookType
+        );
+    
+    private RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+        FunctionTypeId functionTypeId,
+        Func<TParam, TScrapbook, Context, Task<Result<Unit>>> inner,
         int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
@@ -557,7 +572,7 @@ public class RFunctions : IDisposable
 
             var settingsWithDefaults = _settings.Merge(settings);
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rActionInvoker = new RActionInvoker<Unit, TParam, TScrapbook>(
+            var rActionInvoker = new RFuncInvoker<Unit, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
                 innerMethodSelector: null,
@@ -594,7 +609,7 @@ public class RFunctions : IDisposable
     // ** !! METHOD ACTION REGISTRATION !! ** //
     internal RAction<TParam> RegisterMethodAction<TEntity, TParam>(
         FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result>>> innerMethodSelector,
+        Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> innerMethodSelector,
         int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TEntity : notnull
@@ -667,7 +682,7 @@ public class RFunctions : IDisposable
     // ** !! METHOD ACTION WITH SCRAPBOOK REGISTRATION !! ** //
     internal RAction<TParam, TScrapbook> RegisterMethodAction<TEntity, TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> innerMethodSelector,
+        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> innerMethodSelector,
         int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null
@@ -690,7 +705,7 @@ public class RFunctions : IDisposable
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RActionInvoker<TEntity, TParam, TScrapbook>(
+            var rFuncInvoker = new RFuncInvoker<TEntity, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner: null,
                 innerMethodSelector,

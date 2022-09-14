@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.Invocation;
 
@@ -219,7 +220,7 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     // ** ASYNC W. RESULT AND CONTEXT ** //   
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result>>> inner,
+        Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> inner,
         int version = 0,
         Settings? settings = null
     ) where TParam : notnull
@@ -475,7 +476,7 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     // ** ASYNC W. RESULT AND CONTEXT ** //   
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> inner,
+        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> inner,
         int version = 0,
         Settings? settings = null,
         Type? concreteScrapbookType = null

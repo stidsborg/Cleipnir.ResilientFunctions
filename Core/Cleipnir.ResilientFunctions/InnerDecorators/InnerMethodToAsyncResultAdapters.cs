@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Invocation;
 
 namespace Cleipnir.ResilientFunctions.InnerDecorators;
@@ -206,7 +207,7 @@ public static class InnerMethodToAsyncResultAdapters
 
     // ** !! ACTION !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Action<TParam>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -214,12 +215,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity); 
             inner(param);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Action<TParam, Context>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -227,12 +228,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity); 
             inner(param, context);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Task>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -240,12 +241,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);   
             await inner(param);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** ASYNC W. CONTEXT * //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Context, Task>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -253,12 +254,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);   
             await inner(param, context);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Result>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -266,12 +267,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);
             var result = inner(param);
-            return Task.FromResult(result);
+            return Task.FromResult(result.ToUnit());
         };
     }
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Context, Result>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -279,12 +280,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);
             var result = inner(param, context);
-            return Task.FromResult(result);
+            return Task.FromResult(result.ToUnit());
         };
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Task<Result>>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -292,13 +293,13 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);
             var result = await inner(param);
-            return result;
+            return result.ToUnit();
         };
     }
     
     // ** !! ACTION WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Action<TParam, TScrapbook>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -306,12 +307,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity); 
             inner(param, scrapbook);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Action<TParam, TScrapbook, Context>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -319,12 +320,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity); 
             inner(param, scrapbook, context);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Task>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -332,12 +333,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);   
             await inner(param, scrapbook);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** ASYNC W. CONTEXT * //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Context, Task>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -345,12 +346,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);   
             await inner(param, scrapbook, context);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Result>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -358,12 +359,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);
             var result = inner(param, scrapbook);
-            return Task.FromResult(result);
+            return Task.FromResult(result.ToUnit());
         };
     }
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Context, Result>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -371,12 +372,12 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);
             var result = inner(param, scrapbook, context);
-            return Task.FromResult(result);
+            return Task.FromResult(result.ToUnit());
         };
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>> ToInnerFToInnerWithTaskResultReturnuncWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerFToInnerWithTaskResultReturnuncWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> innerMethodSelector
     ) where TParam : notnull
     {
@@ -384,7 +385,7 @@ public static class InnerMethodToAsyncResultAdapters
         {
             var inner = innerMethodSelector(entity);
             var result = await inner(param, scrapbook);
-            return result;
+            return result.ToUnit();
         };
     }
 }

@@ -10,158 +10,172 @@ public static class InnerToAsyncResultAdapters
 {
     // ** !! ACTION !! ** //
     // ** SYNC ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
     {
         return (param, scrapbook, context) =>
         {
             inner(param);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
 
     // ** SYNC W. CONTEXT ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam, Context> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam, Context> inner) where TParam : notnull
     {
         return (param, scrapbook, context) =>
         {
             inner(param, context);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** ASYNC ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task> inner) where TParam : notnull
     {
         return async (param, scrapbook, context) =>
         {
             await inner(param);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** ASYNC W. CONTEXT * //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Context, Task> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Context, Task> inner) where TParam : notnull
     {
         return async (param, scrapbook, context) =>
         {
             await inner(param, context);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Result> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Result> inner) where TParam : notnull
     {
         return (param, scrapbook, context) =>
         {
             var result = inner(param);
-            return Task.FromResult(result);
+            return Task.FromResult(result.ToUnit());
         };
     }
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Context, Result> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Context, Result> inner) where TParam : notnull
     {
         return (param, scrapbook, context) =>
         {
             var result = inner(param, context);
-            return Task.FromResult(result);
+            return Task.FromResult(result.ToUnit());
         };
     }
    
     // ** ASYNC W. RESULT ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task<Result>> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task<Result>> inner) where TParam : notnull
     {
         return async (param, scrapbook, context) =>
         {
             var result = await inner(param);
-            return result;
+            return result.ToUnit();
         };
     }
     
     // ** ASYNC W. RESULT AND CONTEXT ** //
-    public static Func<TParam, RScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Context, Task<Result>> inner) where TParam : notnull
+    public static Func<TParam, RScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Context, Task<Result>> inner) where TParam : notnull
     {
         return async (param, scrapbook, context) =>
         {
             var result = await inner(param, context);
-            return result;
+            return result.ToUnit();
         };
     }
     
     // ** !! ACTION WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Action<TParam, TScrapbook> inner) 
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Action<TParam, TScrapbook> inner) 
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook, context) =>
         {
             inner(param, scrapbook);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** SYNC W. CONTEXT ** //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Action<TParam, TScrapbook, Context> inner) 
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Action<TParam, TScrapbook, Context> inner) 
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook, context) =>
         {
             inner(param, scrapbook, context);
-            return Task.FromResult(Result.Succeed);
+            return Task.FromResult(Result.Succeed.ToUnit());
         };
     }
     
     // ** ASYNC ** //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Task> inner)
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Task> inner)
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return async (param, scrapbook, context) =>
         {
             await inner(param, scrapbook);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
         };
     }
     
     // ** ASYNC W. CONTEXT * //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Context, Task> inner)
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Context, Task> inner)
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return async (param, scrapbook, context) =>
         {
             await inner(param, scrapbook, context);
-            return Result.Succeed;
+            return Result.Succeed.ToUnit();
+        };
+    }
+    
+    // ** ASYNC W. RESULT AND CONTEXT ** //  
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Context, Task<Result>> inner)
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        return async (param, scrapbook, context) =>
+        {
+            var result = await inner(param, scrapbook, context);
+            return result.ToUnit();
         };
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Result> inner)
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Result> inner)
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook, context) =>
         {
             var result = inner(param, scrapbook);
-            return result.ToTask();
+            return result.ToUnit().ToTask();
         };
     }
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Context, Result> inner)
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Context, Result> inner)
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook, context) =>
         {
             var result = inner(param, scrapbook, context);
-            return result.ToTask();
+            return result.ToUnit().ToTask();
         };
     }
    
     // ** ASYNC W. RESULT ** //
-    public static Func<TParam, TScrapbook, Context, Task<Result>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Task<Result>> inner)
+    public static Func<TParam, TScrapbook, Context, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam, TScrapbook>(Func<TParam, TScrapbook, Task<Result>> inner)
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
-        return async (param, scrapbook, context) 
-            => await inner(param, scrapbook);
+        return async (param, scrapbook, context) =>
+        {
+            var result = await inner(param, scrapbook);
+            return result.ToUnit();
+        };
     }
 
     // ** !! FUNCTION !! ** //

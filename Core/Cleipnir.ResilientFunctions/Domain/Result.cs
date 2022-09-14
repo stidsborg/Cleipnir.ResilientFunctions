@@ -1,5 +1,6 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
@@ -31,6 +32,14 @@ public class Result
     public static implicit operator Result(Fail fail) => new Result(fail.Exception);
     public static implicit operator Result(Postpone postpone) => new Result(postpone);
     public static Result<T> SucceedWithValue<T>(T value) => new(value);
+
+    public Result<Unit> ToUnit() => Outcome switch
+    {
+        Outcome.Succeed => new Result<Unit>(Unit.Instance),
+        Outcome.Postpone => new Result<Unit>(Postpone!),
+        Outcome.Fail => new Result<Unit>(Fail!),
+        _ => throw new ArgumentOutOfRangeException()
+    };
 }
 
 public static class Succeed

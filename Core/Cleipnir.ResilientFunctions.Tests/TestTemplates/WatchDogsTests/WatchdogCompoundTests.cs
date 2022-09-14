@@ -381,7 +381,7 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result.ShouldBeNull();
+            storedFunction!.Result!.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
         }
     }
 
@@ -514,7 +514,7 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result.ShouldBeNull();
+            storedFunction!.Result!.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
             storedFunction.Scrapbook!.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
