@@ -96,35 +96,6 @@ internal class CommonInvoker
         }
     }
     
-    public async Task WaitForActionCompletion(FunctionId functionId)
-    {
-        while (true)
-        {
-            var storedFunction = await _functionStore.GetFunction(functionId);
-            if (storedFunction == null)
-                throw new FrameworkException(functionId.TypeId, $"Function {functionId} does not exist");
-
-            switch (storedFunction.Status)
-            {
-                case Status.Executing:
-                    await Task.Delay(100);
-                    continue;
-                case Status.Succeeded:
-                    return;
-                case Status.Failed:
-                    var error = Serializer.DeserializeError(storedFunction.ErrorJson!);
-                    throw new PreviousFunctionInvocationException(functionId, error);
-                case Status.Postponed:
-                    throw new FunctionInvocationPostponedException(
-                        functionId,
-                        postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
-                    );
-                default:
-                    throw new ArgumentOutOfRangeException(); 
-            }
-        }
-    }
-    
     public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch, Type? concreteScrapbookType) where TScrapbook : RScrapbook, new()
     {
         var scrapbook = (TScrapbook) (
@@ -149,55 +120,6 @@ internal class CommonInvoker
         );
         if (!success) 
             throw new ConcurrentModificationException(functionId);
-    }
-    
-    public async Task PersistResult(
-        FunctionId functionId,
-        Result result,
-        RScrapbook scrapbook,
-        int expectedEpoch)
-    {
-        switch (result.Outcome)
-        {
-            case Outcome.Succeed:
-                var success = await _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Succeeded,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
-                    result: null,
-                    errorJson: null,
-                    postponedUntil: null,
-                    expectedEpoch
-                );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
-            case Outcome.Postpone:
-                success = await _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Postponed,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
-                    result: null,
-                    errorJson: null,
-                    postponedUntil: result.Postpone!.DateTime.Ticks,
-                    expectedEpoch
-                );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
-            case Outcome.Fail:
-                success = await _functionStore.SetFunctionState(
-                    functionId,
-                    Status.Failed,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
-                    result: null,
-                    errorJson: Serializer.SerializeError(result.Fail!.ToError()),
-                    postponedUntil: null,
-                    expectedEpoch
-                );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
     }
 
     public async Task PersistResult<TReturn>(
@@ -254,24 +176,6 @@ internal class CommonInvoker
         }
     }
 
-    public static void EnsureSuccess(FunctionId functionId, Result result, bool allowPostponed)
-    {
-        switch (result.Outcome)
-        {
-            case Outcome.Succeed:
-                return;
-            case Outcome.Postpone:
-                if (allowPostponed)
-                    return;
-                else 
-                    throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
-            case Outcome.Fail:
-                throw result.Fail!;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
-
     public static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result, bool allowPostponed)
     {
         switch (result.Outcome)
@@ -312,22 +216,6 @@ internal class CommonInvoker
         );
     }
 
-    public async Task<PreparedReInvocation<TParam>> PrepareForReInvocation<TParam>(
-        FunctionId functionId, 
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch)
-        where TParam : notnull
-    {
-        var (param, epoch, _, runningFunction) = await PrepareForReInvocation<TParam, UnitScrapbook>(
-            functionId,
-            expectedStatuses,
-            expectedEpoch,
-            hasScrapbook: false,
-            scrapbookUpdater: null
-        );
-        return new PreparedReInvocation<TParam>(param, epoch, runningFunction);
-    }
-    
     private async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
         FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, 
         bool hasScrapbook, Action<TScrapbook>? scrapbookUpdater
@@ -402,8 +290,7 @@ internal class CommonInvoker
             throw;
         }
     }
-
-    internal record PreparedReInvocation<TParam>(TParam Param, int Epoch, IDisposable RunningFunction);
+    
     internal record PreparedReInvocation<TParam, TScrapbook>(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction)
         where TScrapbook : RScrapbook;
 
