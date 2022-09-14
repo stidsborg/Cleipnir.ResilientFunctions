@@ -9,33 +9,37 @@ using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-public class RFuncInvoker<TParam, TScrapbook, TReturn> 
+public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn> 
     where TParam : notnull 
     where TScrapbook : RScrapbook, new()
+    where TEntity : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> _inner;
-
+    private readonly Func<TEntity,Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>>? _innerMethodSelector;
+    private readonly Func<TParam,TScrapbook,Context,Task<Result<TReturn>>>? _inner;
+    private readonly IDependencyResolver? _dependencyResolver;
+    private readonly MiddlewarePipeline _middlewarePipeline;
+    
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Type? _concreteScrapbookType;
-    private readonly MiddlewarePipeline _middlewarePipeline;
-    private readonly IDependencyResolver? _dependencyResolver;
 
     internal RFuncInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
-        Type? concreteScrapbookType,
-        MiddlewarePipeline middlewarePipeline, 
+        Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>? inner,
+        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>>? innerMethodSelector,
         IDependencyResolver? dependencyResolver,
+        MiddlewarePipeline middlewarePipeline,
+        Type? concreteScrapbookType,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
-        _concreteScrapbookType = concreteScrapbookType;
-        _middlewarePipeline = middlewarePipeline;
+        _innerMethodSelector = innerMethodSelector;
         _dependencyResolver = dependencyResolver;
+        _middlewarePipeline = middlewarePipeline;
+        _concreteScrapbookType = concreteScrapbookType;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -137,25 +141,35 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             });
         } catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
     }
-
+    
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _commonInvoker.WaitForFunctionResult<TReturn>(functionId);
-    
+
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
         try
         {
-            var scopedDependencyResolver = _dependencyResolver?.CreateScope();
-            disposables.Add(scopedDependencyResolver ?? Disposable.NoOp());
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerFunc(_inner, scopedDependencyResolver);
+            Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner;
+            IScopedDependencyResolver? scopedDependencyResolver = null;
+            if (_inner != null)
+                inner = _inner;
+            else
+            {
+                scopedDependencyResolver = _dependencyResolver!.CreateScope();
+                disposables.Add(scopedDependencyResolver);
+                var entity = scopedDependencyResolver.Resolve<TEntity>();
+                inner = _innerMethodSelector!(entity);
+            }
+            
+            
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerFunc(inner, scopedDependencyResolver);
             var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
-            var (persisted, runningFunction) =
-                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
+            var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
             disposables.Add(runningFunction);
             disposables.Add(_commonInvoker.StartSignOfLife(functionId, epoch: 0));
-
+            
             success = persisted;
             return new PreparedInvocation(
                 persisted,
@@ -180,9 +194,19 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
+            Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner;
             var scopedDependencyResolver = _dependencyResolver?.CreateScope();
-            disposables.Add(scopedDependencyResolver ?? Disposable.NoOp());
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerFunc(_inner, scopedDependencyResolver);
+            if (_inner != null)
+                inner = _inner;
+            else
+            {
+                disposables.Add(scopedDependencyResolver!);
+                var entity = scopedDependencyResolver!.Resolve<TEntity>();
+                inner = _innerMethodSelector!(entity);
+            }
+           
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerFunc(inner, scopedDependencyResolver);
+
             var (param, epoch, scrapbook, runningFunction) = await 
                 _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(
                     functionId, 
@@ -198,10 +222,10 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
                 scrapbook!,
                 new Context(functionId, InvocationMode.Retry),
                 epoch,
-                runningFunction
+                Disposable.Combine(disposables)
             );
         }
-        catch (Exception)
+        catch(Exception)
         {
             Disposable.Combine(disposables).Dispose();
             throw;
@@ -230,7 +254,4 @@ public class RFuncInvoker<TParam, TScrapbook, TReturn>
             expectedEpoch
         );
     }
-
-    private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
-        => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
 }

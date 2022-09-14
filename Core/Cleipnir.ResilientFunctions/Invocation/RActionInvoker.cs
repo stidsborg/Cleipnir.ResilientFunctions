@@ -148,14 +148,13 @@ public class RActionInvoker<TEntity, TParam, TScrapbook> where TParam : notnull 
         try
         {
             Func<TParam, TScrapbook, Context, Task<Result>> inner;
-            IScopedDependencyResolver? scopedDependencyResolver = null;
+            var scopedDependencyResolver = _dependencyResolver?.CreateScope();;
             if (_inner != null)
                 inner = _inner;
             else
             {
-                scopedDependencyResolver = _dependencyResolver!.CreateScope();
-                disposables.Add(scopedDependencyResolver);
-                var entity = scopedDependencyResolver.Resolve<TEntity>();
+                disposables.Add(scopedDependencyResolver!);
+                var entity = scopedDependencyResolver!.Resolve<TEntity>();
                 inner = _innerMethodSelector!(entity);    
             }
             
@@ -193,14 +192,13 @@ public class RActionInvoker<TEntity, TParam, TScrapbook> where TParam : notnull 
         try
         {
             Func<TParam, TScrapbook, Context, Task<Result>> inner;
-            IScopedDependencyResolver? scopedDependencyResolver = null;
+            var scopedDependencyResolver = _dependencyResolver?.CreateScope();;
             if (_inner != null)
                 inner = _inner;
             else
             {
-                scopedDependencyResolver = _dependencyResolver!.CreateScope();
-                disposables.Add(scopedDependencyResolver);
-                var entity = scopedDependencyResolver.Resolve<TEntity>();
+                disposables.Add(scopedDependencyResolver!);
+                var entity = scopedDependencyResolver!.Resolve<TEntity>();
                 inner = _innerMethodSelector!(entity);
             }
             

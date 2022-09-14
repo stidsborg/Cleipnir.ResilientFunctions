@@ -388,12 +388,13 @@ public class RFunctions : IDisposable
         
             var settingsWithDefaults = _settings.Merge(settings);
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RFuncInvoker<TParam, TScrapbook, TReturn>(
+            var rFuncInvoker = new RFuncInvoker<Unit, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
-                concreteScrapbookType,
-                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
+                innerMethodSelector: null,
                 settingsWithDefaults.DependencyResolver,
+                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
+                concreteScrapbookType,  
                 commonInvoker,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -632,8 +633,9 @@ public class RFunctions : IDisposable
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RFuncMethodInvoker<TEntity, TParam, TScrapbook, TReturn>(
+            var rFuncInvoker = new RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
+                inner: null,
                 innerMethodSelector, 
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
