@@ -9,34 +9,37 @@ using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class RActionInvoker<TEntity, TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam, TScrapbook, Context, Task<Result>> _inner;
-    
-    private readonly MiddlewarePipeline _middlewarePipeline;
+    private readonly Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>>? _innerMethodSelector;
+    private readonly Func<TParam, TScrapbook, Context, Task<Result>>? _inner;
     private readonly IDependencyResolver? _dependencyResolver;
-    
+    private readonly MiddlewarePipeline _middlewarePipeline;
+
     private readonly CommonInvoker _commonInvoker;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Type? _concreteScrapbookType;
 
     internal RActionInvoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<Result>> inner,
-        Type? concreteScrapbookType,
-        MiddlewarePipeline middlewarePipeline, 
+        Func<TParam, TScrapbook, Context, Task<Result>>? inner,
+        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result>>>? innerMethodSelector,
         IDependencyResolver? dependencyResolver,
+        MiddlewarePipeline middlewarePipeline,
+        Type? concreteScrapbookType,
         CommonInvoker commonInvoker,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
+        _innerMethodSelector = innerMethodSelector;
+        _dependencyResolver = dependencyResolver;
+        _middlewarePipeline = middlewarePipeline;
+
         _concreteScrapbookType = concreteScrapbookType;
         _commonInvoker = commonInvoker;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _middlewarePipeline = middlewarePipeline;
-        _dependencyResolver = dependencyResolver;
     }
 
     public async Task Invoke(string functionInstanceId, TParam param)
@@ -44,18 +47,18 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var (created, inner, scrapbook, context, disposables) = await PrepareForInvocation(functionId, param);
         if (!created) { await WaitForActionCompletion(functionId); return; }
-
         using var _ = disposables;
+        
         Result result;
         try
         {
-            // *** USER FUNCTION INVOCATION *** 
+            // *** USER FUNCTION INVOCATION ***
             result = await inner(param, scrapbook, context);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
+        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context);
     }
 
     public async Task ScheduleInvocation(string functionInstanceId, TParam param)
@@ -75,9 +78,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                     result = await inner(param, scrapbook, context);
                 }
                 catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-                catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
+                catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponed: true);
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context, allowPostponed: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -88,8 +91,8 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
-
         using var _ = disposables;
+        
         Result result;
         try
         {
@@ -97,9 +100,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             result = await inner(param, scrapbook, context);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context, epoch); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
+        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context, epoch);
     }
 
     public async Task ScheduleReInvoke(
@@ -125,9 +128,9 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                         result = await inner(param, scrapbook, context);
                     }
                     catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-                    catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
+                    catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context, epoch); throw; }
 
-                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
+                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context, epoch, allowPostponed: true);
                 }
                 catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
                 finally{ disposables.Dispose(); }
@@ -138,21 +141,33 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     private async Task WaitForActionCompletion(FunctionId functionId)
         => await _commonInvoker.WaitForActionCompletion(functionId);
 
-    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
+   private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
         try
         {
-            var scopedDependencyResolver = _dependencyResolver?.CreateScope();
-            disposables.Add(scopedDependencyResolver ?? Disposable.NoOp());
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(_inner, scopedDependencyResolver);
+            Func<TParam, TScrapbook, Context, Task<Result>> inner;
+            IScopedDependencyResolver? scopedDependencyResolver = null;
+            if (_inner != null)
+                inner = _inner;
+            else
+            {
+                scopedDependencyResolver = _dependencyResolver!.CreateScope();
+                disposables.Add(scopedDependencyResolver);
+                var entity = scopedDependencyResolver.Resolve<TEntity>();
+                inner = _innerMethodSelector!(entity);    
+            }
+            
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(
+                inner,
+                scopedDependencyResolver
+            );
             var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
-            var (persisted, runningFunction) =
-                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
+            var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
             disposables.Add(runningFunction);
             disposables.Add(_commonInvoker.StartSignOfLife(functionId, epoch: 0));
-
+            
             success = persisted;
             return new PreparedInvocation(
                 persisted,
@@ -177,9 +192,20 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var scopedDependencyResolver = _dependencyResolver?.CreateScope();
-            disposables.Add(scopedDependencyResolver ?? Disposable.NoOp());
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(_inner, scopedDependencyResolver);
+            Func<TParam, TScrapbook, Context, Task<Result>> inner;
+            IScopedDependencyResolver? scopedDependencyResolver = null;
+            if (_inner != null)
+                inner = _inner;
+            else
+            {
+                scopedDependencyResolver = _dependencyResolver!.CreateScope();
+                disposables.Add(scopedDependencyResolver);
+                var entity = scopedDependencyResolver.Resolve<TEntity>();
+                inner = _innerMethodSelector!(entity);
+            }
+            
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(inner, scopedDependencyResolver);
+
             var (param, epoch, scrapbook, runningFunction) = await 
                 _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(
                     functionId, 
@@ -195,10 +221,10 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
                 scrapbook!,
                 new Context(functionId, InvocationMode.Retry),
                 epoch,
-                runningFunction
+                Disposable.Combine(disposables)
             );
         }
-        catch (Exception)
+        catch(Exception)
         {
             Disposable.Combine(disposables).Dispose();
             throw;
@@ -206,10 +232,10 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
     }
     private record PreparedReInvocation(Func<TParam, TScrapbook, Context, Task<Result>> Inner, TParam Param, TScrapbook Scrapbook, Context Context, int Epoch, IDisposable Disposables);
 
-    private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch = 0)
+    private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, Context context, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result result, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponed = false)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result result, TScrapbook scrapbook, Context context, int expectedEpoch = 0, bool allowPostponed = false)
     {
         await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
         if (result.Outcome == Outcome.Postpone)
@@ -231,4 +257,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             expectedEpoch
         );
     }
+    
+    private IDisposable StartSignOfLife(FunctionId functionId, int expectedEpoch = 0)
+        => _commonInvoker.StartSignOfLife(functionId, expectedEpoch);
 }
