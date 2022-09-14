@@ -6,14 +6,7 @@ namespace Cleipnir.ResilientFunctions.Invocation;
 
 public interface IMiddleware
 {
-    Task<Result> InvokeAction<TParam, TScrapbook>(
-        TParam param,
-        TScrapbook scrapbook,
-        Context context,
-        Func<TParam, TScrapbook, Context, Task<Result>> next 
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
-
-    Task<Result<TResult>> InvokeFunc<TParam, TScrapbook, TResult>(
+    Task<Result<TResult>> Invoke<TParam, TScrapbook, TResult>(
         TParam param,
         TScrapbook scrapbook,
         Context context,

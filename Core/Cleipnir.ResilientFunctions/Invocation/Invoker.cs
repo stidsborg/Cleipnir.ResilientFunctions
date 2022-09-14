@@ -164,7 +164,7 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
             }
             
             
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerFunc(inner, scopedDependencyResolver);
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(inner, scopedDependencyResolver);
             var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
             var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
             disposables.Add(runningFunction);
@@ -205,7 +205,7 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
                 inner = _innerMethodSelector!(entity);
             }
            
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerFunc(inner, scopedDependencyResolver);
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(inner, scopedDependencyResolver);
 
             var (param, epoch, scrapbook, runningFunction) = await 
                 _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(
