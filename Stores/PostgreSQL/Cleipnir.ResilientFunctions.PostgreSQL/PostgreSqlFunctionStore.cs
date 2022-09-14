@@ -106,66 +106,59 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
-        int expectedEpoch, 
-        int newEpoch,
-        long crashedCheckFrequency,
-        int version,
-        Option<string> scrapbookJson
-    )
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
     {
         await using var conn = await CreateConnection();
-        int affectedRows;
-        if (scrapbookJson.HasValue)
-        {
-            var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4, scrapbook_json = $5
-            WHERE function_type_id = $6 AND function_instance_id = $7 AND epoch = $8";
 
-            await using var command = new NpgsqlCommand(sql, conn)
-            {
-                Parameters =
-                {
-                    new() {Value = newEpoch},
-                    new() {Value = (int) newStatus},
-                    new() {Value = crashedCheckFrequency},
-                    new() {Value = version},
-                    new() {Value = scrapbookJson.Value},
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value},
-                    new() {Value = expectedEpoch},
-                }
-            };
-        
-            affectedRows = await command.ExecuteNonQueryAsync();
-        }
-        else
-        {
-            var sql = @$"
+        var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4
             WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
 
-            await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                Parameters =
-                {
-                    new() {Value = newEpoch},
-                    new() {Value = (int) newStatus},
-                    new() {Value = crashedCheckFrequency},
-                    new() {Value = version},
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value},
-                    new() {Value = expectedEpoch},
-                }
-            };
-        
-            affectedRows = await command.ExecuteNonQueryAsync();
-        }
-        
+                new() { Value = newEpoch },
+                new() { Value = (int)newStatus },
+                new() { Value = crashedCheckFrequency },
+                new() { Value = version },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch,
+        long crashedCheckFrequency, int version, string scrapbookJson)
+    {
+        await using var conn = await CreateConnection();
+
+        var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4, scrapbook_json = $5
+            WHERE function_type_id = $6 AND function_instance_id = $7 AND epoch = $8";
+
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = newEpoch },
+                new() { Value = (int)newStatus },
+                new() { Value = crashedCheckFrequency },
+                new() { Value = version },
+                new() { Value = scrapbookJson },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 

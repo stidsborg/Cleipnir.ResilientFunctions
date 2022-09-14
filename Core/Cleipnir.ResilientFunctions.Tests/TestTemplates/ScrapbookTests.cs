@@ -86,8 +86,7 @@ public abstract class ScrapbookTests
             Status.Executing,
             expectedEpoch: 0, newEpoch: 1,
             crashedCheckFrequency: 100,
-            version: 0,
-            scrapbookJson: Option<string>.None
+            version: 0
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};

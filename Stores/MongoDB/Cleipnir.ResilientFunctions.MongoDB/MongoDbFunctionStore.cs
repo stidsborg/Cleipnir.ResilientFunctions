@@ -80,14 +80,10 @@ public class MongoDbFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
-        int expectedEpoch, 
-        int newEpoch, 
-        long crashedCheckFrequency,
-        int version,
-        Option<string> scrapbookJson)
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+        => TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson: null);
+
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, string? scrapbookJson)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -102,8 +98,8 @@ public class MongoDbFunctionStore : IFunctionStore
             .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency)
             .Set(d => d.Version, version);
 
-        if (scrapbookJson.HasValue)
-            update.Set(d => d.ScrapbookJson, scrapbookJson.Value);
+        if (scrapbookJson != null)
+            update.Set(d => d.ScrapbookJson, scrapbookJson);
         
         var result = await collection.UpdateOneAsync(
             d =>

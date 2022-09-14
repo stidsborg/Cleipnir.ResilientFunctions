@@ -367,8 +367,7 @@ internal class CommonInvoker
                 expectedEpoch: sf.Epoch,
                 newEpoch: epoch,
                 _settings.CrashedCheckFrequency.Ticks,
-                _version,
-                updatedScrapbookJsonOption
+                _version
             );
 
             if (!success)

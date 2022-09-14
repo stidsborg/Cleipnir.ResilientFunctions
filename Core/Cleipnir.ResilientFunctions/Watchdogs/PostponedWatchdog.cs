@@ -107,8 +107,7 @@ internal class PostponedWatchdog
                 expectedEpoch: spf.Epoch,
                 newEpoch: spf.Epoch + 1,
                 _crashedCheckFrequency.Ticks,
-                _version,
-                Option<string>.None
+                _version
             );
             if (!success) return;
             

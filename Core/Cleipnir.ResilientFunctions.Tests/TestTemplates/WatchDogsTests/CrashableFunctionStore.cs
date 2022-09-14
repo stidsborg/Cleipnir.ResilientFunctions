@@ -43,17 +43,15 @@ public class CrashableFunctionStore : IFunctionStore
                 version
             );
 
-    public Task<bool> TryToBecomeLeader(
-        FunctionId functionId,
-        Status newStatus,
-        int expectedEpoch,
-        int newEpoch,
-        long crashedCheckFrequency,
-        int version,
-        Option<string> scrapbookJson
-    ) => _crashed
-        ? Task.FromException<bool>(new TimeoutException())
-        : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson);
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+        => _crashed
+            ? Task.FromException<bool>(new TimeoutException())
+            : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
+
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, string scrapbookJson)
+        => _crashed
+            ? Task.FromException<bool>(new TimeoutException())
+            : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         => _crashed

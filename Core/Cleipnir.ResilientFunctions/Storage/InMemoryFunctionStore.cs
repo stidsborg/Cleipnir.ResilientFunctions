@@ -44,14 +44,7 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
-        int expectedEpoch, 
-        int newEpoch, 
-        long crashedCheckFrequency,
-        int version,
-        Option<string> scrapbookJsonOption)
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
     {
         lock (_sync)
         {
@@ -66,8 +59,26 @@ public class InMemoryFunctionStore : IFunctionStore
             state.Status = newStatus;
             state.CrashedCheckFrequency = crashedCheckFrequency;
             state.Version = version;
-            if (scrapbookJsonOption.HasValue)
-                state.Scrapbook =  new StoredScrapbook(scrapbookJsonOption.Value, state.Scrapbook?.ScrapbookType!);
+            return true.ToTask();
+        }
+    }
+
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, string scrapbookJson)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
+
+            state.Epoch = newEpoch;
+            state.Status = newStatus;
+            state.CrashedCheckFrequency = crashedCheckFrequency;
+            state.Version = version;
+            state.Scrapbook =  new StoredScrapbook(scrapbookJson, state.Scrapbook.ScrapbookType!);
             return true.ToTask();
         }
     }

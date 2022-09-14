@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -25,8 +24,17 @@ public interface IFunctionStore
         int expectedEpoch, 
         int newEpoch, 
         long crashedCheckFrequency,
+        int version
+    );
+    
+    Task<bool> TryToBecomeLeader(
+        FunctionId functionId, 
+        Status newStatus, 
+        int expectedEpoch, 
+        int newEpoch, 
+        long crashedCheckFrequency,
         int version,
-        Option<string> scrapbookJson
+        string scrapbookJson
     );
     
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);

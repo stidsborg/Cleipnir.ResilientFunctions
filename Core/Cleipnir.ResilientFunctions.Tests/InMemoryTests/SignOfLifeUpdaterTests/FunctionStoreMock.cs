@@ -15,7 +15,8 @@ public delegate Task<bool> CreateFunction(
     int version
 );
 
-public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, Option<string> scrapbookJson);
+public delegate Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version);
+public delegate Task<bool> TryToBecomeLeaderWithScrapbook(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, string scrapbookJson);
 
 public delegate Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
@@ -52,21 +53,20 @@ public class FunctionStoreMock : IFunctionStore
                 crashedCheckFrequency,
                 version
             );
-    
+
     public TryToBecomeLeader? SetupTryToBecomeLeader { private get; init; }
 
-    public Task<bool> TryToBecomeLeader(
-        FunctionId functionId,
-        Status newStatus,
-        int expectedEpoch,
-        int newEpoch,
-        long crashedCheckFrequency,
-        int version,
-        Option<string> scrapbookJson
-    ) => SetupTryToBecomeLeader == null
-        ? true.ToTask()
-        : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson);
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+        => SetupTryToBecomeLeader == null
+            ? true.ToTask()
+            : SetupTryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
 
+    public TryToBecomeLeaderWithScrapbook? SetTryToBecomeLeaderWithScrapbook { private get; init; }
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, string scrapbookJson)
+        => SetTryToBecomeLeaderWithScrapbook == null
+            ? true.ToTask()
+            : SetTryToBecomeLeaderWithScrapbook(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version, scrapbookJson);
+    
     public UpdateSignOfLife? SetupUpdateSignOfLife { private get; init; }
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         => SetupUpdateSignOfLife == null

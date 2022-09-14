@@ -146,8 +146,7 @@ public abstract class StoreTests
                 expectedEpoch: 0, 
                 newEpoch: 1, 
                 crashedCheckFrequency: 100, 
-                version: 0, 
-                scrapbookJson: Option<string>.None
+                version: 0
             ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -176,8 +175,7 @@ public abstract class StoreTests
             Status.Executing, 
             expectedEpoch: 0, newEpoch: 2,
             crashedCheckFrequency: 100,
-            version: 0,
-            scrapbookJson: Option<string>.None
+            version: 0
         ).ShouldBeTrueAsync();
 
         await store
@@ -187,8 +185,7 @@ public abstract class StoreTests
                 expectedEpoch: 0, 
                 newEpoch: 1, 
                 crashedCheckFrequency: 100, 
-                version: 0,
-                scrapbookJson: Option<string>.None
+                version: 0
             ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -345,8 +342,7 @@ public abstract class StoreTests
             expectedEpoch: 0, 
             newEpoch: 1, 
             crashedCheckFrequency, 
-            version: 0,
-            scrapbookJson: Option<string>.None
+            version: 0
         );
         var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, versionUpperBound: 0).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
