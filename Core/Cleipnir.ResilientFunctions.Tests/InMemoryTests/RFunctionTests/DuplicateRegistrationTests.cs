@@ -27,24 +27,7 @@ public class DuplicateRegistrationTests
             )
         );
     }
-    
-    [TestMethod]
-    public void ReRegistrationRFuncWithSameTypeThrowsInArgumentException()
-    {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
-        var rFunc1 = rFunctions.RegisterFunc(
-            "SomeFunctionType",
-            Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
-        );
 
-        var rFunc2 = rFunctions.RegisterFunc(
-            "SomeFunctionType",
-            Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
-        );
-
-        ReferenceEquals(rFunc1, rFunc2).ShouldBeTrue();
-    }
-    
     [TestMethod]
     public void ReRegistrationRActionWithIncompatibleTypeThrowsInArgumentException()
     {
@@ -60,22 +43,5 @@ public class DuplicateRegistrationTests
                 Task<Result>(int _) => Succeed.WithoutValue.ToTask()
             )
         );
-    }
-    
-    [TestMethod]
-    public void ReRegistrationRActionWithSameTypeThrowsInArgumentException()
-    {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
-        var rFunc1 = rFunctions.RegisterFunc(
-            "SomeFunctionType",
-            Task<Result>(string param) => Succeed.WithoutValue.ToTask()
-        );
-
-        var rFunc2 = rFunctions.RegisterFunc(
-            "SomeFunctionType",
-            Task<Result>(string param) => Succeed.WithoutValue.ToTask()
-        );
-
-        ReferenceEquals(rFunc1, rFunc2).ShouldBeTrue();
     }
 }

@@ -260,7 +260,7 @@ public abstract class CrashedTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 10,
             version: 2
         ).ShouldBeTrueAsync();

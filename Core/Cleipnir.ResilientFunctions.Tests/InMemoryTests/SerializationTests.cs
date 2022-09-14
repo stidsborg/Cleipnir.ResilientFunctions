@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -18,6 +19,7 @@ public class SerializationTests
     [TestMethod]
     public async Task TypeNameChangeScenarioIsHandledSuccessfullyByCustomSerializer()
     {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var prev = new PersonPrev { Name = "Peter" };
         var serializer = new Serializer();
         var flag = new SyncedFlag();
@@ -25,14 +27,17 @@ public class SerializationTests
         await store.CreateFunction(
             new FunctionId("typeId", "instanceId"),
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
         
         using var rFunctions = new RFunctions(
             store, 
-            new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(1))
+            new Settings(
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(1),
+                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+            )
         );
 
         var personCurr = default(PersonCurr);
@@ -50,6 +55,9 @@ public class SerializationTests
             );
 
         await flag.WaitForRaised();
+        await BusyWait.UntilAsync(() => flag.IsRaised || unhandledExceptionCatcher.ThrownExceptions.Any());
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
         personCurr.ShouldNotBeNull();
         personCurr.Name.ShouldBe("Peter");
     }

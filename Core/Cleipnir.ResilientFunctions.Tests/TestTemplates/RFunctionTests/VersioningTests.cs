@@ -34,7 +34,7 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             TimeSpan.FromMilliseconds(10).Ticks,
             version: 0
         ).ShouldBeTrueAsync();
@@ -71,7 +71,7 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-           scrapbookType: null,
+           new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
            TimeSpan.FromMilliseconds(10).Ticks,
            version: 0   
         ).ShouldBeTrueAsync();
@@ -112,7 +112,7 @@ public abstract class VersioningTests
                 "Hello World".ToJson(),
                 typeof(string).SimpleQualifiedName()
             ),
-            scrapbookType: typeof(Scrapbook1).SimpleQualifiedName(),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             TimeSpan.FromMilliseconds(10).Ticks,
             version: 0   
         ).ShouldBeTrueAsync();
@@ -158,7 +158,7 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             TimeSpan.FromMilliseconds(10).Ticks,
             version: 0
         ).ShouldBeTrueAsync();
@@ -171,7 +171,7 @@ public abstract class VersioningTests
                 new PersonV2(Name: "Ole", Age: 35).ToJson(),
                 typeof(PersonV2).SimpleQualifiedName()
             ),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             TimeSpan.FromMilliseconds(10).Ticks,
             version: 0
         ).ShouldBeTrueAsync();

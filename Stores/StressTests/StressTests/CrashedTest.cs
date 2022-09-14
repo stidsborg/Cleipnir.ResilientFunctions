@@ -26,7 +26,7 @@ public static class CrashedTest
             await store.CreateFunction(
                 new FunctionId("CrashedTest", i.ToString()),
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
-                scrapbookType: null,
+                new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
                 version: 0
             );

@@ -25,7 +25,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -45,7 +45,8 @@ public abstract class StoreTests
         storedFunction.FunctionId.ShouldBe(FunctionId);
         storedFunction.Parameter.ParamJson.ShouldBe(paramJson);
         storedFunction.Parameter.ParamType.ShouldBe(paramType);
-        storedFunction.Scrapbook.ShouldBeNull();
+        storedFunction.Scrapbook.ShouldNotBeNull();
+        storedFunction.Scrapbook.ScrapbookType.ShouldBe(typeof(RScrapbook).SimpleQualifiedName());
         storedFunction.Epoch.ShouldBe(0);
         storedFunction.SignOfLife.ShouldBe(0);
         storedFunction.PostponedUntil.ShouldBeNull();
@@ -56,7 +57,7 @@ public abstract class StoreTests
         await store.SetFunctionState(
             FunctionId,
             Status.Succeeded,
-            scrapbookJson: null,
+            scrapbookJson: new RScrapbook().ToJson(),
             result: new StoredResult(resultJson, resultType),
             errorJson: null,
             postponedUntil: null,
@@ -79,7 +80,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -105,7 +106,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -133,7 +134,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -165,7 +166,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -206,7 +207,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -214,7 +215,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeFalseAsync();
@@ -231,7 +232,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -239,7 +240,7 @@ public abstract class StoreTests
         await store.SetFunctionState(
             FunctionId,
             Status.Postponed,
-            scrapbookJson: null,
+            scrapbookJson: new RScrapbook().ToJson(),
             result: null,
             errorJson: null,
             postponedUntil: nowTicks,
@@ -265,7 +266,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -273,7 +274,7 @@ public abstract class StoreTests
         await store.SetFunctionState(
             FunctionId,
             Status.Postponed,
-            scrapbookJson: null,
+            scrapbookJson: new RScrapbook().ToJson(),
             result: null,
             errorJson: null,
             postponedUntil: nowTicks,
@@ -309,7 +310,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: crashedCheckFrequency,
             version: 0
         );
@@ -333,7 +334,7 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
             version: 0
         );

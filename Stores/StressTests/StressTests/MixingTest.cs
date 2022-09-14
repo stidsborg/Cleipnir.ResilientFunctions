@@ -28,7 +28,7 @@ public static class MixingTest
             await store.CreateFunction(
                 functionId,
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
-                scrapbookType: null,
+                new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
                 version: 0
             );
@@ -36,7 +36,7 @@ public static class MixingTest
                 await store.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: null,
+                    scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
                     result: null,
                     errorJson: null,
                     postponedUntil: start.Ticks,

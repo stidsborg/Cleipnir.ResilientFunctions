@@ -96,7 +96,7 @@ public class RFunctionsShutdownTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -143,7 +143,7 @@ public class RFunctionsShutdownTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -151,7 +151,7 @@ public class RFunctionsShutdownTests
         await store.SetFunctionState(
             functionId,
             Status.Postponed,
-            scrapbookJson: null,
+            scrapbookJson: new RScrapbook().ToJson(),
             result: null,
             errorJson: null,
             postponedUntil: DateTime.UtcNow.AddDays(-1).Ticks,

@@ -29,7 +29,7 @@ public class MongoDbFunctionStore : IFunctionStore
         
         return collection!.Indexes.CreateOneAsync(indexModel);
     }
-
+    
     public Task DropUnderlyingCollection()
     {
         var dbClient = new MongoClient(_connectionString);
@@ -47,12 +47,7 @@ public class MongoDbFunctionStore : IFunctionStore
         return collection;
     }
 
-    public async Task<bool> CreateFunction(
-        FunctionId functionId, 
-        StoredParameter param, 
-        string? scrapbookType,
-        long crashedCheckFrequency,
-        int version)
+    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
     {
         var document = new Document
         {
@@ -63,7 +58,8 @@ public class MongoDbFunctionStore : IFunctionStore
             },
             ParameterJson = param.ParamJson,
             ParameterType = param.ParamType,
-            ScrapbookType = scrapbookType,
+            ScrapbookJson = storedScrapbook.ScrapbookJson,
+            ScrapbookType = storedScrapbook.ScrapbookType,
             Status = (int) Status.Executing,
             Epoch = 0,
             SignOfLife = 0,
@@ -182,7 +178,7 @@ public class MongoDbFunctionStore : IFunctionStore
 
     }
 
-    public async Task<bool> SetFunctionState(FunctionId functionId, Status status, string? scrapbookJson, StoredResult? result, string? errorJson, long? postponedUntil, int expectedEpoch)
+    public async Task<bool> SetFunctionState(FunctionId functionId, Status status, string scrapbookJson, StoredResult? result, string? errorJson, long? postponedUntil, int expectedEpoch)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -229,7 +225,7 @@ public class MongoDbFunctionStore : IFunctionStore
             update
         );
 
-        var modified = updateResult.ModifiedCount;
+        var modified = updateResult.MatchedCount;
         return modified == 1;
     }
 

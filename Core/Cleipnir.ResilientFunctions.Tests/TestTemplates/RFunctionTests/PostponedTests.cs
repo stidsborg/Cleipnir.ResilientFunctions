@@ -337,14 +337,14 @@ public abstract class PostponedTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 10,
             version: 2
         ).ShouldBeTrueAsync();
         await store.SetFunctionState(
             functionId,
             Status.Postponed,
-            scrapbookJson: null,
+            scrapbookJson: new RScrapbook().ToJson(),
             result: null,
             errorJson: null,
             postponedUntil: DateTime.UtcNow.Ticks - 1000,
@@ -418,7 +418,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: null,
+                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -439,7 +439,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: null,
+                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -503,7 +503,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -524,7 +524,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -592,7 +592,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: null,
+                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -613,7 +613,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: null,
+                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -679,7 +679,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();
@@ -700,7 +700,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                scrapbookType: typeof(UnitScrapbook).SimpleQualifiedName(),
+                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: 1000,
                 version: 0
             ).ShouldBeTrueAsync();

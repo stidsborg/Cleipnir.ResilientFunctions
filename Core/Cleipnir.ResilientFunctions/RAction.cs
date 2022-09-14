@@ -25,10 +25,10 @@ public static class RAction
 
 public record RAction<TParam>(
     RAction.Invoke<TParam> Invoke,
-    RAction.ReInvoke ReInvoke,
+    RAction.ReInvoke<RScrapbook> ReInvoke,
     Schedule<TParam> Schedule,
-    ScheduleReInvocation ScheduleReInvocation
-) where TParam : notnull;
+    ScheduleReInvocation<RScrapbook> ScheduleReInvocation
+) : RAction<TParam, RScrapbook>(Invoke, ReInvoke, Schedule, ScheduleReInvocation) where TParam : notnull;
 
 public record RAction<TParam, TScrapbook>(
     RAction.Invoke<TParam> Invoke,
@@ -36,3 +36,10 @@ public record RAction<TParam, TScrapbook>(
     Schedule<TParam> Schedule,
     ScheduleReInvocation<TScrapbook> ScheduleReInvocation
 ) where TParam : notnull;
+
+public static class RActionExtensions
+{
+    public static RAction<TParam> ConvertToRActionWithoutScrapbook<TParam>(this RAction<TParam, RScrapbook> rAction) 
+        where TParam : notnull 
+        => new(rAction.Invoke, rAction.ReInvoke, rAction.Schedule, rAction.ScheduleReInvocation);
+} 

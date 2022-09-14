@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests
 public delegate Task<bool> CreateFunction(
     FunctionId functionId, 
     StoredParameter param,
-    string? scrapbookType,
+    StoredScrapbook storedScrapbook,
     long crashedCheckFrequency,
     int version
 );
@@ -39,25 +39,20 @@ public delegate Task<StoredFunction?> GetFunction(FunctionId functionId);
 public class FunctionStoreMock : IFunctionStore
 {
     public Task Initialize() => Task.CompletedTask;
-    
+
     public CreateFunction? SetupCreateFunction { private get; init; }
 
-    public Task<bool> CreateFunction(
-        FunctionId functionId,
-        StoredParameter param,
-        string? scrapbookType,
-        long crashedCheckFrequency,
-        int version
-    ) => SetupCreateFunction == null
-        ? true.ToTask()
-        : SetupCreateFunction.Invoke(
-            functionId, 
-            param, 
-            scrapbookType,
-            crashedCheckFrequency,
-            version
-        );
-
+    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
+        => SetupCreateFunction == null
+            ? true.ToTask()
+            : SetupCreateFunction.Invoke(
+                functionId, 
+                param, 
+                storedScrapbook,
+                crashedCheckFrequency,
+                version
+            );
+    
     public TryToBecomeLeader? SetupTryToBecomeLeader { private get; init; }
 
     public Task<bool> TryToBecomeLeader(

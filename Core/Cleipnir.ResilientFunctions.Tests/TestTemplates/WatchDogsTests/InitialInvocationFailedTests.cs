@@ -22,7 +22,7 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
@@ -52,7 +52,7 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
@@ -85,7 +85,7 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
@@ -121,7 +121,7 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );

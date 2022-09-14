@@ -35,8 +35,8 @@ internal class CommonInvoker
         _functionStore = functionStore;
     }
 
-    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore<TParam>(FunctionId functionId, TParam param, Type? scrapbookType)
-        where TParam : notnull
+    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore<TParam, TScrapbook>(FunctionId functionId, TParam param, TScrapbook scrapbook)
+        where TParam : notnull where TScrapbook : RScrapbook
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -44,10 +44,12 @@ internal class CommonInvoker
         {
             var paramJson = Serializer.SerializeParameter(param);
             var paramType = param.GetType().SimpleQualifiedName();
+            var scrapbookJson = Serializer.SerializeScrapbook(scrapbook);
+            var scrapbookType = scrapbook.GetType().SimpleQualifiedName();
             var created = await _functionStore.CreateFunction(
                 functionId,
                 param: new StoredParameter(paramJson, paramType),
-                scrapbookType: scrapbookType?.SimpleQualifiedName(),
+                storedScrapbook: new StoredScrapbook(scrapbookJson, scrapbookType),
                 crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks,
                 _version
             );
@@ -134,16 +136,12 @@ internal class CommonInvoker
         return scrapbook;
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook? scrapbook, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch)
     {
-        var scrapbookJson = scrapbook == null
-            ? null
-            : Serializer.SerializeScrapbook(scrapbook);
-        
         var success = await _functionStore.SetFunctionState(
             functionId,
             Status.Failed,
-            scrapbookJson,
+            scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
             result: null,
             errorJson: Serializer.SerializeError(exception.ToError()),
             postponedUntil: null,
@@ -156,20 +154,16 @@ internal class CommonInvoker
     public async Task PersistResult(
         FunctionId functionId,
         Result result,
-        RScrapbook? scrapbook,
+        RScrapbook scrapbook,
         int expectedEpoch)
     {
-        var scrapbookJson = scrapbook == null
-            ? null
-            : Serializer.SerializeScrapbook(scrapbook);
-
         switch (result.Outcome)
         {
             case Outcome.Succeed:
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
-                    scrapbookJson,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     errorJson: null,
                     postponedUntil: null,
@@ -181,7 +175,7 @@ internal class CommonInvoker
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     errorJson: null,
                     postponedUntil: result.Postpone!.DateTime.Ticks,
@@ -193,7 +187,7 @@ internal class CommonInvoker
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     errorJson: Serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
@@ -209,20 +203,16 @@ internal class CommonInvoker
     public async Task PersistResult<TReturn>(
         FunctionId functionId, 
         Result<TReturn> result, 
-        RScrapbook? scrapbook,
+        RScrapbook scrapbook,
         int expectedEpoch)
     {
-        var scrapbookJson = scrapbook == null
-            ? null
-            : Serializer.SerializeScrapbook(scrapbook);
-        
         switch (result.Outcome)
         {
             case Outcome.Succeed:
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
-                    scrapbookJson,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
                     result: new StoredResult(
                         ResultJson: result.SucceedWithValue == null
                             ? null
@@ -239,7 +229,7 @@ internal class CommonInvoker
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     errorJson: null,
                     postponedUntil: result.Postpone!.DateTime.Ticks,
@@ -251,7 +241,7 @@ internal class CommonInvoker
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
                     result: null,
                     errorJson: Serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
@@ -317,7 +307,7 @@ internal class CommonInvoker
         return new PreparedReInvocation<TParam, TScrapbook>(
             param,
             epoch, 
-            (TScrapbook) scrapbook!,
+            scrapbook!,
             runningFunction
         );
     }
@@ -417,7 +407,7 @@ internal class CommonInvoker
     }
 
     internal record PreparedReInvocation<TParam>(TParam Param, int Epoch, IDisposable RunningFunction);
-    internal record PreparedReInvocation<TParam, TScrapbook>(TParam Param, int Epoch, TScrapbook? Scrapbook, IDisposable RunningFunction)
+    internal record PreparedReInvocation<TParam, TScrapbook>(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction)
         where TScrapbook : RScrapbook;
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 

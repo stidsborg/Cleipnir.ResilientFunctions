@@ -31,21 +31,17 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task<bool> CreateFunction(
-        FunctionId functionId, 
-        StoredParameter param, 
-        string? scrapbookType,
-        long crashedCheckFrequency,
-        int version
-    ) => _crashed 
-        ? Task.FromException<bool>(new TimeoutException()) 
-        : _inner.CreateFunction(
-            functionId, 
-            param, 
-            scrapbookType,
-            crashedCheckFrequency,
-            version
-        );
+    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook,
+        long crashedCheckFrequency, int version)
+        => _crashed 
+            ? Task.FromException<bool>(new TimeoutException()) 
+            : _inner.CreateFunction(
+                functionId, 
+                param, 
+                storedScrapbook,
+                crashedCheckFrequency,
+                version
+            );
 
     public Task<bool> TryToBecomeLeader(
         FunctionId functionId,
@@ -87,7 +83,7 @@ public class CrashableFunctionStore : IFunctionStore
     public async Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
-        string? scrapbookJson,
+        string scrapbookJson,
         StoredResult? result,
         string? errorJson,
         long? postponedUntil,

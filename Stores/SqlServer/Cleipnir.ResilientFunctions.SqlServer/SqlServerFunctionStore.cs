@@ -43,8 +43,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     FunctionInstanceId NVARCHAR(200) NOT NULL,
                     ParamJson NVARCHAR(MAX) NOT NULL,
                     ParamType NVARCHAR(255) NOT NULL,
-                    ScrapbookJson NVARCHAR(MAX) NULL,
-                    ScrapbookType NVARCHAR(255) NULL,
+                    ScrapbookJson NVARCHAR(MAX) NOT NULL,
+                    ScrapbookType NVARCHAR(255) NOT NULL,
                     Status INT NOT NULL,
                     ResultJson NVARCHAR(MAX) NULL,
                     ResultType NVARCHAR(255) NULL,
@@ -86,13 +86,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> CreateFunction(
-        FunctionId functionId,
-        StoredParameter param,
-        string? scrapbookType,
-        long crashedCheckFrequency,
-        int version
-    )
+    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
     {
         await using var conn = await _connFunc();
         try
@@ -101,7 +95,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 INSERT INTO {_tablePrefix}RFunctions(
                     FunctionTypeId, FunctionInstanceId, 
                     ParamJson, ParamType, 
-                    ScrapbookType, 
+                    ScrapbookJson, ScrapbookType, 
                     Status,
                     Epoch, SignOfLife, 
                     CrashedCheckFrequency,
@@ -109,7 +103,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
-                    @ScrapbookType,
+                    @ScrapbookJson, @ScrapbookType,
                     {(int) Status.Executing},
                     0, 0,
                     @CrashedCheckFrequency,
@@ -119,7 +113,8 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@ParamJson", param.ParamJson);
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
-            command.Parameters.AddWithValue("@ScrapbookType", scrapbookType ?? (object) DBNull.Value);
+            command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
+            command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
             command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
             command.Parameters.AddWithValue("@Version", version);
 

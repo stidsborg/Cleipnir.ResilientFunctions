@@ -147,7 +147,7 @@ public class RActionInvoker<TParam> where TParam : notnull
                 scopedDependencyResolver
             );
             var (persisted, runningFunction) =
-                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: null);
+                await _commonInvoker.PersistFunctionInStore(functionId, param, new RScrapbook());
             disposables.Add(runningFunction);
             disposables.Add(_commonInvoker.StartSignOfLife(functionId, epoch: 0));
 
@@ -364,7 +364,7 @@ public class RActionInvoker<TParam, TScrapbook> where TParam : notnull where TSc
             var wrappedInner = _middlewarePipeline.WrapPipelineAroundInnerAction(_inner, scopedDependencyResolver);
             var scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
             var (persisted, runningFunction) =
-                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbookType: scrapbook.GetType());
+                await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
             disposables.Add(runningFunction);
             disposables.Add(_commonInvoker.StartSignOfLife(functionId, epoch: 0));
 

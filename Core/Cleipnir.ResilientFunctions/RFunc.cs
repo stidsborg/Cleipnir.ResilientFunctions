@@ -26,10 +26,10 @@ public static class RFunc
 
 public record RFunc<TParam, TReturn>(
     RFunc.Invoke<TParam, TReturn> Invoke,
-    RFunc.ReInvoke<TReturn> ReInvoke,
+    RFunc.ReInvoke<RScrapbook, TReturn> ReInvoke,
     Schedule<TParam> Schedule,
-    ScheduleReInvocation ScheduleReInvocation
-) where TParam : notnull;
+    ScheduleReInvocation<RScrapbook> ScheduleReInvocation
+) : RFunc<TParam, RScrapbook, TReturn>(Invoke, ReInvoke, Schedule, ScheduleReInvocation) where TParam : notnull;
 
 public record RFunc<TParam, TScrapbook, TReturn>(
     RFunc.Invoke<TParam, TReturn> Invoke,
@@ -37,4 +37,10 @@ public record RFunc<TParam, TScrapbook, TReturn>(
     Schedule<TParam> Schedule,
     ScheduleReInvocation<TScrapbook> ScheduleReInvocation
 ) where TParam : notnull;
-    
+
+public static class RFuncExtensions
+{
+    public static RFunc<TParam, TResult> ConvertToRFuncWithoutScrapbook<TParam, TResult>(this RFunc<TParam, RScrapbook, TResult> rFunc) 
+        where TParam : notnull 
+        => new(rFunc.Invoke, rFunc.ReInvoke, rFunc.Schedule, rFunc.ScheduleReInvocation);
+}     

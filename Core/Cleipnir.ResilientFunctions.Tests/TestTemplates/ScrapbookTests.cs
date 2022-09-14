@@ -30,7 +30,7 @@ public abstract class ScrapbookTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -41,7 +41,7 @@ public abstract class ScrapbookTests
         var storedScrapbook = (await store.GetFunction(FunctionId))!.Scrapbook;
         storedScrapbook.ShouldNotBeNull();
         storedScrapbook.ScrapbookType.ShouldBe(typeof(Scrapbook).SimpleQualifiedName());
-        storedScrapbook.ScrapbookJson.ShouldBeNull();
+        storedScrapbook.ScrapbookJson.ShouldNotBeNull();
 
         await scrapbook.Save();
 
@@ -77,7 +77,7 @@ public abstract class ScrapbookTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: typeof(Scrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();

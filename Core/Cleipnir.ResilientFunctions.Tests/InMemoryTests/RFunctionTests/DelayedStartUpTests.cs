@@ -22,7 +22,7 @@ public class DelayedStartUpTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
@@ -50,7 +50,7 @@ public class DelayedStartUpTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
@@ -75,14 +75,14 @@ public class DelayedStartUpTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
         await store.SetFunctionState(
             functionId,
             status: Status.Postponed,
-            scrapbookJson: null, result: null, errorJson: null,
+            scrapbookJson: new RScrapbook().ToJson(), result: null, errorJson: null,
             postponedUntil: 0, expectedEpoch: 0
         );
         var stopWatch = new Stopwatch();
@@ -109,14 +109,14 @@ public class DelayedStartUpTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         );
         await store.SetFunctionState(
             functionId,
             status: Status.Postponed,
-            scrapbookJson: null, result: null, errorJson: null,
+            scrapbookJson: new RScrapbook().ToJson(), result: null, errorJson: null,
             postponedUntil: 0, expectedEpoch: 0
         );
         var stopWatch = new Stopwatch();

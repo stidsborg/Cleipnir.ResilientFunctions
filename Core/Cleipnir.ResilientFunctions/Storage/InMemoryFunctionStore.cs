@@ -15,11 +15,10 @@ public class InMemoryFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         FunctionId functionId, 
-        StoredParameter param,
-        string? scrapbookType,
-        long crashedCheckFrequency,
-        int version
-    )
+        StoredParameter param, 
+        StoredScrapbook storedScrapbook,
+        long crashedCheckFrequency, 
+        int version)
     {
         lock (_sync)
         {
@@ -30,7 +29,7 @@ public class InMemoryFunctionStore : IFunctionStore
             {
                 FunctionId = functionId,
                 Param = param,
-                Scrapbook = scrapbookType == null ? null : new StoredScrapbook(ScrapbookJson: null, scrapbookType),
+                Scrapbook = storedScrapbook,
                 Status = Status.Executing,
                 Epoch = 0,
                 SignOfLife = 0,
@@ -127,7 +126,7 @@ public class InMemoryFunctionStore : IFunctionStore
     public Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 
-        string? scrapbookJson, 
+        string scrapbookJson, 
         StoredResult? result, 
         string? errorJson,
         long? postponedUntil, 
@@ -145,7 +144,7 @@ public class InMemoryFunctionStore : IFunctionStore
 
             state.Status = status;
             state.Scrapbook = scrapbookJson == null
-                ? null
+                ? state.Scrapbook with {  }
                 : new StoredScrapbook(scrapbookJson, state.Scrapbook!.ScrapbookType);
 
             state.Result = result;
@@ -199,7 +198,7 @@ public class InMemoryFunctionStore : IFunctionStore
     {
         public FunctionId FunctionId { get; init; } = new FunctionId("", "");
         public StoredParameter Param { get; init; } = new StoredParameter("", "");
-        public StoredScrapbook? Scrapbook { get; set; }
+        public StoredScrapbook Scrapbook { get; set; } = null!;
         public Status Status { get; set; }
         public StoredResult? Result { get; set; }
         public string? ErrorJson { get; set; }

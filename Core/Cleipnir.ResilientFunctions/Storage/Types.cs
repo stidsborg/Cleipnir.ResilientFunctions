@@ -6,7 +6,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public record StoredFunction(
     FunctionId FunctionId,
     StoredParameter Parameter,
-    StoredScrapbook? Scrapbook,
+    StoredScrapbook Scrapbook,
     Status Status,
     StoredResult? Result,
     string? ErrorJson,
@@ -21,7 +21,7 @@ public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, 
 
 public record StoredParameter(string ParamJson, string ParamType);
 public record StoredResult(string? ResultJson, string? ResultType);
-public record StoredScrapbook(string? ScrapbookJson, string ScrapbookType);
+public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
 
 internal static class StorageTypeExtensions
 {

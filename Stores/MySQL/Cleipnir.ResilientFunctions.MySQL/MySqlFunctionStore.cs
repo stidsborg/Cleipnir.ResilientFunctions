@@ -61,19 +61,14 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(
-        FunctionId functionId, 
-        StoredParameter param, string? scrapbookType, 
-        long crashedCheckFrequency,
-        int version
-    )
+    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency, version)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency, version)
             VALUES
-                (?, ?, ?, ?, ?, {(int) Status.Executing}, 0, 0, ?, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, 0, ?, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -82,7 +77,8 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = param.ParamJson},
                 new() {Value = param.ParamType},
-                new() {Value = scrapbookType ?? (object) DBNull.Value},
+                new() {Value = storedScrapbook.ScrapbookJson},
+                new() {Value = storedScrapbook.ScrapbookType},
                 new() {Value = crashedCheckFrequency},
                 new() {Value = version}
             }

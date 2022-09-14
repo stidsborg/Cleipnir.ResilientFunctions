@@ -13,7 +13,7 @@ public interface IFunctionStore
     Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param,
-        string? scrapbookType,
+        StoredScrapbook storedScrapbook,
         long crashedCheckFrequency,
         int version
     );
@@ -38,7 +38,7 @@ public interface IFunctionStore
     Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
-        string? scrapbookJson,
+        string scrapbookJson,
         StoredResult? result,
         string? errorJson,
         long? postponedUntil,

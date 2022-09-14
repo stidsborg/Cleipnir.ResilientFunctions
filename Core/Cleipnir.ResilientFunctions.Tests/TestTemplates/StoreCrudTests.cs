@@ -26,7 +26,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: null,
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -35,7 +35,8 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Scrapbook.ShouldBeNull();
+        stored.Scrapbook.ShouldNotBeNull();
+        stored.Scrapbook.ScrapbookType.ShouldBe(typeof(RScrapbook).SimpleQualifiedName());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
@@ -50,7 +51,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: null,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -59,7 +60,9 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Scrapbook.ShouldBeNull();
+        stored.Scrapbook.ShouldNotBeNull();
+        stored.Scrapbook.ScrapbookJson.ShouldNotBeNull();
+        stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
@@ -74,7 +77,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -84,7 +87,7 @@ public abstract class StoreCrudTests
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
         stored.Scrapbook.ShouldNotBeNull();
-        stored.Scrapbook.ScrapbookJson.ShouldBeNull();
+        stored.Scrapbook.ScrapbookJson.ShouldNotBeNull();
         stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -107,7 +110,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: null,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -126,7 +129,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: null,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -145,7 +148,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -176,7 +179,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            scrapbookType: typeof(TestScrapbook).SimpleQualifiedName(),
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
@@ -194,6 +197,6 @@ public abstract class StoreCrudTests
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook!;
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-        scrapbookJson.ShouldBeNull();
+        scrapbookJson.ShouldNotBeNull();
     }
 }
