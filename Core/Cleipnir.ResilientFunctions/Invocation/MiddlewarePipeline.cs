@@ -13,7 +13,8 @@ public class MiddlewarePipeline
 
     public Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> WrapPipelineAroundInner<TParam, TScrapbook, TReturn>(
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner, 
-        IScopedDependencyResolver? scopedDependencyResolver
+        IScopedDependencyResolver? scopedDependencyResolver,
+        PreCreationParameters<TParam>? preCreationParameters
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         var curr = inner;
@@ -23,10 +24,23 @@ public class MiddlewarePipeline
             var (middleware, resolver) = _middlewares[i];
             if (resolver != null)
                 middleware = resolver(scopedDependencyResolver!);
-                
+
+            if (middleware is IPreCreationMiddleware preInvokeMiddleware && preCreationParameters.HasValue)
+                preInvokeMiddleware.PreCreation(
+                    preCreationParameters.Value.Param, 
+                    preCreationParameters.Value.StateDictionary, 
+                    preCreationParameters.Value.FunctionId
+                );
+            
             curr = (param, scrapbook, context) => middleware!.Invoke(param, scrapbook, context, next);
         }
 
         return curr;
     }
 }
+
+public record struct PreCreationParameters<TParam>(
+    TParam Param, 
+    Dictionary<string, string> StateDictionary, 
+    FunctionId FunctionId
+);

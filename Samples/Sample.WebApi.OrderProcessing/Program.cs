@@ -7,6 +7,11 @@ using Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 using Sample.WebApi.OrderProcessing.Communication;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
 using Sample.WebApi.OrderProcessing.DataAccess;
+using Sample.WebApi.OrderProcessing.RequestMiddleware;
+using Sample.WebApi.OrderProcessing.RequestMiddleware.Asp;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Json;
 
 namespace Sample.WebApi.OrderProcessing;
 
@@ -22,7 +27,19 @@ internal static class Program
         await InitializeTable(connectionString);
         var builder = WebApplication.CreateBuilder(args);
 
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .WriteTo.Console(new JsonFormatter())
+            .CreateLogger();
+        
+        Log.Logger.ForContext("Test", "testing").Information("HELLO WORLD");
+        
         // Add services to the container.
+        builder.Services.AddScoped<CorrelationId>();
+        builder.Services.AddScoped<CorrelationIdMiddleware>();
+        builder.Services.AddScoped<RequestMiddleware.ResilientFunctions.CorrelationIdMiddleware>();
+        builder.Services.AddScoped<RequestMiddleware.ResilientFunctions.LoggingMiddleware>();
         builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
         builder.Services.AddSingleton<OrderProcessor>();
         builder.Services.AddScoped<OrderProcessor.Inner>();
@@ -41,9 +58,10 @@ internal static class Program
         builder.Services.AddRFunctionsService(
             store,
             _ => new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
+                UnhandledExceptionHandler: rfe => Log.Logger.Error(rfe,"ResilientFrameworkException occured"),
                 CrashedCheckFrequency: TimeSpan.FromSeconds(1)
-            )
+            ).UseMiddleware<RequestMiddleware.ResilientFunctions.CorrelationIdMiddleware>()
+             .UseMiddleware<RequestMiddleware.ResilientFunctions.LoggingMiddleware>()
         );
         builder.Services.AddEventSources(new PostgreSqlEventStore(connectionString));
 
@@ -51,9 +69,10 @@ internal static class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-
+        builder.Host.UseSerilog();
+        
         var app = builder.Build();
-
+        
         // Configure the HTTP request pipeline.
         app.UseSwagger();
         app.UseSwaggerUI(options =>
@@ -62,6 +81,8 @@ internal static class Program
             options.RoutePrefix = string.Empty;
         });
 
+        app.UseMiddleware<CorrelationIdMiddleware>();
+        
         app.MapControllers();
 
         await app.RunAsync($"http://localhost:{port}");

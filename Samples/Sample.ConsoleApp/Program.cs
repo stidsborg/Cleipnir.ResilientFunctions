@@ -6,7 +6,7 @@ namespace ConsoleApp
     {
         private static async Task Main()
         {
-            await Task.CompletedTask;
+            await CorrelationId.Example.Perform();
         }
     }
 }

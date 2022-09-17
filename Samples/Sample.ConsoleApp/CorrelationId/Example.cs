@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Invocation;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 
 namespace ConsoleApp.CorrelationId;
 
@@ -22,17 +24,29 @@ public static class Example
         var rAction = functions
             .RegisterAction(
                 "CorrelationIdExample",
-                void(string param) => Console.WriteLine(param)
-            ).Invoke;
+                Result (string param, RScrapbook scrapbook, Context context) =>
+                {
+                    Console.WriteLine("Invocation mode: " + context.InvocationMode);
+                    Console.WriteLine(CorrelationId.Get());
+                    return Postpone.For(500);
+                }).Invoke;
 
-        await rAction(
+        CorrelationId.Set("some_id");
+        _ = rAction(
             functionInstanceId: "",
-            param: "hello world",
-            new RScrapbook {StateDictionary = new Dictionary<string, string> {{"CorrelationId", "id1"}}}
+            param: "hello world"
         );
+        
+        await BusyWait.Until(() =>
+            store
+                .GetFunction(new FunctionId("CorrelationIdExample", ""))
+                .Map(sf => sf?.Status == Status.Succeeded)
+        );
+
+        Console.WriteLine("completed!!!");
     }
 
-    private class Middleware : IMiddleware
+    private class Middleware : IPreCreationMiddleware
     {
         public Task<Result<TResult>> Invoke<TParam, TScrapbook, TResult>(
             TParam param, 
@@ -41,10 +55,26 @@ public static class Example
             Func<TParam, TScrapbook, Context, Task<Result<TResult>>> next
         ) where TParam : notnull where TScrapbook : RScrapbook, new()
         {
-            var correlationId = scrapbook.StateDictionary["CorrelationId"];
-            Console.WriteLine($"CorrelationId: {correlationId}");
+            if (!scrapbook.StateDictionary.ContainsKey("TriesLeft"))
+                scrapbook.StateDictionary["TriesLeft"] = "...";
+            else if (scrapbook.StateDictionary["TriesLeft"] == "")
+                return new Result<TResult>(default(TResult)!).ToTask();
 
+            scrapbook.StateDictionary["TriesLeft"] = scrapbook.StateDictionary["TriesLeft"][..^1];
+
+            if (context.InvocationMode == InvocationMode.Retry)
+            {
+                Console.WriteLine($"Retry CorrelationId (before set): {CorrelationId.Get()}");
+                CorrelationId.Set(scrapbook.StateDictionary["CorrelationId"]);
+            }
+            
             return next(param, scrapbook, context);
+        }
+
+        public Task PreCreation<TParam>(TParam param, Dictionary<string, string> stateDictionary, FunctionId functionId) where TParam : notnull
+        {
+            stateDictionary["CorrelationId"] = CorrelationId.Get();
+            return Task.CompletedTask;
         }
     }
 }

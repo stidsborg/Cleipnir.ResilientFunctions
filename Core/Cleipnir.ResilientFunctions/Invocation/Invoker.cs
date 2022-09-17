@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -58,9 +59,9 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
             result = await inner(param, scrapbook, context);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context);
+        await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
         return result.SucceedWithValue!;
     }
 
@@ -81,9 +82,9 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
                     result = await inner(param, scrapbook, context);
                 }
                 catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-                catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context); throw; }
+                catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context, allowPostponed: true);
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponed: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -103,9 +104,9 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
             result = await inner(param, scrapbook, context);
         }
         catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context, epoch); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context, epoch);
+        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
         return result.SucceedWithValue!;
     }
 
@@ -132,9 +133,9 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
                         result = await inner(param, scrapbook, context);
                     }
                     catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-                    catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, context, epoch); throw; }
+                    catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
-                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, context, epoch, allowPostponed: true);
+                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
                 }
                 catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
                 finally{ disposables.Dispose(); }
@@ -163,13 +164,17 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
                 inner = _innerMethodSelector!(entity);
             }
             
-            
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(inner, scopedDependencyResolver);
             if (scrapbook != null)
                 _commonInvoker.InitializeScrapbook(functionId, scrapbook, epoch: 0);
             else
                 scrapbook = _commonInvoker.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
-        
+            
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(
+                inner,
+                scopedDependencyResolver,
+                new PreCreationParameters<TParam>(param, scrapbook.StateDictionary, functionId)
+            );
+            
             var (persisted, runningFunction) = await _commonInvoker.PersistFunctionInStore(functionId, param, scrapbook);
             disposables.Add(runningFunction);
             disposables.Add(_commonInvoker.StartSignOfLife(functionId, epoch: 0));
@@ -208,8 +213,12 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
                 var entity = scopedDependencyResolver!.Resolve<TEntity>();
                 inner = _innerMethodSelector!(entity);
             }
-           
-            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(inner, scopedDependencyResolver);
+
+            var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(
+                inner,
+                scopedDependencyResolver,
+                preCreationParameters: null
+            );
 
             var (param, epoch, scrapbook, runningFunction) = await 
                 _commonInvoker.PrepareForReInvocation<TParam, TScrapbook>(
@@ -237,10 +246,10 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
     }
     private record PreparedReInvocation(Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TParam Param, TScrapbook Scrapbook, Context Context, int Epoch, IDisposable Disposables);
 
-    private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, Context context, int expectedEpoch = 0)
+    private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch = 0)
         => await _commonInvoker.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TScrapbook scrapbook, Context context, int expectedEpoch = 0, bool allowPostponed = false)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponed = false)
     {
         await _commonInvoker.PersistResult(functionId, result, scrapbook, expectedEpoch);
         if (result.Outcome == Outcome.Postpone)
@@ -252,6 +261,7 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
     {
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
+        using var suppressedFlow = ExecutionContext.SuppressFlow();
         _ = ScheduleReInvoke(
             functionId.InstanceId.ToString(),
             expectedStatuses: new[] {Status.Postponed},

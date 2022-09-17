@@ -1,4 +1,5 @@
 ﻿using Sample.WebApi.OrderProcessing.Domain;
+using Serilog;
 
 namespace Sample.WebApi.OrderProcessing.Communication;
 
@@ -12,7 +13,7 @@ public class ProductsClientStub : IProductsClient
     public Task<IEnumerable<ProductPrice>> GetProductPrices(IEnumerable<Guid> productIds)
         => Task.Delay(Constants.ExternalServiceDelay).ContinueWith(_ =>
         {
-            Console.WriteLine("PRODUCTS_SERVER: Product prices calculated");
+            Log.Logger.ForContext<IProductsClient>().Information("PRODUCTS_SERVER: Product prices calculated");
             return productIds.Select(id => new ProductPrice(id, Price: 25M));
         });
 }

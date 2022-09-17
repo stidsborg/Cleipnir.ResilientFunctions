@@ -1,9 +1,12 @@
 ﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Invocation;
 using Sample.WebApi.OrderProcessing.Communication;
 using Sample.WebApi.OrderProcessing.DataAccess;
 using Sample.WebApi.OrderProcessing.Domain;
+using Serilog;
 
 namespace Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 
@@ -36,7 +39,8 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             IProductsClient productsClient, 
             IEmailClient emailClient, 
             ILogisticsClient logisticsClient, 
-            IOrdersRepository ordersRepository)
+            IOrdersRepository ordersRepository
+        )
         {
             _paymentProviderClient = paymentProviderClient;
             _productsClient = productsClient;
@@ -45,9 +49,11 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             _ordersRepository = ordersRepository;
         }
 
-        public async Task ProcessOrder(OrderAndPaymentProviderTransactionId orderAndTransactionId)
+        public async Task ProcessOrder(OrderAndPaymentProviderTransactionId orderAndTransactionId, Context context)
         {
-            Console.WriteLine("HashCode: " + this.GetHashCode());
+            if (context.InvocationMode == InvocationMode.Direct)
+                throw new PostponeInvocationException(TimeSpan.FromSeconds(1));
+
             var (order, transactionId) = orderAndTransactionId;
 
             var prices = await _productsClient.GetProductPrices(order.ProductIds);
@@ -59,7 +65,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
             await _ordersRepository.Insert(order);
 
-            Console.WriteLine($"Processing of order '{order.OrderId}' completed");
+            Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
         }        
     }
 }
