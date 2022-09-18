@@ -387,7 +387,7 @@ public class RFunctions : IDisposable
             }
         
             var settingsWithDefaults = _settings.Merge(settings);
-            var commonInvoker = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<Unit, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -395,7 +395,7 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 concreteScrapbookType,  
-                commonInvoker,
+                invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
 
@@ -571,7 +571,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var commonInvoker = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new Invoker<Unit, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
@@ -579,7 +579,7 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 concreteScrapbookType,
-                commonInvoker,
+                invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
             
@@ -647,7 +647,7 @@ public class RFunctions : IDisposable
             if (settingsWithDefaults.DependencyResolver == null)
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
-            var commonInvoker = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner: null,
@@ -655,7 +655,7 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 concreteScrapbookType,
-                commonInvoker,
+                invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
 
@@ -704,7 +704,7 @@ public class RFunctions : IDisposable
             if (settingsWithDefaults.DependencyResolver == null)
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
-            var commonInvoker = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner: null,
@@ -712,7 +712,7 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 concreteScrapbookType,
-                commonInvoker,
+                invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
 
