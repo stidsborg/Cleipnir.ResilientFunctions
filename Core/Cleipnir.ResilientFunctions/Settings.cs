@@ -56,7 +56,7 @@ public class Settings
         _middlewares = middlewares;
     }
 
-    public Settings RegisterMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
+    public Settings UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
     {
         if (DependencyResolver == null)
             throw new InvalidOperationException(
@@ -73,7 +73,7 @@ public class Settings
         return this;
     }
 
-    public Settings RegisterMiddleware(IMiddleware middleware) 
+    public Settings UseMiddleware(IMiddleware middleware) 
     {
         _middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
         return this;
