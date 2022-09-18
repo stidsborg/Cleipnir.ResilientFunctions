@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Invocation;
 
-namespace Cleipnir.ResilientFunctions.InnerDecorators;
+namespace Cleipnir.ResilientFunctions.InnerAdapters;
 
 public static class InnerToAsyncResultAdapters
 {

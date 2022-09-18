@@ -1,8 +1,8 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Utils.Scrapbooks;
+using OnFailure = Cleipnir.ResilientFunctions.InnerAdapters.OnFailure;
 
 namespace ConsoleApp.Backoff.Exponential;
 

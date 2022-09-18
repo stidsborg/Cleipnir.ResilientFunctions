@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Utils.Scrapbooks;
 
-namespace Cleipnir.ResilientFunctions.InnerDecorators;
+namespace Cleipnir.ResilientFunctions.InnerAdapters;
 
 public static partial class OnFailure
 {

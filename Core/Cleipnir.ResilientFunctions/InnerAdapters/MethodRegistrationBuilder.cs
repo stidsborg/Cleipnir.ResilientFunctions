@@ -2,10 +2,9 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.Invocation;
 
-namespace Cleipnir.ResilientFunctions;
+namespace Cleipnir.ResilientFunctions.InnerAdapters;
 
 public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
 {

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 
-namespace Cleipnir.ResilientFunctions.InnerDecorators;
+namespace Cleipnir.ResilientFunctions.InnerAdapters;
 
 public static partial class OnFailure
 {

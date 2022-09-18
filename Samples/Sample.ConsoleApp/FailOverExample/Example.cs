@@ -2,9 +2,9 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.InnerDecorators;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Microsoft.Data.SqlClient;
+using OnFailure = Cleipnir.ResilientFunctions.InnerAdapters.OnFailure;
 
 namespace ConsoleApp.FailOverExample;
 
