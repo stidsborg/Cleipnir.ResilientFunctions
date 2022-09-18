@@ -9,20 +9,20 @@ public class ExponentialBackoffMiddleware : IMiddleware
 {
     private readonly TimeSpan _firstDelay;
     private readonly double _factor;
-    private readonly int _maxRetries;
+    private readonly int _maxTries;
     private readonly TimeSpan _inMemoryThreshold;
     private readonly Action<Exception>? _onException;
 
     public ExponentialBackoffMiddleware(
         TimeSpan firstDelay, 
         double factor, 
-        int maxRetries, 
+        int maxTries, 
         TimeSpan inMemoryThreshold,
         Action<Exception>? onException = null)
     {
         _firstDelay = firstDelay;
         _factor = factor;
-        _maxRetries = maxRetries;
+        _maxTries = maxTries;
         _inMemoryThreshold = inMemoryThreshold;
         _onException = onException;
     }
@@ -50,7 +50,7 @@ public class ExponentialBackoffMiddleware : IMiddleware
                 retriesSoFar++;
                 scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"] = retriesSoFar.ToString();
 
-                if (retriesSoFar >= _maxRetries)
+                if (retriesSoFar >= _maxTries)
                     throw;
 
                 var delay = _firstDelay * Math.Pow(_factor, retriesSoFar);

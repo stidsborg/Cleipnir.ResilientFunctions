@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MongoDB.Tests.RFunctionTests;
 
 [TestClass]
-public class UnhandledFuncExceptionExponentialBackoffTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.UnhandledFuncExceptionExponentialBackoffTests
+public class MiddlewareExponentialBackoffTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.MiddlewareExponentialBackoffTests
 {
     [TestMethod]
     public override Task UnhandledExceptionResultsInPostponedFunc()
