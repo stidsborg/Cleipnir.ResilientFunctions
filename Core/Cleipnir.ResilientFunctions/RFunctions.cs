@@ -388,7 +388,7 @@ public class RFunctions : IDisposable
         
             var settingsWithDefaults = _settings.Merge(settings);
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RFuncInvoker<Unit, TParam, TScrapbook, TReturn>(
+            var rFuncInvoker = new Invoker<Unit, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
                 innerMethodSelector: null,
@@ -572,7 +572,7 @@ public class RFunctions : IDisposable
 
             var settingsWithDefaults = _settings.Merge(settings);
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rActionInvoker = new RFuncInvoker<Unit, TParam, TScrapbook, Unit>(
+            var rActionInvoker = new Invoker<Unit, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
                 innerMethodSelector: null,
@@ -648,7 +648,7 @@ public class RFunctions : IDisposable
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>(
+            var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner: null,
                 innerMethodSelector, 
@@ -705,7 +705,7 @@ public class RFunctions : IDisposable
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
             var commonInvoker = new CommonInvoker(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new RFuncInvoker<TEntity, TParam, TScrapbook, Unit>(
+            var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner: null,
                 innerMethodSelector,

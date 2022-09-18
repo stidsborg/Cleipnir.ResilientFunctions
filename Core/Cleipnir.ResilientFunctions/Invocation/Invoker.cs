@@ -10,7 +10,7 @@ using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn> 
+public class Invoker<TEntity, TParam, TScrapbook, TReturn> 
     where TParam : notnull 
     where TScrapbook : RScrapbook, new()
     where TEntity : notnull
@@ -25,7 +25,7 @@ public class RFuncInvoker<TEntity, TParam, TScrapbook, TReturn>
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Type? _concreteScrapbookType;
 
-    internal RFuncInvoker(
+    internal Invoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>? inner,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>>? innerMethodSelector,
