@@ -12,7 +12,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Invocation;
 
-internal class CommonInvoker
+internal class InvocationHelper
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
@@ -21,7 +21,7 @@ internal class CommonInvoker
     
     private ISerializer Serializer { get; }
 
-    public CommonInvoker(
+    public InvocationHelper(
         SettingsWithDefaults settings,
         int version,
         IFunctionStore functionStore, 
