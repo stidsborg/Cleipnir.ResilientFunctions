@@ -63,7 +63,6 @@ internal static class Program
             ).UseMiddleware<RequestMiddleware.ResilientFunctions.CorrelationIdMiddleware>()
              .UseMiddleware<RequestMiddleware.ResilientFunctions.LoggingMiddleware>()
         );
-        builder.Services.AddEventSources(new PostgreSqlEventStore(connectionString));
 
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
