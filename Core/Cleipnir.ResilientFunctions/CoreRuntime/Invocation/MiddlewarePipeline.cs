@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -20,7 +21,6 @@ public class MiddlewarePipeline
         var curr = inner;
         for (var i = _middlewares.Count - 1; i >= 0; i--)
         {
-            var next = curr;
             var (middleware, resolver) = _middlewares[i];
             if (resolver != null)
                 middleware = resolver(scopedDependencyResolver!);
@@ -31,11 +31,33 @@ public class MiddlewarePipeline
                     preCreationParameters.Value.StateDictionary, 
                     preCreationParameters.Value.FunctionId
                 );
-            
-            curr = (param, scrapbook, context) => middleware!.Invoke(param, scrapbook, context, next);
+
+            var wrapper = new MiddlewareWrapper<TParam, TScrapbook, TReturn>(middleware!, curr);
+            curr = wrapper.Invoke;
         }
 
         return curr;
+    }
+
+    private class MiddlewareWrapper<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
+    {
+        private readonly IMiddleware _middleware;
+        private readonly Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> _next;
+        public MiddlewareWrapper(IMiddleware middleware, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> next)
+        {
+            _middleware = middleware;
+            _next = next;
+        }
+
+        [DebuggerStepThrough]
+        public Task<Result<TReturn>> Invoke(
+            TParam param,
+            TScrapbook scrapbook,
+            Context context
+        ) 
+        { 
+            return _middleware.Invoke(param, scrapbook, context, _next);
+        }
     }
 }
 
