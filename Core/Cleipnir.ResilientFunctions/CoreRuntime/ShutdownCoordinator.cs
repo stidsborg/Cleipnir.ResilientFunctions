@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
-namespace Cleipnir.ResilientFunctions.ShutdownCoordination;
+namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 internal class ShutdownCoordinator
 {

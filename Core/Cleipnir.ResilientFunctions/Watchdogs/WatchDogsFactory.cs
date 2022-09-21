@@ -1,5 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.ShutdownCoordination;
+﻿using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Watchdogs;

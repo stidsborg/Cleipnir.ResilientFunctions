@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.ShutdownCoordination;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
