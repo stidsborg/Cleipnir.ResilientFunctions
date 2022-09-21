@@ -58,7 +58,7 @@ internal static class Program
         var store = new PostgreSqlFunctionStore(connectionString);
         builder.Services.AddRFunctionsService(
             store,
-            _ => new Settings(
+            _ => new Options(
                 UnhandledExceptionHandler: rfe => Log.Logger.Error(rfe,"ResilientFrameworkException occured"),
                 CrashedCheckFrequency: TimeSpan.FromSeconds(1)
             ).UseMiddleware<RequestMiddleware.ResilientFunctions.CorrelationIdMiddleware>()

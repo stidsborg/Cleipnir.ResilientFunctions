@@ -2,7 +2,6 @@ using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.Storage;
 using Sample.WebApi.Saga;
-using Settings = Cleipnir.ResilientFunctions.AspNetCore.Core.Settings;
 
 namespace Sample.WebApi;
 
@@ -15,7 +14,7 @@ internal static class Program
         // Add services to the container.
         builder.Services.AddRFunctionsService(
             new InMemoryFunctionStore(),
-            s => new Settings(
+            s => new Options(
                 UnhandledExceptionHandler: 
                     exception => s.GetRequiredService<ILogger>().LogError(exception, "Unhandled RFunction Exception")
                 ),

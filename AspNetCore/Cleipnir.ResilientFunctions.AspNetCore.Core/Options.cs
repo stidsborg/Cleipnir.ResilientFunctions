@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.ParameterSerialization;
 
 namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
-public class Settings
+public class Options
 {
     private readonly Action<RFunctionException>? _unhandledExceptionHandler;
     private readonly TimeSpan? _crashedCheckFrequency;
@@ -16,7 +16,7 @@ public class Settings
     private readonly ISerializer? _serializer;
     private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares = new();
 
-    public Settings(
+    public Options(
         Action<RFunctionException>? UnhandledExceptionHandler = null, 
         TimeSpan? CrashedCheckFrequency = null, 
         TimeSpan? PostponedCheckFrequency = null, 
@@ -33,7 +33,7 @@ public class Settings
         _serializer = Serializer;
     }
 
-    public Settings UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
+    public Options UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
     {
         _middlewares.Add(
             new MiddlewareInstanceOrResolverFunc(
@@ -45,7 +45,7 @@ public class Settings
         return this;
     }
 
-    public Settings UseMiddleware(IMiddleware middleware) 
+    public Options UseMiddleware(IMiddleware middleware) 
     {
         _middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
         return this;

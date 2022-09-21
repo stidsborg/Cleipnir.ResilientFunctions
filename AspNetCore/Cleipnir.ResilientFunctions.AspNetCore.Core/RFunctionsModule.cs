@@ -10,7 +10,7 @@ public static class RFunctionsModule
     public static IServiceCollection AddRFunctionsService(
         this IServiceCollection services, 
         Func<IServiceProvider, IFunctionStore> store,
-        Func<IServiceProvider, Settings>? settings = null,
+        Func<IServiceProvider, Options>? settings = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null
     )
@@ -24,7 +24,7 @@ public static class RFunctionsModule
             var functionStore = s.GetRequiredService<IFunctionStore>();
             functionStore.Initialize().Wait();
             var dependencyResolver = s.GetRequiredService<ServiceProviderDependencyResolver>();
-            var resolvedSettings = (s.GetService<Settings>() ?? new Settings()).MapToRFunctionsSettings(dependencyResolver);
+            var resolvedSettings = (s.GetService<Options>() ?? new Options()).MapToRFunctionsSettings(dependencyResolver);
 
             return new RFunctions(functionStore, resolvedSettings);
         });
@@ -38,7 +38,7 @@ public static class RFunctionsModule
     public static IServiceCollection AddRFunctionsService(
         this IServiceCollection services,
         IFunctionStore store,
-        Func<IServiceProvider, Settings>? settings = null,
+        Func<IServiceProvider, Options>? settings = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null
     ) => AddRFunctionsService(
@@ -52,7 +52,7 @@ public static class RFunctionsModule
     public static IServiceCollection AddRFunctionsService(
         this IServiceCollection services,
         IFunctionStore store,
-        Settings? settings = null,
+        Options? settings = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null
     ) => AddRFunctionsService(
@@ -66,7 +66,7 @@ public static class RFunctionsModule
     public static IServiceCollection AddRFunctionsService(
         this IServiceCollection services,
         Func<IServiceProvider, IFunctionStore> store,
-        Settings? settings = null,
+        Options? settings = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null
     ) => AddRFunctionsService(
