@@ -52,29 +52,35 @@ public class FunctionTypeEventSources
         return eventSource;
     }
 
-    public EventSourceWriter CreateWriter(ScheduleReInvocation reInvoke)
-        => CreateWriter(functionInstanceId =>
-            reInvoke(
-                functionInstanceId.Value,
-                new[] { Status.Postponed },
-                throwOnUnexpectedFunctionState: false
-            )
-        );
-
-    public EventSourceWriter CreateWriter<TScrapbook>(ScheduleReInvocation<TScrapbook> reInvoke)
-        => CreateWriter(functionInstanceId =>
-            reInvoke(
-                functionInstanceId.Value,
-                new[] { Status.Postponed },
-                throwOnUnexpectedFunctionState: false
-            )
-        );
-
-    private EventSourceWriter CreateWriter(Func<FunctionInstanceId, Task> reInvoke)
+    public EventSourceWriter CreateWriter()
         => new EventSourceWriter(
             _functionTypeId,
             _eventStore,
             _eventSerializer,
-            reInvoke
+            reInvoke: null
+        );
+    
+    public EventSourceWriter CreateWriter<TParam, TScrapbook, TReturn>(RFunc<TParam, TScrapbook, TReturn> rFunc) 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+     => new EventSourceWriter(
+            _functionTypeId,
+            _eventStore,
+            _eventSerializer,
+            reInvoke: functionInstanceId => rFunc.ReInvoke(
+                functionInstanceId.Value, 
+                expectedStatuses: new[] { Status.Postponed }
+            )
+        );
+    
+    public EventSourceWriter CreateWriter<TParam, TScrapbook>(RAction<TParam, TScrapbook> rAction) 
+        where TParam : notnull where TScrapbook : RScrapbook, new()
+        => new EventSourceWriter(
+            _functionTypeId,
+            _eventStore,
+            _eventSerializer,
+            reInvoke: functionInstanceId => rAction.ReInvoke(
+                functionInstanceId.Value, 
+                expectedStatuses: new[] { Status.Postponed }
+            )
         );
 }

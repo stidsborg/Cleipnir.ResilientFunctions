@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 using Sample.WebApi.OrderProcessing.Domain;
 
 namespace Sample.WebApi.OrderProcessing.Controllers;
@@ -8,10 +7,10 @@ namespace Sample.WebApi.OrderProcessing.Controllers;
 [Route("[controller]")]
 public class OrdersController : ControllerBase
 {
-    private readonly OrderProcessor _orderProcessor;
+    private readonly BusinessLogic.MessageBased.OrderProcessor _orderProcessor;
     private readonly ILogger<OrdersController> _logger;
 
-    public OrdersController(OrderProcessor orderProcessor, ILogger<OrdersController> logger)
+    public OrdersController(BusinessLogic.MessageBased.OrderProcessor orderProcessor, ILogger<OrdersController> logger)
     {
         _orderProcessor = orderProcessor;
         _logger = logger;
@@ -24,7 +23,8 @@ public class OrdersController : ControllerBase
         {
             await _orderProcessor.ProcessOrder(
                 order.OrderId,
-                new OrderAndPaymentProviderTransactionId(order, TransactionId: Guid.NewGuid())
+                order,
+                new BusinessLogic.MessageBased.OrderProcessor.Scrapbook()
             );
         }
         catch (Exception e)

@@ -35,7 +35,7 @@ public class OrderProcessingSaga
             FunctionTypeId,
             _ProcessOrder
         );
-        _eventSourceWriter = _eventSources.CreateWriter(_registration.ScheduleReInvocation);
+        _eventSourceWriter = _eventSources.CreateWriter(_registration);
     }
 
     public async Task DeliverAndProcessEvent(string functionInstanceId, object @event, string? idempotencyKey = null) 

@@ -1,10 +1,8 @@
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.AspNetCore.Postgres;
-using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 using Dapper;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Sample.WebApi.OrderProcessing.BusinessLogic.RpcBased;
 using Sample.WebApi.OrderProcessing.Communication;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
 using Sample.WebApi.OrderProcessing.DataAccess;
@@ -42,8 +40,12 @@ internal static class Program
         builder.Services.AddScoped<RequestMiddleware.ResilientFunctions.CorrelationIdMiddleware>();
         builder.Services.AddScoped<RequestMiddleware.ResilientFunctions.LoggingMiddleware>();
         builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
-        builder.Services.AddSingleton<OrderProcessor>();
-        builder.Services.AddScoped<OrderProcessor.Inner>();
+        builder.Services.AddSingleton<BusinessLogic.RpcBased.OrderProcessor>();
+        builder.Services.AddScoped<BusinessLogic.RpcBased.OrderProcessor.Inner>();
+        
+        builder.Services.AddSingleton<BusinessLogic.MessageBased.OrderProcessor>();
+        builder.Services.AddScoped<BusinessLogic.MessageBased.OrderProcessor.Inner>();
+        
         builder.Services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         builder.Services.AddSingleton<IOrdersRepository, OrdersRepository>();
         
