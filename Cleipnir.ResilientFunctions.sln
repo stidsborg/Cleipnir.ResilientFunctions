@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions", "Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj", "{9A71D8FC-EC16-4E56-AD4C-D78BA1C22C83}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.AspNetCore", "Core\Cleipnir.ResilientFunctions.AspNetCore\Cleipnir.ResilientFunctions.AspNetCore.csproj", "{306BCD16-00E0-46CA-B5CC-64AAC33CC810}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.AspNetCore.Core", "AspNetCore\Cleipnir.ResilientFunctions.AspNetCore.Core\Cleipnir.ResilientFunctions.AspNetCore.Core.csproj", "{306BCD16-00E0-46CA-B5CC-64AAC33CC810}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.Tests", "Core\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj", "{36E75AAA-C2EB-4209-8455-A51676D16B76}"
 EndProject
@@ -74,6 +74,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.WebApi.OrderProcessing", "Samples\Sample.WebApi.OrderProcessing\Sample.WebApi.OrderProcessing.csproj", "{36549979-DEE8-47C1-B002-7EA3D3C437C8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.WebApi.OrderProcessing.Tests", "Samples\Sample.WebApi.OrderProcessing.Tests\Sample.WebApi.OrderProcessing.Tests.csproj", "{C708EC1E-FAC6-41A8-A439-B8402B2BEABF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AspNetCore", "AspNetCore", "{C857BC50-DECD-4E38-A159-BC7A6ECEB041}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -407,5 +409,6 @@ Global
 		{E002702E-64A4-4C71-92C1-400343E6061A} = {255DEB37-93EA-40E3-9A56-32FDF8D5A275}
 		{36549979-DEE8-47C1-B002-7EA3D3C437C8} = {BE943138-D5D9-46D6-9B7C-76C73A552274}
 		{C708EC1E-FAC6-41A8-A439-B8402B2BEABF} = {BE943138-D5D9-46D6-9B7C-76C73A552274}
+		{306BCD16-00E0-46CA-B5CC-64AAC33CC810} = {C857BC50-DECD-4E38-A159-BC7A6ECEB041}
 	EndGlobalSection
 EndGlobal
