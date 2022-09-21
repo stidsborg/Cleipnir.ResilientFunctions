@@ -1,5 +1,5 @@
-using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
+using Cleipnir.ResilientFunctions.AspNetCore.Postgres;
 using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 using Dapper;
@@ -54,10 +54,9 @@ internal static class Program
 
         var messageQueue = CreateAndSetupMessageQueue();
         builder.Services.AddSingleton(messageQueue);
-
-        var store = new PostgreSqlFunctionStore(connectionString);
+        
         builder.Services.AddRFunctionsService(
-            store,
+            connectionString,
             _ => new Options(
                 unhandledExceptionHandler: rfe => Log.Logger.Error(rfe,"ResilientFrameworkException occured"),
                 crashedCheckFrequency: TimeSpan.FromSeconds(1)

@@ -2,40 +2,47 @@
 using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 
 namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public class Options
 {
-    private readonly Action<RFunctionException>? _unhandledExceptionHandler;
-    private readonly TimeSpan? _crashedCheckFrequency;
-    private readonly TimeSpan? _postponedCheckFrequency;
-    private readonly TimeSpan? _delayStartup;
-    private readonly int? _maxParallelRetryInvocations;
-    private readonly ISerializer? _serializer;
-    private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares = new();
+    internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
+    internal TimeSpan? CrashedCheckFrequency { get; }
+    internal TimeSpan? PostponedCheckFrequency { get; }
+    internal TimeSpan? DefaultEventsCheckFrequency { get; }
+    internal TimeSpan? DelayStartup { get; }
+    internal int? MaxParallelRetryInvocations { get; }
+    internal ISerializer? Serializer { get; }
+    internal IEventSerializer? EventSerializer { get; }
+    internal List<MiddlewareInstanceOrResolverFunc> Middlewares  { get; } = new();
 
     public Options(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? crashedCheckFrequency = null, 
         TimeSpan? postponedCheckFrequency = null, 
+        TimeSpan? defaultEventsCheckFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
-        ISerializer? serializer = null
+        ISerializer? serializer = null,
+        IEventSerializer? eventSerializer = null
     )
     {
-        _unhandledExceptionHandler = unhandledExceptionHandler;
-        _crashedCheckFrequency = crashedCheckFrequency;
-        _postponedCheckFrequency = postponedCheckFrequency;
-        _delayStartup = delayStartup;
-        _maxParallelRetryInvocations = maxParallelRetryInvocations;
-        _serializer = serializer;
+        UnhandledExceptionHandler = unhandledExceptionHandler;
+        CrashedCheckFrequency = crashedCheckFrequency;
+        PostponedCheckFrequency = postponedCheckFrequency;
+        DefaultEventsCheckFrequency = defaultEventsCheckFrequency;
+        DelayStartup = delayStartup;
+        MaxParallelRetryInvocations = maxParallelRetryInvocations;
+        Serializer = serializer;
+        EventSerializer = eventSerializer;
     }
 
     public Options UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
     {
-        _middlewares.Add(
+        Middlewares.Add(
             new MiddlewareInstanceOrResolverFunc(
                 Instance: null,
                 Resolver: resolver => resolver.Resolve<TMiddleware>()
@@ -47,19 +54,19 @@ public class Options
 
     public Options UseMiddleware(IMiddleware middleware) 
     {
-        _middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
+        Middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
         return this;
     }
 
     internal Settings MapToRFunctionsSettings(IDependencyResolver dependencyResolver)
         => new(
-            _unhandledExceptionHandler,
-            _crashedCheckFrequency,
-            _postponedCheckFrequency,
-            _delayStartup,
-            _maxParallelRetryInvocations,
-            _serializer,
+            UnhandledExceptionHandler,
+            CrashedCheckFrequency,
+            PostponedCheckFrequency,
+            DelayStartup,
+            MaxParallelRetryInvocations,
+            Serializer,
             dependencyResolver,
-            _middlewares
+            Middlewares
         );
 }

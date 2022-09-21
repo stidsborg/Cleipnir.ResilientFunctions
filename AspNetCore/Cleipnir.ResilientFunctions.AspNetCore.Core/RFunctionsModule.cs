@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -7,73 +8,71 @@ namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public static class RFunctionsModule
 {
-    public static IServiceCollection AddRFunctionsService(
-        this IServiceCollection services, 
-        Func<IServiceProvider, IFunctionStore> store,
-        Func<IServiceProvider, Options>? settings = null,
+    public static IServiceCollection AddInMemoryRFunctionsService(
+        this IServiceCollection services,
+        Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
-        Assembly? rootAssembly = null
+        Assembly? rootAssembly = null,
+        bool initializeStores = true
+    ) => AddRFunctionsService(
+            services,
+            new InMemoryFunctionStore(),
+            new InMemoryEventStore(),
+            options,
+            gracefulShutdown,
+            rootAssembly,
+            initializeStores
+        );
+
+    internal static IServiceCollection AddRFunctionsService(
+        IServiceCollection services,
+        IFunctionStore functionStore,
+        IEventStore eventStore,
+        Func<IServiceProvider, Options>? options = null,
+        bool gracefulShutdown = false,
+        Assembly? rootAssembly = null,
+        bool initializeStores = true
     )
     {
-        services.AddSingleton(store);
-        if (settings != null)
-            services.AddSingleton(settings);
-        services.AddSingleton<ServiceProviderDependencyResolver>();
-        services.AddSingleton(s =>
+        if (initializeStores)
         {
-            var functionStore = s.GetRequiredService<IFunctionStore>();
             functionStore.Initialize().Wait();
-            var dependencyResolver = s.GetRequiredService<ServiceProviderDependencyResolver>();
-            var resolvedSettings = (s.GetService<Options>() ?? new Options()).MapToRFunctionsSettings(dependencyResolver);
+            eventStore.Initialize().Wait();
+        }
+
+        if (options != null)
+            services.AddSingleton(options);
+        services.AddSingleton<ServiceProviderDependencyResolver>();
+        services.AddSingleton(functionStore);
+        services.AddSingleton(eventStore);
+
+        services.AddSingleton(sp =>
+        {
+            var dependencyResolver = sp.GetRequiredService<ServiceProviderDependencyResolver>();
+            var resolvedSettings = 
+            (
+                sp.GetService<Options>() 
+                ?? new Options()
+            ).MapToRFunctionsSettings(dependencyResolver);
 
             return new RFunctions(functionStore, resolvedSettings);
         });
+        
+        services.AddSingleton(sp =>
+            {
+                var o = sp.GetService<Options>();
+                return new EventSources(
+                    sp.GetRequiredService<IEventStore>(),
+                    o?.DefaultEventsCheckFrequency,
+                    o?.EventSerializer
+                );
+            } 
+            
+        );
         
         rootAssembly ??= Assembly.GetCallingAssembly();
         services.AddHostedService(s => new RFunctionsService(s, rootAssembly, gracefulShutdown));
         
         return services;
     }
-
-    public static IServiceCollection AddRFunctionsService(
-        this IServiceCollection services,
-        IFunctionStore store,
-        Func<IServiceProvider, Options>? settings = null,
-        bool gracefulShutdown = false,
-        Assembly? rootAssembly = null
-    ) => AddRFunctionsService(
-        services,
-        _ => store,
-        settings,
-        gracefulShutdown,
-        rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()
-    );
-
-    public static IServiceCollection AddRFunctionsService(
-        this IServiceCollection services,
-        IFunctionStore store,
-        Options? settings = null,
-        bool gracefulShutdown = false,
-        Assembly? rootAssembly = null
-    ) => AddRFunctionsService(
-        services,
-        _ => store,
-        settings == null ? null : _ => settings,
-        gracefulShutdown,
-        rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()
-    );
-    
-    public static IServiceCollection AddRFunctionsService(
-        this IServiceCollection services,
-        Func<IServiceProvider, IFunctionStore> store,
-        Options? settings = null,
-        bool gracefulShutdown = false,
-        Assembly? rootAssembly = null
-    ) => AddRFunctionsService(
-        services,
-        store,
-        settings == null ? null : _ => settings,
-        gracefulShutdown,
-        rootAssembly: rootAssembly ?? Assembly.GetCallingAssembly()
-    );
 }

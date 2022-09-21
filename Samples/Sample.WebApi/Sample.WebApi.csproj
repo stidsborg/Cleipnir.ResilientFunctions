@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\AspNetCore\Cleipnir.ResilientFunctions.AspNetCore.Core\Cleipnir.ResilientFunctions.AspNetCore.Core.csproj" />
+      <ProjectReference Include="..\..\AspNetCore\Cleipnir.ResilientFunctions.AspNetCore.Postgres\Cleipnir.ResilientFunctions.AspNetCore.Postgres.csproj" />
       <ProjectReference Include="..\..\Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
     </ItemGroup>
 
