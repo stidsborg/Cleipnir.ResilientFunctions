@@ -1,5 +1,4 @@
-﻿using Cleipnir.ResilientFunctions.AspNetCore;
-using Cleipnir.ResilientFunctions.AspNetCore.Core;
+﻿using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Microsoft.AspNetCore.Mvc;
 using Sample.WebApi.Model;
 using Sample.WebApi.Saga;

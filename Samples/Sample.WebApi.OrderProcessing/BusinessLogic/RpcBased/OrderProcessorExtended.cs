@@ -1,5 +1,4 @@
 ﻿using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.AspNetCore;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.Domain;
 using Sample.WebApi.OrderProcessing.Communication;
