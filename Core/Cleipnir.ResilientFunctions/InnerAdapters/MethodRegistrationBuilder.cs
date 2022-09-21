@@ -232,7 +232,7 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     
     // ** !! FUNC WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterMethodFunc<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, TReturn>> inner,
         int version = 0,
@@ -248,7 +248,7 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         );
     
     // ** SYNC W. CONTEXT ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterMethodFunc<TParam, TScrapbook, TReturn>(
+    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, TReturn>> inner,
         int version = 0,
