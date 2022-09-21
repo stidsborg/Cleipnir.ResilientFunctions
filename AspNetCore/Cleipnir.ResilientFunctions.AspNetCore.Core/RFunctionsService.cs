@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Cleipnir.ResilientFunctions.AspNetCore;
+namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public class RFunctionsService : IHostedService
 {

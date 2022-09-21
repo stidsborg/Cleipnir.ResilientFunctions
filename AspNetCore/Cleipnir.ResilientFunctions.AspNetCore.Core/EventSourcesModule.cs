@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Cleipnir.ResilientFunctions.AspNetCore;
+namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public static class EventSourcesModule
 {

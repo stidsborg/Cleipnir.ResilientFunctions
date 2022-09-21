@@ -3,7 +3,7 @@ using System.Reflection;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Cleipnir.ResilientFunctions.AspNetCore;
+namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public static class RFunctionsModule
 {

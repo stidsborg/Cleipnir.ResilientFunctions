@@ -20,7 +20,6 @@
             It requires a minimal amount of setup to get started and seamlessly scales with multiple running instances.</Description>
         <RepositoryUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</RepositoryUrl>
         <PackageTags>saga, resilient functions, resiliency, micro service, fault-tolerant, distributed systems, cloud independent</PackageTags>
-        <RootNamespace>Cleipnir.ResilientFunctions.AspNetCore</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

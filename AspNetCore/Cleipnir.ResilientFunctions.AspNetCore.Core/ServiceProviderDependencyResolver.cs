@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Cleipnir.ResilientFunctions.AspNetCore;
+namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public class ServiceProviderDependencyResolver : IDependencyResolver
 {

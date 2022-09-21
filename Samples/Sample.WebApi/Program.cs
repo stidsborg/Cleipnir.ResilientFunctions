@@ -1,7 +1,8 @@
 using Cleipnir.ResilientFunctions.AspNetCore;
+using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.Storage;
 using Sample.WebApi.Saga;
-using Settings = Cleipnir.ResilientFunctions.AspNetCore.Settings;
+using Settings = Cleipnir.ResilientFunctions.AspNetCore.Core.Settings;
 
 namespace Sample.WebApi;
 

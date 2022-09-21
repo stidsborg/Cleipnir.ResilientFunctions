@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.ParameterSerialization;
 
-namespace Cleipnir.ResilientFunctions.AspNetCore;
+namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public class Settings
 {

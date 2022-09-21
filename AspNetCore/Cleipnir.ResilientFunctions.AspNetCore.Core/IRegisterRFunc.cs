@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.AspNetCore;
+﻿namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public interface IRegisterRFunc
 {
