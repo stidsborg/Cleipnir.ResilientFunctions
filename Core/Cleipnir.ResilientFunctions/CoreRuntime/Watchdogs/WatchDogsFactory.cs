@@ -1,8 +1,7 @@
-﻿using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
+﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.Watchdogs;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal static class WatchDogsFactory
 {

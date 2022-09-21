@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Reactive.Subjects;
+using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
-using Cleipnir.ResilientFunctions.Watchdogs;
 
 namespace Cleipnir.ResilientFunctions.Messaging.Core;
 

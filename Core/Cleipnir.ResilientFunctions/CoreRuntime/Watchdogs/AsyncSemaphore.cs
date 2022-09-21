@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Watchdogs;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 public class AsyncSemaphore
 {
