@@ -1,5 +1,5 @@
 ﻿using System;
-using Cleipnir.ResilientFunctions.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 

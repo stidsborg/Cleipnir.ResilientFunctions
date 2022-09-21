@@ -1,10 +1,11 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Invocation;
+﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.Domain;
 using Serilog.Context;
+using IMiddleware = Cleipnir.ResilientFunctions.CoreRuntime.Invocation.IMiddleware;
 
 namespace Sample.WebApi.OrderProcessing.RequestMiddleware.ResilientFunctions;
 
-public class LoggingMiddleware : Cleipnir.ResilientFunctions.Invocation.IMiddleware
+public class LoggingMiddleware : IMiddleware
 {
     private readonly CorrelationId _correlationId;
 

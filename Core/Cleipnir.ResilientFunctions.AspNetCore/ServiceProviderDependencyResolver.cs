@@ -1,5 +1,5 @@
 ﻿using System;
-using Cleipnir.ResilientFunctions.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 

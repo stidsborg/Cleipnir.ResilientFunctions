@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Cleipnir.ResilientFunctions.Invocation;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public record MiddlewareInstanceOrResolverFunc(
     IMiddleware? Instance,

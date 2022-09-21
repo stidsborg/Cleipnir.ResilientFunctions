@@ -1,5 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Invocation;
+﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Sample.WebApi.OrderProcessing.RequestMiddleware.ResilientFunctions;
 

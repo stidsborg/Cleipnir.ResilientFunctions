@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
-namespace Cleipnir.ResilientFunctions.Invocation;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class MiddlewarePipeline
 {
