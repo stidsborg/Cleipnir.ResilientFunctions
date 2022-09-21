@@ -237,7 +237,7 @@ internal class InvocationHelper
         if (hasScrapbook && sf.Scrapbook == null)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have a scrapbook as expected");
 
-        var updatedScrapbookJsonOption = Option<string>.None;
+        var updatedScrapbookJson = default(string);
         if (scrapbookUpdater != null)
         {
             var scrapbook = _settings.Serializer.DeserializeScrapbook<TScrapbook>(
@@ -245,7 +245,7 @@ internal class InvocationHelper
                 sf.Scrapbook.ScrapbookType
             );
             scrapbookUpdater(scrapbook);
-            updatedScrapbookJsonOption = Option.Some(Serializer.SerializeScrapbook(scrapbook));
+            updatedScrapbookJson = Serializer.SerializeScrapbook(scrapbook);
         }
         
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -266,8 +266,8 @@ internal class InvocationHelper
 
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
             
-            var scrapbook = updatedScrapbookJsonOption.HasValue
-                ? Serializer.DeserializeScrapbook<TScrapbook>(updatedScrapbookJsonOption.Value, sf.Scrapbook!.ScrapbookType)
+            var scrapbook = updatedScrapbookJson != null
+                ? Serializer.DeserializeScrapbook<TScrapbook>(updatedScrapbookJson, sf.Scrapbook.ScrapbookType)
                 : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook!.ScrapbookJson, sf.Scrapbook.ScrapbookType);
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
             
