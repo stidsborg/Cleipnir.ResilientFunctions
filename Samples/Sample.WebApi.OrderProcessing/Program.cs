@@ -59,8 +59,8 @@ internal static class Program
         builder.Services.AddRFunctionsService(
             store,
             _ => new Options(
-                UnhandledExceptionHandler: rfe => Log.Logger.Error(rfe,"ResilientFrameworkException occured"),
-                CrashedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: rfe => Log.Logger.Error(rfe,"ResilientFrameworkException occured"),
+                crashedCheckFrequency: TimeSpan.FromSeconds(1)
             ).UseMiddleware<RequestMiddleware.ResilientFunctions.CorrelationIdMiddleware>()
              .UseMiddleware<RequestMiddleware.ResilientFunctions.LoggingMiddleware>()
         );

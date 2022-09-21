@@ -17,20 +17,20 @@ public class Options
     private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares = new();
 
     public Options(
-        Action<RFunctionException>? UnhandledExceptionHandler = null, 
-        TimeSpan? CrashedCheckFrequency = null, 
-        TimeSpan? PostponedCheckFrequency = null, 
-        TimeSpan? DelayStartup = null, 
-        int? MaxParallelRetryInvocations = null, 
-        ISerializer? Serializer = null
+        Action<RFunctionException>? unhandledExceptionHandler = null, 
+        TimeSpan? crashedCheckFrequency = null, 
+        TimeSpan? postponedCheckFrequency = null, 
+        TimeSpan? delayStartup = null, 
+        int? maxParallelRetryInvocations = null, 
+        ISerializer? serializer = null
     )
     {
-        _unhandledExceptionHandler = UnhandledExceptionHandler;
-        _crashedCheckFrequency = CrashedCheckFrequency;
-        _postponedCheckFrequency = PostponedCheckFrequency;
-        _delayStartup = DelayStartup;
-        _maxParallelRetryInvocations = MaxParallelRetryInvocations;
-        _serializer = Serializer;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
+        _crashedCheckFrequency = crashedCheckFrequency;
+        _postponedCheckFrequency = postponedCheckFrequency;
+        _delayStartup = delayStartup;
+        _maxParallelRetryInvocations = maxParallelRetryInvocations;
+        _serializer = serializer;
     }
 
     public Options UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
@@ -51,7 +51,7 @@ public class Options
         return this;
     }
 
-    internal Cleipnir.ResilientFunctions.Settings MapToRFunctionsSettings(IDependencyResolver dependencyResolver)
+    internal Settings MapToRFunctionsSettings(IDependencyResolver dependencyResolver)
         => new(
             _unhandledExceptionHandler,
             _crashedCheckFrequency,

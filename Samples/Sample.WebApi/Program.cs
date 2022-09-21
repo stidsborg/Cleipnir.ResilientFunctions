@@ -15,7 +15,7 @@ internal static class Program
         builder.Services.AddRFunctionsService(
             new InMemoryFunctionStore(),
             s => new Options(
-                UnhandledExceptionHandler: 
+                unhandledExceptionHandler: 
                     exception => s.GetRequiredService<ILogger>().LogError(exception, "Unhandled RFunction Exception")
                 ),
             gracefulShutdown: true
