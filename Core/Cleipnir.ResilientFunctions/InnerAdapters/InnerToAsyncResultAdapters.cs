@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Invocation;
 
 namespace Cleipnir.ResilientFunctions.InnerAdapters;
 
-public static class InnerToAsyncResultAdapters
+internal static class InnerToAsyncResultAdapters
 {
     // ** !! ACTION !! ** //
     // ** SYNC ** //
