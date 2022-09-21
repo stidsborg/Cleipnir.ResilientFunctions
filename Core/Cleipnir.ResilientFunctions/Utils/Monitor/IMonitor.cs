@@ -20,7 +20,9 @@ public interface IMonitor
     }
 
     public Task<ILock?> Acquire(string lockId, string keyId, int maxWaitMs)
-        => Acquire(lockId, keyId, TimeSpan.FromMilliseconds(maxWaitMs));    public Task Release(string lockId, string keyId);
-    
+        => Acquire(lockId, keyId, TimeSpan.FromMilliseconds(maxWaitMs));
+
+    public Task Release(string lockId, string keyId);
+
     public interface ILock : IAsyncDisposable { }
 }
