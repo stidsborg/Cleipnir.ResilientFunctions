@@ -12,7 +12,6 @@ public class OrderProcessingSaga
 {
     private const string FunctionTypeId = "OrderProcessing";
     private readonly FunctionTypeEventSources _eventSources;
-    private readonly EventSourceWriter _eventSourceWriter;
     private readonly RAction<Order, Scrapbook> _registration;
 
     private readonly IBankClient _bankClient;
@@ -35,11 +34,12 @@ public class OrderProcessingSaga
             FunctionTypeId,
             _ProcessOrder
         );
-        _eventSourceWriter = _eventSources.CreateWriter(_registration);
     }
 
     public async Task DeliverAndProcessEvent(string functionInstanceId, object @event, string? idempotencyKey = null) 
-        => await _eventSourceWriter.Append(functionInstanceId, @event, idempotencyKey, awakeIfSuspended: true);
+        => await _eventSources
+            .Writer
+            .Append(functionInstanceId, @event, idempotencyKey, awakeIfPostponed: true);
 
     public Task ProcessOrder(Order order) => _registration.Invoke(order.OrderId, order);
     private async Task _ProcessOrder(Order order, Scrapbook scrapbook)

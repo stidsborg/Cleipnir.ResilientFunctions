@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -421,5 +422,83 @@ public abstract class ReInvocationTests
                 () => registration.ScheduleReInvocation("instance", new[] {Status.Executing})
             );
         }
+    }
+    
+    public abstract Task ReInvocationThroughRFunctionsSunshine();
+    protected async Task ReInvocationThroughRFunctionsSunshine(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        const string functionInstance = "someFunctionInstance";
+        var functionId = new FunctionId(functionType, functionInstance);
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
+        );
+
+        var flag = new SyncedFlag();
+        var rAction = rFunctions.RegisterAction(
+            functionType,
+            (string _) =>
+            {
+                if (flag.IsRaised)
+                    return Result.Succeed;
+                
+                flag.Raise();
+                return Postpone.For(10_000);
+            }).Invoke;
+
+        await rAction(functionInstance, param: "").ShouldThrowAsync<Exception>();
+
+        await rFunctions.ReInvoke(functionType, functionInstance, new[] { Status.Postponed });
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ScheduleReInvocationThroughRFunctionsSunshine();
+    protected async Task ScheduleReInvocationThroughRFunctionsSunshine(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        const string functionInstance = "someFunctionInstance";
+        var functionId = new FunctionId(functionType, functionInstance);
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
+        );
+
+        var flag = new SyncedFlag();
+        var rAction = rFunctions.RegisterAction(
+            functionType,
+            (string _) =>
+            {
+                if (flag.IsRaised)
+                    return Result.Succeed;
+                
+                flag.Raise();
+                return Postpone.For(10_000);
+            }).Invoke;
+
+        await rAction(functionInstance, param: "").ShouldThrowAsync<Exception>();
+
+        await rFunctions.ScheduleReInvoke(functionType, functionInstance, new[] { Status.Postponed });
+
+        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 }

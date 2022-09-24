@@ -30,7 +30,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         
         _eventSourceWriter = eventSources
             .For(nameof(OrderProcessor))
-            .CreateWriter(registration);
+            .Writer;
         
         messageBroker.Subscribe(HandleMessage);
     }
@@ -95,6 +95,6 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         };
         if (@event == null) return;
 
-        await _eventSourceWriter.Append(orderId, @event, idempotencyKey: null, awakeIfSuspended: false);
+        await _eventSourceWriter.Append(orderId, @event, idempotencyKey: null, awakeIfPostponed: false);
     }
 }

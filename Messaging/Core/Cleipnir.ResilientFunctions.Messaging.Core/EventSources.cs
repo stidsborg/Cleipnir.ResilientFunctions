@@ -6,16 +6,19 @@ namespace Cleipnir.ResilientFunctions.Messaging.Core;
 public class EventSources
 {
     private readonly IEventStore _eventStore;
+    private readonly RFunctions? _rFunctions;
     private readonly TimeSpan? _defaultPullFrequency;
     private readonly IEventSerializer? _eventSerializer;
 
     public EventSources(
         IEventStore eventStore,
+        RFunctions? rFunctions,
         TimeSpan? defaultPullFrequency = null,
         IEventSerializer? eventSerializer = null
     )
     {
         _eventStore = eventStore;
+        _rFunctions = rFunctions;
         _defaultPullFrequency = defaultPullFrequency;
         _eventSerializer = eventSerializer;
     }
@@ -32,6 +35,7 @@ public class EventSources
         IEventSerializer? eventSerializer = null
     ) => new FunctionTypeEventSources(
         _eventStore, 
+        _rFunctions,
         functionTypeId, 
         pullFrequency ?? _defaultPullFrequency, 
         eventSerializer ?? _eventSerializer
@@ -53,8 +57,8 @@ public class EventSources
         var writer = new EventSourceWriter(
             functionId.TypeId,
             _eventStore,
-            eventSerializer ?? _eventSerializer,
-            reInvoke: null
+            _rFunctions,
+            eventSerializer ?? _eventSerializer
         ).For(functionId.InstanceId);
         
         var eventSource = new EventSource(

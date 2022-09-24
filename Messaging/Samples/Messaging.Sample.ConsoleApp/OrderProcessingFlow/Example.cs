@@ -20,7 +20,7 @@ public static class Example
         var rFunctions = new RFunctions(functionStore);
         var eventStore = new PostgreSqlEventStore(connectionString);
         await eventStore.Initialize();
-        var eventSources = new EventSources(eventStore);
+        var eventSources = new EventSources(eventStore, rFunctions: null);
 
         //clients
         var messageQueue = new MessageQueueClient();

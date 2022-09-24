@@ -63,6 +63,7 @@ public static class RFunctionsModule
                 var o = sp.GetService<Options>();
                 return new EventSources(
                     sp.GetRequiredService<IEventStore>(),
+                    sp.GetRequiredService<RFunctions>(),
                     o?.DefaultEventsCheckFrequency,
                     o?.EventSerializer
                 );

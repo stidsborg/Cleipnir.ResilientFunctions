@@ -12,7 +12,7 @@ public abstract class CustomEventSerializerTests
     {
         var eventStore = await eventStoreTask;
         var eventSerializer = new EventSerializer();
-        var eventSources = new EventSources(eventStore, eventSerializer: eventSerializer);
+        var eventSources = new EventSources(eventStore, rFunctions: null, eventSerializer: eventSerializer);
         using var eventSource = await eventSources.Get(
             functionTypeId: nameof(CustomEventSerializerTests),
             functionInstanceId: nameof(CustomEventSerializerIsUsedWhenSpecified)

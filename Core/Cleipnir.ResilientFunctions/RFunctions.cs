@@ -11,9 +11,19 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
 
-public class RFunctions : IDisposable 
+public class RFunctions : IDisposable
 {
+    private delegate Task ReInvokeResilientFunction(string functionInstanceId, IEnumerable<Status> expectedStatus, int? expectedEpoch);
+    private delegate Task ScheduleResilientFunctionReInvocation(
+        string functionInstanceId, 
+        IEnumerable<Status> expectedStatus, 
+        int? expectedEpoch,
+        bool throwOnUnexpectedFunctionState
+    );
+    
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
+    private readonly Dictionary<FunctionTypeId, ReInvokeResilientFunction> _reInvokes = new();
+    private readonly Dictionary<FunctionTypeId, ScheduleResilientFunctionReInvocation> _scheduleReInvocations = new();
 
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -415,6 +425,10 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
+            _reInvokes[functionTypeId] = (id, status, epoch) => rFuncInvoker.ReInvoke(id, status, epoch);
+            _scheduleReInvocations[functionTypeId] = (id, status, epoch, throwOnUnexpectedFunctionState) 
+                => rFuncInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null, throwOnUnexpectedFunctionState);
+            
             return registration;
         }
     }
@@ -599,6 +613,9 @@ public class RFunctions : IDisposable
                 rActionInvoker.ScheduleReInvoke
             );
             _functions[functionTypeId] = registration;
+            _reInvokes[functionTypeId] = (id, status, epoch) => rActionInvoker.ReInvoke(id, status, epoch);
+            _scheduleReInvocations[functionTypeId] = (id, status, epoch, throwOnUnexpectedFunctionState) 
+                => rActionInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null, throwOnUnexpectedFunctionState);
             return registration;
         }
     }
@@ -741,25 +758,45 @@ public class RFunctions : IDisposable
         string functionInstanceId,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null
-        )
+    )
     {
-        dynamic registration;
+        ReInvokeResilientFunction reInvoke;
         lock (_sync)
         {
-            if (!_functions.ContainsKey(functionTypeId)) 
+            if (!_reInvokes.ContainsKey(functionTypeId)) 
                 throw new InvalidOperationException($"FunctionType '{functionTypeId}' has not been registered");
-            
-            registration = _functions[functionTypeId];
+
+            reInvoke = _reInvokes[functionTypeId];
         }
-        
-        var task = (Task)registration.ReInvoke(
-            functionInstanceId,
-            expectedStatuses,
-            expectedEpoch
-        );
-        return task;
+
+        return reInvoke(functionInstanceId, expectedStatuses, expectedEpoch);
     }
 
+    public Task ScheduleReInvoke(
+        string functionTypeId,
+        string functionInstanceId, 
+        IEnumerable<Status> expectedStatuses, 
+        int? expectedEpoch = null,
+        bool throwOnUnexpectedFunctionState = true
+    )
+    {
+        ScheduleResilientFunctionReInvocation scheduleReInvocation;
+        lock (_sync)
+        {
+            if (!_scheduleReInvocations.ContainsKey(functionTypeId)) 
+                throw new InvalidOperationException($"FunctionType '{functionTypeId}' has not been registered");
+            
+            scheduleReInvocation = _scheduleReInvocations[functionTypeId];
+        }
+
+        return scheduleReInvocation(
+            functionInstanceId,
+            expectedStatuses,
+            expectedEpoch,
+            throwOnUnexpectedFunctionState
+        );
+    }
+    
     public void Dispose() => _ = ShutdownGracefully();
 
     public Task ShutdownGracefully(TimeSpan? maxWait = null)

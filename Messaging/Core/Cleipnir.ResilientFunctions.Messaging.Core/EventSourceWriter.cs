@@ -8,28 +8,24 @@ public class EventSourceWriter
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly IEventStore _eventStore;
+    private readonly RFunctions? _rFunctions;
     private readonly IEventSerializer _eventSerializer;
-    private readonly Func<FunctionInstanceId, Task>? _reInvoke;
 
     public EventSourceWriter(
         FunctionTypeId functionTypeId, 
         IEventStore eventStore, 
-        IEventSerializer? eventSerializer, 
-        Func<FunctionInstanceId, Task>? reInvoke)
+        RFunctions? rFunctions,
+        IEventSerializer? eventSerializer)
     {
         _functionTypeId = functionTypeId;
         _eventStore = eventStore;
+        _rFunctions = rFunctions;
         _eventSerializer = eventSerializer ?? DefaultEventSerializer.Instance;
-        _reInvoke = reInvoke;
     }
 
     public EventSourceInstanceWriter For(FunctionInstanceId functionInstanceId) => new(functionInstanceId, this);
 
-    public async Task Append(
-        FunctionInstanceId functionInstanceId, 
-        object @event, 
-        string? idempotencyKey, 
-        bool awakeIfSuspended)
+    public async Task Append(FunctionInstanceId functionInstanceId, object @event, string? idempotencyKey, bool awakeIfPostponed)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var eventJson = _eventSerializer.SerializeEvent(@event);
@@ -40,11 +36,16 @@ public class EventSourceWriter
             eventType,
             idempotencyKey
         );
-        if (awakeIfSuspended && _reInvoke != null)
-            await _reInvoke.Invoke(functionInstanceId);
+        if (awakeIfPostponed && _rFunctions != null)
+            await _rFunctions.ScheduleReInvoke(
+                _functionTypeId.Value,
+                functionInstanceId.Value,
+                expectedStatuses: new[] { Status.Postponed },
+                throwOnUnexpectedFunctionState: false
+            );
     }
     
-    public async Task Append(FunctionInstanceId functionInstanceId, IEnumerable<EventAndIdempotencyKey> events, bool awakeIfSuspended)
+    public async Task Append(FunctionInstanceId functionInstanceId, IEnumerable<EventAndIdempotencyKey> events, bool awakeIfPostponed)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         await _eventStore.AppendEvents(
@@ -60,7 +61,12 @@ public class EventSourceWriter
             })
         );
         
-        if (awakeIfSuspended && _reInvoke != null)
-            await _reInvoke.Invoke(functionInstanceId);
+        if (awakeIfPostponed && _rFunctions != null)
+            await _rFunctions.ScheduleReInvoke(
+                _functionTypeId.Value,
+                functionInstanceId.Value,
+                expectedStatuses: new[] { Status.Postponed },
+                throwOnUnexpectedFunctionState: false
+            );
     }
 }

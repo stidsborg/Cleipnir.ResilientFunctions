@@ -15,7 +15,7 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore);
+        var eventSources = new EventSources(eventStore, rFunctions: null);
         using var eventSource = await eventSources.Get(functionId);
 
         // ReSharper disable once AccessToDisposedClosure
@@ -35,7 +35,7 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore);
+        var eventSources = new EventSources(eventStore, rFunctions: null);
         using var eventSource = await eventSources.Get(functionId);
 
         // ReSharper disable once AccessToDisposedClosure
@@ -62,7 +62,7 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore);
+        var eventSources = new EventSources(eventStore, rFunctions: null);
         using var eventSource = await eventSources.Get(functionId);
 
         // ReSharper disable once AccessToDisposedClosure
@@ -91,7 +91,7 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore);
+        var eventSources = new EventSources(eventStore, rFunctions: null);
         using var eventSource = await eventSources.Get(functionId);
 
         // ReSharper disable once AccessToDisposedClosure
@@ -114,7 +114,7 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore);
+        var eventSources = new EventSources(eventStore, rFunctions: null);
         using var eventSource = await eventSources.Get(functionId);
 
         // ReSharper disable once AccessToDisposedClosure
@@ -149,7 +149,11 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore, eventSerializer: new ExceptionThrowingEventSerializer(typeof(int)));
+        var eventSources = new EventSources(
+            eventStore, 
+            eventSerializer: new ExceptionThrowingEventSerializer(typeof(int)),
+            rFunctions: null
+        );
         using var eventSource = await eventSources.Get(functionId);
 
         await eventSource.Append("hello world");

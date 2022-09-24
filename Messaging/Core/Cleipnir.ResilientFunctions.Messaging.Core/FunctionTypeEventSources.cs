@@ -6,20 +6,32 @@ namespace Cleipnir.ResilientFunctions.Messaging.Core;
 public class FunctionTypeEventSources
 {
     private readonly IEventStore _eventStore;
+    private readonly RFunctions? _rFunctions;
     private readonly FunctionTypeId _functionTypeId;
     private readonly TimeSpan? _pullFrequency;
     private readonly IEventSerializer? _eventSerializer;
+    
+    public EventSourceWriter Writer { get; }
 
     public FunctionTypeEventSources(
         IEventStore eventStore, 
+        RFunctions? rFunctions,
         FunctionTypeId functionTypeId, 
         TimeSpan? pullFrequency,
         IEventSerializer? eventSerializer)
     {
         _eventStore = eventStore;
+        _rFunctions = rFunctions;
         _functionTypeId = functionTypeId;
         _pullFrequency = pullFrequency;
         _eventSerializer = eventSerializer;
+        
+        Writer = new EventSourceWriter(
+            _functionTypeId,
+            _eventStore,
+            _rFunctions,
+            _eventSerializer
+        );
     }
 
     public Task<EventSource> Get(
@@ -36,8 +48,8 @@ public class FunctionTypeEventSources
         var eventWriter = new EventSourceWriter(
             _functionTypeId,
             _eventStore,
-            eventSerializer ?? _eventSerializer,
-            reInvoke: null
+            _rFunctions,
+            eventSerializer ?? _eventSerializer
         ).For(functionInstanceId);
         
         var eventSource = new EventSource(
@@ -51,36 +63,4 @@ public class FunctionTypeEventSources
 
         return eventSource;
     }
-
-    public EventSourceWriter CreateWriter()
-        => new EventSourceWriter(
-            _functionTypeId,
-            _eventStore,
-            _eventSerializer,
-            reInvoke: null
-        );
-    
-    public EventSourceWriter CreateWriter<TParam, TScrapbook, TReturn>(RFunc<TParam, TScrapbook, TReturn> rFunc) 
-        where TParam : notnull where TScrapbook : RScrapbook, new()
-     => new EventSourceWriter(
-            _functionTypeId,
-            _eventStore,
-            _eventSerializer,
-            reInvoke: functionInstanceId => rFunc.ReInvoke(
-                functionInstanceId.Value, 
-                expectedStatuses: new[] { Status.Postponed }
-            )
-        );
-    
-    public EventSourceWriter CreateWriter<TParam, TScrapbook>(RAction<TParam, TScrapbook> rAction) 
-        where TParam : notnull where TScrapbook : RScrapbook, new()
-        => new EventSourceWriter(
-            _functionTypeId,
-            _eventStore,
-            _eventSerializer,
-            reInvoke: functionInstanceId => rAction.ReInvoke(
-                functionInstanceId.Value, 
-                expectedStatuses: new[] { Status.Postponed }
-            )
-        );
 }

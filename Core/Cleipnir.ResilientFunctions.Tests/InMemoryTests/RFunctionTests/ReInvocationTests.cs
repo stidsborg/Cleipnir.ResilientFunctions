@@ -35,6 +35,12 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion()
         => ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion(CreateInMemoryStore());
+    [TestMethod]
+    public override Task ReInvocationThroughRFunctionsSunshine()
+        => ReInvocationThroughRFunctionsSunshine(CreateInMemoryStore());
+    [TestMethod]
+    public override Task ScheduleReInvocationThroughRFunctionsSunshine()
+        => ScheduleReInvocationThroughRFunctionsSunshine(CreateInMemoryStore());
 
     private Task<IFunctionStore> CreateInMemoryStore() 
         => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
