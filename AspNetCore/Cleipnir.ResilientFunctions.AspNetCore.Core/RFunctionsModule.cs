@@ -24,7 +24,7 @@ public static class RFunctionsModule
             initializeStores
         );
 
-    internal static IServiceCollection AddRFunctionsService(
+    public static IServiceCollection AddRFunctionsService(
         IServiceCollection services,
         IFunctionStore functionStore,
         IEventStore eventStore,
