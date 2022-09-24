@@ -736,6 +736,30 @@ public class RFunctions : IDisposable
         }
     }
 
+    public Task ReInvoke(
+        string functionTypeId, 
+        string functionInstanceId,
+        IEnumerable<Status> expectedStatuses,
+        int? expectedEpoch = null
+        )
+    {
+        dynamic registration;
+        lock (_sync)
+        {
+            if (!_functions.ContainsKey(functionTypeId)) 
+                throw new InvalidOperationException($"FunctionType '{functionTypeId}' has not been registered");
+            
+            registration = _functions[functionTypeId];
+        }
+        
+        var task = (Task)registration.ReInvoke(
+            functionInstanceId,
+            expectedStatuses,
+            expectedEpoch
+        );
+        return task;
+    }
+
     public void Dispose() => _ = ShutdownGracefully();
 
     public Task ShutdownGracefully(TimeSpan? maxWait = null)
