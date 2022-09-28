@@ -2,7 +2,9 @@
 using System.Reflection;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Storage;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
@@ -43,6 +45,7 @@ public static class RFunctionsModule
         if (options != null)
             services.AddSingleton(options);
         services.AddSingleton<ServiceProviderDependencyResolver>();
+        services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton(functionStore);
         services.AddSingleton(eventStore);
 
