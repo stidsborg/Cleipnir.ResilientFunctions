@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.AspNetCore.Postgres;
 
 public static class RFunctionsModule
 {
-    public static IServiceCollection AddRFunctionsService(
+    public static IServiceCollection UseResilientFunctions(
         this IServiceCollection services, 
         string connectionString,
         Func<IServiceProvider, Options>? options = null,
@@ -19,7 +19,7 @@ public static class RFunctionsModule
     {
         var functionStore = new PostgreSqlFunctionStore(connectionString);
         var eventStore = new PostgreSqlEventStore(connectionString);
-        return Cleipnir.ResilientFunctions.AspNetCore.Core.RFunctionsModule.AddRFunctionsService(
+        return Cleipnir.ResilientFunctions.AspNetCore.Core.RFunctionsModule.UseResilientFunctions(
             services,
             functionStore,
             eventStore,

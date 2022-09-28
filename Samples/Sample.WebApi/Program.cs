@@ -10,7 +10,7 @@ internal static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        builder.Services.AddInMemoryRFunctionsService(
+        builder.Services.UseResilientFunctionsWithInMemoryStore(
             s => new Options(
                 unhandledExceptionHandler: 
                     exception => s.GetRequiredService<ILogger>().LogError(exception, "Unhandled RFunction Exception")

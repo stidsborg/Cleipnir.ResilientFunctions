@@ -8,13 +8,13 @@ namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
 public static class RFunctionsModule
 {
-    public static IServiceCollection AddInMemoryRFunctionsService(
+    public static IServiceCollection UseResilientFunctionsWithInMemoryStore(
         this IServiceCollection services,
         Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null,
         bool initializeStores = true
-    ) => AddRFunctionsService(
+    ) => UseResilientFunctions(
             services,
             new InMemoryFunctionStore(),
             new InMemoryEventStore(),
@@ -24,7 +24,7 @@ public static class RFunctionsModule
             initializeStores
         );
 
-    public static IServiceCollection AddRFunctionsService(
+    public static IServiceCollection UseResilientFunctions(
         IServiceCollection services,
         IFunctionStore functionStore,
         IEventStore eventStore,

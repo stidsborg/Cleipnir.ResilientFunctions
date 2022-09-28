@@ -57,7 +57,7 @@ internal static class Program
         var messageQueue = CreateAndSetupMessageQueue();
         builder.Services.AddSingleton(messageQueue);
         
-        builder.Services.AddRFunctionsService(
+        builder.Services.UseResilientFunctions(
             connectionString,
             _ => new Options(
                 unhandledExceptionHandler: rfe => Log.Logger.Error(rfe,"ResilientFrameworkException occured"),
