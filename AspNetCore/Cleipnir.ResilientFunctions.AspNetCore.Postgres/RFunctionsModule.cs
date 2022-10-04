@@ -25,7 +25,7 @@ public static class RFunctionsModule
             eventStore,
             options,
             gracefulShutdown,
-            rootAssembly,
+            rootAssembly ?? Assembly.GetCallingAssembly(),
             initializeStores
         );
     }
