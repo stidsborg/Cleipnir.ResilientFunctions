@@ -25,15 +25,13 @@ public class SignOfLifeUpdaterTests
     {
         const int expectedEpoch = 100;
         var invocations = new SyncedList<Parameters>();
-        var storeMock = new FunctionStoreMock
-        {
-            SetupUpdateSignOfLife = (id, epoch, life) =>
+        var store = new SignOfLifeTestFunctionStore(
+            (id, epoch, life) =>
             {
                 invocations.Add(new Parameters(id, ExpectedEpoch: epoch, NewSignOfLife: life));
-                return true.ToTask();
-            }
-        };
-
+                return true;
+            });
+        
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
             CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
@@ -41,7 +39,7 @@ public class SignOfLifeUpdaterTests
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
             expectedEpoch,
-            storeMock,
+            store,
             SettingsWithDefaults.Default.Merge(settings)
         );
 
@@ -64,14 +62,11 @@ public class SignOfLifeUpdaterTests
     public async Task SignOfLifeStopsInvokingStoreWhenFalseIsReturnedFromStore()
     {
         var syncedCounter = new SyncedCounter();
-        var storeMock = new FunctionStoreMock
+        var store = new SignOfLifeTestFunctionStore((id, epoch, life) =>
         {
-            SetupUpdateSignOfLife = (_, _, _) =>
-            {
-                syncedCounter.Increment();
-                return false.ToTask();
-            } 
-        };
+            syncedCounter.Increment();
+            return false;
+        });
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
@@ -80,7 +75,7 @@ public class SignOfLifeUpdaterTests
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
             epoch: 0,
-            storeMock,
+            store,
             SettingsWithDefaults.Default.Merge(settings)
         );
 
@@ -95,14 +90,12 @@ public class SignOfLifeUpdaterTests
     public void WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
     {
         var syncedCounter = new SyncedCounter();
-        var storeMock = new FunctionStoreMock
-        {
-            SetupUpdateSignOfLife = (_, _, _) =>
+        var store = new SignOfLifeTestFunctionStore(
+            (id, epoch, life) =>
             {
                 syncedCounter.Increment();
                 throw new Exception();
-            }
-        };
+            });
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
@@ -111,7 +104,7 @@ public class SignOfLifeUpdaterTests
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
             epoch: 0,
-            storeMock,
+            store,
             SettingsWithDefaults.Default.Merge(settings)
         );
 
