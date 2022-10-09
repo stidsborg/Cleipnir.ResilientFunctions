@@ -39,4 +39,24 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
         => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ExistingFunctionCanBeDeleted()
+        => ExistingFunctionCanBeDeleted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task NonExistingFunctionCanBeDeleted()
+        => NonExistingFunctionCanBeDeleted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());    
+
+    [TestMethod]
+    public override Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected()
+        => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected()
+        => ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected()
+        => ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

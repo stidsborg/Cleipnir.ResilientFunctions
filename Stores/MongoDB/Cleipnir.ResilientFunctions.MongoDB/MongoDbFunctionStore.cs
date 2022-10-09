@@ -252,6 +252,56 @@ public class MongoDbFunctionStore : IFunctionStore
         );
     }
 
+    public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null)
+    {
+        var functionTypeId = functionId.TypeId.Value;
+        var functionInstanceId = functionId.InstanceId.Value;
+
+        if (expectedEpoch == null && expectedStatus == null)
+        {
+            var result = await GetCollection().DeleteOneAsync(d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId
+            );
+            return result.DeletedCount == 1;
+        }
+        
+        if (expectedEpoch != null && expectedStatus == null)
+        {
+            var epoch = expectedEpoch.Value;
+            var result = await GetCollection().DeleteOneAsync(d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId &&
+                d.Epoch == epoch
+            );
+            return result.DeletedCount == 1;
+        }
+        
+        if (expectedEpoch == null && expectedStatus != null)
+        {
+            var status = (int) expectedStatus.Value;
+            var result = await GetCollection().DeleteOneAsync(d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId &&
+                d.Status == status
+            );
+            return result.DeletedCount == 1;
+        }
+        
+        //then it must be that (expectedEpoch != null && expectedStatus != null)
+        {
+            var epoch = expectedEpoch!.Value;
+            var status = (int) expectedStatus!.Value;
+            var result = await GetCollection().DeleteOneAsync(d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId &&
+                d.Epoch == epoch &&
+                d.Status == status
+            );
+            return result.DeletedCount == 1;
+        }
+    }
+
     private record Document
     {
         public DbFunctionId Id { get; set; } = new();

@@ -36,4 +36,24 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
         => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ExistingFunctionCanBeDeleted()
+        => ExistingFunctionCanBeDeleted(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task NonExistingFunctionCanBeDeleted()
+        => NonExistingFunctionCanBeDeleted(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected()
+        => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected()
+        => ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected()
+        => ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
 }

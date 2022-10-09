@@ -199,4 +199,104 @@ public abstract class StoreCrudTests
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
         scrapbookJson.ShouldNotBeNull();
     }
+
+    public abstract Task ExistingFunctionCanBeDeleted();
+    public async Task ExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        await store.DeleteFunction(FunctionId).ShouldBeTrueAsync();
+
+        await store.GetFunction(FunctionId).ShouldBeNullAsync();
+    }
+    
+    public abstract Task NonExistingFunctionCanBeDeleted();
+    public async Task NonExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.DeleteFunction(FunctionId).ShouldBeFalseAsync();
+    }
+    
+    public abstract Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected();
+    public async Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+        await store.TryToBecomeLeader(
+            FunctionId,
+            Status.Executing,
+            expectedEpoch: 0,
+            newEpoch: 1,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+        await store.DeleteFunction(FunctionId, expectedEpoch: 0).ShouldBeFalseAsync();
+
+        await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
+    }
+    
+    public abstract Task ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected();
+    public async Task ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+        
+        await store.SetFunctionState(
+            FunctionId,
+            Status.Succeeded,
+            scrapbookJson: new TestScrapbook().ToJson(),
+            result: null,
+            errorJson: null,
+            postponedUntil: null,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+        
+        await store.DeleteFunction(FunctionId, expectedStatus: Status.Executing).ShouldBeFalseAsync();
+        await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
+    }
+    
+    public abstract Task ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected();
+    public async Task ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+        
+        await store.SetFunctionState(
+            FunctionId,
+            Status.Succeeded,
+            scrapbookJson: new TestScrapbook().ToJson(),
+            result: null,
+            errorJson: null,
+            postponedUntil: null,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+        
+        await store.DeleteFunction(FunctionId, expectedStatus: Status.Executing, expectedEpoch: 0).ShouldBeFalseAsync();
+        await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
+    }
 }
