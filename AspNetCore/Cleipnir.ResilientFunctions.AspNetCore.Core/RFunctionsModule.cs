@@ -43,8 +43,8 @@ public static class RFunctionsModule
     {
         if (initializeDatabase)
         {
-            functionStore.Initialize().Wait();
-            eventStore.Initialize().Wait();
+            functionStore.Initialize().GetAwaiter().GetResult();
+            eventStore.Initialize().GetAwaiter().GetResult();
         }
 
         if (options != null)

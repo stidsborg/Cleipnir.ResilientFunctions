@@ -24,8 +24,8 @@ public static class RFunctionsModule
         var monitor = new  Cleipnir.ResilientFunctions.PostgreSQL.Utils.Monitor(connectionString);
         if (initializeDatabase)
         {
-            arbitrator.Initialize().Wait();
-            monitor.Initialize().Wait();
+             arbitrator.Initialize().GetAwaiter().GetResult();
+            monitor.Initialize().GetAwaiter().GetResult();
         }
         
         return Cleipnir.ResilientFunctions.AspNetCore.Core.RFunctionsModule.UseResilientFunctions(
