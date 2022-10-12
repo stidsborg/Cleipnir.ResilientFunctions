@@ -189,6 +189,37 @@ public abstract class VersioningTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task ReturnTypeCanBeParentTypeOfActualReturnedValue();
+    protected async Task ReturnTypeCanBeParentTypeOfActualReturnedValue(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+            )
+        );
+        var functionId = new FunctionId(
+            nameof(ReturnTypeCanBeParentTypeOfActualReturnedValue),
+            "instance"
+        );
+
+        var rFunc = rFunctions.RegisterFunc<string, object>(
+            functionId.TypeId.Value,
+            param => param
+        ).Invoke;
+
+        var returned = await rFunc("instance","hello world");
+        (returned is string).ShouldBeTrue();
+        returned.ToString().ShouldBe("hello world");
+
+        returned = await rFunc("instance", "");
+        (returned is string).ShouldBeTrue();
+        returned.ToString().ShouldBe("hello world");
+    }
+    
     private record Person;
     private record PersonV1(string Name) : Person;
     private record PersonV2(string Name, int Age) : Person;

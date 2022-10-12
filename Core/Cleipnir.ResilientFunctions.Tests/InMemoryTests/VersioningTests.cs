@@ -24,6 +24,10 @@ public class VersioningTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
     public override Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype()
         => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(CreateInMemoryFunctionStore());
 
+    [TestMethod]
+    public override Task ReturnTypeCanBeParentTypeOfActualReturnedValue()
+        => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(CreateInMemoryFunctionStore());
+
     private static Task<IFunctionStore> CreateInMemoryFunctionStore()
         => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
 }

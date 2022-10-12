@@ -20,4 +20,8 @@ public class VersioningTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
     [TestMethod]
     public override Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype()
         => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(NoSql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task ReturnTypeCanBeParentTypeOfActualReturnedValue()
+        => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(NoSql.AutoCreateAndInitializeStore());
 }
