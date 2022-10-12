@@ -74,4 +74,23 @@ public class Arbitrator : IArbitrator
             return countedRows == 1;
         }
     }
+
+    public Task Delete(string groupId) => InnerDelete(groupId, instanceId: null);
+    public Task Delete(string groupId, string instanceId) => InnerDelete(groupId, instanceId);
+
+    private async Task InnerDelete(string groupId, string? instanceId)
+    {
+        await using var conn = await _connFunc();
+        var id = KeyEncoder.Encode(groupId, instanceId);
+
+        var sql = $@"DELETE FROM {_tablePrefix}arbitrator WHERE id = $1";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = id }
+            }
+        };
+        await command.ExecuteNonQueryAsync();
+    }
 }

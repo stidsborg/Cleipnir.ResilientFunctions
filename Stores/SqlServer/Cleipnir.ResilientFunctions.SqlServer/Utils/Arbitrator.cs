@@ -100,4 +100,19 @@ public class Arbitrator : IArbitrator
 
         return true;
     }
+
+    public Task Delete(string groupId) => InnerDelete(groupId, instanceId: null);
+    public Task Delete(string groupId, string instanceId) => InnerDelete(groupId, instanceId);
+
+    private async Task InnerDelete(string groupId, string? instanceId)
+    {
+        await using var conn = await _connFunc();
+        var id = KeyEncoder.Encode(groupId, instanceId);
+        {
+            var sql = $"DELETE FROM {_tablePrefix}Arbitrator WHERE [Id]=@Id";
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@Id", id);
+            await command.ExecuteNonQueryAsync();
+        }
+    }
 }

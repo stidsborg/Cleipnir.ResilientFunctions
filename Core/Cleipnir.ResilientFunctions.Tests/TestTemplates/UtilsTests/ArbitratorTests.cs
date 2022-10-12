@@ -75,4 +75,16 @@ public abstract class ArbitratorTests
         
         await arbitrator.Propose(groupId, instanceId, proposal).ShouldBeTrueAsync();
     }
+    
+    public abstract Task DifferentProposalCanBeDecidedAfterDeletion();
+    protected async Task DifferentProposalCanBeDecidedAfterDeletion(Task<IArbitrator> arbitratorTask)
+    {
+        var arbitrator = await arbitratorTask;
+
+        var groupId = Guid.NewGuid().ToString();
+        var instanceId = Guid.NewGuid().ToString();
+        await arbitrator.Propose(groupId, instanceId, "proposal1").ShouldBeTrueAsync();
+        await arbitrator.Delete(groupId, instanceId);
+        await arbitrator.Propose(groupId, instanceId, "proposal2").ShouldBeTrueAsync();
+    }
 }

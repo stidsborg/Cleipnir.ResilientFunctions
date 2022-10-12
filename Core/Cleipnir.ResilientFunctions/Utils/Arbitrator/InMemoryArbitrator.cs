@@ -35,4 +35,20 @@ public class InMemoryArbitrator : IArbitrator
             else
                 return (_groupOnlyDecisions[groupId] == value).ToTask();
     }
+
+    public Task Delete(string groupId)
+    {
+        lock (_sync)
+            _groupOnlyDecisions.Remove(groupId);
+
+        return Task.CompletedTask;
+    }
+
+    public Task Delete(string groupId, string instanceId)
+    {
+        lock (_sync)
+            _decisions.Remove(Tuple.Create(groupId, instanceId));
+
+        return Task.CompletedTask;
+    }
 }

@@ -34,6 +34,10 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
         => SameProposalAsDecidedSucceeds(CreateArbitrator());
 
     [TestMethod]
+    public override Task DifferentProposalCanBeDecidedAfterDeletion()
+        => DifferentProposalCanBeDecidedAfterDeletion(CreateArbitrator());
+
+    [TestMethod]
     public async Task InvokingInitializeTwiceSucceeds()
     {
         var arbitrator = (Arbitrator) await CreateArbitrator();

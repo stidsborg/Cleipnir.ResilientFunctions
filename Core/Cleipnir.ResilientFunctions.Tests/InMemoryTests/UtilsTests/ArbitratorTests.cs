@@ -32,5 +32,9 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
     public override Task SameProposalAsDecidedSucceeds() 
         => SameProposalAsDecidedSucceeds(CreateInMemoryArbitrator());
 
+    [TestMethod]
+    public override Task DifferentProposalCanBeDecidedAfterDeletion()
+        => DifferentProposalCanBeDecidedAfterDeletion(CreateInMemoryArbitrator());
+
     private Task<IArbitrator> CreateInMemoryArbitrator() => new InMemoryArbitrator().CastTo<IArbitrator>().ToTask();
 }
