@@ -4,15 +4,12 @@ namespace Cleipnir.ResilientFunctions.Utils;
 
 public static class KeyEncoder
 {
-    public static string Encode(string groupId, string? instanceId)
+    public static string Encode(string group, string key)
     {
-        if (instanceId == null)
-            return $"-01{groupId}";
-
-        if (groupId.Length > 999)
-            throw new ArgumentOutOfRangeException(nameof(groupId), "Length exceed 999 characters");
+        if (group.Length > 999)
+            throw new ArgumentOutOfRangeException(nameof(group), "Length exceed 999 characters");
         
-        return $"{groupId.Length:D3}{groupId}{instanceId}";
+        return $"{group.Length:D3}{group}{key}";
     }
 
     public static GroupAndInstance Decode(string encoded)

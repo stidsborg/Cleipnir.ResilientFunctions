@@ -11,29 +11,29 @@ public class InMemoryArbitrator : IArbitrator
     private readonly Dictionary<Tuple<string, string>, string> _decisions = new();
     private readonly object _sync = new();
     
-    public Task<bool> Propose(string groupId, string instanceId, string value)
+    public Task<bool> Propose(string group, string key, string value)
     {
-        var key = Tuple.Create(groupId, instanceId);
+        var groupAndKey = Tuple.Create(group, key);
         lock (_sync)
-            if (!_decisions.ContainsKey(key))
+            if (!_decisions.ContainsKey(groupAndKey))
             {
-                _decisions[key] = value;
+                _decisions[groupAndKey] = value;
                 return true.ToTask();
             }
             else
-                return (_decisions[key] == value).ToTask();
+                return (_decisions[groupAndKey] == value).ToTask();
     }
 
-    public Task<bool> Propose(string groupId, string value)
+    public Task<bool> Propose(string group, string value)
     {
         lock (_sync)
-            if (!_groupOnlyDecisions.ContainsKey(groupId))
+            if (!_groupOnlyDecisions.ContainsKey(group))
             {
-                _groupOnlyDecisions[groupId] = value;
+                _groupOnlyDecisions[group] = value;
                 return true.ToTask();
             }
             else
-                return (_groupOnlyDecisions[groupId] == value).ToTask();
+                return (_groupOnlyDecisions[group] == value).ToTask();
     }
 
     public Task Delete(string groupId)

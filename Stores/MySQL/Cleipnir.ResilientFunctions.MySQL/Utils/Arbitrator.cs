@@ -1,5 +1,4 @@
-﻿using Cleipnir.ResilientFunctions.Utils;
-using Cleipnir.ResilientFunctions.Utils.Arbitrator;
+﻿using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using MySql.Data.MySqlClient;
 
 namespace Cleipnir.ResilientFunctions.MySQL.Utils;
@@ -20,35 +19,37 @@ public class Arbitrator : IArbitrator
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"            
                 CREATE TABLE IF NOT EXISTS {_tablePrefix}arbitrator (
-                    id VARCHAR(255) PRIMARY KEY NOT NULL,                
-                    value VARCHAR(255) NOT NULL
+                    groupName VARCHAR(255) NOT NULL,
+                    keyId VARCHAR(255) NOT NULL,
+                    value VARCHAR(255) NOT NULL,
+                    PRIMARY KEY (groupName, keyId)
                 );";
         await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public Task<bool> Propose(string groupId, string instanceId, string value)
-        => InnerPropose(groupId, instanceId, value);
+    public Task<bool> Propose(string group, string key, string value)
+        => InnerPropose(group, key, value);
     
-    public Task<bool> Propose(string groupId, string value)
-        => InnerPropose(groupId, instanceId: null, value);
+    public Task<bool> Propose(string key, string value)
+        => InnerPropose(group: "", key, value);
     
-    private async Task<bool> InnerPropose(string groupId, string? instanceId, string value)
+    private async Task<bool> InnerPropose(string group, string key, string value)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var id = KeyEncoder.Encode(groupId, instanceId);
 
         var sql = $@"
             INSERT IGNORE INTO {_tablePrefix}arbitrator
-                (id, value)
+                (groupName, keyId, value)
             VALUES
-                (?, ?)";
+                (?, ?, ?)";
         {
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() {Value = id},
+                    new() {Value = group},
+                    new() {Value = key},
                     new() {Value = value}
                 }
             };
@@ -57,12 +58,13 @@ public class Arbitrator : IArbitrator
             if (affectedRows == 1) return true;    
         }
         {
-            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}arbitrator WHERE id=? AND value=?";
+            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}arbitrator WHERE groupName=? AND keyId=? AND value=?";
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() {Value = id},
+                    new() {Value = group},
+                    new() {Value = key},
                     new() {Value = value}
                 }
             };
@@ -72,20 +74,20 @@ public class Arbitrator : IArbitrator
         }
     }
 
-    public Task Delete(string groupId) => InnerDelete(groupId, instanceId: null);
-    public Task Delete(string groupId, string instanceId) => InnerDelete(groupId, instanceId);
+    public Task Delete(string key) => InnerDelete(group: "", key);
+    public Task Delete(string group, string key) => InnerDelete(group, key);
 
-    private async Task InnerDelete(string groupId, string? instanceId)
+    private async Task InnerDelete(string group, string key)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var id = KeyEncoder.Encode(groupId, instanceId);
 
-        var sql = $@"DELETE FROM {_tablePrefix}arbitrator WHERE id=?";
+        var sql = $@"DELETE FROM {_tablePrefix}arbitrator WHERE groupName=? AND keyId=?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = id },
+                new() {Value = group},
+                new() {Value = key},
             }
         };
 

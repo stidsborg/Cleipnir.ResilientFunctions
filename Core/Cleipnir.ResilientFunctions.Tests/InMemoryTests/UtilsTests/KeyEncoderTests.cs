@@ -45,17 +45,4 @@ public class KeyEncoderTests
         decodedGroup.ShouldBe(group);
         decodedInstance.ShouldBe(instance);
     }
-    
-    [TestMethod]
-    public void NonEmptyGroupAndNullInstancePairCanBeEncodedAndDecoded()
-    { 
-        const string group = "abc";
-        string? instance = null;
-
-        var encoded = KeyEncoder.Encode(group, instance);
-
-        var (decodedGroup, decodedInstance) = KeyEncoder.Decode(encoded);
-        decodedGroup.ShouldBe(group);
-        decodedInstance.ShouldBe(instance);
-    }
 }

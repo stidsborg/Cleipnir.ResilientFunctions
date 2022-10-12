@@ -54,11 +54,11 @@ public class Arbitrator : IArbitrator
         }
     }
 
-    public Task<bool> Propose(string groupId, string instanceId, string value)
-        => InnerPropose(groupId, instanceId, value);
+    public Task<bool> Propose(string group, string key, string value)
+        => InnerPropose(group, key, value);
     
-    public Task<bool> Propose(string groupId, string value)
-        => InnerPropose(groupId, instanceId: null, value);
+    public Task<bool> Propose(string group, string value)
+        => InnerPropose(group, instanceId: null, value);
     
     private async Task<bool> InnerPropose(string groupId, string? instanceId, string value)
     {
