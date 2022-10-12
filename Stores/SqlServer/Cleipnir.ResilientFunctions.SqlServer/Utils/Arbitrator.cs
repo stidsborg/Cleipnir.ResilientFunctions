@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Microsoft.Data.SqlClient;
 
@@ -24,8 +23,10 @@ public class Arbitrator : IArbitrator
         {
             var cmd = @$"            
                 CREATE TABLE {_tablePrefix}Arbitrator (
-                    [Id] NVARCHAR(255) PRIMARY KEY NOT NULL,                
-                    [Value] NVARCHAR(255) NOT NULL
+                    [GroupName] NVARCHAR(255) NOT NULL,
+                    [KeyId] NVARCHAR(255) NOT NULL,
+                    [Value] NVARCHAR(255) NOT NULL,
+                    PRIMARY KEY ([GroupName], [KeyId])
                 )";
 
             await using var command = new SqlCommand(cmd, conn);
@@ -57,61 +58,63 @@ public class Arbitrator : IArbitrator
     public Task<bool> Propose(string group, string key, string value)
         => InnerPropose(group, key, value);
     
-    public Task<bool> Propose(string group, string value)
-        => InnerPropose(group, instanceId: null, value);
+    public Task<bool> Propose(string key, string value)
+        => InnerPropose(group: "", key, value);
     
-    private async Task<bool> InnerPropose(string groupId, string? instanceId, string value)
+    private async Task<bool> InnerPropose(string group, string key, string value)
     {
-        await using var conn = await _connFunc();
-        var id = KeyEncoder.Encode(groupId, instanceId);
-        {
-            var sql = $"SELECT Value FROM {_tablePrefix}Arbitrator WHERE [Id]=@Id";
-            await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@Id", id);
-            await using var reader = await command.ExecuteReaderAsync();
-            while (reader.HasRows)
-            {
-                while (reader.Read())
-                {
-                    var fetchedValue = reader.GetString(0);
-                    if (fetchedValue != null)
-                        return value == fetchedValue;
-                }
-
-                reader.NextResult();
-            }
-        }
-        
         try
         {
-            var sql = $"INSERT INTO {_tablePrefix}Arbitrator ([Id], [Value]) VALUES (@Id, @Value)";
+            await using var conn = await _connFunc();
+            var sql = $"INSERT INTO {_tablePrefix}Arbitrator ([GroupName], [KeyId], [Value]) VALUES (@GroupName, @KeyId, @Value)";
             await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@GroupName", group);
+            command.Parameters.AddWithValue("@KeyId", key);
             command.Parameters.AddWithValue("@Value", value);
             await command.ExecuteNonQueryAsync();
+            
+            return true;
         }
         catch (SqlException e)
         {
             if (e.Number != SqlError.UNIQUENESS_VIOLATION)
                 throw;
 
-            return await InnerPropose(groupId, instanceId, value);
-        }
+            await using var conn = await _connFunc();
+            {
+                var sql = $"SELECT Value FROM {_tablePrefix}Arbitrator WHERE [GroupName]=@GroupName AND [KeyId]=@KeyId";
+                await using var command = new SqlCommand(sql, conn);
+                command.Parameters.AddWithValue("@GroupName", group);
+                command.Parameters.AddWithValue("@KeyId", key);
+                await using var reader = await command.ExecuteReaderAsync();
+                while (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        var fetchedValue = reader.GetString(0);
+                        if (fetchedValue != null)
+                            return value == fetchedValue;
+                    }
 
-        return true;
+                    reader.NextResult();
+                }
+            }
+
+            throw new Exception($"Arbitrator {key}@{group} was not found");
+        }
     }
 
-    public Task Delete(string groupId) => InnerDelete(groupId, instanceId: null);
-    public Task Delete(string groupId, string instanceId) => InnerDelete(groupId, instanceId);
+    public Task Delete(string key) => InnerDelete(group: "", key);
+    public Task Delete(string group, string key) => InnerDelete(group, key);
 
-    private async Task InnerDelete(string groupId, string? instanceId)
+    private async Task InnerDelete(string group, string key)
     {
         await using var conn = await _connFunc();
-        var id = KeyEncoder.Encode(groupId, instanceId);
         {
-            var sql = $"DELETE FROM {_tablePrefix}Arbitrator WHERE [Id]=@Id";
+            var sql = $"DELETE FROM {_tablePrefix}Arbitrator WHERE [GroupName]=@GroupName AND [KeyId]=@KeyId";
             await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@GroupName", group);
+            command.Parameters.AddWithValue("@KeyId", key);
             await command.ExecuteNonQueryAsync();
         }
     }
