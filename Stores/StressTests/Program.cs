@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.StressTests
     {
         private static async Task<int> Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length == 0)
             {
                 Console.WriteLine("Usage: StressTests <all, mongo, mysql, postgres, sqlserver>");
                 Console.WriteLine("       StressTests recreate_dbs");
@@ -28,17 +28,23 @@ namespace Cleipnir.ResilientFunctions.StressTests
                 await new SqlServerEngine().RecreateDatabase();
                 return 0;
             }
-
-            var arg = args[0].ToLower();
+            
             var engines = new List<IEngine>();
-            if (arg == "mongo" || arg == "all")
-                engines.Add(new MongoDbEngine());
-            if (arg == "mysql" || arg == "all")
-                engines.Add(new MySqlEngine());
-            if (arg == "postgres" || arg == "all")
-                engines.Add(new PostgreSqlEngine());
-            if (arg == "sqlserver" || arg == "all")
-                engines.Add(new SqlServerEngine());
+
+            if (args.Any(arg => arg.ToLower() == "all"))
+                args = new[] { "mongo", "mysql", "postgres", "sqlserver" };
+            
+            foreach (var arg in args)
+            {
+                if (arg == "mongo")
+                    engines.Add(new MongoDbEngine());
+                if (arg == "mysql")
+                    engines.Add(new MySqlEngine());
+                if (arg == "postgres")
+                    engines.Add(new PostgreSqlEngine());
+                if (arg == "sqlserver")
+                    engines.Add(new SqlServerEngine());                
+            }
             
             if (engines.Count == 0) 
             {
