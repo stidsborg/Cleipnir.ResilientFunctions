@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
 
-namespace Cleipnir.ResilientFunctions.ParameterSerialization;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 
 public interface ISerializer
 {

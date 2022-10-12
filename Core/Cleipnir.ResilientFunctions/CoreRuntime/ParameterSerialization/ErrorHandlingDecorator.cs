@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
 using static Cleipnir.ResilientFunctions.Helpers.Helpers;
 
-namespace Cleipnir.ResilientFunctions.ParameterSerialization;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 
 public class ErrorHandlingDecorator : ISerializer
 {
