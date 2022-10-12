@@ -19,7 +19,7 @@ public class MonitorExample
 
     public async Task<Result> UpdateSubscription(string rFuncId, string resourceId, string value)
     {
-        await using var @lock = await Monitor.Acquire(lockId: nameof(UpdateSubscription), keyId: rFuncId);
+        await using var @lock = await Monitor.Acquire(group: nameof(UpdateSubscription), key: rFuncId);
         if (@lock == null)
             return Postpone.For(10_000);
 

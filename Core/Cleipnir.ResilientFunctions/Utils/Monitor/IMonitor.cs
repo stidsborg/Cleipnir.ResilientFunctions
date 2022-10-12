@@ -5,24 +5,24 @@ namespace Cleipnir.ResilientFunctions.Utils.Monitor;
 
 public interface IMonitor
 {
-    public Task<ILock?> Acquire(string lockId, string keyId);
+    public Task<ILock?> Acquire(string group, string key);
     
-    public async Task<ILock?> Acquire(string lockId, string keyId, TimeSpan maxWait)
+    public async Task<ILock?> Acquire(string group, string key, TimeSpan maxWait)
     {
         var prev = DateTime.UtcNow;
         while (true)
         {
-            var @lock = await Acquire(lockId, keyId);
+            var @lock = await Acquire(group, key);
             if (@lock != null) return @lock;
             await Task.Delay(100);
             if (DateTime.UtcNow - prev > maxWait) return null;
         }
     }
 
-    public Task<ILock?> Acquire(string lockId, string keyId, int maxWaitMs)
-        => Acquire(lockId, keyId, TimeSpan.FromMilliseconds(maxWaitMs));
+    public Task<ILock?> Acquire(string group, string key, int maxWaitMs)
+        => Acquire(group, key, TimeSpan.FromMilliseconds(maxWaitMs));
 
-    public Task Release(string lockId, string keyId);
+    public Task Release(string group, string key);
 
     public interface ILock : IAsyncDisposable { }
 }

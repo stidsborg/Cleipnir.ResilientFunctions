@@ -21,7 +21,7 @@ public class Monitor : IMonitor
         await using var conn = await _connFunc();
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}monitor (
-                lockid VARCHAR(255) PRIMARY KEY NOT NULL,                
+                groupname VARCHAR(255) PRIMARY KEY NOT NULL,                
                 keyid VARCHAR(255) NOT NULL
             );";
 
@@ -38,56 +38,56 @@ public class Monitor : IMonitor
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IMonitor.ILock?> Acquire(string lockId, string keyId)
+    public async Task<IMonitor.ILock?> Acquire(string group, string key)
     {
         await using var conn = await _connFunc();
         {
             var sql = @$"           
-            INSERT INTO {_tablePrefix}monitor (lockid, keyid)
+            INSERT INTO {_tablePrefix}monitor (groupname, keyid)
             VALUES ($1, $2)
             ON CONFLICT DO NOTHING;";
             await using var command = new NpgsqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() {Value = lockId},
-                    new() {Value = keyId}
+                    new() {Value = group},
+                    new() {Value = key}
                 }
             };
 
             var affectedRows = await command.ExecuteNonQueryAsync();
-            if (affectedRows == 1) return new Lock(this, lockId, keyId);
+            if (affectedRows == 1) return new Lock(this, group, key);
         }
         {
             var sql = @$"
                 SELECT COUNT(*) 
                 FROM {_tablePrefix}monitor
-                WHERE lockid = $1 AND keyid = $2;";
+                WHERE groupname = $1 AND keyid = $2;";
             await using var command = new NpgsqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() {Value = lockId},
-                    new() {Value = keyId}
+                    new() {Value = group},
+                    new() {Value = key}
                 }
             };
             var count = (long) (await command.ExecuteScalarAsync() ?? 0);
             return count == 1
-                ? new Lock(this, lockId, keyId)
+                ? new Lock(this, group, key)
                 : null;
         }
     }
 
-    public async Task Release(string lockId, string keyId)
+    public async Task Release(string group, string key)
     {
         await using var conn = await _connFunc();
-        var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE lockid = $1 AND keyid = $2";
+        var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE groupname = $1 AND keyid = $2";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = lockId},
-                new() {Value = keyId}
+                new() {Value = group},
+                new() {Value = key}
             }
         };
         await command.ExecuteNonQueryAsync();

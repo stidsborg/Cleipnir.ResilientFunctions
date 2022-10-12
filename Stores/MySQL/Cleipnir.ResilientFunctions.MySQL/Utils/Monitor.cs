@@ -19,7 +19,7 @@ public class Monitor : IMonitor
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}monitor (
-                lockid VARCHAR(255) PRIMARY KEY NOT NULL,                
+                groupname VARCHAR(255) PRIMARY KEY NOT NULL,                
                 keyid VARCHAR(255) NOT NULL
             );";
 
@@ -36,53 +36,53 @@ public class Monitor : IMonitor
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IMonitor.ILock?> Acquire(string lockId, string keyId)
+    public async Task<IMonitor.ILock?> Acquire(string group, string key)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         {
-            var sql = $"INSERT IGNORE INTO {_tablePrefix}monitor (lockid, keyid) VALUES (?, ?)";
+            var sql = $"INSERT IGNORE INTO {_tablePrefix}monitor (groupname, keyid) VALUES (?, ?)";
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() {Value = lockId},
-                    new() {Value = keyId}
+                    new() {Value = group},
+                    new() {Value = key}
                 }
             };
 
             var affectedRows = await command.ExecuteNonQueryAsync();
-            if (affectedRows == 1) return new Lock(this, lockId, keyId);
+            if (affectedRows == 1) return new Lock(this, group, key);
         }
         {
             var sql = @$"
                 SELECT COUNT(*) 
                 FROM {_tablePrefix}monitor
-                WHERE lockid = ? AND keyid = ?;";
+                WHERE groupname = ? AND keyid = ?;";
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() {Value = lockId},
-                    new() {Value = keyId}
+                    new() {Value = group},
+                    new() {Value = key}
                 }
             };
             var count = (long) (await command.ExecuteScalarAsync() ?? 0);
             return count == 1
-                ? new Lock(this, lockId, keyId)
+                ? new Lock(this, group, key)
                 : null;
         }
     }
 
-    public async Task Release(string lockId, string keyId)
+    public async Task Release(string group, string key)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE lockid = ? AND keyid = ?";
+        var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE groupname = ? AND keyid = ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = lockId},
-                new() {Value = keyId}
+                new() {Value = group},
+                new() {Value = key}
             }
         };
         await command.ExecuteNonQueryAsync();

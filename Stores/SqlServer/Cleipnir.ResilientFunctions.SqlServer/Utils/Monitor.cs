@@ -23,7 +23,7 @@ public class Monitor : IMonitor
         {
             var sql = @$"
                 CREATE TABLE {_tablePrefix}Monitor (
-                    [LockId] NVARCHAR(255) PRIMARY KEY NOT NULL,                
+                    [GroupName] NVARCHAR(255) PRIMARY KEY NOT NULL,                
                     [KeyId] NVARCHAR(255) NOT NULL
                 )";
 
@@ -53,23 +53,23 @@ public class Monitor : IMonitor
         }
     }
 
-    public async Task<IMonitor.ILock?> Acquire(string lockId, string keyId)
+    public async Task<IMonitor.ILock?> Acquire(string group, string key)
     {
         try
         {
             await using var conn = await _connFunc();
             var sql = @$"
-                IF (SELECT COUNT(*) FROM {_tablePrefix}Monitor WHERE [LockId] = @LockId AND [KeyId] = @KeyId) = 0
-                    INSERT INTO {_tablePrefix}Monitor ([LockId], [KeyId])
-                    VALUES (@LockId, @KeyId);";
+                IF (SELECT COUNT(*) FROM {_tablePrefix}Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId) = 0
+                    INSERT INTO {_tablePrefix}Monitor ([GroupName], [KeyId])
+                    VALUES (@GroupName, @KeyId);";
             await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@LockId", lockId);
-            command.Parameters.AddWithValue("@KeyId", keyId);
+            command.Parameters.AddWithValue("@GroupName", group);
+            command.Parameters.AddWithValue("@KeyId", key);
 
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 0
                 ? null
-                : new Lock(this, lockId, keyId);
+                : new Lock(this, group, key);
         }
         catch (SqlException sqlException)
         {
@@ -80,29 +80,29 @@ public class Monitor : IMonitor
         }
     }
 
-    public async Task Release(string lockId, string keyId)
+    public async Task Release(string group, string key)
     {
         await using var conn = await _connFunc();
-        var sql = $"DELETE FROM {_tablePrefix}Monitor WHERE [LockId] = @LockId AND [KeyId] = @KeyId";
+        var sql = $"DELETE FROM {_tablePrefix}Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId";
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@LockId", lockId);
-        command.Parameters.AddWithValue("@KeyId", keyId);
+        command.Parameters.AddWithValue("@GroupName", group);
+        command.Parameters.AddWithValue("@KeyId", key);
         await command.ExecuteNonQueryAsync();
     }
 
     private class Lock : IMonitor.ILock
     {
         private readonly IMonitor _monitor;
-        private readonly string _lockId;
-        private readonly string _keyId;
+        private readonly string _group;
+        private readonly string _key;
 
-        public Lock(IMonitor monitor, string lockId, string keyId)
+        public Lock(IMonitor monitor, string group, string key)
         {
             _monitor = monitor;
-            _lockId = lockId;
-            _keyId = keyId;
+            _group = group;
+            _key = key;
         }
 
-        public async ValueTask DisposeAsync() => await _monitor.Release(_lockId, _keyId);
+        public async ValueTask DisposeAsync() => await _monitor.Release(_group, _key);
     }
 }

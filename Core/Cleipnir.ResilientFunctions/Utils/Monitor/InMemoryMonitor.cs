@@ -18,24 +18,24 @@ public class InMemoryMonitor : IMonitor
         }
     }
 
-    public Task<IMonitor.ILock?> Acquire(string lockId, string keyId)
+    public Task<IMonitor.ILock?> Acquire(string group, string key)
     {
         lock (_sync)
         {
-            if (_locks.ContainsKey(lockId) && _locks[lockId] != keyId) 
+            if (_locks.ContainsKey(group) && _locks[group] != key) 
                 return default(IMonitor.ILock).ToTask(); //lock is taken by someone else
             
-            _locks[lockId] = keyId;
-            return new Lock(this, lockId, keyId).CastTo<IMonitor.ILock?>().ToTask();
+            _locks[group] = key;
+            return new Lock(this, group, key).CastTo<IMonitor.ILock?>().ToTask();
         }
     }
     
-    public Task Release(string lockId, string keyId)
+    public Task Release(string group, string key)
     {
         lock (_sync)
         {
-            if (_locks.ContainsKey(lockId) && _locks[lockId] == keyId)
-                _locks.Remove(lockId);
+            if (_locks.ContainsKey(group) && _locks[group] == key)
+                _locks.Remove(group);
 
             return Task.CompletedTask;
         }
