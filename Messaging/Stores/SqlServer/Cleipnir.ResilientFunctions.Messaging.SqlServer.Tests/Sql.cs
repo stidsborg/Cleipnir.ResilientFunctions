@@ -1,7 +1,7 @@
-﻿using System.Data.SqlClient;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Messaging.Tests.Utils;
+using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.Messaging.SqlServer.Tests
 {
