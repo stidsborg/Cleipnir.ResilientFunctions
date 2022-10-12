@@ -18,4 +18,6 @@ public class EventSourceInstanceWriter
 
     public Task Append(IEnumerable<EventAndIdempotencyKey> events, bool awakeIfSuspended)
         => _writer.Append(_functionInstanceId, events, awakeIfSuspended);
+
+    public Task Truncate() => _writer.Truncate(_functionInstanceId);
 }

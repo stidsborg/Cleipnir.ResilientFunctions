@@ -69,4 +69,7 @@ public class EventSourceWriter
                 throwOnUnexpectedFunctionState: false
             );
     }
+
+    public Task Truncate(FunctionInstanceId functionInstanceId) 
+        => _eventStore.Truncate(new FunctionId(_functionTypeId, functionInstanceId));
 }
