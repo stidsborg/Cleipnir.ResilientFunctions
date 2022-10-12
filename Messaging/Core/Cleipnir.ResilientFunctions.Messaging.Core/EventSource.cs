@@ -130,7 +130,6 @@ public class EventSource : IDisposable
     }
 
     public Task Sync() => DeliverOutstandingEvents();
-    public Task Truncate() => _eventStore.Truncate(_functionId);
     public void Dispose() => _disposed = true;
 }
 
