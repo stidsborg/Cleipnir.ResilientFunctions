@@ -28,26 +28,6 @@ public class DefaultSerializer : ISerializer
         return (TScrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
     }
 
-    public string SerializeScrapbooks(IEnumerable<OwnedScrapbook> scrapbooks)
-    {
-        var stringBuilder = new StringBuilder("{");
-        foreach (var (owner, scrapbook, type) in scrapbooks)
-            stringBuilder.Append($@"""{owner}"": {{ ""Type"": ""{ type }"", ""Json"": { JsonSerializer.Serialize(scrapbook) } }},");
-
-        stringBuilder.Length--; //remove last comma - only needed between blocks of json
-        stringBuilder.Append('}');
-        return stringBuilder.ToString();
-    }
-    public Dictionary<string, RScrapbook> DeserializeScrapbooks(string json)
-    {
-        var toReturn = new Dictionary<string, RScrapbook>();
-        var dict = JsonSerializer.Deserialize<Dictionary<string, TypeAndJsonElement>>(json)!;
-        foreach (var (owner, (type, jsonElement)) in dict)
-            toReturn[owner] = (RScrapbook)jsonElement.Deserialize(Type.GetType(type, throwOnError: true)!)!;
-
-        return toReturn;
-    }
-
     public string SerializeError(RError error) => JsonSerializer.Serialize(error);
     public RError DeserializeError(string json) => JsonSerializer.Deserialize<RError>(json)!;
     

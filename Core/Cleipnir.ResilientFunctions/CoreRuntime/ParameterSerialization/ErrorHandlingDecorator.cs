@@ -61,32 +61,6 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public string SerializeScrapbooks(IEnumerable<OwnedScrapbook> scrapbooks)
-        => _inner.SerializeScrapbooks(scrapbooks);
-
-    public Dictionary<string, RScrapbook> DeserializeScrapbooks(string json)
-    {
-        try
-        {
-            return _inner.DeserializeScrapbooks(json)
-                   ?? throw new DeserializationException(
-                       $"Scrapbooks was deserialized to null from json: '{MinifyJson(json)}", 
-                       new NullReferenceException()
-                   );
-        }
-        catch (DeserializationException)
-        {
-            throw;
-        }
-        catch (Exception e)
-        {
-            throw new DeserializationException(
-                $"Unable to deserialize scrapbook with from data: '{MinifyJson(json)}'", 
-                e
-            );
-        }
-    }
-
     public string SerializeError(RError error) => _inner.SerializeError(error);
     public RError DeserializeError(string json) => _inner.DeserializeError(json);
 

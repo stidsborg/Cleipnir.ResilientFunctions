@@ -72,11 +72,6 @@ public class RFuncWithScrapbookRegistrationTests
         public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
             => Default.DeserializeScrapbook<TScrapbook>(json, type);
 
-        public string SerializeScrapbooks(IEnumerable<OwnedScrapbook> scrapbooks)
-            => Default.SerializeScrapbooks(scrapbooks);
-        public Dictionary<string, RScrapbook> DeserializeScrapbooks(string json)
-            => Default.DeserializeScrapbooks(json);
-
         public string SerializeError(RError error) => Default.SerializeError(error);
         public RError DeserializeError(string json) => Default.DeserializeError(json);
 
