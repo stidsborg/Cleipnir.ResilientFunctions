@@ -28,6 +28,15 @@ public class Arbitrator : IArbitrator
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DropUnderlyingTable()
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}arbitrator";
+        await using var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+    
     public Task<bool> Propose(string group, string key, string value)
         => InnerPropose(group, key, value);
     

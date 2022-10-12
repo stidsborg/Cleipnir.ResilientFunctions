@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
@@ -14,14 +13,11 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly string _tablePrefix;
 
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
-        : this(CreateConnection(connectionString), tablePrefix) {}
-    
-    public SqlServerFunctionStore(Func<Task<SqlConnection>> connFunc, string tablePrefix = "")
     {
-        _connFunc = connFunc;
+        _connFunc = CreateConnection(connectionString);
         _tablePrefix = tablePrefix;
     }
-
+    
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
     {
         return async () =>

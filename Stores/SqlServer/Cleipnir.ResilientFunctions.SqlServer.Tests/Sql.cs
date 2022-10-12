@@ -13,21 +13,13 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
     [TestClass]
     public static class Sql
     {
-        public static Func<Task<SqlConnection>> ConnFunc { get; }
-        private static string ConnectionString { get; }
+        public static string ConnectionString { get; }
 
         static Sql()
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.SqlServer.Tests.ConnectionString")
                 ?? "Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;";
-
-            ConnFunc = async () =>
-            {
-                var conn = new SqlConnection(ConnectionString);
-                await conn.OpenAsync();
-                return conn;
-            };
         }
         
         [AssemblyInitialize]
@@ -43,7 +35,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 
         public static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new SqlServerFunctionStore(ConnFunc, $"{testClass}_{testMethod}");
+            var store = new SqlServerFunctionStore(ConnectionString, $"{testClass}_{testMethod}");
             await store.Initialize();
             return store;
         }

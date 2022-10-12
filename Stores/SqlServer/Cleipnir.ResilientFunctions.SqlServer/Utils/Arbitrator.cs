@@ -7,18 +7,19 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Utils;
 
 public class Arbitrator : IArbitrator
 {
-    private readonly Func<Task<SqlConnection>> _connFunc;
+    private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Arbitrator(Func<Task<SqlConnection>> connFunc, string tablePrefix = "")
+    public Arbitrator(string connectionString, string tablePrefix = "")
     {
-        _connFunc = connFunc;
+        _connectionString = connectionString;
         _tablePrefix = tablePrefix;
     }
 
     public async Task Initialize()
     {
-        await using var conn = await _connFunc();
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
         try
         {
             var cmd = @$"            
@@ -41,7 +42,8 @@ public class Arbitrator : IArbitrator
     
     public async Task DropUnderlyingTable()
     {
-        await using var conn = await _connFunc();
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
         try
         {
             var sql = $"DROP TABLE {_tablePrefix}Arbitrator";
@@ -65,7 +67,8 @@ public class Arbitrator : IArbitrator
     {
         try
         {
-            await using var conn = await _connFunc();
+            await using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
             var sql = $"INSERT INTO {_tablePrefix}Arbitrator ([GroupName], [KeyId], [Value]) VALUES (@GroupName, @KeyId, @Value)";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@GroupName", group);
@@ -80,7 +83,8 @@ public class Arbitrator : IArbitrator
             if (e.Number != SqlError.UNIQUENESS_VIOLATION)
                 throw;
 
-            await using var conn = await _connFunc();
+            var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
             {
                 var sql = $"SELECT Value FROM {_tablePrefix}Arbitrator WHERE [GroupName]=@GroupName AND [KeyId]=@KeyId";
                 await using var command = new SqlCommand(sql, conn);
@@ -109,7 +113,8 @@ public class Arbitrator : IArbitrator
 
     private async Task InnerDelete(string group, string key)
     {
-        await using var conn = await _connFunc();
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
         {
             var sql = $"DELETE FROM {_tablePrefix}Arbitrator WHERE [GroupName]=@GroupName AND [KeyId]=@KeyId";
             await using var command = new SqlCommand(sql, conn);

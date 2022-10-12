@@ -47,14 +47,15 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new Monitor(Sql.ConnFunc, tablePrefix: memberName);
+        var monitor = new Monitor(Sql.ConnectionString, tablePrefix: memberName);
         await monitor.Initialize();
         return monitor;
     }
 
     protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
     {
-        await using var conn = await Sql.ConnFunc();
+        var conn = new NpgsqlConnection(Sql.ConnectionString);
+        await conn.OpenAsync();
         var sql = $"SELECT COUNT(*) FROM {memberName}Monitor";
         await using var command = new NpgsqlCommand(sql, conn);
         var count = (int) (long) (await command.ExecuteScalarAsync() ?? 0);

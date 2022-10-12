@@ -7,18 +7,19 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Utils;
 
 public class Monitor : IMonitor
 {
-    private readonly Func<Task<SqlConnection>> _connFunc;
+    private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Monitor(Func<Task<SqlConnection>> connFunc, string tablePrefix = "")
+    public Monitor(string connectionString, string tablePrefix = "")
     {
-        _connFunc = connFunc;
+        _connectionString = connectionString;
         _tablePrefix = tablePrefix;
     }
 
     public async Task Initialize()
     {
-        await using var conn = await _connFunc();
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
         try
         {
             var sql = @$"
@@ -39,7 +40,8 @@ public class Monitor : IMonitor
 
     public async Task DropUnderlyingTable()
     {
-        await using var conn = await _connFunc();
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
         try
         {
             var sql = $"DROP TABLE {_tablePrefix}Monitor";
@@ -57,7 +59,8 @@ public class Monitor : IMonitor
     {
         try
         {
-            await using var conn = await _connFunc();
+            await using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
             var sql = @$"
                 IF (SELECT COUNT(*) FROM {_tablePrefix}Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId) = 0
                     INSERT INTO {_tablePrefix}Monitor ([GroupName], [KeyId])
@@ -82,7 +85,8 @@ public class Monitor : IMonitor
 
     public async Task Release(string group, string key)
     {
-        await using var conn = await _connFunc();
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
         var sql = $"DELETE FROM {_tablePrefix}Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId";
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@GroupName", group);

@@ -46,7 +46,7 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
     
     private async Task<IArbitrator> CreateArbitrator([CallerMemberName] string memberName = "")
     {
-        var arbitrator = new Arbitrator(Sql.ConnFunc, tablePrefix: memberName);
+        var arbitrator = new Arbitrator(Sql.ConnectionString, tablePrefix: memberName);
         await arbitrator.Initialize();
         return arbitrator;
     }

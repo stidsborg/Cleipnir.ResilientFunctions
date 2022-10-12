@@ -2,6 +2,8 @@
 using System.Reflection;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Utils.Arbitrator;
+using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,8 +16,7 @@ public static class RFunctionsModule
         this IServiceCollection services,
         Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
-        Assembly? rootAssembly = null,
-        bool initializeStores = true
+        Assembly? rootAssembly = null
     ) => UseResilientFunctions(
             services,
             new InMemoryFunctionStore(),
@@ -23,7 +24,9 @@ public static class RFunctionsModule
             options,
             gracefulShutdown,
             rootAssembly,
-            initializeStores
+            initializeDatabase: false,
+            arbitrator: new InMemoryArbitrator(),
+            monitor: new InMemoryMonitor()
         );
 
     public static IServiceCollection UseResilientFunctions(
@@ -33,10 +36,12 @@ public static class RFunctionsModule
         Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null,
-        bool initializeStores = true
+        bool initializeDatabase = true,
+        IArbitrator? arbitrator = null,
+        IMonitor? monitor = null
     )
     {
-        if (initializeStores)
+        if (initializeDatabase)
         {
             functionStore.Initialize().Wait();
             eventStore.Initialize().Wait();
@@ -44,6 +49,10 @@ public static class RFunctionsModule
 
         if (options != null)
             services.AddSingleton(options);
+        if (arbitrator != null)
+            services.AddSingleton(arbitrator);
+        if (monitor != null)
+            services.AddSingleton(monitor);
         services.AddSingleton<ServiceProviderDependencyResolver>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton(functionStore);

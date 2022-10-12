@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Npgsql;
 
@@ -7,18 +6,19 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Utils;
 
 public class Arbitrator : IArbitrator
 {
-    private readonly Func<Task<NpgsqlConnection>> _connFunc;
+    private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Arbitrator(Func<Task<NpgsqlConnection>> connFunc, string tablePrefix = "")
+    public Arbitrator(string connectionString, string tablePrefix = "")
     {
-        _connFunc = connFunc;
+        _connectionString = connectionString;
         _tablePrefix = tablePrefix;
     }
 
     public async Task Initialize()
     {
-        await using var conn = await _connFunc();
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
         var sql = @$"            
                 CREATE TABLE IF NOT EXISTS {_tablePrefix}arbitrator (
                     groupName VARCHAR(255) NOT NULL,
@@ -26,6 +26,16 @@ public class Arbitrator : IArbitrator
                     value VARCHAR(255) NOT NULL,
                     PRIMARY KEY (groupName, keyId)
                 );";
+        await using var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task DropUnderlyingTable()
+    {
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}arbitrator";
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -38,7 +48,8 @@ public class Arbitrator : IArbitrator
     
     private async Task<bool> InnerPropose(string group, string key, string value)
     {
-        await using var conn = await _connFunc();
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
 
         var sql = $@"
             INSERT INTO {_tablePrefix}arbitrator
@@ -82,7 +93,8 @@ public class Arbitrator : IArbitrator
 
     private async Task InnerDelete(string group, string key)
     {
-        await using var conn = await _connFunc();
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
 
         var sql = $@"DELETE FROM {_tablePrefix}arbitrator WHERE groupName=$1 AND keyId=$2";
         await using var command = new NpgsqlCommand(sql, conn)

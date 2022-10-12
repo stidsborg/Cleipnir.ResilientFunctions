@@ -12,20 +12,13 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
     [TestClass]
     public static class Sql
     {
-        private static string ConnectionString { get; }
-        public static Func<Task<NpgsqlConnection>> ConnFunc { get; set; }
-        
+        public static string ConnectionString { get; }
+
         static Sql()
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.PostgreSQL.Tests.ConnectionString")
                 ?? "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!; Include Error Detail=true;";
-            ConnFunc = async () =>
-            {
-                var conn = new NpgsqlConnection(ConnectionString);
-                await conn.OpenAsync();
-                return conn;
-            };
         }
 
         [AssemblyInitialize]

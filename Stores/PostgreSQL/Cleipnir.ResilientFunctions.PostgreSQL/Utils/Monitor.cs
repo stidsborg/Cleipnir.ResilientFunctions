@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Npgsql;
 
@@ -7,18 +6,19 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Utils;
 
 public class Monitor : IMonitor
 {
-    private readonly Func<Task<NpgsqlConnection>> _connFunc;
+    private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Monitor(Func<Task<NpgsqlConnection>> connFunc, string tablePrefix = "")
+    public Monitor(string connectionString, string tablePrefix = "")
     {
-        _connFunc = connFunc;
+        _connectionString = connectionString;
         _tablePrefix = tablePrefix;
     }
 
     public async Task Initialize()
     {
-        await using var conn = await _connFunc();
+        var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}monitor (
                 groupname VARCHAR(255) PRIMARY KEY NOT NULL,                
@@ -31,7 +31,8 @@ public class Monitor : IMonitor
 
     public async Task DropUnderlyingTable()
     {
-        await using var conn = await _connFunc();
+        var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
         var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}monitor";
         
         await using var command = new NpgsqlCommand(sql, conn);
@@ -40,7 +41,8 @@ public class Monitor : IMonitor
 
     public async Task<IMonitor.ILock?> Acquire(string group, string key)
     {
-        await using var conn = await _connFunc();
+        var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
         {
             var sql = @$"           
             INSERT INTO {_tablePrefix}monitor (groupname, keyid)
@@ -80,7 +82,8 @@ public class Monitor : IMonitor
 
     public async Task Release(string group, string key)
     {
-        await using var conn = await _connFunc();
+        var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
         var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE groupname = $1 AND keyid = $2";
         await using var command = new NpgsqlCommand(sql, conn)
         {
