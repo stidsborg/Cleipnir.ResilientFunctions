@@ -20,7 +20,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     private readonly IDependencyResolver? _dependencyResolver;
     private readonly MiddlewarePipeline _middlewarePipeline;
     
-    private readonly InvocationHelper _invocationHelper;
+    private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Type? _concreteScrapbookType;
 
@@ -31,7 +31,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         IDependencyResolver? dependencyResolver,
         MiddlewarePipeline middlewarePipeline,
         Type? concreteScrapbookType,
-        InvocationHelper invocationHelper,
+        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionTypeId = functionTypeId;
@@ -139,7 +139,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     }
     
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
-        => await _invocationHelper.WaitForFunctionResult<TReturn>(functionId);
+        => await _invocationHelper.WaitForFunctionResult(functionId);
 
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook)
     {
@@ -162,7 +162,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             if (scrapbook != null)
                 _invocationHelper.InitializeScrapbook(functionId, scrapbook, epoch: 0);
             else
-                scrapbook = _invocationHelper.CreateScrapbook<TScrapbook>(functionId, expectedEpoch: 0, _concreteScrapbookType);
+                scrapbook = _invocationHelper.CreateScrapbook(functionId, expectedEpoch: 0, _concreteScrapbookType);
             
             var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(
                 inner,
@@ -216,7 +216,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             );
 
             var (param, epoch, scrapbook, runningFunction) = await 
-                _invocationHelper.PrepareForReInvocation<TParam, TScrapbook>(
+                _invocationHelper.PrepareForReInvocation(
                     functionId, 
                     expectedStatuses, expectedEpoch ?? 0,
                     scrapbookUpdater
@@ -249,7 +249,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         await _invocationHelper.PersistResult(functionId, result, scrapbook, expectedEpoch);
         if (result.Outcome == Outcome.Postpone)
             _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
-        InvocationHelper.EnsureSuccess(functionId, result, allowPostponed);
+        InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponed);
     }
     
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)

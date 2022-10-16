@@ -10,7 +10,8 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-internal class InvocationHelper
+internal class InvocationHelper<TParam, TScrapbook, TReturn> 
+    where TParam : notnull where TScrapbook : RScrapbook, new() 
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
@@ -33,8 +34,7 @@ internal class InvocationHelper
         _functionStore = functionStore;
     }
 
-    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore<TParam, TScrapbook>(FunctionId functionId, TParam param, TScrapbook scrapbook)
-        where TParam : notnull where TScrapbook : RScrapbook
+    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(FunctionId functionId, TParam param, TScrapbook scrapbook)
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -62,7 +62,7 @@ internal class InvocationHelper
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult<TReturn>(FunctionId functionId) 
+    public async Task<TReturn> WaitForFunctionResult(FunctionId functionId) 
     {
         while (true)
         {
@@ -94,7 +94,7 @@ internal class InvocationHelper
         }
     }
     
-    public TScrapbook CreateScrapbook<TScrapbook>(FunctionId functionId, int expectedEpoch, Type? concreteScrapbookType) where TScrapbook : RScrapbook, new()
+    public TScrapbook CreateScrapbook(FunctionId functionId, int expectedEpoch, Type? concreteScrapbookType)
     {
         var scrapbook = (TScrapbook) (
             concreteScrapbookType == null 
@@ -123,7 +123,7 @@ internal class InvocationHelper
             throw new ConcurrentModificationException(functionId);
     }
 
-    public async Task PersistResult<TReturn>(
+    public async Task PersistResult(
         FunctionId functionId, 
         Result<TReturn> result, 
         RScrapbook scrapbook,
@@ -177,7 +177,7 @@ internal class InvocationHelper
         }
     }
 
-    public static void EnsureSuccess<TReturn>(FunctionId functionId, Result<TReturn> result, bool allowPostponed)
+    public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponed)
     {
         switch (result.Outcome)
         {
@@ -195,21 +195,21 @@ internal class InvocationHelper
         }
     }
 
-    public async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
+    public async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId, 
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch,
         Action<TScrapbook>? scrapbookUpdater
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    )
     {
-        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation<TParam, TScrapbook>(
+        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(
             functionId,
             expectedStatuses,
             expectedEpoch,
             hasScrapbook: true,
             scrapbookUpdater
         );
-        return new PreparedReInvocation<TParam, TScrapbook>(
+        return new PreparedReInvocation(
             param,
             epoch, 
             scrapbook!,
@@ -217,10 +217,10 @@ internal class InvocationHelper
         );
     }
 
-    private async Task<PreparedReInvocation<TParam, TScrapbook>> PrepareForReInvocation<TParam, TScrapbook>(
+    private async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, 
         bool hasScrapbook, Action<TScrapbook>? scrapbookUpdater
-    ) where TParam : notnull where TScrapbook : RScrapbook 
+    ) 
     {
         expectedStatuses = expectedStatuses.ToList();
         var sf = await _functionStore.GetFunction(functionId);
@@ -269,7 +269,7 @@ internal class InvocationHelper
                 : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook!.ScrapbookJson, sf.Scrapbook.ScrapbookType);
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
             
-            return new PreparedReInvocation<TParam, TScrapbook>(param, epoch, scrapbook, runningFunction);
+            return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -291,9 +291,8 @@ internal class InvocationHelper
             throw;
         }
     }
-    
-    internal record PreparedReInvocation<TParam, TScrapbook>(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction)
-        where TScrapbook : RScrapbook;
+
+    internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction);
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
