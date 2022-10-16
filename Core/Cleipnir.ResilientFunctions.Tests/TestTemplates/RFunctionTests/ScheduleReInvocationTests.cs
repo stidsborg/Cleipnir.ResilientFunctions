@@ -48,7 +48,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvocation(
+        await rFunc.ScheduleReInvoke(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Failed},
             expectedEpoch: null
@@ -103,7 +103,7 @@ public abstract class ScheduleReInvocationTests
 
         var syncedListFromScrapbook = new Synced<List<string>>();
 
-        await rAction.ScheduleReInvocation(
+        await rAction.ScheduleReInvoke(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Failed},
             expectedEpoch: null,
@@ -160,7 +160,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvocation(
+        await rFunc.ScheduleReInvoke(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Failed},
             expectedEpoch: null
@@ -215,7 +215,7 @@ public abstract class ScheduleReInvocationTests
 
         var scrapbookList = new Synced<List<string>>();
 
-        await rFunc.ScheduleReInvocation(
+        await rFunc.ScheduleReInvoke(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Failed},
             expectedEpoch: null,
@@ -264,7 +264,7 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
         await Should.ThrowAsync<UnexpectedFunctionState>(() =>
-            rFunc.ScheduleReInvocation(
+            rFunc.ScheduleReInvoke(
                 functionInstanceId: "something", 
                 expectedStatuses: new[] {Status.Executing},
                 expectedEpoch: null
@@ -297,7 +297,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvocation(
+        await rFunc.ScheduleReInvoke(
             functionInstanceId: "something",
             expectedStatuses: new[] {Status.Executing},
             expectedEpoch: null,
@@ -329,7 +329,7 @@ public abstract class ScheduleReInvocationTests
             );
 
         await Should.ThrowAsync<UnexpectedFunctionState>(() =>
-            rFunc.ScheduleReInvocation(
+            rFunc.ScheduleReInvoke(
                 functionInstanceId: "something", 
                 expectedStatuses: new[] {Status.Executing},
                 expectedEpoch: null

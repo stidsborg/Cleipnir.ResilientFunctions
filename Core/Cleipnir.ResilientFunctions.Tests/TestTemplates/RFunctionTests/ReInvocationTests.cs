@@ -419,7 +419,7 @@ public abstract class ReInvocationTests
                 () => registration.ReInvoke("instance", new[] {Status.Executing})
             );
             await Should.ThrowAsync<UnexpectedFunctionState>(
-                () => registration.ScheduleReInvocation("instance", new[] {Status.Executing})
+                () => registration.ScheduleReInvoke("instance", new[] {Status.Executing})
             );
         }
     }

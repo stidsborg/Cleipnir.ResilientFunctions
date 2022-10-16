@@ -444,7 +444,7 @@ public abstract class PostponedTests
                 version: 0
             ).ShouldBeTrueAsync();
 
-            await rAction.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+            await rAction.ScheduleReInvoke(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -529,7 +529,7 @@ public abstract class PostponedTests
                 version: 0
             ).ShouldBeTrueAsync();
 
-            await rAction.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+            await rAction.ScheduleReInvoke(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -618,7 +618,7 @@ public abstract class PostponedTests
                 version: 0
             ).ShouldBeTrueAsync();
 
-            await rFunc.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+            await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
@@ -705,7 +705,7 @@ public abstract class PostponedTests
                 version: 0
             ).ShouldBeTrueAsync();
 
-            await rFunc.ScheduleReInvocation(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
+            await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedStatuses: new[] { Status.Executing });
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             

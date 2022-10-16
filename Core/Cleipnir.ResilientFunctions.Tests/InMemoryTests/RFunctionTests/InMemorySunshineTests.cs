@@ -146,7 +146,7 @@ public class InMemorySunshineTests
         returned.ShouldBe(toReturn);
         
         syncedParam = new Synced<string>();
-        await registration.ScheduleReInvocation("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         returned = await registration.Invoke("id2", "hello universe");
@@ -299,7 +299,7 @@ public class InMemorySunshineTests
         
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ScheduleReInvocation("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         syncedScrapbook.Value.ShouldNotBeNull();
@@ -439,7 +439,7 @@ public class InMemorySunshineTests
         await registration.Invoke("id2", "hello universe");
         
         syncedParam = new Synced<string>();
-        await registration.ScheduleReInvocation("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
     }
@@ -599,7 +599,7 @@ public class InMemorySunshineTests
         
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ScheduleReInvocation("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         syncedScrapbook.Value.ShouldNotBeNull();
