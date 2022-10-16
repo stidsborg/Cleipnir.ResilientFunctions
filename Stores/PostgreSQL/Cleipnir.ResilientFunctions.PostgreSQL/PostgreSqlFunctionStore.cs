@@ -402,7 +402,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 version,
                 epoch, 
-                sign_of_life
+                sign_of_life,
+                crashed_check_frequency
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -430,7 +431,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Version: reader.GetInt32(9),
                 Epoch: reader.GetInt32(10),
-                SignOfLife: reader.GetInt32(11)
+                SignOfLife: reader.GetInt32(11),
+                CrashedCheckFrequency: reader.GetInt64(12)
             );
         }
 

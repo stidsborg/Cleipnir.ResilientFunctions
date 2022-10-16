@@ -317,7 +317,8 @@ public class MongoDbFunctionStore : IFunctionStore
             document.PostponedUntil,
             document.Version,
             document.Epoch,
-            document.SignOfLife
+            document.SignOfLife,
+            document.CrashedCheckFrequency
         );
     }
 

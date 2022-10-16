@@ -1,5 +1,4 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using MySql.Data.MySqlClient;
 using static Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
@@ -382,7 +381,8 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 version,
                 epoch, 
-                sign_of_life
+                sign_of_life,
+                crashed_check_frequency
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(sql, conn)
@@ -410,7 +410,8 @@ public class MySqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Version: reader.GetInt32(9),
                 Epoch: reader.GetInt32(10),
-                SignOfLife: reader.GetInt32(11)
+                SignOfLife: reader.GetInt32(11),
+                CrashedCheckFrequency: reader.GetInt64(12)
             );
         }
 

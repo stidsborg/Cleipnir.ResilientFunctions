@@ -393,7 +393,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     ErrorJson,
                     PostponedUntil,
                     Version,
-                    Epoch, SignOfLife
+                    Epoch, SignOfLife, 
+                    CrashedCheckFrequency
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
@@ -419,6 +420,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var version = reader.GetInt32(9);
                 var epoch = reader.GetInt32(10);
                 var signOfLife = reader.GetInt32(11);
+                var crashedCheckFrequency = reader.GetInt64(12);
 
                 return new StoredFunction(
                     functionId,
@@ -430,7 +432,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     postponedUntil,
                     version,
                     epoch,
-                    signOfLife
+                    signOfLife,
+                    crashedCheckFrequency
                 );
             }
         }

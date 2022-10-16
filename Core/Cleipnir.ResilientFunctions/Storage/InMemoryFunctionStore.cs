@@ -216,7 +216,8 @@ public class InMemoryFunctionStore : IFunctionStore
                     state.PostponeUntil,
                     state.Version,
                     state.Epoch,
-                    state.SignOfLife
+                    state.SignOfLife,
+                    state.CrashedCheckFrequency
                 )
                 .ToNullable()
                 .ToTask();

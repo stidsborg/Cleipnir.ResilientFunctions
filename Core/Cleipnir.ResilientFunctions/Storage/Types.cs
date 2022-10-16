@@ -13,7 +13,8 @@ public record StoredFunction(
     long? PostponedUntil,
     int Version,
     int Epoch,
-    int SignOfLife
+    int SignOfLife,
+    long CrashedCheckFrequency
 );
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, int SignOfLife, long CrashedCheckFrequency);
