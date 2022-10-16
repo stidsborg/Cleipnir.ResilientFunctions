@@ -212,7 +212,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         return new PreparedReInvocation(
             param,
             epoch, 
-            scrapbook!,
+            scrapbook,
             runningFunction
         );
     }
@@ -239,7 +239,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         if (scrapbookUpdater != null)
         {
             var scrapbook = _settings.Serializer.DeserializeScrapbook<TScrapbook>(
-                sf.Scrapbook!.ScrapbookJson,
+                sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
             scrapbookUpdater(scrapbook);
@@ -266,7 +266,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             
             var scrapbook = updatedScrapbookJson != null
                 ? Serializer.DeserializeScrapbook<TScrapbook>(updatedScrapbookJson, sf.Scrapbook.ScrapbookType)
-                : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook!.ScrapbookJson, sf.Scrapbook.ScrapbookType);
+                : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
