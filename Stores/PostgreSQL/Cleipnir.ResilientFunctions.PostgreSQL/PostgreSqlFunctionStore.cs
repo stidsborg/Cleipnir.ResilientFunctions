@@ -311,6 +311,81 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    {
+        if (storedParameter == null && storedScrapbook == null) return true;
+        
+        await using var conn = await CreateConnection();
+        NpgsqlCommand command = new NpgsqlCommand();
+        if (storedParameter != null && storedScrapbook != null)
+        {
+            var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4
+            WHERE 
+                function_type_id = $5 AND 
+                function_instance_id = $6 AND 
+                epoch = $7";
+            command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = storedParameter.ParamJson},
+                    new() {Value = storedParameter.ParamType},
+                    new() {Value = storedScrapbook.ScrapbookJson},
+                    new() {Value = storedScrapbook.ScrapbookType},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        } else if (storedParameter == null && storedScrapbook != null)
+        {
+            var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET scrapbook_json = $1, scrapbook_type = $2
+            WHERE 
+                function_type_id = $3 AND 
+                function_instance_id = $4 AND 
+                epoch = $5";
+            command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = storedScrapbook.ScrapbookJson},
+                    new() {Value = storedScrapbook.ScrapbookType},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        } else if (storedParameter != null && storedScrapbook == null)
+        {
+            var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET param_json = $1, param_type = $2
+            WHERE 
+                function_type_id = $3 AND 
+                function_instance_id = $4 AND 
+                epoch = $5";
+            command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = storedParameter.ParamJson},
+                    new() {Value = storedParameter.ParamType},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        }
+        await using var _ = command;
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        
+        return affectedRows == 1;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();

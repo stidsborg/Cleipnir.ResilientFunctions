@@ -179,6 +179,24 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+
+            if (storedParameter != null)
+                state.Param = storedParameter;
+
+            if (storedScrapbook != null)
+                state.Scrapbook = storedScrapbook;
+
+            return true.ToTask();
+        }
+    }
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)
@@ -243,8 +261,8 @@ public class InMemoryFunctionStore : IFunctionStore
 
     private class State
     {
-        public FunctionId FunctionId { get; init; } = new FunctionId("", "");
-        public StoredParameter Param { get; init; } = new StoredParameter("", "");
+        public FunctionId FunctionId { get; init; } = null!;
+        public StoredParameter Param { get; set; } = null!;
         public StoredScrapbook Scrapbook { get; set; } = null!;
         public Status Status { get; set; }
         public StoredResult? Result { get; set; }

@@ -313,6 +313,75 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
+    public async Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    {
+        await using var conn = await _connFunc();
+
+        if (storedParameter != null && storedScrapbook != null)
+        {
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET ParamJson = @ParamJson, ParamType = @ParamType, ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
+            command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
+            command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
+            command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows > 0;
+        }
+
+        if (storedParameter == null && storedScrapbook != null)
+        {
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions           
+            SET ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
+            command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows > 0;
+        }
+
+        if (storedParameter != null && storedScrapbook == null)
+        {
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET ParamJson = @ParamJson, ParamType = @ParamType           
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
+            command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows > 0;
+        }
+
+        return true;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await _connFunc();

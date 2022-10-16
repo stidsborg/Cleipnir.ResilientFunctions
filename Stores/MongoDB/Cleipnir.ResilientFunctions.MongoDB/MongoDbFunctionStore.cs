@@ -225,6 +225,75 @@ public class MongoDbFunctionStore : IFunctionStore
         return modified == 1;
     }
 
+    public async Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    {
+        var functionTypeId = functionId.TypeId.Value;
+        var functionInstanceId = functionId.InstanceId.Value;
+
+        var collection = GetCollection();
+
+        if (storedParameter != null && storedScrapbook != null)
+        {
+            var update = Builders<Document>
+                .Update
+                .Set(d => d.ParameterJson, storedParameter.ParamJson)
+                .Set(d => d.ParameterType, storedParameter.ParamType)
+                .Set(d => d.ScrapbookJson, storedScrapbook.ScrapbookJson)
+                .Set(d => d.ScrapbookType, storedScrapbook.ScrapbookType);
+
+            var updateResult = await collection.UpdateOneAsync(
+                d =>
+                    d.Id.FunctionTypeId == functionTypeId &&
+                    d.Id.FunctionInstanceId == functionInstanceId &&
+                    d.Epoch == expectedEpoch,
+                update
+            );
+
+            var modified = updateResult.MatchedCount;
+            return modified == 1;            
+        }
+
+        if (storedParameter == null && storedScrapbook != null)
+        {
+            var update = Builders<Document>
+                .Update
+                .Set(d => d.ScrapbookJson, storedScrapbook.ScrapbookJson)
+                .Set(d => d.ScrapbookType, storedScrapbook.ScrapbookType);            
+
+            var updateResult = await collection.UpdateOneAsync(
+                d =>
+                    d.Id.FunctionTypeId == functionTypeId &&
+                    d.Id.FunctionInstanceId == functionInstanceId &&
+                    d.Epoch == expectedEpoch,
+                update
+            );
+
+            var modified = updateResult.MatchedCount;
+            return modified == 1;
+        }
+        
+        if (storedParameter != null && storedScrapbook == null)
+        {
+            var update = Builders<Document>
+                .Update
+                .Set(d => d.ParameterJson, storedParameter.ParamJson)
+                .Set(d => d.ParameterType, storedParameter.ParamType);
+
+            var updateResult = await collection.UpdateOneAsync(
+                d =>
+                    d.Id.FunctionTypeId == functionTypeId &&
+                    d.Id.FunctionInstanceId == functionInstanceId &&
+                    d.Epoch == expectedEpoch,
+                update
+            );
+
+            var modified = updateResult.MatchedCount;
+            return modified == 1;
+        }
+
+        return true;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         var functionTypeId = functionId.TypeId.Value;

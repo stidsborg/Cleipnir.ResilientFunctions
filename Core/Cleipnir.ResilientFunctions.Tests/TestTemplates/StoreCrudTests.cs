@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Security.Cryptography;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -12,6 +13,7 @@ public abstract class StoreCrudTests
     private FunctionId FunctionId { get; } = new FunctionId("funcType1", "funcInstance1");
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
     private StoredParameter Param => new(TestParam.ToJson(), typeof(TestParameters).SimpleQualifiedName());
+    private StoredScrapbook Scrapbook => new(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName());
     private record TestParameters(string Name, int Age);
 
     private class TestScrapbook : RScrapbook
@@ -299,4 +301,153 @@ public abstract class StoreCrudTests
         await store.DeleteFunction(FunctionId, expectedStatus: Status.Executing, expectedEpoch: 0).ShouldBeFalseAsync();
         await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
     }
+    
+    public abstract Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction();
+    public async Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            Scrapbook,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        var updatedStoredParameter = new StoredParameter(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName()
+        );
+        var updatedStoredScrapbook = new StoredScrapbook(
+            new ScrapbookVersion2 { Name = "Peter" }.ToJson(),
+            typeof(ScrapbookVersion2).SimpleQualifiedName()
+        );
+
+
+        await store.SetParameters(
+            FunctionId,
+            updatedStoredParameter,
+            updatedStoredScrapbook,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+        
+        var sf = await store.GetFunction(FunctionId);
+        sf.ShouldNotBeNull();
+        var param = (string) sf.Parameter.DefaultDeserialize();
+        param.ShouldBe("hello world");
+
+        var scrapbook = (ScrapbookVersion2) sf.Scrapbook.DefaultDeserialize();
+        scrapbook.Name.ShouldBe("Peter");
+    }
+    
+    public abstract Task ParameterCanBeUpdatedOnExistingFunction();
+    public async Task ParameterCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            Scrapbook,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        var updatedStoredParameter = new StoredParameter(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName()
+        );
+
+        await store.SetParameters(
+            FunctionId,
+            updatedStoredParameter,
+            storedScrapbook: null,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+        
+        var sf = await store.GetFunction(FunctionId);
+        sf.ShouldNotBeNull();
+        var param = (string) sf.Parameter.DefaultDeserialize();
+        param.ShouldBe("hello world");
+
+        (sf.Scrapbook.DefaultDeserialize() is TestScrapbook).ShouldBeTrue();
+    }
+    
+    public abstract Task ScrapbookCanBeUpdatedOnExistingFunction();
+    public async Task ScrapbookCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            Scrapbook,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+        
+        var updatedStoredScrapbook = new StoredScrapbook(
+            new ScrapbookVersion2 { Name = "Peter" }.ToJson(),
+            typeof(ScrapbookVersion2).SimpleQualifiedName()
+        );
+        
+        await store.SetParameters(
+            FunctionId,
+            storedParameter: null,
+            updatedStoredScrapbook,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+        
+        var sf = await store.GetFunction(FunctionId);
+        sf.ShouldNotBeNull();
+        (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
+
+        var scrapbook = (ScrapbookVersion2) sf.Scrapbook.DefaultDeserialize();
+        scrapbook.Name.ShouldBe("Peter");
+    }
+    
+    public abstract Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch();
+    public async Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.CreateFunction(
+            FunctionId,
+            Param,
+            Scrapbook,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+        await store.TryToBecomeLeader(
+            FunctionId, 
+            Status.Executing, 
+            expectedEpoch: 0, 
+            newEpoch: 1, 
+            crashedCheckFrequency: 100, 
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        var updatedStoredParameter = new StoredParameter(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName()
+        );
+        var updatedStoredScrapbook = new StoredScrapbook(
+            new ScrapbookVersion2 { Name = "Peter" }.ToJson(),
+            typeof(ScrapbookVersion2).SimpleQualifiedName()
+        );
+
+        await store.SetParameters(
+            FunctionId,
+            updatedStoredParameter,
+            updatedStoredScrapbook,
+            expectedEpoch: 0
+        ).ShouldBeFalseAsync();
+        
+        var sf = await store.GetFunction(FunctionId);
+        sf.ShouldNotBeNull();
+        (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
+        (sf.Scrapbook.DefaultDeserialize() is TestScrapbook).ShouldBeTrue();
+    }
+
+    private class ScrapbookVersion2 : RScrapbook
+    {
+        public string Name { get; set; } = "";
+    } 
 }

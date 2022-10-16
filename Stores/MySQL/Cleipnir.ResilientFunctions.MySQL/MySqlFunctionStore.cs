@@ -291,6 +291,81 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    {
+        if (storedParameter == null && storedScrapbook == null) return true;
+        
+        await using var conn = await CreateOpenConnection(_connectionString);
+        MySqlCommand command = new MySqlCommand();
+        if (storedParameter != null && storedScrapbook != null)
+        {
+            var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?
+            WHERE 
+                function_type_id = ? AND 
+                function_instance_id = ? AND 
+                epoch = ?";
+            command = new MySqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = storedParameter.ParamJson},
+                    new() {Value = storedParameter.ParamType},
+                    new() {Value = storedScrapbook.ScrapbookJson},
+                    new() {Value = storedScrapbook.ScrapbookType},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        } else if (storedParameter == null && storedScrapbook != null)
+        {
+            var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET scrapbook_json = ?, scrapbook_type = ?
+            WHERE 
+                function_type_id = ? AND 
+                function_instance_id = ? AND 
+                epoch = ?";
+            command = new MySqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = storedScrapbook.ScrapbookJson},
+                    new() {Value = storedScrapbook.ScrapbookType},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        } else if (storedParameter != null && storedScrapbook == null)
+        {
+            var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET param_json = ?, param_type = ?
+            WHERE 
+                function_type_id = ? AND 
+                function_instance_id = ? AND 
+                epoch = ?";
+            command = new MySqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = storedParameter.ParamJson},
+                    new() {Value = storedParameter.ParamType},
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = expectedEpoch},
+                }
+            };
+        }
+        await using var _ = command;
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        
+        return affectedRows == 1;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
