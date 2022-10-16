@@ -10,32 +10,37 @@ public static class RAction
     public delegate Task Invoke<in TParam, in TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
         where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task ReInvoke(
-        string functionInstanceId,
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch = null
-    );
-    
     public delegate Task ReInvoke<TScrapbook>(
         string functionInstanceId,
         IEnumerable<Status> expectedStatuses,
         int? expectedEpoch = null,
         Action<TScrapbook>? scrapbookUpdater = null
     );
+    
+    public delegate Task Schedule<in TParam, TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+
+    public delegate Task ScheduleReInvocation<TScrapbook>(
+        string functionInstanceId, 
+        IEnumerable<Status> expectedStatuses, 
+        int? expectedEpoch = null,
+        Action<TScrapbook>? scrapbookUpdater = null,
+        bool throwOnUnexpectedFunctionState = true
+    );
 }
 
 public record RAction<TParam>(
     RAction.Invoke<TParam, RScrapbook> Invoke,
     RAction.ReInvoke<RScrapbook> ReInvoke,
-    Schedule<TParam, RScrapbook> Schedule,
-    ScheduleReInvocation<RScrapbook> ScheduleReInvocation
+    RAction.Schedule<TParam, RScrapbook> Schedule,
+    RAction.ScheduleReInvocation<RScrapbook> ScheduleReInvocation
 ) : RAction<TParam, RScrapbook>(Invoke, ReInvoke, Schedule, ScheduleReInvocation) where TParam : notnull;
 
 public record RAction<TParam, TScrapbook>(
     RAction.Invoke<TParam, TScrapbook> Invoke,
     RAction.ReInvoke<TScrapbook> ReInvoke,
-    Schedule<TParam, TScrapbook> Schedule,
-    ScheduleReInvocation<TScrapbook> ScheduleReInvocation
+    RAction.Schedule<TParam, TScrapbook> Schedule,
+    RAction.ScheduleReInvocation<TScrapbook> ScheduleReInvocation
 ) where TParam : notnull where TScrapbook : RScrapbook, new(); 
 
 public static class RActionExtensions

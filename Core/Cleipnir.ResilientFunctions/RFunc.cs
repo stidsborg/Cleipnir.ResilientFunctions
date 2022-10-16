@@ -16,20 +16,31 @@ public static class RFunc
         int? expectedEpoch = null,
         Action<TScrapbook>? scrapbookUpdater = null
     );
+    
+    public delegate Task Schedule<in TParam, TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
+        where TParam : notnull where TScrapbook : RScrapbook, new();
+
+    public delegate Task ScheduleReInvocation<TScrapbook>(
+        string functionInstanceId, 
+        IEnumerable<Status> expectedStatuses, 
+        int? expectedEpoch = null,
+        Action<TScrapbook>? scrapbookUpdater = null,
+        bool throwOnUnexpectedFunctionState = true
+    );
 }
 
 public record RFunc<TParam, TReturn>(
     RFunc.Invoke<TParam, RScrapbook, TReturn> Invoke,
     RFunc.ReInvoke<RScrapbook, TReturn> ReInvoke,
-    Schedule<TParam, RScrapbook> Schedule,
-    ScheduleReInvocation<RScrapbook> ScheduleReInvocation
+    RFunc.Schedule<TParam, RScrapbook> Schedule,
+    RFunc.ScheduleReInvocation<RScrapbook> ScheduleReInvocation
 ) : RFunc<TParam, RScrapbook, TReturn>(Invoke, ReInvoke, Schedule, ScheduleReInvocation) where TParam : notnull;
 
 public record RFunc<TParam, TScrapbook, TReturn>(
     RFunc.Invoke<TParam, TScrapbook, TReturn> Invoke,
     RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke,
-    Schedule<TParam, TScrapbook> Schedule,
-    ScheduleReInvocation<TScrapbook> ScheduleReInvocation
+    RFunc.Schedule<TParam, TScrapbook> Schedule,
+    RFunc.ScheduleReInvocation<TScrapbook> ScheduleReInvocation
 ) where TParam : notnull where TScrapbook : RScrapbook, new();
 
 public static class RFuncExtensions
