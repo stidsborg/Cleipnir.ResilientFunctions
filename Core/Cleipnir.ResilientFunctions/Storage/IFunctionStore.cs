@@ -8,7 +8,6 @@ public interface IFunctionStore
 {
     public Task Initialize();
     
-    // ** CREATION ** // 
     Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param,
@@ -16,8 +15,7 @@ public interface IFunctionStore
         long crashedCheckFrequency,
         int version
     );
-
-    // ** LEADERSHIP ** //
+    
     Task<bool> TryToBecomeLeader(
         FunctionId functionId, 
         Status newStatus, 
@@ -41,8 +39,7 @@ public interface IFunctionStore
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound);
-
-    // ** CHANGES ** //
+    
     Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
@@ -60,8 +57,7 @@ public interface IFunctionStore
         StoredScrapbook? storedScrapbook,
         int expectedEpoch
     );
-
-    // ** GETTER ** //
+    
     Task<StoredFunction?> GetFunction(FunctionId functionId);
 
     Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null);
