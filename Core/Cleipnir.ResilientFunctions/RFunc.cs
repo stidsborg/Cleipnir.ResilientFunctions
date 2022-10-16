@@ -24,8 +24,7 @@ public static class RFunc
         string functionInstanceId, 
         IEnumerable<Status> expectedStatuses, 
         int? expectedEpoch = null,
-        Action<TScrapbook>? scrapbookUpdater = null,
-        bool throwOnUnexpectedFunctionState = true
+        Action<TScrapbook>? scrapbookUpdater = null
     );
 }
 

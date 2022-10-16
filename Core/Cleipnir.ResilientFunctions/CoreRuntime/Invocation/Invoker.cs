@@ -113,33 +113,29 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         string instanceId, 
         IEnumerable<Status> expectedStatuses, 
         int? expectedEpoch = null, 
-        Action<TScrapbook>? scrapbookUpdater = null,
-        bool throwOnUnexpectedFunctionState = true)
+        Action<TScrapbook>? scrapbookUpdater = null)
     {
-        try
-        {
-            var functionId = new FunctionId(_functionTypeId, instanceId);
-            var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
 
-            _ = Task.Run(async () =>
+        _ = Task.Run(async () =>
+        {
+            try
             {
+                Result<TReturn> result;
                 try
                 {
-                    Result<TReturn> result;
-                    try
-                    {
-                        // *** USER FUNCTION INVOCATION *** 
-                        result = await inner(param, scrapbook, context);
-                    }
-                    catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
-                    catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
-
-                    await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await inner(param, scrapbook, context);
                 }
-                catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-                finally{ disposables.Dispose(); }
-            });
-        } catch (UnexpectedFunctionState) when (!throwOnUnexpectedFunctionState) {}
+                catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
+                catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
+
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            finally{ disposables.Dispose(); }
+        });
     }
     
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)

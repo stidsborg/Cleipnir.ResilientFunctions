@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
 
@@ -37,12 +38,13 @@ public class EventSourceWriter
             idempotencyKey
         );
         if (awakeIfPostponed && _rFunctions != null)
-            await _rFunctions.ScheduleReInvoke(
-                _functionTypeId.Value,
-                functionInstanceId.Value,
-                expectedStatuses: new[] { Status.Postponed },
-                throwOnUnexpectedFunctionState: false
-            );
+            try {
+                await _rFunctions.ScheduleReInvoke(
+                    _functionTypeId.Value,
+                    functionInstanceId.Value,
+                    expectedStatuses: new[] { Status.Postponed }
+                );
+            } catch (UnexpectedFunctionState) {}
     }
     
     public async Task Append(FunctionInstanceId functionInstanceId, IEnumerable<EventAndIdempotencyKey> events, bool awakeIfPostponed)
@@ -62,12 +64,13 @@ public class EventSourceWriter
         );
         
         if (awakeIfPostponed && _rFunctions != null)
-            await _rFunctions.ScheduleReInvoke(
-                _functionTypeId.Value,
-                functionInstanceId.Value,
-                expectedStatuses: new[] { Status.Postponed },
-                throwOnUnexpectedFunctionState: false
-            );
+            try {
+                await _rFunctions.ScheduleReInvoke(
+                    _functionTypeId.Value,
+                    functionInstanceId.Value,
+                    expectedStatuses: new[] { Status.Postponed }
+                );
+            } catch (UnexpectedFunctionState) {}
     }
 
     public Task Truncate(FunctionInstanceId functionInstanceId) 

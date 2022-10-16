@@ -17,8 +17,7 @@ public class RFunctions : IDisposable
     private delegate Task ScheduleResilientFunctionReInvocation(
         string functionInstanceId, 
         IEnumerable<Status> expectedStatus, 
-        int? expectedEpoch,
-        bool throwOnUnexpectedFunctionState
+        int? expectedEpoch
     );
     
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
@@ -426,8 +425,8 @@ public class RFunctions : IDisposable
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, status, epoch) => rFuncInvoker.ReInvoke(id, status, epoch);
-            _scheduleReInvocations[functionTypeId] = (id, status, epoch, throwOnUnexpectedFunctionState) 
-                => rFuncInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null, throwOnUnexpectedFunctionState);
+            _scheduleReInvocations[functionTypeId] = (id, status, epoch) 
+                => rFuncInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null);
             
             return registration;
         }
@@ -614,8 +613,8 @@ public class RFunctions : IDisposable
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, status, epoch) => rActionInvoker.ReInvoke(id, status, epoch);
-            _scheduleReInvocations[functionTypeId] = (id, status, epoch, throwOnUnexpectedFunctionState) 
-                => rActionInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null, throwOnUnexpectedFunctionState);
+            _scheduleReInvocations[functionTypeId] = (id, status, epoch) 
+                => rActionInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null);
             return registration;
         }
     }
@@ -776,8 +775,7 @@ public class RFunctions : IDisposable
         string functionTypeId,
         string functionInstanceId, 
         IEnumerable<Status> expectedStatuses, 
-        int? expectedEpoch = null,
-        bool throwOnUnexpectedFunctionState = true
+        int? expectedEpoch = null
     )
     {
         ScheduleResilientFunctionReInvocation scheduleReInvocation;
@@ -792,8 +790,7 @@ public class RFunctions : IDisposable
         return scheduleReInvocation(
             functionInstanceId,
             expectedStatuses,
-            expectedEpoch,
-            throwOnUnexpectedFunctionState
+            expectedEpoch
         );
     }
     

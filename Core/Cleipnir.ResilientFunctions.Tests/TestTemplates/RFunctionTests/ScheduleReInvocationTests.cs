@@ -297,11 +297,12 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvoke(
-            functionInstanceId: "something",
-            expectedStatuses: new[] {Status.Executing},
-            expectedEpoch: null,
-            throwOnUnexpectedFunctionState: false
+        await Should.ThrowAsync<UnexpectedFunctionState>(
+            () => rFunc.ScheduleReInvoke(
+                functionInstanceId: "something",
+                expectedStatuses: new[] { Status.Executing },
+                expectedEpoch: null
+            )
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
