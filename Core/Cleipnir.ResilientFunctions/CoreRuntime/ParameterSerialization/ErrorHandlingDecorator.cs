@@ -38,15 +38,11 @@ public class ErrorHandlingDecorator : ISerializer
 
     public string SerializeScrapbook(RScrapbook scrapbook) => _inner.SerializeScrapbook(scrapbook);
 
-    public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
+    public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook
     {
         try
         {
-            return _inner.DeserializeScrapbook<TScrapbook>(json, type)
-                   ?? throw new DeserializationException(
-                       $"Deserialized scrapbook was null with type: '{type}' and json: '{(json == null ? "null" : MinifyJson(json))}'", 
-                       new NullReferenceException()
-                   );
+            return _inner.DeserializeScrapbook<TScrapbook>(json, type);
         }
         catch (DeserializationException)
         {
@@ -55,7 +51,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize scrapbook with type: '{type}' and json: '{(json == null ? "null" : MinifyJson(json))}'", 
+                $"Unable to deserialize scrapbook with type: '{type}' and json: '{MinifyJson(json)}'", 
                 e
             );
         }
