@@ -90,10 +90,10 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         });
     }
 
-    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null, Action<TScrapbook>? scrapbookUpdater = null)
+    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
         using var _ = disposables;
 
         Result<TReturn> result;
@@ -109,14 +109,10 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleReInvoke(
-        string instanceId, 
-        IEnumerable<Status> expectedStatuses, 
-        int? expectedEpoch = null, 
-        Action<TScrapbook>? scrapbookUpdater = null)
+    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch, scrapbookUpdater);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
 
         _ = Task.Run(async () =>
         {
@@ -191,8 +187,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     private record PreparedInvocation(bool Persisted, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TScrapbook Scrapbook, Context Context, IDisposable Disposables);
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch,
-        Action<TScrapbook>? scrapbookUpdater
+        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch 
     )
     {
         var disposables = new List<IDisposable>(capacity: 3);
@@ -215,19 +210,15 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 preCreationParameters: null
             );
 
-            var (param, epoch, scrapbook, runningFunction) = await 
-                _invocationHelper.PrepareForReInvocation(
-                    functionId, 
-                    expectedStatuses, expectedEpoch ?? 0,
-                    scrapbookUpdater
-                );
+            var (param, epoch, scrapbook, runningFunction) = 
+                await _invocationHelper.PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch ?? 0);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
 
             return new PreparedReInvocation(
                 wrappedInner,
                 param,
-                scrapbook!,
+                scrapbook,
                 new Context(functionId, InvocationMode.Retry),
                 epoch,
                 Disposable.Combine(disposables)

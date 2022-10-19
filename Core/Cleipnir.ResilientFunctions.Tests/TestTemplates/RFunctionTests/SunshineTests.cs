@@ -188,7 +188,7 @@ public abstract class SunshineTests
             .GetFunction(new FunctionId(functionTypeId, "hello world"))
             .ShouldNotBeNullAsync();
 
-        var scrapbook = storedFunction.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<ListScrapbook<string>>();
+        var scrapbook = storedFunction.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("hello world");
     }
     

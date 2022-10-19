@@ -255,7 +255,7 @@ public abstract class WatchdogCompoundTests
             storedFunction!.Result!.DefaultDeserialize()!
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
-            storedFunction.Scrapbook!.DefaultDeserialize()
+            storedFunction.Scrapbook.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
                 .ShouldBe(new [] {1,2,3,4});
@@ -515,7 +515,7 @@ public abstract class WatchdogCompoundTests
             
             var storedFunction = await store.GetFunction(functionId);
             storedFunction!.Result!.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
-            storedFunction.Scrapbook!.DefaultDeserialize()
+            storedFunction.Scrapbook.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});

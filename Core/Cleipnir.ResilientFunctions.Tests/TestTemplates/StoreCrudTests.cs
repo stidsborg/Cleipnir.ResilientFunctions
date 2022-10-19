@@ -197,7 +197,7 @@ public abstract class StoreCrudTests
             expectedEpoch: 1
         ).ShouldBeFalseAsync();
 
-        var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook!;
+        var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
         scrapbookJson.ShouldNotBeNull();
     }

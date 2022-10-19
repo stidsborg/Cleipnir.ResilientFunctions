@@ -196,18 +196,14 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, 
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch,
-        Action<TScrapbook>? scrapbookUpdater
+        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch
     )
     {
         var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(
             functionId,
             expectedStatuses,
             expectedEpoch,
-            hasScrapbook: true,
-            scrapbookUpdater
+            hasScrapbook: true
         );
         return new PreparedReInvocation(
             param,
@@ -219,7 +215,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, 
-        bool hasScrapbook, Action<TScrapbook>? scrapbookUpdater
+        bool hasScrapbook
     ) 
     {
         expectedStatuses = expectedStatuses.ToList();
@@ -232,20 +228,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
         if (sf.Version > _version)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{sf.Version}'");
-        if (hasScrapbook && sf.Scrapbook == null)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have a scrapbook as expected");
 
-        var updatedScrapbookJson = default(string);
-        if (scrapbookUpdater != null)
-        {
-            var scrapbook = _settings.Serializer.DeserializeScrapbook<TScrapbook>(
-                sf.Scrapbook.ScrapbookJson,
-                sf.Scrapbook.ScrapbookType
-            );
-            scrapbookUpdater(scrapbook);
-            updatedScrapbookJson = Serializer.SerializeScrapbook(scrapbook);
-        }
-        
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var epoch = sf.Epoch + 1;
         try
@@ -263,10 +246,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'");
 
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-            
-            var scrapbook = updatedScrapbookJson != null
-                ? Serializer.DeserializeScrapbook<TScrapbook>(updatedScrapbookJson, sf.Scrapbook.ScrapbookType)
-                : Serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
+
+            var scrapbook = Serializer.DeserializeScrapbook<TScrapbook>(
+                sf.Scrapbook.ScrapbookJson,
+                sf.Scrapbook.ScrapbookType
+            );
             scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
@@ -315,7 +299,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedParameter: null,
             storedScrapbook: new StoredScrapbook(
                 updatedScrapbookJson, 
-                ScrapbookType: updatedScrapbookJson.GetType().SimpleQualifiedName()
+                ScrapbookType: updatedScrapbook.GetType().SimpleQualifiedName()
             ),
             expectedEpoch: sf.Epoch
         );
@@ -339,11 +323,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         var updatedParamJson = serializer.SerializeParameter(updatedParam);
         var success = await _functionStore.SetParameters(
             functionId,
-            storedParameter: null,
-            storedScrapbook: new StoredScrapbook(
+            storedParameter: new StoredParameter(
                 updatedParamJson, 
-                ScrapbookType: updatedParamJson.GetType().SimpleQualifiedName()
+                ParamType: updatedParam.GetType().SimpleQualifiedName()
             ),
+            storedScrapbook: null,
             expectedEpoch: sf.Epoch
         );
         

@@ -97,7 +97,7 @@ public abstract class ScrapbookTests
         await Should.ThrowAsync<ScrapbookSaveFailedException>(scrapbook.Save);
             
         (await store.GetFunction(FunctionId))!
-            .Scrapbook!
+            .Scrapbook
             .ScrapbookJson!
             .DeserializeFromJsonTo<Scrapbook>()!
             .Name!
@@ -164,7 +164,7 @@ public abstract class ScrapbookTests
             new FunctionId(nameof(ChangesToStateDictionaryArePersisted), "instance")
         ).ShouldNotBeNullAsync();
 
-        var scrapbook = sf.Scrapbook!.Deserialize<RScrapbook>(DefaultSerializer.Instance);
+        var scrapbook = sf.Scrapbook.Deserialize<RScrapbook>(DefaultSerializer.Instance);
         scrapbook.StateDictionary.Count.ShouldBe(1);
         scrapbook.StateDictionary["hello"].ShouldBe("world");
     }

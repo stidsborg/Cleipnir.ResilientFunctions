@@ -97,21 +97,137 @@ public abstract class ReInvocationTests
         );
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        await rAction.ReInvoke(
-            "something",
-            new[] {Status.Failed},
-            scrapbookUpdater: scrapbook =>
+        await rAction.Admin.UpdateScrapbook(
+            functionInstanceId: "something",
+            scrapbook =>
             {
                 syncedListFromScrapbook.Value = new List<string>(scrapbook.List);
                 scrapbook.List.Clear();
+
+                return scrapbook;
             }
         );
-
+       
+        await rAction.ReInvoke("something",new[] {Status.Failed});
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<ListScrapbook<string>>();
+        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario();
+    protected async Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        var flag = new SyncedFlag();
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
+        );
+
+        var syncedParam = new Synced<object>();
+        var rAction = rFunctions.RegisterAction<object>(
+            functionType,
+            param =>
+            {
+                if (flag.Position == FlagPosition.Lowered)
+                {
+                    flag.Raise();
+                    throw new Exception("oh no");
+                }
+                
+                syncedParam.Value = param;
+            }
+        );
+
+        await Should.ThrowAsync<Exception>(() =>
+            rAction.Invoke("something", "something")
+        );
+        
+        await rAction.Admin.UpdateParameter(
+            functionInstanceId: "something",
+            param =>
+            {
+                param.ShouldBe("something");
+                
+                return 10;
+            }
+        );
+       
+        await rAction.ReInvoke("something",new[] {Status.Failed});
+        
+        syncedParam.Value.ShouldBe(10);
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario();
+    protected async Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        const string functionType = "someFunctionType";
+        var flag = new SyncedFlag();
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                CrashedCheckFrequency: TimeSpan.Zero,
+                PostponedCheckFrequency: TimeSpan.Zero
+            )
+        );
+
+        var syncedParam = new Synced<Tuple<object, RScrapbook>>();
+        var rAction = rFunctions.RegisterAction<object, RScrapbook>(
+            functionType,
+            (p, s) =>
+            {
+                if (flag.Position == FlagPosition.Lowered)
+                {
+                    flag.Raise();
+                    throw new Exception("oh no");
+                }
+                
+                syncedParam.Value = Tuple.Create(p, s);
+            }, 
+            concreteScrapbookType: typeof(ListScrapbook<string>)
+        );
+
+        await Should.ThrowAsync<Exception>(() =>
+            rAction.Invoke("something", "something")
+        );
+        
+        await rAction.Admin.UpdateParameter(
+            functionInstanceId: "something",
+            p =>
+            {
+                p.ShouldBe("something");
+                return 10;
+            }
+        );
+        
+        await rAction.Admin.UpdateScrapbook(
+            functionInstanceId: "something",
+            p =>
+            {
+                (p is ListScrapbook<string>).ShouldBeTrue();
+                return new ListScrapbook<int>();
+            }
+        );
+       
+        await rAction.ReInvoke("something",new[] {Status.Failed});
+        
+        var (param, scrapbook) = syncedParam.Value!;
+        param.ShouldBe(10);
+        (scrapbook is ListScrapbook<int>).ShouldBeTrue();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -145,17 +261,20 @@ public abstract class ReInvocationTests
         sfScrapbook.Value.ShouldBe(1);
         
         flag.Raise();
-        await rAction.ReInvoke(
+        await rAction.Admin.UpdateScrapbook(
             functionInstanceId: "something",
-            expectedStatuses: new[] {Status.Failed},
-            expectedEpoch: 0,
-            scrapbookUpdater: s => s.Value = -1 
+            scrapbook =>
+            {
+                scrapbook.Value = -1; 
+                return scrapbook;
+            }
         );
+        await rAction.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 0);
 
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>();
+        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>();
         scrapbook.Value.ShouldBe(0);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -192,18 +311,22 @@ public abstract class ReInvocationTests
         sfScrapbook.Value.ShouldBe(1);
         
         flag.Raise();
-        var returned = await rFunc.ReInvoke(
+        await rFunc.Admin.UpdateScrapbook(
             functionInstanceId: "something",
-            expectedStatuses: new[] {Status.Failed},
-            expectedEpoch: 0,
-            scrapbookUpdater: s => s.Value = -1 
+            scrapbook =>
+            {
+                scrapbook.Value = -1;
+                return scrapbook;
+            }
         );
+        
+        var returned = await rFunc.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 0);
         returned.ShouldBe("something");
         
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<Scrapbook>();
+        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>();
         scrapbook.Value.ShouldBe(0);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -294,23 +417,23 @@ public abstract class ReInvocationTests
 
         var scrapbookList = new Synced<List<string>>();
 
-        var result = await rFunc.ReInvoke(
-            "something",
-            new[] {Status.Failed},
-            scrapbookUpdater: scrapbook =>
+        await rFunc.Admin.UpdateScrapbook(
+            functionInstanceId: "something",
+            scrapbook =>
             {
                 scrapbookList.Value = new List<string>(scrapbook.List);
                 scrapbook.List.Clear();
-            }
-        );
+                return scrapbook;
+            });
         
+        var result = await rFunc.ReInvoke("something", new[] {Status.Failed});
         result.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
-        var scrapbook = function.Scrapbook!.ScrapbookJson!.DeserializeFromJsonTo<ListScrapbook<string>>();
+        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

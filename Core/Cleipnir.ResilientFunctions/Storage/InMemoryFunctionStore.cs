@@ -154,9 +154,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 return false.ToTask();
 
             state.Status = status;
-            state.Scrapbook = scrapbookJson == null
-                ? state.Scrapbook with {  }
-                : new StoredScrapbook(scrapbookJson, state.Scrapbook!.ScrapbookType);
+            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
 
             state.Result = result;
             state.ErrorJson = errorJson;
@@ -174,7 +172,7 @@ public class InMemoryFunctionStore : IFunctionStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
-            state.Scrapbook = state.Scrapbook! with { ScrapbookJson = scrapbookJson };
+            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             return true.ToTask();
         }
     }

@@ -13,6 +13,12 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     public override Task ActionWithScrapbookReInvocationSunshineScenario()
         => ActionWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
+    public override Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario()
+        => UpdatedParameterIsPassedInOnReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+    [TestMethod]
+    public override Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario()
+        => UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+    [TestMethod]
     public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction()
         => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(Sql.AutoCreateAndInitializeStore());
     [TestMethod]

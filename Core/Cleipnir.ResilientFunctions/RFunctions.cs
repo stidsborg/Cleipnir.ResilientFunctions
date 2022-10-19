@@ -466,7 +466,7 @@ public class RFunctions : IDisposable
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, status, epoch) => rFuncInvoker.ReInvoke(id, status, epoch);
             _scheduleReInvocations[functionTypeId] = (id, status, epoch) 
-                => rFuncInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null);
+                => rFuncInvoker.ScheduleReInvoke(id, status, epoch);
             
             return registration;
         }
@@ -656,7 +656,7 @@ public class RFunctions : IDisposable
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, status, epoch) => rActionInvoker.ReInvoke(id, status, epoch);
             _scheduleReInvocations[functionTypeId] = (id, status, epoch) 
-                => rActionInvoker.ScheduleReInvoke(id, status, epoch, scrapbookUpdater: null);
+                => rActionInvoker.ScheduleReInvoke(id, status, epoch);
             return registration;
         }
     }
