@@ -63,7 +63,7 @@ public class RActionWithScrapbookRegistrationTests
             => Default.DeserializeParameter<TParam>(json, type);
         
         public string SerializeScrapbook(RScrapbook scrapbook) => Default.SerializeScrapbook(scrapbook);
-        public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook 
+        public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook 
             => Default.DeserializeScrapbook<TScrapbook>(json, type);
 
         public string SerializeError(RError error) => Default.SerializeError(error);
