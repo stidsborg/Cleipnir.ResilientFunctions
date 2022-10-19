@@ -157,7 +157,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(1);
                     await scrapbook.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    await NeverCompletingTask.OfType<string>();
+                    return await NeverCompletingTask.OfType<string>();
                 }
             ).Invoke;
 
@@ -219,7 +219,7 @@ public abstract class WatchdogCompoundTests
                     scrapbook.Scraps.Add(3);
                     await scrapbook.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    await NeverCompletingTask.OfType<string>();
+                    return await NeverCompletingTask.OfType<string>();
                 }
             );
 
