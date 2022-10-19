@@ -94,8 +94,24 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    public void InitializeScrapbook(FunctionId functionId, RScrapbook scrapbook, int epoch) 
-        => scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
+    public void InitializeScrapbook(FunctionId functionId, TScrapbook scrapbook, int epoch) 
+        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, scrapbook, epoch));
+
+    private async Task SaveScrapbook(FunctionId functionId, TScrapbook scrapbook, int epoch)
+    {
+        var scrapbookJson = Serializer.SerializeScrapbook(scrapbook);
+        var success = await _functionStore.SetScrapbook(
+            functionId,
+            scrapbookJson,
+            expectedEpoch: epoch
+        );
+
+        if (!success)
+            throw new ScrapbookSaveFailedException(
+                functionId,
+                $"Unable to save '{functionId}'-scrapbook due to concurrent modification"
+            );
+    }
     
     public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch)
     {
@@ -240,7 +256,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, scrapbook, epoch));
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
         }

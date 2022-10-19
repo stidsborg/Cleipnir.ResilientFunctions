@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -35,7 +34,15 @@ public abstract class ScrapbookTests
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
-        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance, 0);
+        scrapbook.Initialize(onSave: async () =>
+        {
+            var scrapbookJson = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            await store.SetScrapbook(
+                FunctionId,
+                scrapbookJson,
+                expectedEpoch: 0
+            );
+        });
 
         var storedScrapbook = (await store.GetFunction(FunctionId))!.Scrapbook;
         storedScrapbook.ShouldNotBeNull();
@@ -89,12 +96,28 @@ public abstract class ScrapbookTests
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook() {Name = "Peter"};
-        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance, epoch: 1);
+        scrapbook.Initialize(onSave: async () =>
+        {
+            var scrapbookJson = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            await store.SetScrapbook(
+                FunctionId,
+                scrapbookJson,
+                expectedEpoch: 1
+            );
+        });
         await scrapbook.Save();
             
         scrapbook = new Scrapbook() {Name = "Ole"};
-        scrapbook.Initialize(FunctionId, store, DefaultSerializer.Instance, epoch: 0);
-        await Should.ThrowAsync<ScrapbookSaveFailedException>(scrapbook.Save);
+        scrapbook.Initialize(onSave: async () =>
+        {
+            var scrapbookJson = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            await store.SetScrapbook(
+                FunctionId,
+                scrapbookJson,
+                expectedEpoch: 0
+            );
+        });
+        await scrapbook.Save();
             
         (await store.GetFunction(FunctionId))!
             .Scrapbook
