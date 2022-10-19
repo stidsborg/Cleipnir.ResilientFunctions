@@ -297,7 +297,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
 
-    public async Task UpdateScrapbook(FunctionId functionId, Func<TScrapbook, TScrapbook> updater)
+    public async Task UpdateScrapbook(FunctionId functionId, Func<TScrapbook, Task<TScrapbook>> updater)
     {
         var serializer = _settings.Serializer;
         var sf = await _functionStore.GetFunction(functionId);
@@ -308,7 +308,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' had status: '{sf.Status}' but must have failed");
 
         var scrapbook = serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
-        var updatedScrapbook = updater(scrapbook);
+        var updatedScrapbook = await updater(scrapbook);
         var updatedScrapbookJson = serializer.SerializeScrapbook(updatedScrapbook);
         var success = await _functionStore.SetParameters(
             functionId,
@@ -324,7 +324,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new ConcurrentModificationException(functionId);
     }
     
-    public async Task UpdateParameter(FunctionId functionId, Func<TParam, TParam> updater)
+    public async Task UpdateParameter(FunctionId functionId, Func<TParam, Task<TParam>> updater)
     {
         var serializer = _settings.Serializer;
         var sf = await _functionStore.GetFunction(functionId);
@@ -335,7 +335,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' had status: '{sf.Status}' but must have failed");
 
         var parameter = serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-        var updatedParam = updater(parameter);
+        var updatedParam = await updater(parameter);
         var updatedParamJson = serializer.SerializeParameter(updatedParam);
         var success = await _functionStore.SetParameters(
             functionId,

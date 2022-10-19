@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
@@ -34,17 +35,15 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.ReInvoke<RScrapbook, TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke<RScrapbook> ScheduleReInvoke { get; }
+    public RAdmin<TParam, RScrapbook, TReturn> Admin { get; }
 
-    public RFunc(
-        RFunc.Invoke<TParam, RScrapbook, TReturn> invoke, 
-        RFunc.ReInvoke<RScrapbook, TReturn> reInvoke, 
-        RFunc.Schedule<TParam, RScrapbook> schedule, 
-        RFunc.ScheduleReInvoke<RScrapbook> scheduleReInvoke)
+    internal RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
     {
-        Invoke = invoke;
-        ReInvoke = reInvoke;
-        Schedule = schedule;
-        ScheduleReInvoke = scheduleReInvoke;
+        Invoke = rFunc.Invoke;
+        ReInvoke = rFunc.ReInvoke;
+        Schedule = rFunc.Schedule;
+        ScheduleReInvoke = rFunc.ScheduleReInvoke;
+        Admin = rFunc.Admin;
     }
 }
 
@@ -54,8 +53,11 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke<TScrapbook> ScheduleReInvoke { get; }
+    public RAdmin<TParam, TScrapbook, TReturn> Admin { get; }
 
-    public RFunc(
+    internal RFunc(
+        FunctionTypeId functionTypeId,
+        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         RFunc.Invoke<TParam, TScrapbook, TReturn> invoke, 
         RFunc.ReInvoke<TScrapbook, TReturn> reInvoke, 
         RFunc.Schedule<TParam, TScrapbook> schedule, 
@@ -65,12 +67,7 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
         ReInvoke = reInvoke;
         Schedule = schedule;
         ScheduleReInvoke = scheduleReInvoke;
+
+        Admin = new RAdmin<TParam, TScrapbook, TReturn>(functionTypeId, invocationHelper);
     }
 }
-
-public static class RFuncExtensions
-{
-    public static RFunc<TParam, TResult> ConvertToRFuncWithoutScrapbook<TParam, TResult>(this RFunc<TParam, RScrapbook, TResult> rFunc) 
-        where TParam : notnull 
-        => new(rFunc.Invoke, rFunc.ReInvoke, rFunc.Schedule, rFunc.ScheduleReInvoke);
-}     

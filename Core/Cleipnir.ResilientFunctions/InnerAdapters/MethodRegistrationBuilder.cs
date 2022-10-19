@@ -19,12 +19,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, TReturn>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull => 
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
     
     // ** SYNC W. CONTEXT ** //
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -32,12 +35,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Context, TReturn>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull =>
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
     
     // ** ASYNC ** //
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -45,12 +51,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Task<TReturn>>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull => 
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
 
     // ** ASYNC W. CONTEXT * //
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -58,12 +67,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Context, Task<TReturn>>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull => 
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
     
     // ** SYNC W. RESULT ** //
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -71,12 +83,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Result<TReturn>>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings        
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull =>
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -84,12 +99,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Context, Result<TReturn>>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings        
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull => 
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
 
     // ** ASYNC W. RESULT ** //    
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -97,12 +115,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Task<Result<TReturn>>>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull => 
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
     
     // ** ASYNC W. RESULT AND CONTEXT ** //   
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -110,12 +131,15 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         Func<TEntity, Func<TParam, Context, Task<Result<TReturn>>>> inner,
         int version = 0,
         Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
-        InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-        version,
-        settings
-    ).ConvertToRFuncWithoutScrapbook();
+    ) where TParam : notnull => 
+        new RFunc<TParam, TReturn>(
+            RegisterFunc(
+                functionTypeId,
+                InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
+                version,
+                settings
+            )
+        );
 
     // ** !! ACTION !! ** //
     // ** SYNC ** //
