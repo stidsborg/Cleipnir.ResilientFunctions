@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -40,14 +39,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            var paramJson = Serializer.SerializeParameter(param);
-            var paramType = param.GetType().SimpleQualifiedName();
-            var scrapbookJson = Serializer.SerializeScrapbook(scrapbook);
-            var scrapbookType = scrapbook.GetType().SimpleQualifiedName();
+            var storedParameter = Serializer.SerializeParameter(param);
+            var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
             var created = await _functionStore.CreateFunction(
                 functionId,
-                param: new StoredParameter(paramJson, paramType),
-                storedScrapbook: new StoredScrapbook(scrapbookJson, scrapbookType),
+                storedParameter,
+                storedScrapbook,
                 crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks,
                 _version
             );
@@ -99,7 +96,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     private async Task SaveScrapbook(FunctionId functionId, TScrapbook scrapbook, int epoch)
     {
-        var scrapbookJson = Serializer.SerializeScrapbook(scrapbook);
+        var (scrapbookJson, _) = Serializer.SerializeScrapbook(scrapbook);
         var success = await _functionStore.SetScrapbook(
             functionId,
             scrapbookJson,
@@ -113,12 +110,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             );
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, RScrapbook scrapbook, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch)
     {
         var success = await _functionStore.SetFunctionState(
             functionId,
             Status.Failed,
-            scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
+            Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
             result: null,
             errorJson: Serializer.SerializeError(exception.ToError()),
             postponedUntil: null,
@@ -131,7 +128,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public async Task PersistResult(
         FunctionId functionId, 
         Result<TReturn> result, 
-        RScrapbook scrapbook,
+        TScrapbook scrapbook,
         int expectedEpoch)
     {
         switch (result.Outcome)
@@ -140,13 +137,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 var success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Succeeded,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
-                    result: new StoredResult(
-                        ResultJson: result.SucceedWithValue == null
-                            ? null
-                            : Serializer.SerializeResult(result.SucceedWithValue),
-                        ResultType: result.SucceedWithValue?.GetType().SimpleQualifiedName()
-                    ),
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
+                    result: Serializer.SerializeResult(result.SucceedWithValue),
                     errorJson: null,
                     postponedUntil: null,
                     expectedEpoch
@@ -157,7 +149,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Postponed,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
+                    Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     result: null,
                     errorJson: null,
                     postponedUntil: result.Postpone!.DateTime.Ticks,
@@ -169,7 +161,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 success = await _functionStore.SetFunctionState(
                     functionId,
                     Status.Failed,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook),
+                    Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     result: null,
                     errorJson: Serializer.SerializeError(result.Fail!.ToError()),
                     postponedUntil: null,
@@ -298,14 +290,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
         var scrapbook = serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
         var updatedScrapbook = await updater(scrapbook);
-        var updatedScrapbookJson = serializer.SerializeScrapbook(updatedScrapbook);
+        var storedScrapbook = serializer.SerializeScrapbook(updatedScrapbook);
         var success = await _functionStore.SetParameters(
             functionId,
             storedParameter: null,
-            storedScrapbook: new StoredScrapbook(
-                updatedScrapbookJson, 
-                ScrapbookType: updatedScrapbook.GetType().SimpleQualifiedName()
-            ),
+            storedScrapbook,
             expectedEpoch: sf.Epoch
         );
 
@@ -325,13 +314,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
         var parameter = serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
         var updatedParam = await updater(parameter);
-        var updatedParamJson = serializer.SerializeParameter(updatedParam);
+        var storedParameter = serializer.SerializeParameter(updatedParam);
         var success = await _functionStore.SetParameters(
             functionId,
-            storedParameter: new StoredParameter(
-                updatedParamJson, 
-                ParamType: updatedParam.GetType().SimpleQualifiedName()
-            ),
+            storedParameter,
             storedScrapbook: null,
             expectedEpoch: sf.Epoch
         );

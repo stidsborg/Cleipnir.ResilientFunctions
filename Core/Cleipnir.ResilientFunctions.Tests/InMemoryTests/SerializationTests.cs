@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -76,9 +75,9 @@ public class SerializationTests
     {
         private readonly DefaultSerializer _defaultSerializer = DefaultSerializer.Instance;
         
-        public string SerializeParameter(object parameter)
-            => JsonConvert.SerializeObject(parameter);
-        public TParam DeserializeParameter<TParam>(string json, string type)
+        public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull
+            => _defaultSerializer.SerializeParameter(parameter);
+        public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
         {
             if (type.Contains(nameof(PersonPrev)))
                 return (TParam) (object) JsonConvert.DeserializeObject<PersonCurr>(json)!;
@@ -89,7 +88,7 @@ public class SerializationTests
             )!;
         }
 
-        public string SerializeScrapbook(RScrapbook scrapbook)
+        public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
             => _defaultSerializer.SerializeScrapbook(scrapbook);
         public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
             => _defaultSerializer.DeserializeScrapbook<TScrapbook>(json, type);
@@ -98,8 +97,8 @@ public class SerializationTests
             => _defaultSerializer.SerializeError(error);
         public RError DeserializeError(string json)
             => _defaultSerializer.DeserializeError(json);
-        
-        public string SerializeResult(object result)
+
+        public StoredResult SerializeResult<TResult>(TResult result)
             => _defaultSerializer.SerializeResult(result);
         public TResult DeserializeResult<TResult>(string json, string type)
             => _defaultSerializer.DeserializeResult<TResult>(json, type);

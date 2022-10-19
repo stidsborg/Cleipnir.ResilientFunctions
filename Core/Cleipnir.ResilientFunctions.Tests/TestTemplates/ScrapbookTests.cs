@@ -36,7 +36,7 @@ public abstract class ScrapbookTests
         var scrapbook = new Scrapbook();
         scrapbook.Initialize(onSave: async () =>
         {
-            var scrapbookJson = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SetScrapbook(
                 FunctionId,
                 scrapbookJson,
@@ -98,7 +98,7 @@ public abstract class ScrapbookTests
         var scrapbook = new Scrapbook() {Name = "Peter"};
         scrapbook.Initialize(onSave: async () =>
         {
-            var scrapbookJson = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SetScrapbook(
                 FunctionId,
                 scrapbookJson,
@@ -110,7 +110,7 @@ public abstract class ScrapbookTests
         scrapbook = new Scrapbook() {Name = "Ole"};
         scrapbook.Initialize(onSave: async () =>
         {
-            var scrapbookJson = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SetScrapbook(
                 FunctionId,
                 scrapbookJson,

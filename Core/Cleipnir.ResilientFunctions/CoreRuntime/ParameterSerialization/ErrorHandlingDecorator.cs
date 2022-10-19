@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Storage;
 using static Cleipnir.ResilientFunctions.Helpers.Helpers;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -11,9 +11,9 @@ public class ErrorHandlingDecorator : ISerializer
 
     public ErrorHandlingDecorator(ISerializer inner) => _inner = inner;
     
-    public string SerializeParameter(object parameter) => _inner.SerializeParameter(parameter);
-
-    public TParam DeserializeParameter<TParam>(string json, string type)
+    public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull 
+        => _inner.SerializeParameter(parameter);
+    public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
     {
         try
         {
@@ -36,8 +36,8 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public string SerializeScrapbook(RScrapbook scrapbook) => _inner.SerializeScrapbook(scrapbook);
-
+    public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
+        => _inner.SerializeScrapbook(scrapbook);
     public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook
     {
         try
@@ -59,8 +59,9 @@ public class ErrorHandlingDecorator : ISerializer
 
     public string SerializeError(RError error) => _inner.SerializeError(error);
     public RError DeserializeError(string json) => _inner.DeserializeError(json);
-
-    public string SerializeResult(object result) => _inner.SerializeResult(result);
+    
+    public StoredResult SerializeResult<TResult>(TResult result)
+        => _inner.SerializeResult(result);
     public TResult DeserializeResult<TResult>(string json, string type)
     {
         try

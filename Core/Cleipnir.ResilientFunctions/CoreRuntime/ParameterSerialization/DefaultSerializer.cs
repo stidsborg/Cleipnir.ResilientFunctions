@@ -1,23 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 
 public class DefaultSerializer : ISerializer
 {
     public static readonly DefaultSerializer Instance = new();
-
     private DefaultSerializer() {}
     
-    public string SerializeParameter(object parameter) => JsonSerializer.Serialize(parameter);
-    public TParam DeserializeParameter<TParam>(string json, string type)
+    public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull
+        => new(JsonSerializer.Serialize(parameter), parameter.GetType().SimpleQualifiedName());
+    public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
         => (TParam) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
-    public string SerializeScrapbook(RScrapbook scrapbook)
-        => JsonSerializer.Serialize(scrapbook, scrapbook.GetType());
+    public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
+        => new(JsonSerializer.Serialize(scrapbook), scrapbook.GetType().SimpleQualifiedName());
     public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type)
         where TScrapbook : RScrapbook
     {
@@ -31,7 +31,8 @@ public class DefaultSerializer : ISerializer
     public string SerializeError(RError error) => JsonSerializer.Serialize(error);
     public RError DeserializeError(string json) => JsonSerializer.Deserialize<RError>(json)!;
     
-    public string SerializeResult(object result) => JsonSerializer.Serialize(result);
+    public StoredResult SerializeResult<TResult>(TResult result)
+        => new(JsonSerializer.Serialize(result), result?.GetType().SimpleQualifiedName());
     public TResult DeserializeResult<TResult>(string json, string type) 
         => (TResult) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 }
