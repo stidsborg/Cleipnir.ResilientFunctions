@@ -17,10 +17,6 @@ public class ScrapbookTests : ResilientFunctions.Tests.TestTemplates.ScrapbookTe
     [TestMethod]
     public override Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration()
         => ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Sql.AutoCreateAndInitializeStore());
-    
-    [TestMethod]
-    public override Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration()
-        => WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ChangesToStateDictionaryArePersisted()

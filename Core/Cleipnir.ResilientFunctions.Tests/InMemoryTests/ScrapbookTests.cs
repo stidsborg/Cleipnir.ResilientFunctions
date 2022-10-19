@@ -28,12 +28,6 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             );
 
         [TestMethod]
-        public override Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration()
-            => WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(
-                new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
-            );
-
-        [TestMethod]
         public override Task ChangesToStateDictionaryArePersisted()
             => ChangesToStateDictionaryArePersisted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
                 

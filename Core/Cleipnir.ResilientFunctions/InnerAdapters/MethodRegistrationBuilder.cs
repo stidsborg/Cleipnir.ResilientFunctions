@@ -260,15 +260,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, TReturn>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. CONTEXT ** //
@@ -276,15 +274,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, TReturn>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC ** //
@@ -292,15 +288,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<TReturn>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. CONTEXT * //
@@ -308,15 +302,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<TReturn>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT ** //
@@ -324,15 +316,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Result<TReturn>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
@@ -340,15 +330,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Result<TReturn>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
    
     // ** ASYNC W. RESULT ** //
@@ -356,15 +344,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result<TReturn>>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
@@ -372,16 +358,9 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => _rFunctions.RegisterMethodFunc(
-            functionTypeId,
-            inner,
-            version,
-            settings,
-            concreteScrapbookType
-        );
+        => _rFunctions.RegisterMethodFunc(functionTypeId, inner, version, settings);
     
     // ** !! ACTION WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
@@ -389,15 +368,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Action<TParam, TScrapbook>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. CONTEXT ** //
@@ -405,15 +382,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Action<TParam, TScrapbook, Context>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC ** //
@@ -421,15 +396,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. CONTEXT * //
@@ -437,15 +410,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT ** //
@@ -453,15 +424,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Result>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
@@ -469,15 +438,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Result>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
    
     // ** ASYNC W. RESULT ** //
@@ -485,15 +452,13 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
@@ -501,8 +466,7 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => _rFunctions.RegisterMethodAction(functionTypeId, inner, version, settings, concreteScrapbookType);
+        => _rFunctions.RegisterMethodAction(functionTypeId, inner, version, settings);
 }

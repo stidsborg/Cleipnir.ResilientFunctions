@@ -22,7 +22,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly Type? _concreteScrapbookType;
 
     internal Invoker(
         FunctionTypeId functionTypeId,
@@ -30,7 +29,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>>? innerMethodSelector,
         IDependencyResolver? dependencyResolver,
         MiddlewarePipeline middlewarePipeline,
-        Type? concreteScrapbookType,
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
@@ -39,7 +37,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         _innerMethodSelector = innerMethodSelector;
         _dependencyResolver = dependencyResolver;
         _middlewarePipeline = middlewarePipeline;
-        _concreteScrapbookType = concreteScrapbookType;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
     }
@@ -154,11 +151,9 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 var entity = scopedDependencyResolver.Resolve<TEntity>();
                 inner = _innerMethodSelector!(entity);
             }
-            
-            if (scrapbook != null)
-                _invocationHelper.InitializeScrapbook(functionId, scrapbook, epoch: 0);
-            else
-                scrapbook = _invocationHelper.CreateScrapbook(functionId, expectedEpoch: 0, _concreteScrapbookType);
+
+            scrapbook ??= new TScrapbook();
+            _invocationHelper.InitializeScrapbook(functionId, scrapbook, epoch: 0);
             
             var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(
                 inner,

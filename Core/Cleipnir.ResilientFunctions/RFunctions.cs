@@ -303,15 +303,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
 
     // ** SYNC W. CONTEXT ** //
@@ -319,15 +317,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, TReturn> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC ** //
@@ -335,15 +331,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. CONTEXT * //
@@ -351,15 +345,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<TReturn>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT ** //
@@ -367,15 +359,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
@@ -383,15 +373,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Result<TReturn>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. RESULT ** //
@@ -399,15 +387,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. RESULT AND CONTEXT ** //   
@@ -415,14 +401,11 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        if (concreteScrapbookType != null && !concreteScrapbookType.IsSubclassOf(typeof(TScrapbook)))
-            throw new ArgumentException($"Concrete scrapbook type '{concreteScrapbookType.FullName}' must be child of '{typeof(TScrapbook).FullName}'");
 
         lock (_sync)
         {
@@ -441,7 +424,6 @@ public class RFunctions : IDisposable
                 innerMethodSelector: null,
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
-                concreteScrapbookType,  
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -478,15 +460,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. CONTEXT ** //
@@ -494,15 +474,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Action<TParam, TScrapbook, Context> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC ** //
@@ -510,15 +488,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. CONTEXT * //
@@ -526,15 +502,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT ** //
@@ -542,15 +516,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
@@ -558,15 +530,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Result> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     // ** ASYNC W. RESULT ** //
@@ -574,15 +544,13 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
@@ -590,29 +558,24 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             version,
-            settings,
-            concreteScrapbookType
+            settings
         );
     
     private RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result<Unit>>> inner,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-        if (concreteScrapbookType != null && !concreteScrapbookType.IsSubclassOf(typeof(TScrapbook)))
-            throw new ArgumentException($"Concrete scrapbook type '{concreteScrapbookType.FullName}' must be child of '{typeof(TScrapbook).FullName}'");
         
         lock (_sync)
         {
@@ -631,7 +594,6 @@ public class RFunctions : IDisposable
                 innerMethodSelector: null,
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
-                concreteScrapbookType,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -686,8 +648,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> innerMethodSelector,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
     {
         if (_disposed)
@@ -713,7 +674,6 @@ public class RFunctions : IDisposable
                 innerMethodSelector, 
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
-                concreteScrapbookType,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );
@@ -745,8 +705,7 @@ public class RFunctions : IDisposable
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> innerMethodSelector,
         int version = 0,
-        Settings? settings = null,
-        Type? concreteScrapbookType = null
+        Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
     {
         if (_disposed)
@@ -772,7 +731,6 @@ public class RFunctions : IDisposable
                 innerMethodSelector,
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
-                concreteScrapbookType,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler
             );

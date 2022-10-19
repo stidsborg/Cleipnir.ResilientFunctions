@@ -93,17 +93,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             }
         }
     }
-    
-    public TScrapbook CreateScrapbook(FunctionId functionId, int expectedEpoch, Type? concreteScrapbookType)
-    {
-        var scrapbook = (TScrapbook) (
-            concreteScrapbookType == null 
-                ? new TScrapbook()
-                : Activator.CreateInstance(concreteScrapbookType)!
-            );
-        scrapbook.Initialize(functionId, _functionStore, Serializer, expectedEpoch);
-        return scrapbook;
-    }
 
     public void InitializeScrapbook(FunctionId functionId, RScrapbook scrapbook, int epoch) 
         => scrapbook.Initialize(functionId, _functionStore, Serializer, epoch);

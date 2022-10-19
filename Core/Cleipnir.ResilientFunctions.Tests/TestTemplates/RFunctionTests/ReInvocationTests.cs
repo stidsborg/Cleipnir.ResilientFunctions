@@ -197,12 +197,11 @@ public abstract class ReInvocationTests
                 }
                 
                 syncedParam.Value = Tuple.Create(p, s);
-            }, 
-            concreteScrapbookType: typeof(ListScrapbook<string>)
+            }
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke("something", "something")
+            rAction.Invoke("something", "something", new ListScrapbook<string>())
         );
         
         await rAction.Admin.UpdateParameter(

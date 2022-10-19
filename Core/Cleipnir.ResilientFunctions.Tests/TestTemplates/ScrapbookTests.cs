@@ -116,11 +116,10 @@ public abstract class ScrapbookTests
         var synced = new Synced<ParentScrapbook>();
         var rAction = rFunctions.RegisterAction<string, ParentScrapbook>(
             functionId.TypeId,
-            (_, scrapbook) => synced.Value = scrapbook,
-            concreteScrapbookType: typeof(ChildScrapbook)
+            (_, scrapbook) => synced.Value = scrapbook
         ).Invoke;
 
-        await rAction("instance", "param");
+        await rAction("instance", "param", new ChildScrapbook());
 
         await BusyWait.UntilAsync(() => synced.Value != null);
         synced.Value.ShouldBeOfType<ChildScrapbook>();
@@ -128,25 +127,6 @@ public abstract class ScrapbookTests
 
     private class ParentScrapbook : RScrapbook { }
     private class ChildScrapbook : ParentScrapbook { }
-    
-    public abstract Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration();
-    protected async Task WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var rFunctions = new RFunctions(store);
-        var functionId = new FunctionId(
-            functionTypeId: nameof(WhenConcreteScrapbookTypeIsNotSubtypeOfScrapbookAnExceptionIsThrownAtRegistration),
-            functionInstanceId: "instance"
-        );
-
-        Should.Throw<ArgumentException>(() =>
-            rFunctions.RegisterAction<string, ParentScrapbook>(
-                functionId.TypeId,
-                (_, _) => { },
-                concreteScrapbookType: typeof(ListScrapbook<int>)
-            )
-        );
-    }
 
     public abstract Task ChangesToStateDictionaryArePersisted();
     protected async Task ChangesToStateDictionaryArePersisted(Task<IFunctionStore> storeTask)
