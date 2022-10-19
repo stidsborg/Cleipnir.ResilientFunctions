@@ -296,4 +296,56 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
+
+    public async Task<bool> UpdateScrapbook(FunctionId functionId, Func<TScrapbook, TScrapbook> updater)
+    {
+        var serializer = _settings.Serializer;
+        var sf = await _functionStore.GetFunction(functionId);
+        
+        if (sf == null)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
+        if (sf.Status != Status.Failed)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' had status: '{sf.Status}' but must have failed");
+
+        var scrapbook = serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
+        var updatedScrapbook = updater(scrapbook);
+        var updatedScrapbookJson = serializer.SerializeScrapbook(updatedScrapbook);
+        var success = await _functionStore.SetParameters(
+            functionId,
+            storedParameter: null,
+            storedScrapbook: new StoredScrapbook(
+                updatedScrapbookJson, 
+                ScrapbookType: updatedScrapbookJson.GetType().SimpleQualifiedName()
+            ),
+            expectedEpoch: sf.Epoch
+        );
+        
+        return success;
+    }
+    
+    public async Task<bool> UpdateParameter(FunctionId functionId, Func<TParam, TParam> updater)
+    {
+        var serializer = _settings.Serializer;
+        var sf = await _functionStore.GetFunction(functionId);
+        
+        if (sf == null)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
+        if (sf.Status != Status.Failed)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' had status: '{sf.Status}' but must have failed");
+
+        var parameter = serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
+        var updatedParam = updater(parameter);
+        var updatedParamJson = serializer.SerializeParameter(updatedParam);
+        var success = await _functionStore.SetParameters(
+            functionId,
+            storedParameter: null,
+            storedScrapbook: new StoredScrapbook(
+                updatedParamJson, 
+                ScrapbookType: updatedParamJson.GetType().SimpleQualifiedName()
+            ),
+            expectedEpoch: sf.Epoch
+        );
+        
+        return success;
+    }
 }
