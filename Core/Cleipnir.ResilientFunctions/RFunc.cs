@@ -28,19 +28,45 @@ public static class RFunc
     );
 }
 
-public record RFunc<TParam, TReturn>(
-    RFunc.Invoke<TParam, RScrapbook, TReturn> Invoke,
-    RFunc.ReInvoke<RScrapbook, TReturn> ReInvoke,
-    RFunc.Schedule<TParam, RScrapbook> Schedule,
-    RFunc.ScheduleReInvoke<RScrapbook> ScheduleReInvoke
-) : RFunc<TParam, RScrapbook, TReturn>(Invoke, ReInvoke, Schedule, ScheduleReInvoke) where TParam : notnull;
+public class RFunc<TParam, TReturn> where TParam : notnull
+{
+    public RFunc.Invoke<TParam, RScrapbook, TReturn> Invoke { get; }
+    public RFunc.ReInvoke<RScrapbook, TReturn> ReInvoke { get; }
+    public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
+    public RFunc.ScheduleReInvoke<RScrapbook> ScheduleReInvoke { get; }
 
-public record RFunc<TParam, TScrapbook, TReturn>(
-    RFunc.Invoke<TParam, TScrapbook, TReturn> Invoke,
-    RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke,
-    RFunc.Schedule<TParam, TScrapbook> Schedule,
-    RFunc.ScheduleReInvoke<TScrapbook> ScheduleReInvoke
-) where TParam : notnull where TScrapbook : RScrapbook, new();
+    public RFunc(
+        RFunc.Invoke<TParam, RScrapbook, TReturn> invoke, 
+        RFunc.ReInvoke<RScrapbook, TReturn> reInvoke, 
+        RFunc.Schedule<TParam, RScrapbook> schedule, 
+        RFunc.ScheduleReInvoke<RScrapbook> scheduleReInvoke)
+    {
+        Invoke = invoke;
+        ReInvoke = reInvoke;
+        Schedule = schedule;
+        ScheduleReInvoke = scheduleReInvoke;
+    }
+}
+
+public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
+{
+    public RFunc.Invoke<TParam, TScrapbook, TReturn> Invoke { get; }
+    public RFunc.ReInvoke<TScrapbook, TReturn> ReInvoke { get; }
+    public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
+    public RFunc.ScheduleReInvoke<TScrapbook> ScheduleReInvoke { get; }
+
+    public RFunc(
+        RFunc.Invoke<TParam, TScrapbook, TReturn> invoke, 
+        RFunc.ReInvoke<TScrapbook, TReturn> reInvoke, 
+        RFunc.Schedule<TParam, TScrapbook> schedule, 
+        RFunc.ScheduleReInvoke<TScrapbook> scheduleReInvoke)
+    {
+        Invoke = invoke;
+        ReInvoke = reInvoke;
+        Schedule = schedule;
+        ScheduleReInvoke = scheduleReInvoke;
+    }
+}
 
 public static class RFuncExtensions
 {

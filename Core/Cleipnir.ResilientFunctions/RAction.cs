@@ -28,19 +28,37 @@ public static class RAction
     );
 }
 
-public record RAction<TParam>(
-    RAction.Invoke<TParam, RScrapbook> Invoke,
-    RAction.ReInvoke<RScrapbook> ReInvoke,
-    RAction.Schedule<TParam, RScrapbook> Schedule,
-    RAction.ScheduleReInvoke<RScrapbook> ScheduleReInvoke
-) : RAction<TParam, RScrapbook>(Invoke, ReInvoke, Schedule, ScheduleReInvoke) where TParam : notnull;
+public class RAction<TParam> where TParam : notnull
+{
+    public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
+    public RAction.ReInvoke<RScrapbook> ReInvoke { get; }
+    public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
+    public RAction.ScheduleReInvoke<RScrapbook> ScheduleReInvoke { get; }
 
-public record RAction<TParam, TScrapbook>(
-    RAction.Invoke<TParam, TScrapbook> Invoke,
-    RAction.ReInvoke<TScrapbook> ReInvoke,
-    RAction.Schedule<TParam, TScrapbook> Schedule,
-    RAction.ScheduleReInvoke<TScrapbook> ScheduleReInvoke
-) where TParam : notnull where TScrapbook : RScrapbook, new(); 
+    public RAction(RAction.Invoke<TParam, RScrapbook> invoke, RAction.ReInvoke<RScrapbook> reInvoke, RAction.Schedule<TParam, RScrapbook> schedule, RAction.ScheduleReInvoke<RScrapbook> scheduleReInvoke)
+    {
+        Invoke = invoke;
+        ReInvoke = reInvoke;
+        Schedule = schedule;
+        ScheduleReInvoke = scheduleReInvoke;
+    }
+}
+
+public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+{
+    public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
+    public RAction.ReInvoke<TScrapbook> ReInvoke { get; }
+    public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
+    public RAction.ScheduleReInvoke<TScrapbook> ScheduleReInvoke { get; }
+
+    public RAction(RAction.Invoke<TParam, TScrapbook> invoke, RAction.ReInvoke<TScrapbook> reInvoke, RAction.Schedule<TParam, TScrapbook> schedule, RAction.ScheduleReInvoke<TScrapbook> scheduleReInvoke)
+    {
+        Invoke = invoke;
+        ReInvoke = reInvoke;
+        Schedule = schedule;
+        ScheduleReInvoke = scheduleReInvoke;
+    }
+}
 
 public static class RActionExtensions
 {
