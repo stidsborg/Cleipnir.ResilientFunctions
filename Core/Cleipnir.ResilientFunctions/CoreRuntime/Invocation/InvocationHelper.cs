@@ -297,7 +297,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
 
-    public async Task<bool> UpdateScrapbook(FunctionId functionId, Func<TScrapbook, TScrapbook> updater)
+    public async Task UpdateScrapbook(FunctionId functionId, Func<TScrapbook, TScrapbook> updater)
     {
         var serializer = _settings.Serializer;
         var sf = await _functionStore.GetFunction(functionId);
@@ -319,11 +319,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             ),
             expectedEpoch: sf.Epoch
         );
-        
-        return success;
+
+        if (!success)
+            throw new ConcurrentModificationException(functionId);
     }
     
-    public async Task<bool> UpdateParameter(FunctionId functionId, Func<TParam, TParam> updater)
+    public async Task UpdateParameter(FunctionId functionId, Func<TParam, TParam> updater)
     {
         var serializer = _settings.Serializer;
         var sf = await _functionStore.GetFunction(functionId);
@@ -346,6 +347,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             expectedEpoch: sf.Epoch
         );
         
-        return success;
+        if (!success)
+            throw new ConcurrentModificationException(functionId);
     }
 }
