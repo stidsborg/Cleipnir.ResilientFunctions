@@ -193,6 +193,30 @@ public abstract class SunshineTests
         scrapbook.List.Single().ShouldBe("hello world");
     }
     
+    public abstract Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully();
+    protected async Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FunctionTypeId functionTypeId = "SomeFunctionType";
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            (string _, ListScrapbook<string> scrapbook) =>
+            {
+                scrapbook.List.Add("hello world");
+                return default(string).ToTask();
+            }
+        ).Invoke;
+
+        var result = await rFunc("hello world", "hello world");
+        result.ShouldBeNull();
+
+        result = await rFunc("hello world", "hello world");
+        result.ShouldBeNull();
+    }
+    
     public abstract Task InvocationModeShouldBeDirectInSunshineScenario();
     protected async Task InvocationModeShouldBeDirectInSunshineScenario(Task<IFunctionStore> storeTask)
     {

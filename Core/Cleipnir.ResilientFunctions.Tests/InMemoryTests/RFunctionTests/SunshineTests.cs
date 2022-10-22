@@ -33,6 +33,12 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
         => SunshineScenarioNullReturningFuncWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
+    public override Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully()
+        => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
+    [TestMethod]
     public override Task InvocationModeShouldBeDirectInSunshineScenario()
         => InvocationModeShouldBeDirectInSunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

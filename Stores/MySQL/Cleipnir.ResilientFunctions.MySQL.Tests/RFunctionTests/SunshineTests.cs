@@ -30,6 +30,10 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
         => SunshineScenarioNullReturningFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully()
+        => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task InvocationModeShouldBeDirectInSunshineScenario()
         => InvocationModeShouldBeDirectInSunshineScenario(Sql.AutoCreateAndInitializeStore());
 }

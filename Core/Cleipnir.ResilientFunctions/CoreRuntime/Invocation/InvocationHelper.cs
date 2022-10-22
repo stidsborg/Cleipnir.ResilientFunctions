@@ -76,7 +76,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     await Task.Delay(100);
                     continue;
                 case Status.Succeeded:
-                    return storedFunction.Result!.Deserialize<TReturn>(Serializer)!;
+                    return 
+                        storedFunction.Result == default 
+                            ? default! 
+                            : storedFunction.Result.Deserialize<TReturn>(Serializer)!;
                 case Status.Failed:
                     var error = Serializer.DeserializeError(storedFunction.ErrorJson!);
                     throw new PreviousFunctionInvocationException(functionId, error);
