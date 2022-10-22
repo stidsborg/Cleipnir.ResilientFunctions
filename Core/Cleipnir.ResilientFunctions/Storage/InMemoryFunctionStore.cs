@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -206,6 +207,23 @@ public class InMemoryFunctionStore : IFunctionStore
             
             state.Status = Status.Succeeded;
             state.Result = result;
+            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            
+            return true.ToTask();
+        }
+    }
+
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+            
+            state.Status = Status.Postponed;
+            state.PostponeUntil = postponeUntil;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             
             return true.ToTask();

@@ -368,6 +368,35 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Postponed}, postponed_until = ?, scrapbook_json = ?
+            WHERE 
+                function_type_id = ? AND 
+                function_instance_id = ? AND 
+                epoch = ?";
+        
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = postponeUntil},
+                new() {Value = scrapbookJson},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
+            }
+        };
+
+        await using var _ = command;
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        
+        return affectedRows == 1;
+    }
+
     public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

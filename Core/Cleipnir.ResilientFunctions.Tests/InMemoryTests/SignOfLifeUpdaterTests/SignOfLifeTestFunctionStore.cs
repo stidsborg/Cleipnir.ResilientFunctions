@@ -47,6 +47,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
         => _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch);
 
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
+        => _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch);
+
     public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
         => _inner.FailFunction(functionId, errorJson, scrapbookJson, expectedEpoch);
 

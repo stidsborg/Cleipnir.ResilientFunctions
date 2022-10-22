@@ -122,6 +122,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch);
 
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
+        => _crashed
+            ? Task.FromException<bool>(new TimeoutException())
+            : _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch);
+
     public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

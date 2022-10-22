@@ -140,13 +140,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
             case Outcome.Postpone:
-                success = await _functionStore.SetFunctionState(
+                success = await _functionStore.PostponeFunction(
                     functionId,
-                    Status.Postponed,
-                    Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-                    result: null,
-                    errorJson: null,
-                    postponedUntil: result.Postpone!.DateTime.Ticks,
+                    postponeUntil: result.Postpone!.DateTime.Ticks,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     expectedEpoch
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
