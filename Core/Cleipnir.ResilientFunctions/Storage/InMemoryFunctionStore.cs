@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -138,12 +137,12 @@ public class InMemoryFunctionStore : IFunctionStore
     public Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 
-        string scrapbookJson, 
-        StoredResult? result, 
-        string? errorJson,
-        long? postponedUntil, 
-        int expectedEpoch
-    )
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook, 
+        StoredResult? storedResult, 
+        string? errorJson, 
+        long? postponeUntil,
+        int expectedEpoch)
     {
         lock (_sync)
         {
@@ -155,11 +154,11 @@ public class InMemoryFunctionStore : IFunctionStore
                 return false.ToTask();
 
             state.Status = status;
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
-
-            state.Result = result;
+            state.Param = storedParameter;
+            state.Scrapbook = storedScrapbook;
+            state.Result = storedResult;
             state.ErrorJson = errorJson;
-            state.PostponeUntil = postponedUntil;
+            state.PostponeUntil = postponeUntil;
 
             return true.ToTask();
         }

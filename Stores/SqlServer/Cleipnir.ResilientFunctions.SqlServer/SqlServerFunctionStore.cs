@@ -233,35 +233,35 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     public async Task<bool> SetFunctionState(
-        FunctionId functionId,
-        Status status,
-        string? scrapbookJson,
-        StoredResult? result,
-        string? errorJson,
-        long? postponedUntil,
-        int expectedEpoch
-    )
+        FunctionId functionId, Status status, StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        string? errorJson, long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET
                 Status = @Status,
-                ScrapbookJson = @ScrapbookJson,
+                ParamJson = @ParamJson, ParamType = @ParamType,            
+                ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType,
                 ResultJson = @ResultJson, ResultType = @ResultType,
                 ErrorJson = @ErrorJson,
-                PostponedUntil = @PostponedUntil
+                PostponedUntil = @PostponedUntil,
+                Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
         
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Status", (int) status);
-        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ResultJson", result?.ResultJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ResultType", result?.ResultType ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
+        command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
+        command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
+        command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
+        command.Parameters.AddWithValue("@ResultJson", storedResult?.ResultJson ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@ResultType", storedResult?.ResultType ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@ErrorJson", errorJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@PostponedUntil", postponedUntil ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@PostponedUntil", postponeUntil ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);

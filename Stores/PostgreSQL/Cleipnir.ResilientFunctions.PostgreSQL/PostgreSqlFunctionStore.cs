@@ -217,36 +217,38 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         return functions;
     }
-    
+
     public async Task<bool> SetFunctionState(
-        FunctionId functionId, 
-        Status status, 
-        string? scrapbookJson, 
-        StoredResult? result,
-        string? errorJson, 
-        long? postponedUntil, 
-        int expectedEpoch)
+        FunctionId functionId, Status status, 
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        string? errorJson, long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = $1, scrapbook_json = $2, 
-                result_json = $3, result_type = $4, 
-                error_json = $5, postponed_until = $6
+            SET status = $1,
+                param_json = $2, param_type = $3,
+                scrapbook_json = $4, scrapbook_type = $5, 
+                result_json = $6, result_type = $7, 
+                error_json = $8, postponed_until = $9,
+                epoch = epoch + 1
             WHERE 
-                function_type_id = $7 AND 
-                function_instance_id = $8 AND 
-                epoch = $9";
+                function_type_id = $10 AND 
+                function_instance_id = $11 AND 
+                epoch = $12";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = (int) status},
-                new() {Value = scrapbookJson ?? (object) DBNull.Value},
-                new() {Value = result?.ResultJson ?? (object) DBNull.Value},
-                new() {Value = result?.ResultType ?? (object) DBNull.Value},
+                new() {Value = storedParameter.ParamJson},
+                new() {Value = storedParameter.ParamType},
+                new() {Value = storedScrapbook.ScrapbookJson},
+                new() {Value = storedScrapbook.ScrapbookType},
+                new() {Value = storedResult?.ResultJson ?? (object) DBNull.Value},
+                new() {Value = storedResult?.ResultType ?? (object) DBNull.Value},
                 new() {Value = errorJson ?? (object) DBNull.Value},
-                new() {Value = postponedUntil ?? (object) DBNull.Value},
+                new() {Value = postponeUntil ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},

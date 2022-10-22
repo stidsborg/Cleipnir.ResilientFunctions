@@ -31,13 +31,10 @@ public static class PostponedTest
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
                 version: 0
             );
-            await store.SetFunctionState(
+            await store.PostponeFunction(
                 functionId,
-                Status.Postponed,
+                postponeUntil: start.Ticks,
                 scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
-                result: null,
-                errorJson: null,
-                postponedUntil: start.Ticks,
                 expectedEpoch: 0
             );
         }

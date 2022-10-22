@@ -54,13 +54,10 @@ public abstract class StoreTests
         const string result = "hello world";
         var resultJson = result.ToJson();
         var resultType = result.GetType().SimpleQualifiedName();
-        await store.SetFunctionState(
+        await store.SucceedFunction(
             FunctionId,
-            Status.Succeeded,
-            scrapbookJson: new RScrapbook().ToJson(),
             result: new StoredResult(resultJson, resultType),
-            errorJson: null,
-            postponedUntil: null,
+            scrapbookJson: new RScrapbook().ToJson(),
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
             
@@ -234,13 +231,10 @@ public abstract class StoreTests
             version: 0
         ).ShouldBeTrueAsync();
 
-        await store.SetFunctionState(
+        await store.PostponeFunction(
             FunctionId,
-            Status.Postponed,
+            postponeUntil: nowTicks,
             scrapbookJson: new RScrapbook().ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: nowTicks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 
@@ -268,13 +262,10 @@ public abstract class StoreTests
             version: 0
         ).ShouldBeTrueAsync();
 
-        await store.SetFunctionState(
+        await store.PostponeFunction(
             FunctionId,
-            Status.Postponed,
+            postponeUntil: nowTicks,
             scrapbookJson: new RScrapbook().ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: nowTicks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 

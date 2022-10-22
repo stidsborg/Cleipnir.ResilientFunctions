@@ -203,17 +203,18 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        string? scrapbookJson, StoredResult? result,
-        string? errorJson, long? postponedUntil, 
-        int expectedEpoch
-    )
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        string? errorJson, long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = ?, scrapbook_json = ?, 
+            SET status = ?, 
+                param_json = ?, param_type = ?, 
+                scrapbook_json = ?, scrapbook_type = ?, 
                 result_json = ?, result_type = ?, 
-                error_json = ?, postponed_until = ?
+                error_json = ?, postponed_until = ?,
+                epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -223,11 +224,14 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = (int) status},
-                new() {Value = scrapbookJson ?? (object) DBNull.Value},
-                new() {Value = result?.ResultJson ?? (object) DBNull.Value},
-                new() {Value = result?.ResultType ?? (object) DBNull.Value},
+                new() {Value = storedParameter.ParamJson},
+                new() {Value = storedParameter.ParamType},
+                new() {Value = storedScrapbook.ScrapbookJson},
+                new() {Value = storedScrapbook.ScrapbookType},
+                new() {Value = storedResult?.ResultJson ?? (object) DBNull.Value},
+                new() {Value = storedResult?.ResultType ?? (object) DBNull.Value},
                 new() {Value = errorJson ?? (object) DBNull.Value},
-                new() {Value = postponedUntil ?? (object) DBNull.Value},
+                new() {Value = postponeUntil ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},

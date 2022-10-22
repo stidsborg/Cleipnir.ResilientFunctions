@@ -61,36 +61,17 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
             : _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
 
-    public record SetFunctionStateParams(
-        FunctionId FunctionId,
-        Status Status,
-        string? ScrapbookJson,
-        StoredResult? Result,
-        string? ErrorJson,
-        long? PostponedUntil,
-        int ExpectedEpoch
-    );
-    
-    public Task<bool> SetFunctionState(
-        FunctionId functionId,
-        Status status,
-        string scrapbookJson,
-        StoredResult? result,
-        string? errorJson,
-        long? postponedUntil,
-        int expectedEpoch)
+    public Task<bool> SetFunctionState(FunctionId functionId, Status status, StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        string? errorJson, long? postponeUntil, int expectedEpoch) 
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetFunctionState(
-                functionId,
-                status,
-                scrapbookJson,
-                result,
-                errorJson,
-                postponedUntil,
-                expectedEpoch
+                functionId, status, 
+                storedParameter, storedScrapbook, storedResult, 
+                errorJson, postponeUntil, expectedEpoch
             );
-
+    
     public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

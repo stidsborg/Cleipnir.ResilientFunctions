@@ -33,13 +33,10 @@ public static class MixingTest
                 version: 0
             );
             if (i % 2 == 0)
-                await store.SetFunctionState(
+                await store.PostponeFunction(
                     functionId,
-                    Status.Postponed,
+                    postponeUntil: start.Ticks,
                     scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
-                    result: null,
-                    errorJson: null,
-                    postponedUntil: start.Ticks,
                     expectedEpoch: 0
                 );
         }

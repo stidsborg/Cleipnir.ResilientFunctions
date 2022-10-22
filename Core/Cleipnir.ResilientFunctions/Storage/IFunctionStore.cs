@@ -33,10 +33,11 @@ public interface IFunctionStore
     Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
-        string scrapbookJson,
-        StoredResult? result,
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook,
+        StoredResult? storedResult,
         string? errorJson,
-        long? postponedUntil,
+        long? postponeUntil,
         int expectedEpoch
     );
 

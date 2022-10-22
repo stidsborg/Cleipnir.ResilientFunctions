@@ -341,13 +341,11 @@ public abstract class PostponedTests
             crashedCheckFrequency: 10,
             version: 2
         ).ShouldBeTrueAsync();
-        await store.SetFunctionState(
+        
+        await store.PostponeFunction(
             functionId,
-            Status.Postponed,
-            scrapbookJson: new RScrapbook().ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: DateTime.UtcNow.Ticks - 1000,
+            postponeUntil: DateTime.UtcNow.Ticks - 1000,
+            new RScrapbook().ToJson(),
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         

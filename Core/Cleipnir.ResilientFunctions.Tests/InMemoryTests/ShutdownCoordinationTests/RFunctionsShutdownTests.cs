@@ -147,17 +147,14 @@ public class RFunctionsShutdownTests
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
-        
-        await store.SetFunctionState(
+
+        await store.PostponeFunction(
             functionId,
-            Status.Postponed,
+            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             scrapbookJson: new RScrapbook().ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
-        
+
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,

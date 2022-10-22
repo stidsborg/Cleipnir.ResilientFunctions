@@ -156,15 +156,7 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
-        await store.SetFunctionState(
-            FunctionId,
-            Status.Executing,
-            scrapbook.ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: null,
-            expectedEpoch: 0
-        ).ShouldBeTrueAsync();
+        await store.SetScrapbook(FunctionId, scrapbook.ToJson(), expectedEpoch: 0).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Scrapbook.ShouldNotBeNull();
@@ -187,15 +179,7 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
-        await store.SetFunctionState(
-            FunctionId,
-            Status.Executing,
-            scrapbook.ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: null,
-            expectedEpoch: 1
-        ).ShouldBeFalseAsync();
+        await store.SetScrapbook(FunctionId, scrapbook.ToJson(), expectedEpoch: 1).ShouldBeFalseAsync();
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
@@ -261,17 +245,14 @@ public abstract class StoreCrudTests
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
-        
-        await store.SetFunctionState(
+
+        await store.SucceedFunction(
             FunctionId,
-            Status.Succeeded,
+            new StoredResult(ResultJson: null, ResultType: null),
             scrapbookJson: new TestScrapbook().ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
-        
+
         await store.DeleteFunction(FunctionId, expectedStatus: Status.Executing).ShouldBeFalseAsync();
         await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
     }
@@ -287,14 +268,11 @@ public abstract class StoreCrudTests
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
-        
-        await store.SetFunctionState(
+
+        await store.SucceedFunction(
             FunctionId,
-            Status.Succeeded,
+            new StoredResult(ResultJson: null, ResultType: null),
             scrapbookJson: new TestScrapbook().ToJson(),
-            result: null,
-            errorJson: null,
-            postponedUntil: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         

@@ -168,7 +168,11 @@ public class MongoDbFunctionStore : IFunctionStore
 
     }
 
-    public async Task<bool> SetFunctionState(FunctionId functionId, Status status, string scrapbookJson, StoredResult? result, string? errorJson, long? postponedUntil, int expectedEpoch)
+    public async Task<bool> SetFunctionState(
+        FunctionId functionId, Status status, 
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        string? errorJson, long? postponeUntil,
+        int expectedEpoch)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -178,11 +182,15 @@ public class MongoDbFunctionStore : IFunctionStore
         var update = Builders<Document>
             .Update
             .Set(d => d.Status, (int) status)
-            .Set(d => d.ScrapbookJson, scrapbookJson)
+            .Set(d => d.ParameterJson, storedParameter.ParamJson)
+            .Set(d => d.ParameterType, storedParameter.ParamType)
+            .Set(d => d.ScrapbookJson, storedScrapbook.ScrapbookJson)
+            .Set(d => d.ScrapbookType, storedScrapbook.ScrapbookType)
+            .Set(d => d.ResultJson, storedResult?.ResultJson)
+            .Set(d => d.ResultType, storedResult?.ResultType)
             .Set(d => d.ErrorJson, errorJson)
-            .Set(d => d.ResultJson, result?.ResultJson)
-            .Set(d => d.ResultType, result?.ResultType)
-            .Set(d => d.PostponedUntil, postponedUntil);
+            .Set(d => d.PostponedUntil, postponeUntil)
+            .Set(d => d.Epoch, expectedEpoch + 1);
 
         var updateResult = await collection.UpdateOneAsync(
             d =>

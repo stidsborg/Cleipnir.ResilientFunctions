@@ -35,9 +35,12 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
         => _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
 
-    public Task<bool> SetFunctionState(FunctionId functionId, Status status, string scrapbookJson, StoredResult? result, string? errorJson, long? postponedUntil, int expectedEpoch)
-        => _inner.SetFunctionState(functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch);
-
+    public Task<bool> SetFunctionState(
+        FunctionId functionId, Status status,
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult,
+        string? errorJson, long? postponeUntil, int expectedEpoch)
+        => _inner.SetFunctionState(functionId, status, storedParameter, storedScrapbook, storedResult, errorJson, postponeUntil, expectedEpoch);
+    
     public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
         => _inner.SetScrapbook(functionId, scrapbookJson, expectedEpoch);
 

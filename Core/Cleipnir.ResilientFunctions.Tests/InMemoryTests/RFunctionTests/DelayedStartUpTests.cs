@@ -79,12 +79,13 @@ public class DelayedStartUpTests
             crashedCheckFrequency: 100,
             version: 0
         );
-        await store.SetFunctionState(
+        await store.PostponeFunction(
             functionId,
-            status: Status.Postponed,
-            scrapbookJson: new RScrapbook().ToJson(), result: null, errorJson: null,
-            postponedUntil: 0, expectedEpoch: 0
-        );
+            postponeUntil: 0,
+            scrapbookJson: new RScrapbook().ToJson(),
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new RFunctions(store, new Settings(
@@ -113,12 +114,13 @@ public class DelayedStartUpTests
             crashedCheckFrequency: 100,
             version: 0
         );
-        await store.SetFunctionState(
+        await store.PostponeFunction(
             functionId,
-            status: Status.Postponed,
-            scrapbookJson: new RScrapbook().ToJson(), result: null, errorJson: null,
-            postponedUntil: 0, expectedEpoch: 0
+            postponeUntil: 0,
+            scrapbookJson: new RScrapbook().ToJson(),
+            expectedEpoch: 0
         );
+
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new RFunctions(store, new Settings(PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)));
