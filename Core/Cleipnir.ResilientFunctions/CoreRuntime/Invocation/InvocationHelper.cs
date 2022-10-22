@@ -152,13 +152,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
             case Outcome.Fail:
-                success = await _functionStore.SetFunctionState(
+                success = await _functionStore.FailFunction(
                     functionId,
-                    Status.Failed,
-                    Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-                    result: null,
                     errorJson: Serializer.SerializeError(result.Fail!.ToError()),
-                    postponedUntil: null,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     expectedEpoch
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
@@ -249,13 +246,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         catch (DeserializationException e)
         {
             runningFunction.Dispose();
-            await _functionStore.SetFunctionState(
+            await _functionStore.FailFunction(
                 functionId,
-                Status.Failed,
-                sf.Scrapbook.ScrapbookJson,
-                sf.Result,
-                Serializer.SerializeError(e.ToError()),
-                postponedUntil: null,
+                errorJson: Serializer.SerializeError(e.ToError()),
+                scrapbookJson: sf.Scrapbook.ScrapbookJson,
                 expectedEpoch: epoch
             );
             throw;
