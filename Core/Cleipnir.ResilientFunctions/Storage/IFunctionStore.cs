@@ -24,17 +24,7 @@ public interface IFunctionStore
         long crashedCheckFrequency,
         int version
     );
-    
-    Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
-        int expectedEpoch, 
-        int newEpoch, 
-        long crashedCheckFrequency,
-        int version,
-        string scrapbookJson
-    );
-    
+
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound);

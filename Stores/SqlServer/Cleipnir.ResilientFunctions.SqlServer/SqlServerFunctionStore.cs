@@ -146,29 +146,6 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch,
-        long crashedCheckFrequency, int version, string scrapbookJson)
-    {
-        await using var conn = await _connFunc();
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET Epoch = @NewEpoch, Status = @NewStatus, CrashedCheckFrequency = @CrashedCheckFrequency, Version = @Version, ScrapbookJson = @ScrapbookJson
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@NewEpoch", newEpoch);
-        command.Parameters.AddWithValue("@NewStatus", newStatus);
-        command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
-        command.Parameters.AddWithValue("@Version", version);
-        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-
     public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {
         await using var conn = await _connFunc();
