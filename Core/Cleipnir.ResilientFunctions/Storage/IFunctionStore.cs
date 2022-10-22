@@ -35,7 +35,7 @@ public interface IFunctionStore
         Status status,
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
-        StoredResult? storedResult,
+        StoredResult storedResult,
         string? errorJson,
         long? postponeUntil,
         int expectedEpoch

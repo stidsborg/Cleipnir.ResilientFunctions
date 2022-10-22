@@ -8,7 +8,7 @@ public record StoredFunction(
     StoredParameter Parameter,
     StoredScrapbook Scrapbook,
     Status Status,
-    StoredResult? Result,
+    StoredResult Result,
     string? ErrorJson,
     long? PostponedUntil,
     int Version,

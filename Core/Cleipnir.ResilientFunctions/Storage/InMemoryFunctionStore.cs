@@ -34,7 +34,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 Epoch = 0,
                 SignOfLife = 0,
                 ErrorJson = null,
-                Result = null,
+                Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = null,
                 CrashedCheckFrequency = crashedCheckFrequency,
                 Version = version
@@ -62,27 +62,7 @@ public class InMemoryFunctionStore : IFunctionStore
             return true.ToTask();
         }
     }
-
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version, string scrapbookJson)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId))
-                return false.ToTask();
-
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch)
-                return false.ToTask();
-
-            state.Epoch = newEpoch;
-            state.Status = newStatus;
-            state.CrashedCheckFrequency = crashedCheckFrequency;
-            state.Version = version;
-            state.Scrapbook =  new StoredScrapbook(scrapbookJson, state.Scrapbook.ScrapbookType!);
-            return true.ToTask();
-        }
-    }
-
+    
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {
         lock (_sync)
@@ -139,7 +119,7 @@ public class InMemoryFunctionStore : IFunctionStore
         Status status, 
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook, 
-        StoredResult? storedResult, 
+        StoredResult storedResult, 
         string? errorJson, 
         long? postponeUntil,
         int expectedEpoch)
@@ -315,7 +295,7 @@ public class InMemoryFunctionStore : IFunctionStore
         public StoredParameter Param { get; set; } = null!;
         public StoredScrapbook Scrapbook { get; set; } = null!;
         public Status Status { get; set; }
-        public StoredResult? Result { get; set; }
+        public StoredResult Result { get; set; } = new StoredResult(ResultJson: null, ResultType: null);
         public string? ErrorJson { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }

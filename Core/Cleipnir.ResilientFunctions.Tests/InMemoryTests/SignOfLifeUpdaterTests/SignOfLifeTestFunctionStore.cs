@@ -37,7 +37,7 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status,
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult,
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult,
         string? errorJson, long? postponeUntil, int expectedEpoch)
         => _inner.SetFunctionState(functionId, status, storedParameter, storedScrapbook, storedResult, errorJson, postponeUntil, expectedEpoch);
     

@@ -220,7 +220,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
         string? errorJson, long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await CreateConnection();
@@ -478,7 +478,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
                 Scrapbook: new StoredScrapbook(reader.GetString(2),reader.GetString(3)),
                 Status: (Status) reader.GetInt32(4),
-                Result: hasResult ? new StoredResult(reader.GetString(5), reader.GetString(6)) : null,
+                Result: new StoredResult(
+                    hasResult ? reader.GetString(5) : null, 
+                    hasResult ? reader.GetString(6) : null
+                ),
                 hasError ? reader.GetString(7) : null,
                 postponedUntil ? reader.GetInt64(8) : null,
                 Version: reader.GetInt32(9),

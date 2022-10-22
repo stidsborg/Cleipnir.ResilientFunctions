@@ -39,7 +39,8 @@ public abstract class StoreCrudTests
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
         stored.Scrapbook.ShouldNotBeNull();
         stored.Scrapbook.ScrapbookType.ShouldBe(typeof(RScrapbook).SimpleQualifiedName());
-        stored.Result.ShouldBeNull();
+        stored.Result.ResultJson.ShouldBeNull();
+        stored.Result.ResultJson.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
@@ -65,7 +66,8 @@ public abstract class StoreCrudTests
         stored.Scrapbook.ShouldNotBeNull();
         stored.Scrapbook.ScrapbookJson.ShouldNotBeNull();
         stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-        stored.Result.ShouldBeNull();
+        stored.Result.ResultJson.ShouldBeNull();
+        stored.Result.ResultType.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
@@ -91,7 +93,8 @@ public abstract class StoreCrudTests
         stored.Scrapbook.ShouldNotBeNull();
         stored.Scrapbook.ScrapbookJson.ShouldNotBeNull();
         stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-        stored.Result.ShouldBeNull();
+        stored.Result.ResultJson.ShouldBeNull();
+        stored.Result.ResultType.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);

@@ -234,7 +234,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        StoredScrapbook storedScrapbook, StoredResult storedResult, 
         string? errorJson, long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await _connFunc();
@@ -471,7 +471,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     new StoredParameter(paramJson, paramType),
                     new StoredScrapbook(scrapbookJson, scrapbookType),
                     status,
-                    resultType == null ? null : new StoredResult(resultJson, resultType),
+                    new StoredResult(resultJson, resultType),
                     errorJson,
                     postponedUntil,
                     version,

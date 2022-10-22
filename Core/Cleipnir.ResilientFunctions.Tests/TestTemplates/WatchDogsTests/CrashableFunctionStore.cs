@@ -62,7 +62,7 @@ public class CrashableFunctionStore : IFunctionStore
             : _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
 
     public Task<bool> SetFunctionState(FunctionId functionId, Status status, StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        StoredScrapbook storedScrapbook, StoredResult storedResult, 
         string? errorJson, long? postponeUntil, int expectedEpoch) 
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

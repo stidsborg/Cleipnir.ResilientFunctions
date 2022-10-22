@@ -170,7 +170,7 @@ public class MongoDbFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult? storedResult, 
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
         string? errorJson, long? postponeUntil,
         int expectedEpoch)
     {
@@ -390,7 +390,7 @@ public class MongoDbFunctionStore : IFunctionStore
             new StoredParameter(document.ParameterJson, document.ParameterType),
             new StoredScrapbook(document.ScrapbookJson, document.ScrapbookType),
             (Status) document.Status,
-            document.ResultType == null ? null : new StoredResult(document.ResultJson, document.ResultType),
+            new StoredResult(document.ResultJson, document.ResultType),
             document.ErrorJson,
             document.PostponedUntil,
             document.Version,
