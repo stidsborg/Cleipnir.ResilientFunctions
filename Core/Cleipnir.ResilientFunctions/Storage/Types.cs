@@ -26,7 +26,8 @@ public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
 
 internal static class StorageTypeExtensions
 {
-    public static TParam Deserialize<TParam>(this StoredParameter parameter, ISerializer serializer)
+    public static TParam Deserialize<TParam>(this StoredParameter parameter, ISerializer serializer) 
+        where TParam : notnull 
         => serializer.DeserializeParameter<TParam>(parameter.ParamJson, parameter.ParamType);
         
     public static TScrapbook Deserialize<TScrapbook>(this StoredScrapbook scrapbook, ISerializer serializer)
