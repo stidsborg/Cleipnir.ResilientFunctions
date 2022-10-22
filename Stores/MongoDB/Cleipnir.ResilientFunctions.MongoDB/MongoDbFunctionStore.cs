@@ -288,6 +288,32 @@ public class MongoDbFunctionStore : IFunctionStore
         return true;
     }
 
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
+    {
+        var functionTypeId = functionId.TypeId.Value;
+        var functionInstanceId = functionId.InstanceId.Value;
+
+        var collection = GetCollection();
+
+        var update = Builders<Document>
+            .Update
+            .Set(d => d.Status, (int)Status.Succeeded)
+            .Set(d => d.ResultJson, result.ResultJson)
+            .Set(d => d.ResultType, result.ResultType)
+            .Set(d => d.ScrapbookJson, scrapbookJson);
+
+        var updateResult = await collection.UpdateOneAsync(
+            d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId &&
+                d.Epoch == expectedEpoch,
+            update
+        );
+
+        var modified = updateResult.MatchedCount;
+        return modified == 1;
+    }
+
     public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
     {
         var functionTypeId = functionId.TypeId.Value;

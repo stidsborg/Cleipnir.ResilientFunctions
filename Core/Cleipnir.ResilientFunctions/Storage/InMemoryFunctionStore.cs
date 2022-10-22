@@ -195,6 +195,23 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
+    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+            
+            state.Status = Status.Succeeded;
+            state.Result = result;
+            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            
+            return true.ToTask();
+        }
+    }
+
     public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
     {
         lock (_sync)

@@ -131,13 +131,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         switch (result.Outcome)
         {
             case Outcome.Succeed:
-                var success = await _functionStore.SetFunctionState(
+                var success = await _functionStore.SucceedFunction(
                     functionId,
-                    Status.Succeeded,
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
-                    errorJson: null,
-                    postponedUntil: null,
+                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     expectedEpoch
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);

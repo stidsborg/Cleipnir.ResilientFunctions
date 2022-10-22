@@ -48,8 +48,9 @@ public interface IFunctionStore
         int expectedEpoch
     );
 
+    Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch);
     Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch);
-    
+
     Task<StoredFunction?> GetFunction(FunctionId functionId);
 
     Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null);

@@ -357,6 +357,33 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, scrapbook_json = $3
+            WHERE 
+                function_type_id = $4 AND 
+                function_instance_id = $5 AND 
+                epoch = $6";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = result?.ResultJson ?? (object) DBNull.Value},
+                new() {Value = result?.ResultType ?? (object) DBNull.Value},
+                new() { Value = scrapbookJson },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
     {
         await using var conn = await CreateConnection();
