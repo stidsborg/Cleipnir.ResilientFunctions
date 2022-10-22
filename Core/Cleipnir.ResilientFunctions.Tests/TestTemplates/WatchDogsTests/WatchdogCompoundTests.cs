@@ -55,9 +55,7 @@ public abstract class WatchdogCompoundTests
             //second invocation is delayed
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var afterNextSetFunctionState = crashableStore
-                .AfterSetFunctionStateStream
-                .Take(1);
+            var afterNextSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
 
             using var rFunctions = new RFunctions(
                 crashableStore,
@@ -172,10 +170,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
-            var afterNextPostponedSetFunctionState = crashableStore
-                .AfterSetFunctionStateStream
-                .Where(p => p.PostponedUntil != null)
-                .Take(1);
+            var afterNextPostponedSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
 
             using var rFunctions = new RFunctions(
                 crashableStore,
@@ -303,9 +298,7 @@ public abstract class WatchdogCompoundTests
         {
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var afterSetFunctionState = crashableStore
-                .AfterSetFunctionStateStream
-                .Take(1);
+            var afterSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
             
             using var rFunctions = new RFunctions(
                 crashableStore,
@@ -427,10 +420,7 @@ public abstract class WatchdogCompoundTests
             //second invocation is delayed
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var afterNextPostponed = crashableStore
-                .AfterSetFunctionStateStream
-                .Where(p => p.PostponedUntil != null)
-                .Take(1);
+            var afterNextPostponed = crashableStore.AfterPostponeFunctionStream.Take(1);
 
             using var rFunctions = new RFunctions(
                 crashableStore,

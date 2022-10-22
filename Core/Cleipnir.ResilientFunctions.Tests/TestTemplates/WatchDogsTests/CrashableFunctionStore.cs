@@ -13,14 +13,13 @@ public class CrashableFunctionStore : IFunctionStore
     private volatile bool _crashed;
 
     private readonly object _sync = new();
-    private readonly Subject<SetFunctionStateParams> _subject = new();
-
-    public IObservable<SetFunctionStateParams> AfterSetFunctionStateStream
+    private readonly Subject<long> _afterPostponeFunctionSubject = new();
+    public IObservable<long> AfterPostponeFunctionStream
     {
         get
         {
             lock (_sync)
-                return _subject;
+                return _afterPostponeFunctionSubject;
         }
     }
 
@@ -72,21 +71,17 @@ public class CrashableFunctionStore : IFunctionStore
         int ExpectedEpoch
     );
     
-    public async Task<bool> SetFunctionState(
+    public Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
         string scrapbookJson,
         StoredResult? result,
         string? errorJson,
         long? postponedUntil,
-        int expectedEpoch
-    )
-    {
-        if (_crashed)
-            throw new TimeoutException();
-
-        var success = await _inner
-            .SetFunctionState(
+        int expectedEpoch)
+        => _crashed
+            ? Task.FromException<bool>(new TimeoutException())
+            : _inner.SetFunctionState(
                 functionId,
                 status,
                 scrapbookJson,
@@ -95,17 +90,6 @@ public class CrashableFunctionStore : IFunctionStore
                 postponedUntil,
                 expectedEpoch
             );
-
-        Subject<SetFunctionStateParams> subject;
-        lock (_sync)
-            subject = _subject;
-        
-        subject.OnNext(new SetFunctionStateParams(
-            functionId, status, scrapbookJson, result, errorJson, postponedUntil, expectedEpoch
-        ));
-
-        return success;
-    }
 
     public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
         => _crashed
@@ -123,9 +107,14 @@ public class CrashableFunctionStore : IFunctionStore
             : _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch);
 
     public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch);
+    {
+        if (_crashed)
+            return Task.FromException<bool>(new TimeoutException());
+                
+        var success = _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch);
+        _afterPostponeFunctionSubject.OnNext(postponeUntil);
+        return success;
+    }
 
     public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
         => _crashed
