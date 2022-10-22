@@ -33,7 +33,7 @@ public abstract class SunshineEntityMethodTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                DependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
+                dependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
             )
         );
 
@@ -81,7 +81,7 @@ public abstract class SunshineEntityMethodTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            new Settings(unhandledExceptionHandler.Catch, DependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
+            new Settings(unhandledExceptionHandler.Catch, dependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
         );
         
         var rFunc = rFunctions
@@ -122,7 +122,7 @@ public abstract class SunshineEntityMethodTests
 
         using var rFunctions = new RFunctions(
             store,
-            new Settings(unhandledExceptionHandler.Catch, DependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
+            new Settings(unhandledExceptionHandler.Catch, dependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
         );
         var rAction = rFunctions
             .RegisterMethod<Entity>()
@@ -160,7 +160,7 @@ public abstract class SunshineEntityMethodTests
 
         using var rFunctions = new RFunctions(
             store,
-            new Settings(unhandledExceptionHandler.Catch, DependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
+            new Settings(unhandledExceptionHandler.Catch, dependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
         );
         var rFunc = rFunctions
             .RegisterMethod<Entity>()
@@ -206,7 +206,7 @@ public abstract class SunshineEntityMethodTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                DependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
+                dependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
             )
         );
 
@@ -256,7 +256,7 @@ public abstract class SunshineEntityMethodTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
             store,
-            new Settings(unhandledExceptionHandler.Catch, DependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
+            new Settings(unhandledExceptionHandler.Catch, dependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
         );
         
         var rFunc = rFunctions
@@ -299,7 +299,7 @@ public abstract class SunshineEntityMethodTests
 
         using var rFunctions = new RFunctions(
             store,
-            new Settings(unhandledExceptionHandler.Catch, DependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
+            new Settings(unhandledExceptionHandler.Catch, dependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
         );
         var rAction = rFunctions
             .RegisterMethod<Entity>()
@@ -340,7 +340,7 @@ public abstract class SunshineEntityMethodTests
 
         using var rFunctions = new RFunctions(
             store,
-            new Settings(unhandledExceptionHandler.Catch, DependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
+            new Settings(unhandledExceptionHandler.Catch, dependencyResolver: new FuncDependencyResolver(_ => constructedEntity))
         );
         var rFunc = rFunctions
             .RegisterMethod<Entity>()

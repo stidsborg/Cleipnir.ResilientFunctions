@@ -38,7 +38,7 @@ public class RFuncWithScrapbookRegistrationTests
                 _functionTypeId,
                 InnerFunc,
                 version: 0,
-                new Settings(Serializer: serializer)
+                new Settings(serializer: serializer)
             )
             .Invoke;
 

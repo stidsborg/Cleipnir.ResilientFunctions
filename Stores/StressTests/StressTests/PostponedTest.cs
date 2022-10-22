@@ -45,8 +45,8 @@ public static class PostponedTest
         using var rFunctions1 = new RFunctions(
             store,
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                PostponedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: Console.WriteLine,
+                postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         rFunctions1.RegisterFunc(
@@ -57,8 +57,8 @@ public static class PostponedTest
         using var rFunctions2 = new RFunctions(
             store,
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                PostponedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: Console.WriteLine,
+                postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         rFunctions2.RegisterFunc(

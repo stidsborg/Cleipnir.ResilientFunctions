@@ -37,7 +37,7 @@ public class RActionWithScrapbookRegistrationTests
                 _functionTypeId,
                 InnerAction,
                 version: 0,
-                new Settings(Serializer: serializer)
+                new Settings(serializer: serializer)
             )
             .Invoke;
 

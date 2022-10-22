@@ -57,9 +57,9 @@ public static class MixingTest
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                CrashedCheckFrequency: TimeSpan.FromSeconds(1),
-                PostponedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: Console.WriteLine,
+                crashedCheckFrequency: TimeSpan.FromSeconds(1),
+                postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         var _ = rFunctions.RegisterAction(
@@ -70,9 +70,9 @@ public static class MixingTest
         using var rFunctions2 = new RFunctions(
             store,
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                CrashedCheckFrequency: TimeSpan.FromSeconds(1),
-                PostponedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: Console.WriteLine,
+                crashedCheckFrequency: TimeSpan.FromSeconds(1),
+                postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         _ = rFunctions2.RegisterAction(

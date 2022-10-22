@@ -38,8 +38,8 @@ public abstract class FailedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero,
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        crashedCheckFrequency: TimeSpan.Zero,
+                        postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterAction(
@@ -60,8 +60,8 @@ public abstract class FailedTests
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
             var rFunc = rFunctions.RegisterFunc(
@@ -107,8 +107,8 @@ public abstract class FailedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                        PostponedCheckFrequency: TimeSpan.FromMilliseconds(0)
+                        crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                        postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
                     )
                 )
                 .RegisterAction(
@@ -128,8 +128,8 @@ public abstract class FailedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                        PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                        crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                        postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                     )
                 );
             var rAction = rFunctions.RegisterAction(functionTypeId,
@@ -169,8 +169,8 @@ public abstract class FailedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                        PostponedCheckFrequency: TimeSpan.FromMilliseconds(0)
+                        crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                        postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
                     )
                 )
                 .RegisterAction(
@@ -187,8 +187,8 @@ public abstract class FailedTests
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                    PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
             var rFunc = rFunctions
@@ -221,8 +221,8 @@ public abstract class FailedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(2),
-                PostponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
             )
         );
         var rFunc = rFunctions
@@ -259,7 +259,7 @@ public abstract class FailedTests
         const string param = "test";
         {
             var nonCompletingRFunctions = new RFunctions
-                (store, new Settings(unhandledExceptionHandler.Catch, CrashedCheckFrequency: TimeSpan.Zero))
+                (store, new Settings(unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero))
                 .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) => 
@@ -274,7 +274,7 @@ public abstract class FailedTests
             var flag = new SyncedFlag();
             using var rFunctions = new RFunctions(
                 store,
-                new Settings(unhandledExceptionHandler.Catch, CrashedCheckFrequency: TimeSpan.FromMilliseconds(2))
+                new Settings(unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.FromMilliseconds(2))
             );
             var rFunc = rFunctions.RegisterAction(
                 functionTypeId,

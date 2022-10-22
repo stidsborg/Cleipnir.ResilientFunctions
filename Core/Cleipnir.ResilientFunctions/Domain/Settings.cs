@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 
-namespace Cleipnir.ResilientFunctions;
+namespace Cleipnir.ResilientFunctions.Domain;
 
 public class Settings
 {
@@ -18,20 +18,20 @@ public class Settings
     internal ISerializer? Serializer { get; }
     internal IDependencyResolver? DependencyResolver { get; }
     
-    private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares = new();
+    private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares;
     internal IReadOnlyList<MiddlewareInstanceOrResolverFunc> Middlewares => _middlewares;
 
     public Settings(
-        Action<RFunctionException>? UnhandledExceptionHandler = null, 
-        TimeSpan? CrashedCheckFrequency = null, 
-        TimeSpan? PostponedCheckFrequency = null, 
-        TimeSpan? DelayStartup = null, 
-        int? MaxParallelRetryInvocations = null, 
-        ISerializer? Serializer = null, 
-        IDependencyResolver? DependencyResolver = null
+        Action<RFunctionException>? unhandledExceptionHandler = null, 
+        TimeSpan? crashedCheckFrequency = null, 
+        TimeSpan? postponedCheckFrequency = null, 
+        TimeSpan? delayStartup = null, 
+        int? maxParallelRetryInvocations = null, 
+        ISerializer? serializer = null, 
+        IDependencyResolver? dependencyResolver = null
     ) :this(
-        UnhandledExceptionHandler, CrashedCheckFrequency, PostponedCheckFrequency, DelayStartup, 
-        MaxParallelRetryInvocations, Serializer, DependencyResolver, 
+        unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency, delayStartup, 
+        maxParallelRetryInvocations, serializer, dependencyResolver, 
         middlewares: new List<MiddlewareInstanceOrResolverFunc>()
     ) { }
 

@@ -34,8 +34,8 @@ public class SerializationTests
         using var rFunctions = new RFunctions(
             store, 
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(1),
-                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(1),
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
 
@@ -50,7 +50,7 @@ public class SerializationTests
                     return Task.CompletedTask;
                 },
                 version: 0,
-                new Settings(Serializer: serializer)
+                new Settings(serializer: serializer)
             );
 
         await flag.WaitForRaised();

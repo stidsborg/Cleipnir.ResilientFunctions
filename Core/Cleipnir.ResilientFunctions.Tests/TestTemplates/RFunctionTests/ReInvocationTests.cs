@@ -25,8 +25,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
         var syncedParameter = new Synced<string>();
@@ -72,8 +72,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -129,8 +129,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -180,8 +180,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -346,8 +346,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -391,8 +391,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -448,8 +448,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -477,8 +477,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -506,8 +506,8 @@ public abstract class ReInvocationTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    CrashedCheckFrequency: TimeSpan.Zero,
-                    PostponedCheckFrequency: TimeSpan.Zero
+                    crashedCheckFrequency: TimeSpan.Zero,
+                    postponedCheckFrequency: TimeSpan.Zero
                 )
             );
 
@@ -524,8 +524,8 @@ public abstract class ReInvocationTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    CrashedCheckFrequency: TimeSpan.Zero,
-                    PostponedCheckFrequency: TimeSpan.Zero
+                    crashedCheckFrequency: TimeSpan.Zero,
+                    postponedCheckFrequency: TimeSpan.Zero
                 )
             );
 
@@ -558,8 +558,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -598,8 +598,8 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.Zero,
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
 

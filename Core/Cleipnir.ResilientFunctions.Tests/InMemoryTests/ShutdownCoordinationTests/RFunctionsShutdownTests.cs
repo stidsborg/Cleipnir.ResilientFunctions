@@ -21,8 +21,8 @@ public class RFunctionsShutdownTests
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -63,8 +63,8 @@ public class RFunctionsShutdownTests
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -106,8 +106,8 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -160,8 +160,8 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -199,8 +199,8 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 

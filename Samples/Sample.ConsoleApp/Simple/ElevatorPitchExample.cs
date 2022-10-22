@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Serilog;
 
@@ -19,10 +20,10 @@ public static class ElevatorPitchExample
         var rFunctions = new RFunctions( //this is where you register different resilient function types
             store,
             new Settings(
-                UnhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
+                unhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
                 e => Log.Error(e, "Resilient Function Framework exception occured"),
-                CrashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
-                PostponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
+                crashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
+                postponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
             )
         );
 

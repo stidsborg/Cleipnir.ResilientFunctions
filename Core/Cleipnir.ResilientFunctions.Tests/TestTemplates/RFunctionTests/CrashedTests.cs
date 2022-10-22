@@ -24,8 +24,8 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        crashedCheckFrequency: TimeSpan.Zero, 
+                        postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterFunc(
@@ -40,7 +40,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
 
@@ -79,8 +79,8 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        crashedCheckFrequency: TimeSpan.Zero, 
+                        postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterFunc(
@@ -95,7 +95,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
 
@@ -142,8 +142,8 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        crashedCheckFrequency: TimeSpan.Zero, 
+                        postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterAction(
@@ -159,7 +159,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
 
@@ -199,8 +199,8 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        CrashedCheckFrequency: TimeSpan.Zero, 
-                        PostponedCheckFrequency: TimeSpan.Zero
+                        crashedCheckFrequency: TimeSpan.Zero, 
+                        postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterAction(
@@ -215,7 +215,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    CrashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
 
@@ -270,8 +270,8 @@ public abstract class CrashedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.Zero
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                postponedCheckFrequency: TimeSpan.Zero
             )
         );
         rFunctions.RegisterAction(functionId.TypeId, (string _) => { });

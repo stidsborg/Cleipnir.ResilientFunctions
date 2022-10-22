@@ -18,7 +18,7 @@ public static class Example
         
         var functions = new RFunctions(
             store,
-            new Settings(UnhandledExceptionHandler: Console.WriteLine).UseMiddleware(new Middleware())
+            new Settings(unhandledExceptionHandler: Console.WriteLine).UseMiddleware(new Middleware())
         );
 
         var rAction = functions

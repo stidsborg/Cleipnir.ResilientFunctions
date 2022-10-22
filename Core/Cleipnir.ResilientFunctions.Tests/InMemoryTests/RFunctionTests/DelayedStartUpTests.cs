@@ -29,8 +29,8 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new RFunctions(store, new Settings(
-            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-            DelayStartup: TimeSpan.FromSeconds(1))
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+            delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
             functionId.TypeId,
@@ -56,7 +56,7 @@ public class DelayedStartUpTests
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        using var rFunctions = new RFunctions(store, new Settings(CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => { }
@@ -89,8 +89,8 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new RFunctions(store, new Settings(
-            PostponedCheckFrequency: TimeSpan.FromMilliseconds(10),
-            DelayStartup: TimeSpan.FromSeconds(1))
+            postponedCheckFrequency: TimeSpan.FromMilliseconds(10),
+            delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
             functionId.TypeId,
@@ -123,7 +123,7 @@ public class DelayedStartUpTests
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        using var rFunctions = new RFunctions(store, new Settings(PostponedCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => { }

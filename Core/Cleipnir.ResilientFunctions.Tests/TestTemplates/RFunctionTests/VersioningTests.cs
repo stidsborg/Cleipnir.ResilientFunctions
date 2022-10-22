@@ -19,8 +19,8 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
-                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
         var functionId = new FunctionId(
@@ -60,8 +60,8 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
-                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
         var functionId = new FunctionId(nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown), "v1");
@@ -101,8 +101,8 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
-                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
         var functionId = new FunctionId(nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown), "v1");
@@ -144,8 +144,8 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
-                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
         
@@ -197,8 +197,8 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
-                UnhandledExceptionHandler: unhandledExceptionCatcher.Catch
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
         var functionId = new FunctionId(

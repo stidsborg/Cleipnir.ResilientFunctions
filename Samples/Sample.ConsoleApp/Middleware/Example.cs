@@ -16,7 +16,7 @@ public static class Example
         
         var functions = new RFunctions(
             store,
-            new Settings(UnhandledExceptionHandler: Console.WriteLine)
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
 
         var rAction = functions

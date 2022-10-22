@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -23,7 +24,7 @@ public static class BrandExample
         using var rFunctions = new RFunctions(
             crashableStore, 
             new Settings(
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
 
@@ -47,8 +48,8 @@ public static class BrandExample
         using var rFunctions = new RFunctions(
             Store, 
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                unhandledExceptionHandler: Console.WriteLine,
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
 

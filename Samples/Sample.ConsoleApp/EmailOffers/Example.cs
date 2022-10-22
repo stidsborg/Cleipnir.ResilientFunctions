@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace ConsoleApp.EmailOffers;
@@ -13,7 +14,7 @@ public static class Example
         
         var functions = new RFunctions(
             store,
-            new Settings(UnhandledExceptionHandler: Console.WriteLine)
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
 
         var rAction = functions

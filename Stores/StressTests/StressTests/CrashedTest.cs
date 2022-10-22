@@ -40,8 +40,8 @@ public static class CrashedTest
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                CrashedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: Console.WriteLine,
+                crashedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         var _ = rFunctions.RegisterAction(
@@ -52,8 +52,8 @@ public static class CrashedTest
         using var rFunctions2 = new RFunctions(
             store,
             new Settings(
-                UnhandledExceptionHandler: Console.WriteLine,
-                CrashedCheckFrequency: TimeSpan.FromSeconds(1)
+                unhandledExceptionHandler: Console.WriteLine,
+                crashedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         _ = rFunctions2.RegisterAction(

@@ -34,7 +34,7 @@ public class SignOfLifeUpdaterTests
         
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
         );
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
@@ -70,7 +70,7 @@ public class SignOfLifeUpdaterTests
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
         );
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
@@ -99,7 +99,7 @@ public class SignOfLifeUpdaterTests
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            CrashedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
         );
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
