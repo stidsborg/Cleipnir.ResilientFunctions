@@ -323,7 +323,7 @@ public class MongoDbFunctionStore : IFunctionStore
 
         var update = Builders<Document>
             .Update
-            .Set(d => d.Status, (int)Status.Failed)
+            .Set(d => d.Status, (int)Status.Postponed)
             .Set(d => d.PostponedUntil, postponeUntil)
             .Set(d => d.ScrapbookJson, scrapbookJson);
 
