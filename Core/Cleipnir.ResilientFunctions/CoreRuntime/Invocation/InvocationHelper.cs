@@ -112,13 +112,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     
     public async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch)
     {
-        var success = await _functionStore.SetFunctionState(
+        var success = await _functionStore.FailFunction(
             functionId,
-            Status.Failed,
-            Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-            result: null,
             errorJson: Serializer.SerializeError(exception.ToError()),
-            postponedUntil: null,
+            Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
             expectedEpoch
         );
         if (!success) 

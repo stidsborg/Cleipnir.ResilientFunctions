@@ -359,6 +359,28 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
+    public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    {
+        await using var conn = await _connFunc();
+        
+        var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET Status = {(int) Status.Failed}, ErrorJson = @ErrorJson, ScrapbookJson = @ScrapbookJson
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@ErrorJson", errorJson);
+        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await _connFunc();

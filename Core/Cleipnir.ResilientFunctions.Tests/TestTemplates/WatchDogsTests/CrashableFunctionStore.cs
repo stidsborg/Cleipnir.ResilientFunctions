@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -117,6 +116,11 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(functionId, storedParameter, storedScrapbook, expectedEpoch);
+
+    public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+        => _crashed
+            ? Task.FromException<bool>(new TimeoutException())
+            : _inner.FailFunction(functionId, errorJson, scrapbookJson, expectedEpoch);
 
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _crashed

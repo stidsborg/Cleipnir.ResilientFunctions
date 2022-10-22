@@ -44,6 +44,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
         => _inner.SetParameters(functionId, storedParameter, storedScrapbook, expectedEpoch);
 
+    public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+        => _inner.FailFunction(functionId, errorJson, scrapbookJson, expectedEpoch);
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _inner.GetFunction(functionId);
 
