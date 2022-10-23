@@ -437,13 +437,13 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(functionTypeId, invocationHelper);
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
-                functionTypeId,
-                invocationHelper,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvocation,
-                rFuncInvoker.ScheduleReInvoke
+                rFuncInvoker.ScheduleReInvoke,
+                controlPanelFactory
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, status, epoch) => rFuncInvoker.ReInvoke(id, status, epoch);
@@ -607,13 +607,13 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(functionTypeId, invocationHelper);
             var registration = new RAction<TParam, TScrapbook>(
-                functionTypeId,
-                invocationHelper,
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
                 rActionInvoker.ScheduleInvocation,
-                rActionInvoker.ScheduleReInvoke
+                rActionInvoker.ScheduleReInvoke,
+                controlPanelFactory
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, status, epoch) => rActionInvoker.ReInvoke(id, status, epoch);
@@ -687,13 +687,13 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(functionTypeId, invocationHelper);
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
-                functionTypeId,
-                invocationHelper,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvocation,
-                rFuncInvoker.ScheduleReInvoke
+                rFuncInvoker.ScheduleReInvoke,
+                controlPanelFactory
             );
             _functions[functionTypeId] = registration;
             return registration;
@@ -744,13 +744,13 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(functionTypeId, invocationHelper);
             var registration = new RAction<TParam, TScrapbook>(
-                functionTypeId,
-                invocationHelper,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvocation,
-                rFuncInvoker.ScheduleReInvoke
+                rFuncInvoker.ScheduleReInvoke,
+                controlPanelFactory
             );
             _functions[functionTypeId] = registration;
             return registration;

@@ -123,7 +123,7 @@ public abstract class WatchdogCompoundTests
             );
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.DefaultDeserialize()!.CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
+            storedFunction!.Result.DefaultDeserialize()!.CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
 
@@ -247,7 +247,7 @@ public abstract class WatchdogCompoundTests
             );
 
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.DefaultDeserialize()!
+            storedFunction!.Result.DefaultDeserialize()!
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
             storedFunction.Scrapbook.DefaultDeserialize()
@@ -374,7 +374,7 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
+            storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
         }
     }
 
@@ -504,7 +504,7 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result!.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
+            storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
             storedFunction.Scrapbook.DefaultDeserialize()
                 .CastTo<Scrapbook>()
                 .Scraps

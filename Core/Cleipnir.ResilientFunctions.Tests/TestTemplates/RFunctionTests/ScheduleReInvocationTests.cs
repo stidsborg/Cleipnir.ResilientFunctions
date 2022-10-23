@@ -102,13 +102,10 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-
-        await rAction.Admin.UpdateScrapbook(functionInstanceId: "something", scrapbook =>
-        {
-            syncedListFromScrapbook.Value = new List<string>(scrapbook.List);
-            scrapbook.List.Clear();
-            return scrapbook;
-        });
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
+        controlPanel.Scrapbook.List.Clear();
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
         
         await rAction.ScheduleReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: null); 
         
@@ -172,7 +169,7 @@ public abstract class ScheduleReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -212,17 +209,11 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
         var scrapbookList = new Synced<List<string>>();
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        scrapbookList.Value = new List<string>(controlPanel.Scrapbook.List);
+        controlPanel.Scrapbook.List.Clear();
+        await controlPanel.SaveParameterAndScrapbook();
 
-        await rFunc.Admin.UpdateScrapbook(
-            functionInstanceId: "something",
-            scrapbook =>
-            {
-                scrapbookList.Value = new List<string>(scrapbook.List);
-                scrapbook.List.Clear();
-                return scrapbook;
-            }
-        );
-        
         await rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: null);
 
         var functionId = new FunctionId(functionType, "something");
@@ -232,7 +223,7 @@ public abstract class ScheduleReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
         

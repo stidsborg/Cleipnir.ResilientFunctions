@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions;
@@ -32,7 +31,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.ReInvoke<TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
-    public RAdmin<TParam, RScrapbook, TReturn> Admin { get; }
+    public ControlPanelFactory<TParam, RScrapbook, TReturn> ControlPanel { get; }
 
     internal RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
     {
@@ -40,7 +39,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
         ReInvoke = rFunc.ReInvoke;
         Schedule = rFunc.Schedule;
         ScheduleReInvoke = rFunc.ScheduleReInvoke;
-        Admin = rFunc.Admin;
+        ControlPanel = rFunc.ControlPanel;
     }
 }
 
@@ -50,21 +49,20 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public RFunc.ReInvoke<TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
-    public RAdmin<TParam, TScrapbook, TReturn> Admin { get; }
+    public ControlPanelFactory<TParam, TScrapbook, TReturn> ControlPanel { get; }
 
     internal RFunc(
-        FunctionTypeId functionTypeId,
-        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         RFunc.Invoke<TParam, TScrapbook, TReturn> invoke, 
         RFunc.ReInvoke<TReturn> reInvoke, 
         RFunc.Schedule<TParam, TScrapbook> schedule, 
-        RFunc.ScheduleReInvoke scheduleReInvoke)
+        RFunc.ScheduleReInvoke scheduleReInvoke,
+        ControlPanelFactory<TParam, TScrapbook, TReturn> controlPanel)
     {
         Invoke = invoke;
         ReInvoke = reInvoke;
         Schedule = schedule;
         ScheduleReInvoke = scheduleReInvoke;
 
-        Admin = new RAdmin<TParam, TScrapbook, TReturn>(functionTypeId, invocationHelper);
+        ControlPanel = controlPanel;
     }
 }

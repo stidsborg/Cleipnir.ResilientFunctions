@@ -21,7 +21,10 @@ public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, 
 public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);
 
 public record StoredParameter(string ParamJson, string ParamType);
-public record StoredResult(string? ResultJson, string? ResultType);
+public record StoredResult(string? ResultJson, string? ResultType)
+{
+    public static StoredResult Null { get; } = new(ResultJson: null, ResultType: null);
+};
 public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
 
 internal static class StorageTypeExtensions

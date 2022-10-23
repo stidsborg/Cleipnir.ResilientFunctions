@@ -139,6 +139,7 @@ public class InMemoryFunctionStore : IFunctionStore
             state.Result = storedResult;
             state.ErrorJson = errorJson;
             state.PostponeUntil = postponeUntil;
+            state.Epoch += 1;
 
             return true.ToTask();
         }

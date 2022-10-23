@@ -185,25 +185,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(
         FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch
-    )
-    {
-        var (param, epoch, scrapbook, runningFunction) = await PrepareForReInvocation(
-            functionId,
-            expectedStatuses,
-            expectedEpoch,
-            hasScrapbook: true
-        );
-        return new PreparedReInvocation(
-            param,
-            epoch, 
-            scrapbook,
-            runningFunction
-        );
-    }
-
-    private async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch, 
-        bool hasScrapbook
     ) 
     {
         expectedStatuses = expectedStatuses.ToList();
@@ -266,51 +247,79 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
         => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
 
-    public async Task UpdateScrapbook(FunctionId functionId, Func<TScrapbook, Task<TScrapbook>> updater)
+    public async Task<bool> SetFunctionState(
+        FunctionId functionId,
+        Status status,
+        TParam param,
+        TScrapbook scrapbook,
+        DateTime? postponeUntil,
+        Exception? exception,
+        int expectedEpoch
+    )
     {
         var serializer = _settings.Serializer;
-        var sf = await _functionStore.GetFunction(functionId);
-        
-        if (sf == null)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
-        if (sf.Status != Status.Failed)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' had status: '{sf.Status}' but must have failed");
-
-        var scrapbook = serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType);
-        var updatedScrapbook = await updater(scrapbook);
-        var storedScrapbook = serializer.SerializeScrapbook(updatedScrapbook);
-        var success = await _functionStore.SetParameters(
+        return await _functionStore.SetFunctionState(
             functionId,
-            storedParameter: null,
-            storedScrapbook,
-            expectedEpoch: sf.Epoch
+            status,
+            storedParameter: serializer.SerializeParameter(param),
+            storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            storedResult: StoredResult.Null,
+            exception == null ? null : serializer.SerializeError(exception.ToError()),
+            postponeUntil?.Ticks,
+            expectedEpoch
         );
-
-        if (!success)
-            throw new ConcurrentModificationException(functionId);
     }
     
-    public async Task UpdateParameter(FunctionId functionId, Func<TParam, Task<TParam>> updater)
+    public async Task<bool> SetFunctionState(
+        FunctionId functionId,
+        Status status,
+        TParam param,
+        TScrapbook scrapbook,
+        TReturn? result,
+        DateTime? postponeUntil,
+        Exception? exception,
+        int expectedEpoch
+    )
     {
         var serializer = _settings.Serializer;
-        var sf = await _functionStore.GetFunction(functionId);
-        
-        if (sf == null)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
-        if (sf.Status != Status.Failed)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' had status: '{sf.Status}' but must have failed");
-
-        var parameter = serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-        var updatedParam = await updater(parameter);
-        var storedParameter = serializer.SerializeParameter(updatedParam);
-        var success = await _functionStore.SetParameters(
+        return await _functionStore.SetFunctionState(
             functionId,
-            storedParameter,
-            storedScrapbook: null,
-            expectedEpoch: sf.Epoch
+            status,
+            storedParameter: serializer.SerializeParameter(param),
+            storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
+            exception == null ? null : serializer.SerializeError(exception.ToError()),
+            postponeUntil?.Ticks,
+            expectedEpoch
         );
+    }
+
+    public async Task<bool> Delete(FunctionId functionId, int expectedEpoch)
+        => await _functionStore.DeleteFunction(functionId, expectedEpoch);
+
+    public async Task<FunctionState<TParam, TScrapbook, TReturn>?> GetFunction(FunctionId functionId)
+    {
+        var serializer = _settings.Serializer;
         
-        if (!success)
-            throw new ConcurrentModificationException(functionId);
+        var sf = await _functionStore.GetFunction(functionId);
+        if (sf == null) 
+            return null;
+
+        return new FunctionState<TParam, TScrapbook, TReturn>(
+            functionId,
+            sf.Status,
+            sf.Epoch,
+            sf.Version,
+            sf.CrashedCheckFrequency, 
+            Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
+            Scrapbook: serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType),
+            Result: sf.Result.ResultType == null 
+                ? default 
+                : serializer.DeserializeResult<TReturn>(sf.Result.ResultJson!, sf.Result.ResultType),
+            PostponedUntil: sf.PostponedUntil == null ? null : new DateTime(sf.PostponedUntil.Value),
+            Error: sf.ErrorJson == null 
+                ? null 
+                : new PreviousFunctionInvocationException(functionId, serializer.DeserializeError(sf.ErrorJson))
+        );
     }
 }

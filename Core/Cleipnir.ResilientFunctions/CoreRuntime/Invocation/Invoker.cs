@@ -206,7 +206,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             );
 
             var (param, epoch, scrapbook, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch ?? 0);
+                await _invocationHelper.PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
 

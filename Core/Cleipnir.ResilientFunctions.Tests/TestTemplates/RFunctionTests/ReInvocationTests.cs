@@ -97,17 +97,12 @@ public abstract class ReInvocationTests
         );
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        await rAction.Admin.UpdateScrapbook(
-            functionInstanceId: "something",
-            scrapbook =>
-            {
-                syncedListFromScrapbook.Value = new List<string>(scrapbook.List);
-                scrapbook.List.Clear();
-
-                return scrapbook;
-            }
-        );
-       
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+            
+        syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
+        controlPanel.Scrapbook.List.Clear();
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        
         await rAction.ReInvoke("something",new[] {Status.Failed});
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -153,15 +148,10 @@ public abstract class ReInvocationTests
             rAction.Invoke("something", "something")
         );
         
-        await rAction.Admin.UpdateParameter(
-            functionInstanceId: "something",
-            param =>
-            {
-                param.ShouldBe("something");
-                
-                return 10;
-            }
-        );
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        controlPanel.Param.ShouldBe("something");
+        controlPanel.Param = 10;
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
        
         await rAction.ReInvoke("something",new[] {Status.Failed});
         
@@ -203,24 +193,13 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() =>
             rAction.Invoke("something", "something", new ListScrapbook<string>())
         );
-        
-        await rAction.Admin.UpdateParameter(
-            functionInstanceId: "something",
-            p =>
-            {
-                p.ShouldBe("something");
-                return 10;
-            }
-        );
-        
-        await rAction.Admin.UpdateScrapbook(
-            functionInstanceId: "something",
-            p =>
-            {
-                (p is ListScrapbook<string>).ShouldBeTrue();
-                return new ListScrapbook<int>();
-            }
-        );
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        controlPanel.Param.ShouldBe("something");
+        controlPanel.Param = 10;
+        (controlPanel.Scrapbook is ListScrapbook<string>).ShouldBeTrue();
+        controlPanel.Scrapbook = new ListScrapbook<int>();
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
        
         await rAction.ReInvoke("something",new[] {Status.Failed});
         
@@ -254,21 +233,17 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
         var sfScrapbook = await store
             .GetFunction(functionId)
-            .Map(sf => sf?.Scrapbook?.ScrapbookJson?.DeserializeFromJsonTo<Scrapbook>());
+            .Map(sf => sf?.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>());
 
         sfScrapbook.ShouldNotBeNull();
         sfScrapbook.Value.ShouldBe(1);
         
         flag.Raise();
-        await rAction.Admin.UpdateScrapbook(
-            functionInstanceId: "something",
-            scrapbook =>
-            {
-                scrapbook.Value = -1; 
-                return scrapbook;
-            }
-        );
-        await rAction.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 0);
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        controlPanel.Scrapbook.Value = -1;
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+
+        await rAction.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 1);
 
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
@@ -304,22 +279,17 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
         var sfScrapbook = await store
             .GetFunction(functionId)
-            .Map(sf => sf?.Scrapbook?.ScrapbookJson?.DeserializeFromJsonTo<Scrapbook>());
+            .Map(sf => sf?.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>());
 
         sfScrapbook.ShouldNotBeNull();
         sfScrapbook.Value.ShouldBe(1);
         
         flag.Raise();
-        await rFunc.Admin.UpdateScrapbook(
-            functionInstanceId: "something",
-            scrapbook =>
-            {
-                scrapbook.Value = -1;
-                return scrapbook;
-            }
-        );
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        controlPanel.Scrapbook.Value = -1;
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
         
-        var returned = await rFunc.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 0);
+        var returned = await rFunc.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 1);
         returned.ShouldBe("something");
         
         var function = await store.GetFunction(functionId);
@@ -375,7 +345,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -407,6 +377,7 @@ public abstract class ReInvocationTests
                     flag.Raise();
                     throw new Exception("oh no");
                 }
+
                 scrapbook.List.Add("world");
                 return param;
             }
@@ -414,27 +385,20 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        var scrapbookList = new Synced<List<string>>();
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        controlPanel.Scrapbook.List.Clear();
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
 
-        await rFunc.Admin.UpdateScrapbook(
-            functionInstanceId: "something",
-            scrapbook =>
-            {
-                scrapbookList.Value = new List<string>(scrapbook.List);
-                scrapbook.List.Clear();
-                return scrapbook;
-            });
-        
-        var result = await rFunc.ReInvoke("something", new[] {Status.Failed});
+        var result = await rFunc.ReInvoke("something", new[] { Status.Failed });
         result.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
-        
+
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 

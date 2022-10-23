@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions;
 
@@ -26,7 +23,7 @@ public class RAction<TParam> where TParam : notnull
     public RAction.ReInvoke ReInvoke { get; }
     public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
     public RAction.ScheduleReInvoke ScheduleReInvoke { get; }
-    public RAdmin<TParam, RScrapbook, Unit> Admin { get; }
+    public ControlPanelFactory<TParam, RScrapbook> ControlPanel { get; }
     
     public RAction(RAction<TParam, RScrapbook> rAction)
     {
@@ -35,7 +32,7 @@ public class RAction<TParam> where TParam : notnull
         Schedule = rAction.Schedule;
         ScheduleReInvoke = rAction.ScheduleReInvoke;
 
-        Admin = rAction.Admin;
+        ControlPanel = rAction.ControlPanel;
     }
 }
 
@@ -45,21 +42,19 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
     public RAction.ReInvoke ReInvoke { get; }
     public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
     public RAction.ScheduleReInvoke ScheduleReInvoke { get; }
-    public RAdmin<TParam, TScrapbook, Unit> Admin { get; }
+    public ControlPanelFactory<TParam, TScrapbook> ControlPanel { get; }
 
     internal RAction(
-        FunctionTypeId functionTypeId,
-        InvocationHelper<TParam, TScrapbook, Unit> invocationHelper,
         RAction.Invoke<TParam, TScrapbook> invoke, 
         RAction.ReInvoke reInvoke, 
         RAction.Schedule<TParam, TScrapbook> schedule, 
-        RAction.ScheduleReInvoke scheduleReInvoke
-    )
+        RAction.ScheduleReInvoke scheduleReInvoke,
+        ControlPanelFactory<TParam, TScrapbook> controlPanelFactory)
     {
         Invoke = invoke;
         ReInvoke = reInvoke;
         Schedule = schedule;
         ScheduleReInvoke = scheduleReInvoke;
-        Admin = new RAdmin<TParam, TScrapbook, Unit>(functionTypeId, invocationHelper);
+        ControlPanel = controlPanelFactory;
     }
 }
