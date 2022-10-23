@@ -1,0 +1,24 @@
+﻿using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
+
+[TestClass]
+public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ControlPanelTests
+{
+    [TestMethod]
+    public override Task ExistingActionCanBeDeletedFromControlPanel()
+        => ExistingActionCanBeDeletedFromControlPanel(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task DeletingExistingActionWithHigherEpochReturnsFalse()
+        => DeletingExistingActionWithHigherEpochReturnsFalse(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task SucceedingExistingActionFromControlPanelSucceeds()
+        => SucceedingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task SucceedingExistingFunctionFromControlPanelSucceeds()
+        => SucceedingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+}
