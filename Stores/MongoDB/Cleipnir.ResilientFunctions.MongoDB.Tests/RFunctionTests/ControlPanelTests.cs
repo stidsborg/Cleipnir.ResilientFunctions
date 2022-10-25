@@ -12,7 +12,15 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task DeletingExistingActionWithHigherEpochReturnsFalse()
         => DeletingExistingActionWithHigherEpochReturnsFalse(NoSql.AutoCreateAndInitializeStore());
-    
+
+    [TestMethod]
+    public override Task PostponingExistingActionFromControlPanelSucceeds()
+        => PostponingExistingActionFromControlPanelSucceeds(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task PostponingExistingFunctionFromControlPanelSucceeds()
+        => PostponingExistingFunctionFromControlPanelSucceeds(NoSql.AutoCreateAndInitializeStore());
+
     [TestMethod]
     public override Task SucceedingExistingActionFromControlPanelSucceeds()
         => SucceedingExistingActionFromControlPanelSucceeds(NoSql.AutoCreateAndInitializeStore());
