@@ -23,6 +23,14 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => PostponingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task FailingExistingActionFromControlPanelSucceeds()
+        => FailingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task FailingExistingFunctionFromControlPanelSucceeds()
+        => FailingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
     public override Task SucceedingExistingActionFromControlPanelSucceeds()
         => SucceedingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 

@@ -23,6 +23,14 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => PostponingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task FailingExistingActionFromControlPanelSucceeds()
+        => FailingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task FailingExistingFunctionFromControlPanelSucceeds()
+        => FailingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task SucceedingExistingActionFromControlPanelSucceeds()
         => SucceedingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
     

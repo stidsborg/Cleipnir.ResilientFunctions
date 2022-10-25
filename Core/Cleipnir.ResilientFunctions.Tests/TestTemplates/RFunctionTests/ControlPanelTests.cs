@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -126,6 +127,70 @@ public abstract class ControlPanelTests
         sf.Status.ShouldBe(Status.Postponed);
         sf.PostponedUntil.ShouldNotBeNull();
         sf.PostponedUntil.Value.ShouldBe(1_000_000);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task FailingExistingActionFromControlPanelSucceeds();
+    protected async Task FailingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            void (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
+        );
+        
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Postponed);
+        controlPanel.PostponedUntil.ShouldNotBeNull();
+        
+        await controlPanel.Fail(new InvalidOperationException()).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Failed);
+        sf.ErrorJson.ShouldNotBeNull();
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task FailingExistingFunctionFromControlPanelSucceeds();
+    protected async Task FailingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = rFunctions.RegisterFunc<string, string>(
+            functionTypeId,
+            string (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
+        );
+        
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId, ""));
+
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Postponed);
+        controlPanel.PostponedUntil.ShouldNotBeNull();
+
+        await controlPanel.Fail(new InvalidOperationException()).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Failed);
+        sf.ErrorJson.ShouldNotBeNull();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
