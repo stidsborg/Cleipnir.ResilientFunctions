@@ -21,8 +21,11 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
         => _inner.CreateFunction(functionId, param, storedScrapbook, crashedCheckFrequency, version);
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
-        => _inner.TryToBecomeLeader(functionId, paramAndScrapbook, expectedEpoch, newEpoch, crashedCheckFrequency, version);
+    public Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
+        => _inner.IncrementEpoch(functionId, expectedEpoch);
+
+    public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
+        => _inner.RestartExecution(functionId, paramAndScrapbook, expectedEpoch, crashedCheckFrequency, version);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {

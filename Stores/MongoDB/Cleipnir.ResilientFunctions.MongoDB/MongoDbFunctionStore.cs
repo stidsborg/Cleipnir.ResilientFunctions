@@ -80,7 +80,30 @@ public class MongoDbFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+    public async Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
+    {
+        var functionTypeId = functionId.TypeId.Value;
+        var functionInstanceId = functionId.InstanceId.Value;
+
+        var collection = GetCollection();
+
+        var update = Builders<Document>
+            .Update
+            .Set(d => d.Epoch, expectedEpoch + 1);
+
+        var result = await collection.UpdateOneAsync(
+            d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId &&
+                d.Epoch == expectedEpoch,
+            update
+        );
+
+        var modified = result.ModifiedCount;
+        return modified == 1;
+    }
+
+    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -90,7 +113,7 @@ public class MongoDbFunctionStore : IFunctionStore
         var update = Builders<Document>
             .Update
             .Set(d => d.Status, (int) Status.Executing)
-            .Set(d => d.Epoch, newEpoch)
+            .Set(d => d.Epoch, expectedEpoch + 1)
             .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency)
             .Set(d => d.Version, version);
 

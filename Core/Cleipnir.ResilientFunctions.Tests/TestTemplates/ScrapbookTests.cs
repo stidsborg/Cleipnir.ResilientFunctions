@@ -87,10 +87,10 @@ public abstract class ScrapbookTests
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();
-        await store.TryToBecomeLeader(
+        await store.RestartExecution(
             FunctionId,
             paramAndScrapbook: null,
-            expectedEpoch: 0, newEpoch: 1,
+            expectedEpoch: 0, 
             crashedCheckFrequency: 100,
             version: 0
         ).ShouldBeTrueAsync();

@@ -202,11 +202,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         var epoch = sf.Epoch + 1;
         try
         {
-            var success = await _functionStore.TryToBecomeLeader(
+            var success = await _functionStore.RestartExecution(
                 functionId,
                 paramAndScrapbook: null,
                 expectedEpoch: sf.Epoch,
-                newEpoch: epoch,
                 _settings.CrashedCheckFrequency.Ticks,
                 _version
             );

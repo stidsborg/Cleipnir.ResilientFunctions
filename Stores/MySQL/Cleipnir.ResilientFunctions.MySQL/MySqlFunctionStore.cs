@@ -87,21 +87,42 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+    public async Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = @$"
+            UPDATE {_tablePrefix}rfunctions
+            SET epoch = epoch + 1
+            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
+
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
+    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
     {
         if (paramAndScrapbook == null)
         {
             await using var conn = await CreateOpenConnection(_connectionString);
             var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = ?, status = {(int) Status.Executing}, crashed_check_frequency = ?, version = ?
+            SET epoch = epoch + 1, status = {(int) Status.Executing}, crashed_check_frequency = ?, version = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() { Value = newEpoch },
                     new() { Value = crashedCheckFrequency },
                     new() { Value = version },
                     new() { Value = functionId.TypeId.Value },
@@ -120,7 +141,7 @@ public class MySqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}rfunctions
             SET param_json = ?, param_type = ?,
                 scrapbook_json = ?, scrapbook_type = ?,
-                epoch = ?, status = {(int) Status.Executing}, 
+                epoch = epoch + 1, status = {(int) Status.Executing}, 
                 crashed_check_frequency = ?, version = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
@@ -133,7 +154,6 @@ public class MySqlFunctionStore : IFunctionStore
                     new() { Value = param.ParamType },
                     new() { Value = scrapbook.ScrapbookJson },
                     new() { Value = scrapbook.ScrapbookType },
-                    new() { Value = newEpoch },
                     new() { Value = crashedCheckFrequency },
                     new() { Value = version },
                     new() { Value = functionId.TypeId.Value },

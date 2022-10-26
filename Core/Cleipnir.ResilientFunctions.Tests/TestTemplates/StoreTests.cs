@@ -137,11 +137,10 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store
-            .TryToBecomeLeader(
+            .RestartExecution(
                 FunctionId, 
                 paramAndScrapbook: null, 
-                expectedEpoch: 0, 
-                newEpoch: 1, 
+                expectedEpoch: 0,
                 crashedCheckFrequency: 100, 
                 version: 0
             ).ShouldBeTrueAsync();
@@ -167,27 +166,18 @@ public abstract class StoreTests
             version: 0
         ).ShouldBeTrueAsync();
 
-        await store.TryToBecomeLeader(
-            FunctionId, 
-            paramAndScrapbook: null, 
-            expectedEpoch: 0, newEpoch: 2,
-            crashedCheckFrequency: 100,
-            version: 0
-        ).ShouldBeTrueAsync();
-
         await store
-            .TryToBecomeLeader(
+            .RestartExecution(
                 FunctionId, 
                 paramAndScrapbook: null,
-                expectedEpoch: 0, 
-                newEpoch: 1, 
+                expectedEpoch: 1,
                 crashedCheckFrequency: 100, 
                 version: 0
             ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.Epoch.ShouldBe(2);
+        storedFunction.Epoch.ShouldBe(0);
         storedFunction.SignOfLife.ShouldBe(0);
     }
     
@@ -212,11 +202,10 @@ public abstract class StoreTests
         );
         var storedParameter = new StoredParameter("updated_param".ToJson(), typeof(string).SimpleQualifiedName());
         await store
-            .TryToBecomeLeader(
+            .RestartExecution(
                 FunctionId, 
                 paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook), 
-                expectedEpoch: 0, 
-                newEpoch: 1, 
+                expectedEpoch: 0,
                 crashedCheckFrequency: 100, 
                 version: 0
             ).ShouldBeTrueAsync();
@@ -244,32 +233,23 @@ public abstract class StoreTests
             version: 0
         ).ShouldBeTrueAsync();
 
-        await store.TryToBecomeLeader(
-            FunctionId, 
-            paramAndScrapbook: null, 
-            expectedEpoch: 0, newEpoch: 2,
-            crashedCheckFrequency: 100,
-            version: 0
-        ).ShouldBeTrueAsync();
-
         var storedScrapbook = new StoredScrapbook(
             new RScrapbook { StateDictionary = { ["Test"] = "true" } }.ToJson(),
             typeof(RScrapbook).SimpleQualifiedName()
         );
         var storedParameter = new StoredParameter("updated_param".ToJson(), typeof(string).SimpleQualifiedName());
         await store
-            .TryToBecomeLeader(
+            .RestartExecution(
                 FunctionId, 
                 paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook),
-                expectedEpoch: 0, 
-                newEpoch: 1, 
+                expectedEpoch: 1,
                 crashedCheckFrequency: 100, 
                 version: 0
             ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.Epoch.ShouldBe(2);
+        storedFunction.Epoch.ShouldBe(0);
         storedFunction.SignOfLife.ShouldBe(0);
     }
     
@@ -409,11 +389,10 @@ public abstract class StoreTests
             version: 0
         );
 
-        await store.TryToBecomeLeader(
+        await store.RestartExecution(
             functionId, 
             paramAndScrapbook: null,
-            expectedEpoch: 0, 
-            newEpoch: 1, 
+            expectedEpoch: 0,
             crashedCheckFrequency, 
             version: 0
         );
@@ -421,5 +400,53 @@ public abstract class StoreTests
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
+    }
+    
+    public abstract Task IncrementEpochSucceedsWhenEpochIsAsExpected();
+    protected async Task IncrementEpochSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            nameof(StoreTests),
+            nameof(IncrementEpochSucceedsWhenEpochIsAsExpected)
+        );
+
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        await store.IncrementEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Epoch.ShouldBe(1);
+    }
+    
+    public abstract Task IncrementEpochFailsWhenEpochIsNotAsExpected();
+    protected async Task IncrementEpochFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = new FunctionId(
+            nameof(StoreTests),
+            nameof(IncrementEpochFailsWhenEpochIsNotAsExpected)
+        );
+
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        await store.IncrementEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
+        
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Epoch.ShouldBe(0);
     }
 }

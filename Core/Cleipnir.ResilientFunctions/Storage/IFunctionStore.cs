@@ -17,11 +17,11 @@ public interface IFunctionStore
         int version
     );
     
-    Task<bool> TryToBecomeLeader(
+    Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch);
+    Task<bool> RestartExecution(
         FunctionId functionId,
         Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
-        int expectedEpoch, 
-        int newEpoch, 
+        int expectedEpoch,
         long crashedCheckFrequency,
         int version
     );

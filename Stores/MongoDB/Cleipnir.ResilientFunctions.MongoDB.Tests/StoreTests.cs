@@ -60,4 +60,12 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(
             NoSql.AutoCreateAndInitializeStore()
         );
+
+    [TestMethod]
+    public override Task IncrementEpochSucceedsWhenEpochIsAsExpected()
+        => IncrementEpochSucceedsWhenEpochIsAsExpected(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task IncrementEpochFailsWhenEpochIsNotAsExpected()
+        => IncrementEpochFailsWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
 }

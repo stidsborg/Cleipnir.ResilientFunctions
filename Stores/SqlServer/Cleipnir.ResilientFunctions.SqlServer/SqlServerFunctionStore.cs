@@ -124,19 +124,35 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+    public async Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET Epoch = Epoch + 1
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
+    }
+
+    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
     {
         if (paramAndScrapbook == null)
         {
             await using var conn = await _connFunc();
             var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Epoch = @NewEpoch, Status = {(int) Status.Executing}, 
+            SET Epoch = Epoch + 1, Status = {(int) Status.Executing}, 
                 CrashedCheckFrequency = @CrashedCheckFrequency, Version = @Version
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
             await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@NewEpoch", newEpoch);
             command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
             command.Parameters.AddWithValue("@Version", version);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
@@ -153,7 +169,7 @@ public class SqlServerFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}RFunctions
             SET ParamJson = @ParamJson, ParamType = @ParamType, 
                 ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType, 
-                Epoch = @NewEpoch, Status = {(int) Status.Executing}, 
+                Epoch = Epoch + 1, Status = {(int) Status.Executing}, 
                 CrashedCheckFrequency = @CrashedCheckFrequency, Version = @Version
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
             var (param, scrapbook) = paramAndScrapbook;
@@ -162,7 +178,6 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
             command.Parameters.AddWithValue("@ScrapbookJson", scrapbook.ScrapbookJson);
             command.Parameters.AddWithValue("@ScrapbookType", scrapbook.ScrapbookType);
-            command.Parameters.AddWithValue("@NewEpoch", newEpoch);
             command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
             command.Parameters.AddWithValue("@Version", version);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);

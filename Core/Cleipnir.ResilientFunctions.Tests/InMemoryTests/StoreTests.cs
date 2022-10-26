@@ -69,4 +69,12 @@ public class StoreTests : TestTemplates.StoreTests
         => LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
         );
+
+    [TestMethod]
+    public override Task IncrementEpochSucceedsWhenEpochIsAsExpected()
+        => IncrementEpochSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task IncrementEpochFailsWhenEpochIsNotAsExpected()
+        => IncrementEpochFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

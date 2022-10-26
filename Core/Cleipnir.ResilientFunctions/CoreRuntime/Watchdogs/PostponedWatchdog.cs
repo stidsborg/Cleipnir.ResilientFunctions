@@ -99,19 +99,12 @@ internal class PostponedWatchdog
                 await Task.Yield();
 
             using var _ = _shutdownCoordinator.RegisterRunningRFunc();
-            var success = await _functionStore.TryToBecomeLeader(
-                functionId,
-                paramAndScrapbook: null,
-                expectedEpoch: spf.Epoch,
-                newEpoch: spf.Epoch + 1,
-                _crashedCheckFrequency.Ticks,
-                _version
-            );
+            var success = await _functionStore.IncrementEpoch(functionId, expectedEpoch: spf.Epoch);
             if (!success) return;
             
             await _reInvoke(
                 spf.InstanceId,
-                expectedStatuses: new[] { Status.Executing },
+                expectedStatuses: new[] { Status.Executing, Status.Postponed, Status.Failed },
                 expectedEpoch: spf.Epoch + 1
             );
         }

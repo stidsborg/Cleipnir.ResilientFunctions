@@ -45,10 +45,24 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> TryToBecomeLeader(
+    public Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
+
+            state.Epoch += 1;
+            return true.ToTask();
+        }
+    }
+
+    public Task<bool> RestartExecution(
         FunctionId functionId,
         Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
-        int expectedEpoch, int newEpoch, 
+        int expectedEpoch,
         long crashedCheckFrequency, int version)
     {
         lock (_sync)
@@ -67,7 +81,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 state.Scrapbook = scrapbook;   
             }
 
-            state.Epoch = newEpoch;
+            state.Epoch += 1;
             state.Status = Status.Executing;
             state.CrashedCheckFrequency = crashedCheckFrequency;
             state.Version = version;
