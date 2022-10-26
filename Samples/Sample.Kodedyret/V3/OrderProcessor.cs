@@ -40,15 +40,11 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
             
             await _paymentProviderClient.Reserve(scrapbook.TransactionId, order.TotalPrice);
-
-            if (!scrapbook.ProductsShipRequestSent)
-            {
-                scrapbook.ProductsShipRequestSent = true;
-                await scrapbook.Save();                
-                await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
-
-            } else if (!scrapbook.ProductsShipResponseReceived)
-                throw new InvalidOperationException("ShipProducts API have been invoked but no response was received");
+            
+            await scrapbook.DoAtMostOnce(
+                workStatus: s => s.ProductsShippedStatus,
+                work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
+            );
 
             await _paymentProviderClient.Capture(scrapbook.TransactionId);            
 
@@ -61,7 +57,6 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
     public class Scrapbook : RScrapbook
     {
         public Guid TransactionId { get; set; } = Guid.NewGuid();
-        public bool ProductsShipRequestSent { get; set; }
-        public bool ProductsShipResponseReceived { get; set; }
+        public WorkStatus ProductsShippedStatus { get; set; }
     }
 }
