@@ -38,11 +38,14 @@ public class EventSourceWriter
             idempotencyKey
         );
         if (awakeIfPostponed && _rFunctions != null)
-            try {
+            try
+            {
+                var sf = await _rFunctions.FunctionStore.GetFunctionStatus(new FunctionId(_functionTypeId, functionInstanceId));
+                if (sf == null || sf.Status != Status.Postponed) return;
                 await _rFunctions.ScheduleReInvoke(
                     _functionTypeId.Value,
                     functionInstanceId.Value,
-                    expectedStatuses: new[] { Status.Postponed }
+                    expectedEpoch: sf.Epoch
                 );
             } catch (UnexpectedFunctionState) {}
     }
@@ -64,12 +67,11 @@ public class EventSourceWriter
         );
         
         if (awakeIfPostponed && _rFunctions != null)
-            try {
-                await _rFunctions.ScheduleReInvoke(
-                    _functionTypeId.Value,
-                    functionInstanceId.Value,
-                    expectedStatuses: new[] { Status.Postponed }
-                );
+            try
+            {
+                var sf = await _rFunctions.FunctionStore.GetFunctionStatus(new FunctionId(_functionTypeId, functionInstanceId));
+                if (sf == null || sf.Status != Status.Postponed) return;
+                await _rFunctions.ScheduleReInvoke(_functionTypeId.Value, functionInstanceId.Value, sf.Epoch);
             } catch (UnexpectedFunctionState) {}
     }
 

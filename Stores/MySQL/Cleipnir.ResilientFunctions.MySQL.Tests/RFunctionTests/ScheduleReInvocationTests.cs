@@ -18,9 +18,6 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
     public override Task FuncWithScrapbookReInvocationSunshineScenario()
         => FuncWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
-    public override Task ReInvocationFailsWhenItHasUnexpectedStatus()
-        => ReInvocationFailsWhenItHasUnexpectedStatus(Sql.AutoCreateAndInitializeStore());
-    [TestMethod]
     public override Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState()
         => ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(Sql.AutoCreateAndInitializeStore());
     [TestMethod]

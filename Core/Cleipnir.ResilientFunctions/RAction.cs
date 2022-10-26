@@ -9,12 +9,12 @@ public static class RAction
     public delegate Task Invoke<in TParam, in TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
         where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task ReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null);
+    public delegate Task ReInvoke(string functionInstanceId, int expectedEpoch);
     
     public delegate Task Schedule<in TParam, TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
         where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task ScheduleReInvoke(string functionInstanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null);
+    public delegate Task ScheduleReInvoke(string functionInstanceId, int expectedEpoch);
 }
 
 public class RAction<TParam> where TParam : notnull

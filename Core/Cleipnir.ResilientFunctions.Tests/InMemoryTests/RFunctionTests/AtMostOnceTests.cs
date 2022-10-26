@@ -94,7 +94,7 @@ public class AtMostOnceTests
             });
 
         await rAction.Invoke("", "hello");
-        await rAction.ReInvoke("", new[] { Status.Succeeded });
+        await rAction.ReInvoke("", expectedEpoch: 0);
 
         counter.Current.ShouldBe(1);
     }
@@ -117,7 +117,7 @@ public class AtMostOnceTests
             });
 
         await rAction.Invoke("", "hello");
-        await rAction.ReInvoke("", new[] { Status.Succeeded });
+        await rAction.ReInvoke("", expectedEpoch: 0);
 
         counter.Current.ShouldBe(1);
     }

@@ -538,6 +538,35 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
+    public async Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = $@"
+            SELECT status, epoch
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = ? AND function_instance_id = ?;";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters = { 
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        
+        while (await reader.ReadAsync())
+        {
+            return new StoredFunctionStatus(
+                functionId,
+                Status: (Status) reader.GetInt32(0),
+                Epoch: reader.GetInt32(1)
+            );
+        }
+
+        return null;
+    }
+
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

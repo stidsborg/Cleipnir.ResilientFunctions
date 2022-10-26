@@ -47,10 +47,7 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ReInvoke(
-            "something",
-            new[] {Status.Failed}
-        );
+        await rFunc.ReInvoke("something", expectedEpoch: 0);
         
         syncedParameter.Value.ShouldBe("something");
 
@@ -103,7 +100,8 @@ public abstract class ReInvocationTests
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
         
-        await rAction.ReInvoke("something",new[] {Status.Failed});
+        controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        await rAction.ReInvoke("something", controlPanel.Epoch);
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
@@ -153,7 +151,8 @@ public abstract class ReInvocationTests
         controlPanel.Param = 10;
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
        
-        await rAction.ReInvoke("something",new[] {Status.Failed});
+        controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        await rAction.ReInvoke("something", expectedEpoch: controlPanel.Epoch);
         
         syncedParam.Value.ShouldBe(10);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -201,7 +200,8 @@ public abstract class ReInvocationTests
         controlPanel.Scrapbook = new ListScrapbook<int>();
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
        
-        await rAction.ReInvoke("something",new[] {Status.Failed});
+        controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        await rAction.ReInvoke("something",expectedEpoch: controlPanel.Epoch);
         
         var (param, scrapbook) = syncedParam.Value!;
         param.ShouldBe(10);
@@ -243,7 +243,7 @@ public abstract class ReInvocationTests
         controlPanel.Scrapbook.Value = -1;
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
 
-        await rAction.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 1);
+        await rAction.ReInvoke(functionInstanceId: "something", expectedEpoch: 1);
 
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
@@ -289,7 +289,7 @@ public abstract class ReInvocationTests
         controlPanel.Scrapbook.Value = -1;
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
         
-        var returned = await rFunc.ReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: 1);
+        var returned = await rFunc.ReInvoke(functionInstanceId: "something", expectedEpoch: 1);
         returned.ShouldBe("something");
         
         var function = await store.GetFunction(functionId);
@@ -336,11 +336,8 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
-        
-        await rFunc.ReInvoke(
-            "something",
-            new[] {Status.Failed}
-        );
+
+        await rFunc.ReInvoke("something", expectedEpoch: 0);
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
         function.ShouldNotBeNull();
@@ -388,8 +385,9 @@ public abstract class ReInvocationTests
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
-
-        var result = await rFunc.ReInvoke("something", new[] { Status.Failed });
+        
+        controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        var result = await rFunc.ReInvoke("something", expectedEpoch: controlPanel.Epoch); 
         result.ShouldBe("something");
 
         var function = await store.GetFunction(new FunctionId(functionType, "something"));
@@ -398,35 +396,6 @@ public abstract class ReInvocationTests
         function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
-
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-
-    public abstract Task ReInvocationFailsWhenItHasUnexpectedStatus();
-    protected async Task ReInvocationFailsWhenItHasUnexpectedStatus(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        const string functionType = "someFunctionType";
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
-            store,
-            new Settings(
-                unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-
-        var rFunc = rFunctions.RegisterAction(
-            functionType,
-            (string _) => Task.FromException(new Exception("oh no"))
-        );
-
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
-
-        await Should.ThrowAsync<Exception>(() =>
-            rFunc.ReInvoke("something", new[] {Status.Executing})
-        );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -451,9 +420,7 @@ public abstract class ReInvocationTests
             (string _) => Task.FromException(new Exception("oh no"))
         );
 
-        await Should.ThrowAsync<Exception>(() =>
-            rFunc.ReInvoke("something", new[] {Status.Executing})
-        );
+        await Should.ThrowAsync<Exception>(() => rFunc.ReInvoke("something", expectedEpoch: 0));
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -502,10 +469,10 @@ public abstract class ReInvocationTests
                 () => registration.Invoke("instance", "hello world")
             );
             await Should.ThrowAsync<UnexpectedFunctionState>(
-                () => registration.ReInvoke("instance", new[] {Status.Executing})
+                () => registration.ReInvoke("instance", expectedEpoch: 0)
             );
             await Should.ThrowAsync<UnexpectedFunctionState>(
-                () => registration.ScheduleReInvoke("instance", new[] {Status.Executing})
+                () => registration.ScheduleReInvoke("instance", expectedEpoch: 0)
             );
         }
     }
@@ -541,7 +508,7 @@ public abstract class ReInvocationTests
 
         await rAction(functionInstance, param: "").ShouldThrowAsync<Exception>();
 
-        await rFunctions.ReInvoke(functionType, functionInstance, new[] { Status.Postponed });
+        await rFunctions.ReInvoke(functionType, functionInstance, expectedEpoch: 0);
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -581,7 +548,7 @@ public abstract class ReInvocationTests
 
         await rAction(functionInstance, param: "").ShouldThrowAsync<Exception>();
 
-        await rFunctions.ScheduleReInvoke(functionType, functionInstance, new[] { Status.Postponed });
+        await rFunctions.ScheduleReInvoke(functionType, functionInstance, expectedEpoch: 0);
 
         await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
 

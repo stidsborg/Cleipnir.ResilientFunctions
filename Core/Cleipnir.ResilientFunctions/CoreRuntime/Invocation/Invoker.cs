@@ -87,10 +87,10 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         });
     }
 
-    public async Task<TReturn> ReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
+    public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
         using var _ = disposables;
 
         Result<TReturn> result;
@@ -106,10 +106,10 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleReInvoke(string instanceId, IEnumerable<Status> expectedStatuses, int? expectedEpoch = null)
+    public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
 
         _ = Task.Run(async () =>
         {
@@ -181,9 +181,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     }
     private record PreparedInvocation(bool Persisted, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TScrapbook Scrapbook, Context Context, IDisposable Disposables);
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch 
-    )
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         try
@@ -206,7 +204,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             );
 
             var (param, epoch, scrapbook, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, expectedStatuses, expectedEpoch);
+                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
 
@@ -243,10 +241,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         await Task.Delay(delay);
         using var suppressedFlow = ExecutionContext.SuppressFlow();
-        _ = ScheduleReInvoke(
-            functionId.InstanceId.ToString(),
-            expectedStatuses: new[] {Status.Postponed},
-            expectedEpoch
-        );
+        _ = ScheduleReInvoke(functionId.InstanceId.ToString(), expectedEpoch);
     }
 }

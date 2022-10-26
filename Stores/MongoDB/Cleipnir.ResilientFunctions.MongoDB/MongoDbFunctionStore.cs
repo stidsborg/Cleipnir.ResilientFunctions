@@ -432,6 +432,22 @@ public class MongoDbFunctionStore : IFunctionStore
         );
     }
 
+    public async Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId)
+    {
+        var functionTypeId = functionId.TypeId.Value;
+        var functionInstanceId = functionId.InstanceId.Value;
+
+        var document = await GetCollection()
+            .Find(d =>
+                d.Id.FunctionTypeId == functionTypeId &&
+                d.Id.FunctionInstanceId == functionInstanceId
+            ).SingleOrDefaultAsync();
+        
+        if (document == null) return null;
+
+        return new StoredFunctionStatus(functionId, (Status)document.Status, document.Epoch);
+    }
+
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null)
     {
         var functionTypeId = functionId.TypeId.Value;

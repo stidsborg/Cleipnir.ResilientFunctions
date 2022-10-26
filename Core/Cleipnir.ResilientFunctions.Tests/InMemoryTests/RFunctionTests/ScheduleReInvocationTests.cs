@@ -21,9 +21,6 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
     public override Task FuncWithScrapbookReInvocationSunshineScenario()
         => FuncWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task ReInvocationFailsWhenItHasUnexpectedStatus()
-        => ReInvocationFailsWhenItHasUnexpectedStatus(CreateInMemoryStore());
-    [TestMethod]
     public override Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState()
         => ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(CreateInMemoryStore());
     [TestMethod]

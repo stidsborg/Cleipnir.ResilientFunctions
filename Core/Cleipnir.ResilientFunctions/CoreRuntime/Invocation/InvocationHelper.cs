@@ -184,16 +184,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, IEnumerable<Status> expectedStatuses, int? expectedEpoch
+        FunctionId functionId, int expectedEpoch
     ) 
     {
-        expectedStatuses = expectedStatuses.ToList();
         var sf = await _functionStore.GetFunction(functionId);
         if (sf == null)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
-        if (expectedStatuses.All(expectedStatus => expectedStatus != sf.Status))
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{sf.Status}'");
-        if (expectedEpoch != null && sf.Epoch != expectedEpoch)
+        if (sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
         if (sf.Version > _version)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{sf.Version}'");

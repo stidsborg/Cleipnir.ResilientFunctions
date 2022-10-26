@@ -13,18 +13,15 @@ namespace Cleipnir.ResilientFunctions;
 
 public class RFunctions : IDisposable
 {
-    private delegate Task ReInvokeResilientFunction(string functionInstanceId, IEnumerable<Status> expectedStatus, int? expectedEpoch);
-    private delegate Task ScheduleResilientFunctionReInvocation(
-        string functionInstanceId, 
-        IEnumerable<Status> expectedStatus, 
-        int? expectedEpoch
-    );
+    private delegate Task ReInvokeResilientFunction(string functionInstanceId, int expectedEpoch);
+    private delegate Task ScheduleResilientFunctionReInvocation(string functionInstanceId, int expectedEpoch);
     
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
     private readonly Dictionary<FunctionTypeId, ReInvokeResilientFunction> _reInvokes = new();
     private readonly Dictionary<FunctionTypeId, ScheduleResilientFunctionReInvocation> _scheduleReInvocations = new();
 
     private readonly IFunctionStore _functionStore;
+    public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
     
@@ -431,7 +428,7 @@ public class RFunctions : IDisposable
             WatchDogsFactory.CreateAndStart(
                 functionTypeId,
                 _functionStore,
-                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                reInvoke: (id, epoch) => rFuncInvoker.ReInvoke(id.ToString(), epoch),
                 settingsWithDefaults,
                 version,
                 _shutdownCoordinator
@@ -446,9 +443,8 @@ public class RFunctions : IDisposable
                 controlPanelFactory
             );
             _functions[functionTypeId] = registration;
-            _reInvokes[functionTypeId] = (id, status, epoch) => rFuncInvoker.ReInvoke(id, status, epoch);
-            _scheduleReInvocations[functionTypeId] = (id, status, epoch) 
-                => rFuncInvoker.ScheduleReInvoke(id, status, epoch);
+            _reInvokes[functionTypeId] = (id, epoch) => rFuncInvoker.ReInvoke(id, epoch);
+            _scheduleReInvocations[functionTypeId] = (id, epoch) => rFuncInvoker.ScheduleReInvoke(id, epoch);
             
             return registration;
         }
@@ -601,7 +597,7 @@ public class RFunctions : IDisposable
             WatchDogsFactory.CreateAndStart(
                 functionTypeId,
                 _functionStore,
-                (id, statuses, epoch) => rActionInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                (id, epoch) => rActionInvoker.ReInvoke(id.ToString(), epoch),
                 settingsWithDefaults,
                 version,
                 _shutdownCoordinator
@@ -616,9 +612,8 @@ public class RFunctions : IDisposable
                 controlPanelFactory
             );
             _functions[functionTypeId] = registration;
-            _reInvokes[functionTypeId] = (id, status, epoch) => rActionInvoker.ReInvoke(id, status, epoch);
-            _scheduleReInvocations[functionTypeId] = (id, status, epoch) 
-                => rActionInvoker.ScheduleReInvoke(id, status, epoch);
+            _reInvokes[functionTypeId] = (id, epoch) => rActionInvoker.ReInvoke(id, epoch);
+            _scheduleReInvocations[functionTypeId] = (id, epoch) => rActionInvoker.ScheduleReInvoke(id, epoch);
             return registration;
         }
     }
@@ -681,7 +676,7 @@ public class RFunctions : IDisposable
             WatchDogsFactory.CreateAndStart(
                 functionTypeId,
                 _functionStore,
-                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                reInvoke: (id, epoch) => rFuncInvoker.ReInvoke(id.ToString(), epoch),
                 settingsWithDefaults,
                 version,
                 _shutdownCoordinator
@@ -738,7 +733,7 @@ public class RFunctions : IDisposable
             WatchDogsFactory.CreateAndStart(
                 functionTypeId,
                 _functionStore,
-                reInvoke: (id, statuses, epoch) => rFuncInvoker.ReInvoke(id.ToString(), statuses, epoch),
+                reInvoke: (id, epoch) => rFuncInvoker.ReInvoke(id.ToString(), epoch),
                 settingsWithDefaults,
                 version,
                 _shutdownCoordinator
@@ -757,12 +752,7 @@ public class RFunctions : IDisposable
         }
     }
 
-    public Task ReInvoke(
-        string functionTypeId, 
-        string functionInstanceId,
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch = null
-    )
+    public Task ReInvoke(string functionTypeId, string functionInstanceId, int expectedEpoch)
     {
         ReInvokeResilientFunction reInvoke;
         lock (_sync)
@@ -773,15 +763,10 @@ public class RFunctions : IDisposable
             reInvoke = _reInvokes[functionTypeId];
         }
 
-        return reInvoke(functionInstanceId, expectedStatuses, expectedEpoch);
+        return reInvoke(functionInstanceId, expectedEpoch);
     }
 
-    public Task ScheduleReInvoke(
-        string functionTypeId,
-        string functionInstanceId, 
-        IEnumerable<Status> expectedStatuses, 
-        int? expectedEpoch = null
-    )
+    public Task ScheduleReInvoke(string functionTypeId, string functionInstanceId, int expectedEpoch)
     {
         ScheduleResilientFunctionReInvocation scheduleReInvocation;
         lock (_sync)
@@ -792,11 +777,7 @@ public class RFunctions : IDisposable
             scheduleReInvocation = _scheduleReInvocations[functionTypeId];
         }
 
-        return scheduleReInvocation(
-            functionInstanceId,
-            expectedStatuses,
-            expectedEpoch
-        );
+        return scheduleReInvocation(functionInstanceId, expectedEpoch);
     }
     
     public void Dispose() => _ = ShutdownGracefully();

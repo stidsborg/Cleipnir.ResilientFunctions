@@ -134,7 +134,7 @@ public class InMemorySunshineTests
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam = new Synced<string>();
-        returned = await registration.ReInvoke("id1", new [] { Status.Succeeded });
+        returned = await registration.ReInvoke("id1", expectedEpoch: 0);
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
         
@@ -146,7 +146,7 @@ public class InMemorySunshineTests
         returned.ShouldBe(toReturn);
         
         syncedParam = new Synced<string>();
-        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", expectedEpoch: 0);
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         returned = await registration.Invoke("id2", "hello universe");
@@ -283,7 +283,7 @@ public class InMemorySunshineTests
 
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        returned = await registration.ReInvoke("id1", new [] { Status.Succeeded });
+        returned = await registration.ReInvoke("id1", expectedEpoch: 0);
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
         syncedScrapbook.Value.ShouldNotBeNull();
@@ -299,7 +299,7 @@ public class InMemorySunshineTests
         
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", expectedEpoch: 0);
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         syncedScrapbook.Value.ShouldNotBeNull();
@@ -429,7 +429,7 @@ public class InMemorySunshineTests
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam = new Synced<string>();
-        await registration.ReInvoke("id1", new [] { Status.Succeeded });
+        await registration.ReInvoke("id1", expectedEpoch: 0);
         syncedParam.Value.ShouldBe("hello world");
         
         syncedParam = new Synced<string>();
@@ -439,7 +439,7 @@ public class InMemorySunshineTests
         await registration.Invoke("id2", "hello universe");
         
         syncedParam = new Synced<string>();
-        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", expectedEpoch: 0);
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
     }
@@ -585,7 +585,7 @@ public class InMemorySunshineTests
 
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ReInvoke("id1", new [] { Status.Succeeded });
+        await registration.ReInvoke("id1", expectedEpoch: 0);
         syncedParam.Value.ShouldBe("hello world");
         syncedScrapbook.Value.ShouldNotBeNull();
         
@@ -599,7 +599,7 @@ public class InMemorySunshineTests
         
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ScheduleReInvoke("id2", new [] { Status.Succeeded });
+        await registration.ScheduleReInvoke("id2", expectedEpoch: 0);
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         syncedScrapbook.Value.ShouldNotBeNull();

@@ -17,6 +17,8 @@ public record StoredFunction(
     long CrashedCheckFrequency
 );
 
+public record StoredFunctionStatus(FunctionId FunctionId, Status Status, int Epoch);
+
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, int SignOfLife, long CrashedCheckFrequency);
 public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);
 

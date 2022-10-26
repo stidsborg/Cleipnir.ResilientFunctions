@@ -55,6 +55,7 @@ public interface IFunctionStore
     Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch);
 
     Task<StoredFunction?> GetFunction(FunctionId functionId);
+    Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId);
 
     Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null);
 }

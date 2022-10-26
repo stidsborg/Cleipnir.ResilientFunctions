@@ -116,11 +116,7 @@ internal class CrashedWatchdog
         
         try
         {
-            await _reInvoke(
-                sef.InstanceId,
-                expectedStatuses: new[] { Status.Executing },
-                expectedEpoch: sef.Epoch
-            );
+            await _reInvoke(sef.InstanceId, expectedEpoch: sef.Epoch);
         }
         catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it

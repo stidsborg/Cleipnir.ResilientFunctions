@@ -9,20 +9,12 @@ public static class RFunc
     public delegate Task<TReturn> Invoke<in TParam, in TScrapbook, TReturn>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
         where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task<TReturn> ReInvoke<TReturn>(
-        string functionInstanceId,
-        IEnumerable<Status> expectedStatuses,
-        int? expectedEpoch = null
-    );
+    public delegate Task<TReturn> ReInvoke<TReturn>(string functionInstanceId, int expectedEpoch);
     
     public delegate Task Schedule<in TParam, TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
         where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task ScheduleReInvoke(
-        string functionInstanceId, 
-        IEnumerable<Status> expectedStatuses, 
-        int? expectedEpoch = null
-    );
+    public delegate Task ScheduleReInvoke(string functionInstanceId, int expectedEpoch);
 }
 
 public class RFunc<TParam, TReturn> where TParam : notnull

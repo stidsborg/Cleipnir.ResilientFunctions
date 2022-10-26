@@ -48,11 +48,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvoke(
-            functionInstanceId: "something",
-            expectedStatuses: new[] {Status.Failed},
-            expectedEpoch: null
-        );
+        await rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 0);
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -106,8 +102,9 @@ public abstract class ScheduleReInvocationTests
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
-        
-        await rAction.ScheduleReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: null); 
+
+        controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something");
+        await rAction.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: controlPanel!.Epoch); 
         
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -155,11 +152,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvoke(
-            functionInstanceId: "something",
-            expectedStatuses: new[] {Status.Failed},
-            expectedEpoch: null
-        );
+        await rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 0);
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -214,7 +207,8 @@ public abstract class ScheduleReInvocationTests
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveParameterAndScrapbook();
 
-        await rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedStatuses: new[] {Status.Failed}, expectedEpoch: null);
+        controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something");
+        await rFunc.ScheduleReInvoke(functionInstanceId: "something", controlPanel!.Epoch);
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -230,40 +224,6 @@ public abstract class ScheduleReInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task ReInvocationFailsWhenItHasUnexpectedStatus();
-    protected async Task ReInvocationFailsWhenItHasUnexpectedStatus(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        const string functionType = "someFunctionType";
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
-            store,
-            new Settings(
-                unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-
-        var rFunc = rFunctions
-            .RegisterAction(
-                functionType,
-                (string _) => Task.FromException(new Exception("oh no"))
-            );
-
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
-
-        await Should.ThrowAsync<UnexpectedFunctionState>(() =>
-            rFunc.ScheduleReInvoke(
-                functionInstanceId: "something", 
-                expectedStatuses: new[] {Status.Executing},
-                expectedEpoch: null
-            )
-        );
-
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-    
     public abstract Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState();
     protected async Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(Task<IFunctionStore> storeTask)
     {
@@ -288,11 +248,7 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
         await Should.ThrowAsync<UnexpectedFunctionState>(
-            () => rFunc.ScheduleReInvoke(
-                functionInstanceId: "something",
-                expectedStatuses: new[] { Status.Executing },
-                expectedEpoch: null
-            )
+            () => rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 1)
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -320,11 +276,7 @@ public abstract class ScheduleReInvocationTests
             );
 
         await Should.ThrowAsync<UnexpectedFunctionState>(() =>
-            rFunc.ScheduleReInvoke(
-                functionInstanceId: "something", 
-                expectedStatuses: new[] {Status.Executing},
-                expectedEpoch: null
-            )
+            rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 0)
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

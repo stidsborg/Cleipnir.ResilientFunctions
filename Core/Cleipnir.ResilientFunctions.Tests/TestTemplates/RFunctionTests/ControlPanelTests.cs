@@ -57,7 +57,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
 
-        await rAction.ReInvoke(functionInstanceId, new[] { Status.Succeeded }); //bump epoch
+        await rAction.ReInvoke(functionInstanceId, expectedEpoch: 0); //bump epoch
 
         await controlPanel.Delete().ShouldBeFalseAsync();
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
