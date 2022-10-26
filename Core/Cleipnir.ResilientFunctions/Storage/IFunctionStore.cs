@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -17,14 +18,14 @@ public interface IFunctionStore
     );
     
     Task<bool> TryToBecomeLeader(
-        FunctionId functionId, 
-        Status newStatus, 
+        FunctionId functionId,
+        Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
         int expectedEpoch, 
         int newEpoch, 
         long crashedCheckFrequency,
         int version
     );
-
+    
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound);

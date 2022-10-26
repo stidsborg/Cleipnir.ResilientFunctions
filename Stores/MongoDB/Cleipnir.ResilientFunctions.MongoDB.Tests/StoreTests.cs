@@ -24,7 +24,15 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
         => BecomeLeaderFailsWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
-    
+
+    [TestMethod]
+    public override Task BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected()
+        => BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected(NoSql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected()
+        => BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected(NoSql.AutoCreateAndInitializeStore());
+
     [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
         => CreatingTheSameFunctionTwiceReturnsFalse(NoSql.AutoCreateAndInitializeStore());

@@ -101,7 +101,7 @@ internal class PostponedWatchdog
             using var _ = _shutdownCoordinator.RegisterRunningRFunc();
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
-                Status.Executing,
+                paramAndScrapbook: null,
                 expectedEpoch: spf.Epoch,
                 newEpoch: spf.Epoch + 1,
                 _crashedCheckFrequency.Ticks,

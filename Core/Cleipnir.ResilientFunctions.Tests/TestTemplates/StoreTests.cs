@@ -139,7 +139,7 @@ public abstract class StoreTests
         await store
             .TryToBecomeLeader(
                 FunctionId, 
-                Status.Executing, 
+                paramAndScrapbook: null, 
                 expectedEpoch: 0, 
                 newEpoch: 1, 
                 crashedCheckFrequency: 100, 
@@ -169,7 +169,7 @@ public abstract class StoreTests
 
         await store.TryToBecomeLeader(
             FunctionId, 
-            Status.Executing, 
+            paramAndScrapbook: null, 
             expectedEpoch: 0, newEpoch: 2,
             crashedCheckFrequency: 100,
             version: 0
@@ -178,7 +178,89 @@ public abstract class StoreTests
         await store
             .TryToBecomeLeader(
                 FunctionId, 
-                Status.Executing, 
+                paramAndScrapbook: null,
+                expectedEpoch: 0, 
+                newEpoch: 1, 
+                crashedCheckFrequency: 100, 
+                version: 0
+            ).ShouldBeFalseAsync();
+
+        var storedFunction = await store.GetFunction(FunctionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Epoch.ShouldBe(2);
+        storedFunction.SignOfLife.ShouldBe(0);
+    }
+    
+    public abstract Task BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected();
+    protected async Task BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+        var paramType = PARAM.GetType().SimpleQualifiedName();
+
+        await store.CreateFunction(
+            FunctionId,
+            param: new StoredParameter(paramJson, paramType),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        var storedScrapbook = new StoredScrapbook(
+            new RScrapbook { StateDictionary = { ["Test"] = "true" } }.ToJson(),
+            typeof(RScrapbook).SimpleQualifiedName()
+        );
+        var storedParameter = new StoredParameter("updated_param".ToJson(), typeof(string).SimpleQualifiedName());
+        await store
+            .TryToBecomeLeader(
+                FunctionId, 
+                paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook), 
+                expectedEpoch: 0, 
+                newEpoch: 1, 
+                crashedCheckFrequency: 100, 
+                version: 0
+            ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(FunctionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Epoch.ShouldBe(1);
+        storedFunction.SignOfLife.ShouldBe(0);
+        storedParameter.Deserialize<string>(DefaultSerializer.Instance).ShouldBe("updated_param");
+        storedScrapbook.Deserialize<RScrapbook>(DefaultSerializer.Instance).StateDictionary["Test"].ShouldBe("true");
+    }
+        
+    public abstract Task BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected();
+    protected async Task BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+        var paramType = PARAM.GetType().SimpleQualifiedName();
+
+        await store.CreateFunction(
+            FunctionId,
+            param: new StoredParameter(paramJson, paramType),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        await store.TryToBecomeLeader(
+            FunctionId, 
+            paramAndScrapbook: null, 
+            expectedEpoch: 0, newEpoch: 2,
+            crashedCheckFrequency: 100,
+            version: 0
+        ).ShouldBeTrueAsync();
+
+        var storedScrapbook = new StoredScrapbook(
+            new RScrapbook { StateDictionary = { ["Test"] = "true" } }.ToJson(),
+            typeof(RScrapbook).SimpleQualifiedName()
+        );
+        var storedParameter = new StoredParameter("updated_param".ToJson(), typeof(string).SimpleQualifiedName());
+        await store
+            .TryToBecomeLeader(
+                FunctionId, 
+                paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook),
                 expectedEpoch: 0, 
                 newEpoch: 1, 
                 crashedCheckFrequency: 100, 
@@ -329,7 +411,7 @@ public abstract class StoreTests
 
         await store.TryToBecomeLeader(
             functionId, 
-            Status.Executing, 
+            paramAndScrapbook: null,
             expectedEpoch: 0, 
             newEpoch: 1, 
             crashedCheckFrequency, 

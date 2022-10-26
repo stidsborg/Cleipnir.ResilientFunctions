@@ -41,11 +41,11 @@ public class CrashableFunctionStore : IFunctionStore
                 version
             );
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
-
+            : _inner.TryToBecomeLeader(functionId, paramAndScrapbook, expectedEpoch, newEpoch, crashedCheckFrequency, version);
+    
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

@@ -226,7 +226,7 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
         await store.TryToBecomeLeader(
             FunctionId,
-            Status.Executing,
+            paramAndScrapbook: null,
             expectedEpoch: 0,
             newEpoch: 1,
             crashedCheckFrequency: 100,
@@ -398,7 +398,7 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
         await store.TryToBecomeLeader(
             FunctionId, 
-            Status.Executing, 
+            paramAndScrapbook: null,
             expectedEpoch: 0, 
             newEpoch: 1, 
             crashedCheckFrequency: 100, 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -20,8 +21,8 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
         => _inner.CreateFunction(functionId, param, storedScrapbook, crashedCheckFrequency, version);
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
-        => _inner.TryToBecomeLeader(functionId, newStatus, expectedEpoch, newEpoch, crashedCheckFrequency, version);
+    public Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+        => _inner.TryToBecomeLeader(functionId, paramAndScrapbook, expectedEpoch, newEpoch, crashedCheckFrequency, version);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {

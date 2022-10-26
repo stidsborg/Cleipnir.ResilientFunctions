@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -44,7 +45,11 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+    public Task<bool> TryToBecomeLeader(
+        FunctionId functionId,
+        Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
+        int expectedEpoch, int newEpoch, 
+        long crashedCheckFrequency, int version)
     {
         lock (_sync)
         {
@@ -55,14 +60,21 @@ public class InMemoryFunctionStore : IFunctionStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
+            if (paramAndScrapbook != null)
+            {
+                var (param, scrapbook) = paramAndScrapbook;
+                state.Param = param;
+                state.Scrapbook = scrapbook;   
+            }
+
             state.Epoch = newEpoch;
-            state.Status = newStatus;
+            state.Status = Status.Executing;
             state.CrashedCheckFrequency = crashedCheckFrequency;
             state.Version = version;
             return true.ToTask();
         }
     }
-    
+
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {
         lock (_sync)

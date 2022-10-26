@@ -204,7 +204,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         {
             var success = await _functionStore.TryToBecomeLeader(
                 functionId,
-                Status.Executing,
+                paramAndScrapbook: null,
                 expectedEpoch: sf.Epoch,
                 newEpoch: epoch,
                 _settings.CrashedCheckFrequency.Ticks,

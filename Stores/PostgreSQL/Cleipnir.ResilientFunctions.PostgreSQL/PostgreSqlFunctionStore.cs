@@ -105,31 +105,66 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
     {
-        await using var conn = await CreateConnection();
-
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET epoch = $1, status = $2, crashed_check_frequency = $3, version = $4
-            WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
-
-        await using var command = new NpgsqlCommand(sql, conn)
+        if (paramAndScrapbook == null)
         {
-            Parameters =
-            {
-                new() { Value = newEpoch },
-                new() { Value = (int)newStatus },
-                new() { Value = crashedCheckFrequency },
-                new() { Value = version },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
+            await using var conn = await CreateConnection();
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET epoch = $1, status = {(int) Status.Executing}, crashed_check_frequency = $2, version = $3
+            WHERE function_type_id = $4 AND function_instance_id = $5 AND epoch = $6";
+
+            await using var command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() { Value = newEpoch },
+                    new() { Value = crashedCheckFrequency },
+                    new() { Value = version },
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedEpoch },
+                }
+            };
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;
+        }
+        else
+        {
+            await using var conn = await CreateConnection();
+
+            var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET param_json = $1, param_type = $2,
+                scrapbook_json = $3, scrapbook_type = $4,
+                epoch = $5, status = {(int) Status.Executing},
+                crashed_check_frequency = $6, version = $7
+            WHERE function_type_id = $8 AND function_instance_id = $9 AND epoch = $10";
+
+            var (param, scrapbook) = paramAndScrapbook;
+            await using var command = new NpgsqlCommand(sql, conn)
+            {
+                Parameters =
+                {
+                    new() { Value = param.ParamJson },
+                    new() { Value = param.ParamType },
+                    new() { Value = scrapbook.ScrapbookJson },
+                    new() { Value = scrapbook.ScrapbookType },
+                    new() { Value = newEpoch },
+                    new() { Value = crashedCheckFrequency },
+                    new() { Value = version },
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedEpoch },
+                }
+            };
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;
+        }
     }
 
     public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)

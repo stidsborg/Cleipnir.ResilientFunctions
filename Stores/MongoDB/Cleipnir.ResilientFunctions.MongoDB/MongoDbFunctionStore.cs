@@ -79,21 +79,30 @@ public class MongoDbFunctionStore : IFunctionStore
         
         return true;
     }
-    
-    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Status newStatus, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
+
+    public async Task<bool> TryToBecomeLeader(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, int newEpoch, long crashedCheckFrequency, int version)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
-        var status = (int) newStatus;
 
         var collection = GetCollection();
         
         var update = Builders<Document>
             .Update
-            .Set(d => d.Status, status)
+            .Set(d => d.Status, (int) Status.Executing)
             .Set(d => d.Epoch, newEpoch)
             .Set(d => d.CrashedCheckFrequency, crashedCheckFrequency)
             .Set(d => d.Version, version);
+
+        if (paramAndScrapbook != null)
+        {
+            var (param, scrapbook) = paramAndScrapbook;
+            update = update
+                .Set(d => d.ParameterJson, param.ParamJson)
+                .Set(d => d.ParameterType, param.ParamType)
+                .Set(d => d.ScrapbookJson, scrapbook.ScrapbookJson)
+                .Set(d => d.ScrapbookType, scrapbook.ScrapbookType);
+        }
 
         var result = await collection.UpdateOneAsync(
             d =>
