@@ -340,7 +340,7 @@ public abstract class StoreCrudTests
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            storedScrapbook: null,
+            storedScrapbook: Scrapbook,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
@@ -371,7 +371,7 @@ public abstract class StoreCrudTests
         
         await store.SetParameters(
             FunctionId,
-            storedParameter: null,
+            storedParameter: Param,
             updatedStoredScrapbook,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();

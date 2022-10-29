@@ -81,7 +81,7 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SaveScrapbookForExecutingFunction(functionId, scrapbookJson, expectedEpoch);
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(functionId, storedParameter, storedScrapbook, expectedEpoch);

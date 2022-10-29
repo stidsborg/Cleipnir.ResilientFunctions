@@ -49,7 +49,7 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch)
         => _inner.SaveScrapbookForExecutingFunction(functionId, scrapbookJson, expectedEpoch);
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, int expectedEpoch)
         => _inner.SetParameters(functionId, storedParameter, storedScrapbook, expectedEpoch);
 
     public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)

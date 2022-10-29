@@ -184,20 +184,16 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, int expectedEpoch)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(functionId)) return false.ToTask();
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-
-            if (storedParameter != null)
-                state.Param = storedParameter;
-
-            if (storedScrapbook != null)
-                state.Scrapbook = storedScrapbook;
-
+            
+            state.Param = storedParameter;
+            state.Scrapbook = storedScrapbook;
             state.Epoch += 1;
 
             return true.ToTask();
