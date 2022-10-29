@@ -290,6 +290,17 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
+    public async Task<bool> SetParameterAndScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int expectedEpoch)
+    {
+        var serializer = _settings.Serializer;
+        return await _functionStore.SetParameters(
+            functionId,
+            storedParameter: serializer.SerializeParameter(param),
+            storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            expectedEpoch
+        );
+    }
+
     public async Task<bool> Delete(FunctionId functionId, int expectedEpoch)
         => await _functionStore.DeleteFunction(functionId, expectedEpoch);
 

@@ -274,7 +274,8 @@ public class MongoDbFunctionStore : IFunctionStore
                 .Set(d => d.ParameterJson, storedParameter.ParamJson)
                 .Set(d => d.ParameterType, storedParameter.ParamType)
                 .Set(d => d.ScrapbookJson, storedScrapbook.ScrapbookJson)
-                .Set(d => d.ScrapbookType, storedScrapbook.ScrapbookType);
+                .Set(d => d.ScrapbookType, storedScrapbook.ScrapbookType)
+                .Set(d => d.Epoch, expectedEpoch + 1);
 
             var updateResult = await collection.UpdateOneAsync(
                 d =>

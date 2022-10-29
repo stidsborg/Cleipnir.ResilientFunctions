@@ -352,7 +352,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4
+            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, epoch = epoch + 1
             WHERE 
                 function_type_id = $5 AND 
                 function_instance_id = $6 AND 

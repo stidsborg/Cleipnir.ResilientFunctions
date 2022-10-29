@@ -331,7 +331,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?
+            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 

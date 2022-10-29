@@ -344,7 +344,7 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET ParamJson = @ParamJson, ParamType = @ParamType, ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType
+            SET ParamJson = @ParamJson, ParamType = @ParamType, ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType, Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";

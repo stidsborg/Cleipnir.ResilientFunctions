@@ -96,11 +96,9 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
             FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception, Epoch
         );
 
-    public Task<bool> SaveParameterAndScrapbook()
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status, Param, Scrapbook, PostponedUntil, new Exception(), Epoch //todo fix previously thrown exception here
-        );
-    
+    public async Task<bool> SaveParameterAndScrapbook() 
+        => await _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
+
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
     public async Task Refresh()
@@ -215,9 +213,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         );
     
     public Task<bool> SaveParameterAndScrapbook()
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status, Param, Scrapbook, PostponedUntil, new Exception(), Epoch //todo fix previously thrown exception here
-        );
+        => _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
     
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
     

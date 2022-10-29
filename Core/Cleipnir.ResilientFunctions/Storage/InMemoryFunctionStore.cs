@@ -198,6 +198,8 @@ public class InMemoryFunctionStore : IFunctionStore
             if (storedScrapbook != null)
                 state.Scrapbook = storedScrapbook;
 
+            state.Epoch += 1;
+
             return true.ToTask();
         }
     }
