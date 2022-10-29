@@ -20,13 +20,13 @@ public static class RScrapbookExtensions
         if (scrapbook.StateDictionary.ContainsKey(workId))
         {
             var value = scrapbook.StateDictionary[workId];
-            var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var callStatus);
+            var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var workStatus);
             if (!success)
                 throw new InvalidOperationException($"Current value '{value}' could not be converted to {nameof(WorkStatus)} enum");
 
-            if (callStatus == WorkStatus.Completed) return;
-            if (callStatus == WorkStatus.Started) 
-                throw new InvalidOperationException("Previous call was started but not completed");
+            if (workStatus == WorkStatus.Completed) return;
+            if (workStatus == WorkStatus.Started) 
+                throw new InvalidOperationException("Previous work was started but not completed");
         }
 
         scrapbook.StateDictionary[workId] = WorkStatus.Started.ToString();
@@ -49,10 +49,10 @@ public static class RScrapbookExtensions
         var getter = (Func<TScrapbook, WorkStatus>)getterAndSetter.Getter;
         var setter = (Action<TScrapbook, WorkStatus>)getterAndSetter.Setter;
 
-        var callStatusValue = getter(scrapbook);
-        if (callStatusValue == WorkStatus.Completed) return;
-        if (callStatusValue == WorkStatus.Started)
-            throw new InvalidOperationException("Previous call was started but not completed");
+        var workStatusValue = getter(scrapbook);
+        if (workStatusValue == WorkStatus.Completed) return;
+        if (workStatusValue == WorkStatus.Started)
+            throw new InvalidOperationException("Previous work was started but not completed");
 
         setter(scrapbook, WorkStatus.Started);
         await scrapbook.Save(); 
