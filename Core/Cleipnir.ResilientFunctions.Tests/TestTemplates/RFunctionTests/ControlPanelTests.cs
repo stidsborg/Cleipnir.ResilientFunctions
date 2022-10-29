@@ -32,6 +32,36 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.Delete().ShouldBeTrueAsync();
 
+        await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
+
+        await store.GetFunction(functionId).ShouldBeNullAsync();
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingFunctionCanBeDeletedFromControlPanel();
+    protected async Task ExistingFunctionCanBeDeletedFromControlPanel(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ExistingFunctionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            string(string _) => "hello"
+        );
+        
+        await rFunc.Invoke(functionInstanceId, "");
+
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        await controlPanel.Delete().ShouldBeTrueAsync();
+
+        await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
+
         await store.GetFunction(functionId).ShouldBeNullAsync();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -65,6 +95,34 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task DeletingExistingFuncWithHigherEpochReturnsFalse();
+    protected async Task DeletingExistingFuncWithHigherEpochReturnsFalse(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(DeletingExistingFuncWithHigherEpochReturnsFalse).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            string (string _) => "hello"
+        );
+        
+        await rFunc.Invoke(functionInstanceId, "");
+
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+
+        await rFunc.ReInvoke(functionInstanceId, expectedEpoch: 0); //bump epoch
+
+        await controlPanel.Delete().ShouldBeFalseAsync();
+        await store.GetFunction(functionId).ShouldNotBeNullAsync();
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     public abstract Task PostponingExistingActionFromControlPanelSucceeds();
     protected async Task PostponingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -72,7 +130,7 @@ public abstract class ControlPanelTests
 
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionTypeId = nameof(PostponingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -89,6 +147,11 @@ public abstract class ControlPanelTests
         
         await controlPanel.Postpone(new DateTime(1_000_000)).ShouldBeTrueAsync();
 
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Postponed);
+        controlPanel.PostponedUntil.ShouldNotBeNull();
+        controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
+        
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
@@ -105,7 +168,7 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionTypeId = nameof(PostponingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -122,6 +185,11 @@ public abstract class ControlPanelTests
         
         await controlPanel.Postpone(new DateTime(1_000_000)).ShouldBeTrueAsync();
 
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Postponed);
+        controlPanel.PostponedUntil.ShouldNotBeNull();
+        controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
+        
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
@@ -138,7 +206,7 @@ public abstract class ControlPanelTests
 
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionTypeId = nameof(FailingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -155,6 +223,10 @@ public abstract class ControlPanelTests
         
         await controlPanel.Fail(new InvalidOperationException()).ShouldBeTrueAsync();
 
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Failed);
+        controlPanel.FailedWithException.ShouldNotBeNull();
+
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
@@ -170,7 +242,7 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionTypeId = nameof(FailingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -187,6 +259,10 @@ public abstract class ControlPanelTests
 
         await controlPanel.Fail(new InvalidOperationException()).ShouldBeTrueAsync();
 
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Failed);
+        controlPanel.FailedWithException.ShouldNotBeNull();
+        
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
@@ -202,7 +278,7 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionTypeId = nameof(SucceedingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -219,6 +295,9 @@ public abstract class ControlPanelTests
 
         await controlPanel.Succeed().ShouldBeTrueAsync();
 
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
@@ -233,7 +312,7 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
+        var functionTypeId = nameof(SucceedingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -250,6 +329,10 @@ public abstract class ControlPanelTests
 
         await controlPanel.Succeed("hello world").ShouldBeTrueAsync();
 
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("hello world");
+        
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);

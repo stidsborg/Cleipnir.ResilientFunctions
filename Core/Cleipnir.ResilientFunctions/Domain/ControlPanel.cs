@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -67,32 +68,32 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     }
 
     public FunctionId FunctionId { get; }
-    public Status Status { get; }
+    public Status Status { get; private set; }
     
-    public int Epoch { get; }
-    public int Version { get; }
-    public long CrashedCheckFrequency { get; }
+    public int Epoch { get; private set; }
+    public int Version { get; private set; }
+    public long CrashedCheckFrequency { get; private set; }
     
     public TParam Param { get; set; }
     public TScrapbook Scrapbook { get; set; }
     
-    public DateTime? PostponedUntil { get; }
-    public Exception? FailedWithException { get; }
+    public DateTime? PostponedUntil { get; private set; }
+    public Exception? FailedWithException { get; private set; }
 
     public Task<bool> Succeed()
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, Scrapbook, PostponedUntil, FailedWithException, Epoch
+            FunctionId, Status.Succeeded, Param, Scrapbook, postponeUntil: null, exception: null, Epoch
         );
     
     public Task<bool> Postpone(DateTime until) 
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, Scrapbook, until, FailedWithException, Epoch
+            FunctionId, Status.Postponed, Param, Scrapbook, until, exception: null, Epoch
         );
     public Task<bool> Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
     
     public Task<bool> Fail(Exception exception) 
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, Scrapbook, PostponedUntil, exception, Epoch
+            FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception, Epoch
         );
 
     public Task<bool> SaveParameterAndScrapbook()
@@ -101,6 +102,22 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         );
     
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+
+    public async Task Refresh()
+    {
+        var sf = await _invocationHelper.GetFunction(FunctionId);
+        if (sf == null)
+            throw new UnexpectedFunctionState(FunctionId, $"Function '{FunctionId}' not found");
+
+        Status = sf.Status;
+        Epoch = sf.Epoch;
+        Version = sf.Version;
+        CrashedCheckFrequency = sf.CrashedCheckFrequency;
+        Param = sf.Param;
+        Scrapbook = sf.Scrapbook;
+        PostponedUntil = sf.PostponedUntil;
+        FailedWithException = sf.Error;
+    }
 }
 
 public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -168,33 +185,33 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     }
 
     public FunctionId FunctionId { get; }
-    public Status Status { get; }
+    public Status Status { get; private set; }
     
-    public int Epoch { get; }
-    public int Version { get; }
-    public long CrashedCheckFrequency { get; }
+    public int Epoch { get; private set; }
+    public int Version { get; private set; }
+    public long CrashedCheckFrequency { get; private set; }
     
     public TParam Param { get; set; }
     public TScrapbook Scrapbook { get; set; }
     public TReturn? Result { get; set; }
     
-    public DateTime? PostponedUntil { get; }
-    public Exception? FailedWithException { get; }
+    public DateTime? PostponedUntil { get; private set; }
+    public Exception? FailedWithException { get; private set; }
 
     public Task<bool> Succeed(TReturn result)
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, Scrapbook, result, PostponedUntil, FailedWithException, Epoch
+            FunctionId, Status.Succeeded, Param, Scrapbook, result, PostponedUntil, exception: null, Epoch
         );
     
     public Task<bool> Postpone(DateTime until) 
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, Scrapbook, result: default, until, FailedWithException, Epoch
+            FunctionId, Status.Postponed, Param, Scrapbook, result: default, until, exception: null, Epoch
         );
     public Task<bool> Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
     
     public Task<bool> Fail(Exception exception) 
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, Scrapbook, result: default, PostponedUntil, exception, Epoch
+            FunctionId, Status.Failed, Param, Scrapbook, result: default, postponeUntil: null, exception, Epoch
         );
     
     public Task<bool> SaveParameterAndScrapbook()
@@ -203,4 +220,21 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         );
     
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+    
+    public async Task Refresh()
+    {
+        var sf = await _invocationHelper.GetFunction(FunctionId);
+        if (sf == null)
+            throw new UnexpectedFunctionState(FunctionId, $"Function '{FunctionId}' not found");
+
+        Status = sf.Status;
+        Epoch = sf.Epoch;
+        Version = sf.Version;
+        CrashedCheckFrequency = sf.CrashedCheckFrequency;
+        Param = sf.Param;
+        Scrapbook = sf.Scrapbook;
+        Result = sf.Result;
+        PostponedUntil = sf.PostponedUntil;
+        FailedWithException = sf.Error;
+    }
 }
