@@ -45,4 +45,20 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task SucceedingExistingFunctionFromControlPanelSucceeds()
         => SucceedingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ReInvokingExistingActionFromControlPanelSucceeds()
+        => ReInvokingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ReInvokingExistingFunctionFromControlPanelSucceeds()
+        => ReinvokingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ScheduleReInvokingExistingActionFromControlPanelSucceeds()
+        => ScheduleReInvokingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds()
+        => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -338,6 +339,162 @@ public abstract class ControlPanelTests
         sf.Status.ShouldBe(Status.Succeeded);
         var result = DefaultSerializer.Instance.DeserializeResult<string>(sf.Result.ResultJson!, sf.Result.ResultType!);
         result.ShouldBe("hello world");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ReInvokingExistingActionFromControlPanelSucceeds();
+    protected async Task ReInvokingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ReInvokingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            void(string param, RScrapbook scrapbook) =>
+            {
+                scrapbook.StateDictionary.Clear();
+                scrapbook.StateDictionary["Value"] = param;
+            }
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "first");
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Scrapbook.StateDictionary["Value"].ShouldBe("first");
+        controlPanel.PreviouslyThrownException.ShouldBeNull();
+
+        controlPanel.Param = "second";
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.Refresh();
+        await controlPanel.ReInvoke();
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Scrapbook.StateDictionary["Value"].ShouldBe("second");
+        
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ReInvokingExistingFunctionFromControlPanelSucceeds();
+    protected async Task ReinvokingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ReInvokingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = rFunctions.RegisterFunc(
+            functionTypeId,
+            string (string param) => param
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "first");
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("first");
+        controlPanel.PreviouslyThrownException.ShouldBeNull();
+
+        controlPanel.Param = "second";
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.Refresh();
+        var result = await controlPanel.ReInvoke();
+        result.ShouldBe("second");
+        
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ScheduleReInvokingExistingActionFromControlPanelSucceeds();
+    protected async Task ScheduleReInvokingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ScheduleReInvokingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            void(string param, RScrapbook scrapbook) =>
+            {
+                scrapbook.StateDictionary.Clear();
+                scrapbook.StateDictionary["Value"] = param;
+            }
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "first");
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Scrapbook.StateDictionary["Value"].ShouldBe("first");
+        controlPanel.PreviouslyThrownException.ShouldBeNull();
+
+        controlPanel.Param = "second";
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.Refresh();
+        await controlPanel.ScheduleReInvoke();
+
+        await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Scrapbook.StateDictionary["Value"].ShouldBe("second");
+        
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds();
+    protected async Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ScheduleReInvokingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = rFunctions.RegisterFunc(
+            functionTypeId,
+            string (string param) => param
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "first");
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("first");
+        controlPanel.PreviouslyThrownException.ShouldBeNull();
+
+        controlPanel.Param = "second";
+        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.Refresh();
+        await controlPanel.ScheduleReInvoke();
+        await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
+        await controlPanel.Refresh();
+        controlPanel.Result.ShouldBe("second");
+        
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

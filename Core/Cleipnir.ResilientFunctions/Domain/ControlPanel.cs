@@ -10,10 +10,18 @@ public class ControlPanelFactory<TParam, TScrapbook> where TParam : notnull wher
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
+    private readonly RAction.ReInvoke _reInvoke;
+    private readonly RAction.ScheduleReInvoke _scheduleReInvoke;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, InvocationHelper<TParam, TScrapbook, Unit> invocationHelper)
+    internal ControlPanelFactory(
+        FunctionTypeId functionTypeId, 
+        InvocationHelper<TParam, TScrapbook, Unit> invocationHelper, 
+        RAction.ReInvoke reInvoke, 
+        RAction.ScheduleReInvoke scheduleReInvoke)
     {
         _invocationHelper = invocationHelper;
+        _reInvoke = reInvoke;
+        _scheduleReInvoke = scheduleReInvoke;
         _functionTypeId = functionTypeId;
     }
 
@@ -26,6 +34,8 @@ public class ControlPanelFactory<TParam, TScrapbook> where TParam : notnull wher
         
         return new ControlPanel<TParam, TScrapbook>(
             _invocationHelper,
+            _reInvoke,
+            _scheduleReInvoke,
             functionId,
             f.Status,
             f.Epoch,
@@ -42,9 +52,13 @@ public class ControlPanelFactory<TParam, TScrapbook> where TParam : notnull wher
 public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
-
+    private readonly RAction.ReInvoke _reInvoke;
+    private readonly RAction.ScheduleReInvoke _scheduleReInvoke;
+    
     internal ControlPanel(
-        InvocationHelper<TParam, TScrapbook, Unit> invocationHelper, 
+        InvocationHelper<TParam, TScrapbook, Unit> invocationHelper,
+        RAction.ReInvoke reInvoke,
+        RAction.ScheduleReInvoke scheduleReInvoke,
         FunctionId functionId, 
         Status status, 
         int epoch, 
@@ -56,6 +70,8 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PreviouslyThrownException? previouslyThrownException)
     {
         _invocationHelper = invocationHelper;
+        _reInvoke = reInvoke;
+        _scheduleReInvoke = scheduleReInvoke;
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
@@ -101,6 +117,9 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
 
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
+    public async Task ReInvoke() => await _reInvoke(FunctionId.InstanceId.Value, Epoch);
+    public async Task ScheduleReInvoke() => await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
+    
     public async Task Refresh()
     {
         var sf = await _invocationHelper.GetFunction(FunctionId);
@@ -122,10 +141,18 @@ public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : not
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
+    private readonly RFunc.ReInvoke<TReturn> _reInvoke;
+    private readonly RFunc.ScheduleReInvoke _scheduleReInvoke;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper)
+    internal ControlPanelFactory(
+        FunctionTypeId functionTypeId, 
+        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper, 
+        RFunc.ReInvoke<TReturn> reInvoke, 
+        RFunc.ScheduleReInvoke scheduleReInvoke)
     {
         _invocationHelper = invocationHelper;
+        _reInvoke = reInvoke;
+        _scheduleReInvoke = scheduleReInvoke;
         _functionTypeId = functionTypeId;
     }
 
@@ -138,6 +165,8 @@ public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : not
         
         return new ControlPanel<TParam, TScrapbook, TReturn>(
             _invocationHelper,
+            _reInvoke,
+            _scheduleReInvoke,
             functionId,
             f.Status,
             f.Epoch,
@@ -155,9 +184,13 @@ public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : not
 public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
+    private readonly RFunc.ReInvoke<TReturn> _reInvoke;
+    private readonly RFunc.ScheduleReInvoke _scheduleReInvoke;
 
     internal ControlPanel(
-        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper, 
+        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
+        RFunc.ReInvoke<TReturn> reInvoke,
+        RFunc.ScheduleReInvoke scheduleReInvoke,
         FunctionId functionId, 
         Status status, 
         int epoch, 
@@ -170,6 +203,8 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         PreviouslyThrownException? previouslyThrownException)
     {
         _invocationHelper = invocationHelper;
+        _reInvoke = reInvoke;
+        _scheduleReInvoke = scheduleReInvoke;
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
@@ -216,6 +251,9 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         => _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
     
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+
+    public async Task<TReturn> ReInvoke() => await _reInvoke(FunctionId.InstanceId.Value, Epoch);
+    public async Task ScheduleReInvoke() => await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
     
     public async Task Refresh()
     {

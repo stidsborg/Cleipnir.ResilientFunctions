@@ -45,4 +45,20 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task SucceedingExistingFunctionFromControlPanelSucceeds()
         => SucceedingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ReInvokingExistingActionFromControlPanelSucceeds()
+        => ReInvokingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ReInvokingExistingFunctionFromControlPanelSucceeds()
+        => ReinvokingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ScheduleReInvokingExistingActionFromControlPanelSucceeds()
+        => ScheduleReInvokingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds()
+        => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
 }

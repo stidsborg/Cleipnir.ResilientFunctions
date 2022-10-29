@@ -434,7 +434,12 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(functionTypeId, invocationHelper);
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(
+                functionTypeId,
+                invocationHelper,
+                rFuncInvoker.ReInvoke,
+                rFuncInvoker.ScheduleReInvoke
+            );
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
@@ -603,7 +608,12 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(functionTypeId, invocationHelper);
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(
+                functionTypeId,
+                invocationHelper,
+                rActionInvoker.ReInvoke,
+                rActionInvoker.ScheduleReInvoke
+            );
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
@@ -682,7 +692,12 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(functionTypeId, invocationHelper);
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(
+                functionTypeId,
+                invocationHelper,
+                rFuncInvoker.ReInvoke,
+                rFuncInvoker.ScheduleReInvoke
+            );
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
@@ -739,7 +754,12 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(functionTypeId, invocationHelper);
+            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(
+                functionTypeId,
+                invocationHelper,
+                rFuncInvoker.ReInvoke,
+                rFuncInvoker.ScheduleReInvoke
+            );
             var registration = new RAction<TParam, TScrapbook>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
