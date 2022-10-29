@@ -100,7 +100,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     private async Task SaveScrapbook(FunctionId functionId, TScrapbook scrapbook, int epoch)
     {
         var (scrapbookJson, _) = Serializer.SerializeScrapbook(scrapbook);
-        var success = await _functionStore.SetScrapbook(
+        var success = await _functionStore.SaveScrapbookForExecutingFunction(
             functionId,
             scrapbookJson,
             expectedEpoch: epoch

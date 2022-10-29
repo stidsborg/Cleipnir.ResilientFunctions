@@ -37,7 +37,7 @@ public abstract class ScrapbookTests
         scrapbook.Initialize(onSave: async () =>
         {
             var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
-            await store.SetScrapbook(
+            await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
                 scrapbookJson,
                 expectedEpoch: 0
@@ -99,7 +99,7 @@ public abstract class ScrapbookTests
         scrapbook.Initialize(onSave: async () =>
         {
             var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
-            await store.SetScrapbook(
+            await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
                 scrapbookJson,
                 expectedEpoch: 1
@@ -111,7 +111,7 @@ public abstract class ScrapbookTests
         scrapbook.Initialize(onSave: async () =>
         {
             var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
-            await store.SetScrapbook(
+            await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
                 scrapbookJson,
                 expectedEpoch: 0

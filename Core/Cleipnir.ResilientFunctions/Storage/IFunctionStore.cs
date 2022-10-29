@@ -42,7 +42,7 @@ public interface IFunctionStore
         int expectedEpoch
     );
 
-    Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch);
+    Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch);
     Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter? storedParameter,

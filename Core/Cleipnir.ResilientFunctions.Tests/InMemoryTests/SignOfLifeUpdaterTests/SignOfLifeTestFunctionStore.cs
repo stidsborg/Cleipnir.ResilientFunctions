@@ -46,8 +46,8 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         long? postponeUntil, int expectedEpoch
     ) => _inner.SetFunctionState(functionId, status, storedParameter, storedScrapbook, storedResult, storedException, postponeUntil, expectedEpoch);
 
-    public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
-        => _inner.SetScrapbook(functionId, scrapbookJson, expectedEpoch);
+    public Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+        => _inner.SaveScrapbookForExecutingFunction(functionId, scrapbookJson, expectedEpoch);
 
     public Task<bool> SetParameters(FunctionId functionId, StoredParameter? storedParameter, StoredScrapbook? storedScrapbook, int expectedEpoch)
         => _inner.SetParameters(functionId, storedParameter, storedScrapbook, expectedEpoch);

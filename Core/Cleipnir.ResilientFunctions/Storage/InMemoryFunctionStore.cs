@@ -171,7 +171,7 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    public Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch)
     {
         lock (_sync)
         {

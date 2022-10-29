@@ -159,7 +159,7 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
-        await store.SetScrapbook(FunctionId, scrapbook.ToJson(), expectedEpoch: 0).ShouldBeTrueAsync();
+        await store.SaveScrapbookForExecutingFunction(FunctionId, scrapbook.ToJson(), expectedEpoch: 0).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Scrapbook.ShouldNotBeNull();
@@ -182,7 +182,7 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
-        await store.SetScrapbook(FunctionId, scrapbook.ToJson(), expectedEpoch: 1).ShouldBeFalseAsync();
+        await store.SaveScrapbookForExecutingFunction(FunctionId, scrapbook.ToJson(), expectedEpoch: 1).ShouldBeFalseAsync();
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
