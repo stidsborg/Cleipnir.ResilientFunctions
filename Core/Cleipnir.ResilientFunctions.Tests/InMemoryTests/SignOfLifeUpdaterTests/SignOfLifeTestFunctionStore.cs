@@ -40,11 +40,12 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         => _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
 
     public Task<bool> SetFunctionState(
-        FunctionId functionId, Status status,
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult,
-        string? errorJson, long? postponeUntil, int expectedEpoch)
-        => _inner.SetFunctionState(functionId, status, storedParameter, storedScrapbook, storedResult, errorJson, postponeUntil, expectedEpoch);
-    
+        FunctionId functionId, Status status, 
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
+        StoredException? storedException, 
+        long? postponeUntil, int expectedEpoch
+    ) => _inner.SetFunctionState(functionId, status, storedParameter, storedScrapbook, storedResult, storedException, postponeUntil, expectedEpoch);
+
     public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
         => _inner.SetScrapbook(functionId, scrapbookJson, expectedEpoch);
 
@@ -57,8 +58,8 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
         => _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch);
 
-    public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
-        => _inner.FailFunction(functionId, errorJson, scrapbookJson, expectedEpoch);
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
+        => _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch);
 
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _inner.GetFunction(functionId);

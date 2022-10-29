@@ -143,7 +143,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.FailedWithException.ShouldNotBeNull();
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
         await controlPanel.Postpone(new DateTime(1_000_000)).ShouldBeTrueAsync();
 
@@ -181,7 +181,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.FailedWithException.ShouldNotBeNull();
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
         await controlPanel.Postpone(new DateTime(1_000_000)).ShouldBeTrueAsync();
 
@@ -225,12 +225,12 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.FailedWithException.ShouldNotBeNull();
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
-        sf.ErrorJson.ShouldNotBeNull();
+        sf.Exception.ShouldNotBeNull();
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -261,12 +261,12 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.FailedWithException.ShouldNotBeNull();
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
-        sf.ErrorJson.ShouldNotBeNull();
+        sf.Exception.ShouldNotBeNull();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -291,7 +291,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.FailedWithException.ShouldNotBeNull();
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
         await controlPanel.Succeed().ShouldBeTrueAsync();
 
@@ -325,7 +325,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.FailedWithException.ShouldNotBeNull();
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
         await controlPanel.Succeed("hello world").ShouldBeTrueAsync();
 

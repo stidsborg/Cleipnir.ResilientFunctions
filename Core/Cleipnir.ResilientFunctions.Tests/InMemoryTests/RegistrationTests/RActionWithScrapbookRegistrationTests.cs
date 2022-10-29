@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -67,9 +68,11 @@ public class RActionWithScrapbookRegistrationTests
         public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook 
             => Default.DeserializeScrapbook<TScrapbook>(json, type);
 
-        public string SerializeError(RError error) => Default.SerializeError(error);
-        public RError DeserializeError(string json) => Default.DeserializeError(json);
-        
+        public StoredException SerializeException(Exception exception)
+            => Default.SerializeException(exception);
+        public PreviouslyThrownException DeserializeException(StoredException storedException)
+            => Default.DeserializeException(storedException);
+
         public StoredResult SerializeResult<TResult>(TResult result) => Default.SerializeResult(result);
         public TResult DeserializeResult<TResult>(string json, string type) 
             => Default.DeserializeResult<TResult>(json, type);

@@ -34,7 +34,7 @@ public class ControlPanelFactory<TParam, TScrapbook> where TParam : notnull wher
             f.Param,
             f.Scrapbook,
             f.PostponedUntil,
-            f.Error
+            f.PreviouslyThrownException
         );
     }
 }
@@ -53,7 +53,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         TParam param, 
         TScrapbook scrapbook, 
         DateTime? postponedUntil, 
-        Exception? failedWithException)
+        PreviouslyThrownException? previouslyThrownException)
     {
         _invocationHelper = invocationHelper;
         FunctionId = functionId;
@@ -64,7 +64,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Param = param;
         Scrapbook = scrapbook;
         PostponedUntil = postponedUntil;
-        FailedWithException = failedWithException;
+        PreviouslyThrownException = previouslyThrownException;
     }
 
     public FunctionId FunctionId { get; }
@@ -78,7 +78,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public TScrapbook Scrapbook { get; set; }
     
     public DateTime? PostponedUntil { get; private set; }
-    public Exception? FailedWithException { get; private set; }
+    public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
 
     public Task<bool> Succeed()
         => _invocationHelper.SetFunctionState(
@@ -98,7 +98,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
 
     public Task<bool> SaveParameterAndScrapbook()
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status, Param, Scrapbook, PostponedUntil, FailedWithException, Epoch
+            FunctionId, Status, Param, Scrapbook, PostponedUntil, new Exception(), Epoch //todo fix previously thrown exception here
         );
     
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
@@ -116,7 +116,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;
         PostponedUntil = sf.PostponedUntil;
-        FailedWithException = sf.Error;
+        PreviouslyThrownException = sf.PreviouslyThrownException;
     }
 }
 
@@ -149,7 +149,7 @@ public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : not
             f.Scrapbook,
             f.Result,
             f.PostponedUntil,
-            f.Error
+            f.PreviouslyThrownException
         );
     }
 }
@@ -169,7 +169,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         TScrapbook scrapbook, 
         TReturn? result,
         DateTime? postponedUntil, 
-        Exception? failedWithException)
+        PreviouslyThrownException? previouslyThrownException)
     {
         _invocationHelper = invocationHelper;
         FunctionId = functionId;
@@ -181,7 +181,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Scrapbook = scrapbook;
         Result = result;
         PostponedUntil = postponedUntil;
-        FailedWithException = failedWithException;
+        PreviouslyThrownException = previouslyThrownException;
     }
 
     public FunctionId FunctionId { get; }
@@ -196,7 +196,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public TReturn? Result { get; set; }
     
     public DateTime? PostponedUntil { get; private set; }
-    public Exception? FailedWithException { get; private set; }
+    public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
 
     public Task<bool> Succeed(TReturn result)
         => _invocationHelper.SetFunctionState(
@@ -216,7 +216,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     
     public Task<bool> SaveParameterAndScrapbook()
         => _invocationHelper.SetFunctionState(
-            FunctionId, Status, Param, Scrapbook, PostponedUntil, FailedWithException, Epoch
+            FunctionId, Status, Param, Scrapbook, PostponedUntil, new Exception(), Epoch //todo fix previously thrown exception here
         );
     
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
@@ -235,6 +235,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Scrapbook = sf.Scrapbook;
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
-        FailedWithException = sf.Error;
+        PreviouslyThrownException = sf.PreviouslyThrownException;
     }
 }

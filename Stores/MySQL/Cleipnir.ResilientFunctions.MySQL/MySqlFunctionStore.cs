@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System.Text.Json;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using MySql.Data.MySqlClient;
 using static Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
@@ -30,7 +31,7 @@ public class MySqlFunctionStore : IFunctionStore
                 status INT NOT NULL,
                 result_json TEXT NULL,
                 result_type VARCHAR(255) NULL,
-                error_json TEXT NULL,
+                exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL,
                 sign_of_life INT NOT NULL,
@@ -256,7 +257,8 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
-        string? errorJson, long? postponeUntil, int expectedEpoch)
+        StoredException? storedException, 
+        long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -265,7 +267,7 @@ public class MySqlFunctionStore : IFunctionStore
                 param_json = ?, param_type = ?, 
                 scrapbook_json = ?, scrapbook_type = ?, 
                 result_json = ?, result_type = ?, 
-                error_json = ?, postponed_until = ?,
+                exception_json = ?, postponed_until = ?,
                 epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
@@ -280,9 +282,9 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedParameter.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = storedResult?.ResultJson ?? (object) DBNull.Value},
-                new() {Value = storedResult?.ResultType ?? (object) DBNull.Value},
-                new() {Value = errorJson ?? (object) DBNull.Value},
+                new() {Value = storedResult.ResultJson ?? (object) DBNull.Value},
+                new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
+                new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
@@ -453,12 +455,12 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, error_json = ?, scrapbook_json = ?
+            SET status = {(int) Status.Failed}, exception_json = ?, scrapbook_json = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -468,7 +470,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = errorJson},
+                new() {Value = JsonSerializer.Serialize(storedException)},
                 new() {Value = scrapbookJson},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
@@ -494,7 +496,7 @@ public class MySqlFunctionStore : IFunctionStore
                 status,
                 result_json, 
                 result_type,
-                error_json,
+                exception_json,
                 postponed_until,
                 version,
                 epoch, 
@@ -516,6 +518,9 @@ public class MySqlFunctionStore : IFunctionStore
         {
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasError = !await reader.IsDBNullAsync(7);
+            var storedException = hasError
+                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(7))
+                : null;
             var postponedUntil = !await reader.IsDBNullAsync(8);
             return new StoredFunction(
                 functionId,
@@ -526,7 +531,7 @@ public class MySqlFunctionStore : IFunctionStore
                     hasResult ? reader.GetString(5) : null, 
                     hasResult ? reader.GetString(6) : null
                 ),
-                hasError ? reader.GetString(7) : null,
+                storedException,
                 postponedUntil ? reader.GetInt64(8) : null,
                 Version: reader.GetInt32(9),
                 Epoch: reader.GetInt32(10),

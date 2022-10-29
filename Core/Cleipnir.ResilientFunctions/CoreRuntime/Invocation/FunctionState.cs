@@ -13,5 +13,5 @@ public record FunctionState<TParam, TScrapbook, TReturn>(
     TScrapbook Scrapbook, 
     TReturn? Result,
     DateTime? PostponedUntil,
-    Exception? Error
+    PreviouslyThrownException? PreviouslyThrownException
 ) where TParam : notnull where TScrapbook : RScrapbook, new();

@@ -64,17 +64,18 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
             : _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
 
-    public Task<bool> SetFunctionState(FunctionId functionId, Status status, StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook, StoredResult storedResult, 
-        string? errorJson, long? postponeUntil, int expectedEpoch) 
-        => _crashed
+    public Task<bool> SetFunctionState(
+        FunctionId functionId, Status status, StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook, StoredResult storedResult, StoredException? storedException, 
+        long? postponeUntil, int expectedEpoch
+    ) => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetFunctionState(
                 functionId, status, 
                 storedParameter, storedScrapbook, storedResult, 
-                errorJson, postponeUntil, expectedEpoch
+                storedException, postponeUntil, expectedEpoch
             );
-    
+
     public Task<bool> SetScrapbook(FunctionId functionId, string scrapbookJson, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
@@ -100,11 +101,11 @@ public class CrashableFunctionStore : IFunctionStore
         return success;
     }
 
-    public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.FailFunction(functionId, errorJson, scrapbookJson, expectedEpoch);
-
+            : _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch);
+    
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _crashed
             ? Task.FromException<StoredFunction?>(new TimeoutException())

@@ -81,7 +81,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                             ? default! 
                             : storedFunction.Result.Deserialize<TReturn>(Serializer)!;
                 case Status.Failed:
-                    var error = Serializer.DeserializeError(storedFunction.ErrorJson!);
+                    var error = Serializer.DeserializeException(storedFunction.Exception!);
                     throw new PreviousFunctionInvocationException(functionId, error);
                 case Status.Postponed:
                     throw new FunctionInvocationPostponedException(
@@ -117,8 +117,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     {
         var success = await _functionStore.FailFunction(
             functionId,
-            errorJson: Serializer.SerializeError(exception.ToError()),
-            Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
+            storedException: Serializer.SerializeException(exception),
+            scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
             expectedEpoch
         );
         if (!success) 
@@ -154,7 +154,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             case Outcome.Fail:
                 success = await _functionStore.FailFunction(
                     functionId,
-                    errorJson: Serializer.SerializeError(result.Fail!.ToError()),
+                    storedException: Serializer.SerializeException(result.Fail!),
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     expectedEpoch
                 );
@@ -225,7 +225,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             runningFunction.Dispose();
             await _functionStore.FailFunction(
                 functionId,
-                errorJson: Serializer.SerializeError(e.ToError()),
+                storedException: Serializer.SerializeException(e),
                 scrapbookJson: sf.Scrapbook.ScrapbookJson,
                 expectedEpoch: epoch
             );
@@ -260,7 +260,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
             storedResult: StoredResult.Null,
-            exception == null ? null : serializer.SerializeError(exception.ToError()),
+            exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
             expectedEpoch
         );
@@ -284,7 +284,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
             storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
-            exception == null ? null : serializer.SerializeError(exception.ToError()),
+            exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
             expectedEpoch
         );
@@ -313,9 +313,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 ? default 
                 : serializer.DeserializeResult<TReturn>(sf.Result.ResultJson!, sf.Result.ResultType),
             PostponedUntil: sf.PostponedUntil == null ? null : new DateTime(sf.PostponedUntil.Value),
-            Error: sf.ErrorJson == null 
+            PreviouslyThrownException: sf.Exception == null 
                 ? null 
-                : new PreviousFunctionInvocationException(functionId, serializer.DeserializeError(sf.ErrorJson))
+                : serializer.DeserializeException(sf.Exception)
         );
     }
 }

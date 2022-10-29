@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System.Text.Json;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using MongoDB.Driver;
@@ -203,8 +204,8 @@ public class MongoDbFunctionStore : IFunctionStore
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
-        string? errorJson, long? postponeUntil,
-        int expectedEpoch)
+        StoredException? storedException, 
+        long? postponeUntil, int expectedEpoch)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -218,9 +219,9 @@ public class MongoDbFunctionStore : IFunctionStore
             .Set(d => d.ParameterType, storedParameter.ParamType)
             .Set(d => d.ScrapbookJson, storedScrapbook.ScrapbookJson)
             .Set(d => d.ScrapbookType, storedScrapbook.ScrapbookType)
-            .Set(d => d.ResultJson, storedResult?.ResultJson)
-            .Set(d => d.ResultType, storedResult?.ResultType)
-            .Set(d => d.ErrorJson, errorJson)
+            .Set(d => d.ResultJson, storedResult.ResultJson)
+            .Set(d => d.ResultType, storedResult.ResultType)
+            .Set(d => d.ExceptionJson, storedException == null ? null : JsonSerializer.Serialize(storedException))
             .Set(d => d.PostponedUntil, postponeUntil)
             .Set(d => d.Epoch, expectedEpoch + 1);
 
@@ -379,7 +380,7 @@ public class MongoDbFunctionStore : IFunctionStore
         return modified == 1;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
         var functionTypeId = functionId.TypeId.Value;
         var functionInstanceId = functionId.InstanceId.Value;
@@ -389,7 +390,7 @@ public class MongoDbFunctionStore : IFunctionStore
         var update = Builders<Document>
             .Update
             .Set(d => d.Status, (int)Status.Failed)
-            .Set(d => d.ErrorJson, errorJson)
+            .Set(d => d.ExceptionJson, JsonSerializer.Serialize(storedException))
             .Set(d => d.ScrapbookJson, scrapbookJson);
 
         var updateResult = await collection.UpdateOneAsync(
@@ -423,7 +424,7 @@ public class MongoDbFunctionStore : IFunctionStore
             new StoredScrapbook(document.ScrapbookJson, document.ScrapbookType),
             (Status) document.Status,
             new StoredResult(document.ResultJson, document.ResultType),
-            document.ErrorJson,
+            document.ExceptionJson == null ? null : JsonSerializer.Deserialize<StoredException>(document.ExceptionJson),
             document.PostponedUntil,
             document.Version,
             document.Epoch,
@@ -508,7 +509,7 @@ public class MongoDbFunctionStore : IFunctionStore
         public int Status { get; set; }
         public string? ResultJson { get; set; }
         public string? ResultType { get; set; }
-        public string? ErrorJson { get; set; }
+        public string? ExceptionJson { get; set; }
         public long? PostponedUntil { get; set; }
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }

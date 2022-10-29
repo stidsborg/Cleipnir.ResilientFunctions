@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -39,7 +40,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
                 result_type VARCHAR(255) NULL,
-                error_json TEXT NULL,
+                exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 sign_of_life INT NOT NULL DEFAULT 0,
@@ -277,7 +278,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
-        string? errorJson, long? postponeUntil, int expectedEpoch)
+        StoredException? storedException, 
+        long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -286,7 +288,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 param_json = $2, param_type = $3,
                 scrapbook_json = $4, scrapbook_type = $5, 
                 result_json = $6, result_type = $7, 
-                error_json = $8, postponed_until = $9,
+                exception_json = $8, postponed_until = $9,
                 epoch = epoch + 1
             WHERE 
                 function_type_id = $10 AND 
@@ -301,9 +303,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedParameter.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = storedResult?.ResultJson ?? (object) DBNull.Value},
-                new() {Value = storedResult?.ResultType ?? (object) DBNull.Value},
-                new() {Value = errorJson ?? (object) DBNull.Value},
+                new() {Value = storedResult.ResultJson ?? (object) DBNull.Value},
+                new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
+                new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
@@ -468,12 +470,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, error_json = $1, scrapbook_json = $2
+            SET status = {(int) Status.Failed}, exception_json = $1, scrapbook_json = $2
             WHERE 
                 function_type_id = $3 AND 
                 function_instance_id = $4 AND 
@@ -482,7 +484,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = errorJson },
+                new() { Value = JsonSerializer.Serialize(storedException) },
                 new() { Value = scrapbookJson },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
@@ -506,7 +508,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 status,
                 result_json, 
                 result_type,
-                error_json,
+                exception_json,
                 postponed_until,
                 version,
                 epoch, 
@@ -527,7 +529,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         while (await reader.ReadAsync())
         {
             var hasResult = !await reader.IsDBNullAsync(6);
-            var hasError = !await reader.IsDBNullAsync(7);
+            var hasException = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
             return new StoredFunction(
                 functionId,
@@ -538,7 +540,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                     hasResult ? reader.GetString(5) : null, 
                     hasResult ? reader.GetString(6) : null
                 ),
-                hasError ? reader.GetString(7) : null,
+                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(7)),
                 postponedUntil ? reader.GetInt64(8) : null,
                 Version: reader.GetInt32(9),
                 Epoch: reader.GetInt32(10),

@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -9,8 +10,8 @@ public interface ISerializer
     TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull;
     StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook;
     TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook;
-    string SerializeError(RError error);
-    RError DeserializeError(string json);
+    StoredException SerializeException(Exception exception);
+    PreviouslyThrownException DeserializeException(StoredException storedException);
     StoredResult SerializeResult<TResult>(TResult result);
     TResult DeserializeResult<TResult>(string json, string type);
 }

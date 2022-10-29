@@ -302,12 +302,10 @@ public abstract class FailedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         if (throwUnhandledException)
         {
-            var errorJson = await store
+            await store
                 .GetFunction(new FunctionId(functionTypeId, param))
-                .Map(f => f?.ErrorJson)
+                .Map(f => f?.Exception)
                 .ShouldNotBeNullAsync();
-            var exception = DefaultSerializer.Instance.DeserializeError(errorJson);
-            exception.ShouldNotBeNull();
         }
     }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -44,7 +45,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     Status INT NOT NULL,
                     ResultJson NVARCHAR(MAX) NULL,
                     ResultType NVARCHAR(255) NULL,
-                    ErrorJson NVARCHAR(MAX) NULL,
+                    ExceptionJson NVARCHAR(MAX) NULL,
                     PostponedUntil BIGINT NULL,
                     Epoch INT NOT NULL,
                     SignOfLife INT NOT NULL,
@@ -276,9 +277,10 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     public async Task<bool> SetFunctionState(
-        FunctionId functionId, Status status, StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook, StoredResult storedResult, 
-        string? errorJson, long? postponeUntil, int expectedEpoch)
+        FunctionId functionId, Status status, 
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
+        StoredException? storedException, 
+        long? postponeUntil, int expectedEpoch)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -288,7 +290,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 ParamJson = @ParamJson, ParamType = @ParamType,            
                 ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType,
                 ResultJson = @ResultJson, ResultType = @ResultType,
-                ErrorJson = @ErrorJson,
+                ExceptionJson = @ExceptionJson,
                 PostponedUntil = @PostponedUntil,
                 Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId
@@ -303,7 +305,8 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
         command.Parameters.AddWithValue("@ResultJson", storedResult?.ResultJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@ResultType", storedResult?.ResultType ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ErrorJson", errorJson ?? (object) DBNull.Value);
+        var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
+        command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@PostponedUntil", postponeUntil ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
@@ -447,19 +450,19 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
         await using var conn = await _connFunc();
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Failed}, ErrorJson = @ErrorJson, ScrapbookJson = @ScrapbookJson
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, ScrapbookJson = @ScrapbookJson
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ErrorJson", errorJson);
+        command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
         command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
@@ -477,7 +480,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ScrapbookJson, ScrapbookType,
                     Status,
                     ResultJson, ResultType,
-                    ErrorJson,
+                    ExceptionJson,
                     PostponedUntil,
                     Version,
                     Epoch, SignOfLife, 
@@ -502,7 +505,10 @@ public class SqlServerFunctionStore : IFunctionStore
                 var status = (Status) reader.GetInt32(4);
                 var resultJson = reader.IsDBNull(5) ? null : reader.GetString(5);
                 var resultType = reader.IsDBNull(6) ? null : reader.GetString(6);
-                var errorJson = reader.IsDBNull(7) ? null : reader.GetString(7);
+                var exceptionJson = reader.IsDBNull(7) ? null : reader.GetString(7);
+                var storedException = exceptionJson == null
+                    ? null
+                    : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
                 var version = reader.GetInt32(9);
                 var epoch = reader.GetInt32(10);
@@ -515,7 +521,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     new StoredScrapbook(scrapbookJson, scrapbookType),
                     status,
                     new StoredResult(resultJson, resultType),
-                    errorJson,
+                    storedException,
                     postponedUntil,
                     version,
                     epoch,

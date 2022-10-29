@@ -9,7 +9,7 @@ public record StoredFunction(
     StoredScrapbook Scrapbook,
     Status Status,
     StoredResult Result,
-    string? ErrorJson,
+    StoredException? Exception,
     long? PostponedUntil,
     int Version,
     int Epoch,
@@ -28,6 +28,7 @@ public record StoredResult(string? ResultJson, string? ResultType)
     public static StoredResult Null { get; } = new(ResultJson: null, ResultType: null);
 };
 public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
+public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 
 internal static class StorageTypeExtensions
 {

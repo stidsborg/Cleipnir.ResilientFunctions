@@ -28,9 +28,20 @@ public class DefaultSerializer : ISerializer
         return (TScrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
     }
 
-    public string SerializeError(RError error) => JsonSerializer.Serialize(error);
-    public RError DeserializeError(string json) => JsonSerializer.Deserialize<RError>(json)!;
-    
+    public StoredException SerializeException(Exception exception)
+        => new StoredException(
+            exception.Message,
+            exception.StackTrace,
+            ExceptionType: exception.GetType().SimpleQualifiedName()
+        );
+
+    public PreviouslyThrownException DeserializeException(StoredException storedException)
+        => new PreviouslyThrownException(
+            storedException.ExceptionMessage,
+            storedException.ExceptionStackTrace,
+            Type.GetType(storedException.ExceptionType, throwOnError: true)!
+        );
+
     public StoredResult SerializeResult<TResult>(TResult result)
         => new(JsonSerializer.Serialize(result), result?.GetType().SimpleQualifiedName());
     public TResult DeserializeResult<TResult>(string json, string type) 

@@ -57,9 +57,28 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public string SerializeError(RError error) => _inner.SerializeError(error);
-    public RError DeserializeError(string json) => _inner.DeserializeError(json);
-    
+    public StoredException SerializeException(Exception exception)
+        => _inner.SerializeException(exception);
+
+    public PreviouslyThrownException DeserializeException(StoredException storedException)
+    {
+        try
+        {
+            return _inner.DeserializeException(storedException);
+        }
+        catch (DeserializationException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new DeserializationException(
+                $"Unable to deserialize exception with type: '{storedException.ExceptionType}'", 
+                e
+            );
+        }
+    }
+
     public StoredResult SerializeResult<TResult>(TResult result)
         => _inner.SerializeResult(result);
     public TResult DeserializeResult<TResult>(string json, string type)

@@ -93,10 +93,10 @@ public class SerializationTests
         public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
             => _defaultSerializer.DeserializeScrapbook<TScrapbook>(json, type);
 
-        public string SerializeError(RError error)
-            => _defaultSerializer.SerializeError(error);
-        public RError DeserializeError(string json)
-            => _defaultSerializer.DeserializeError(json);
+        public StoredException SerializeException(Exception exception)
+            => _defaultSerializer.SerializeException(exception);
+        public PreviouslyThrownException DeserializeException(StoredException storedException)
+            => _defaultSerializer.DeserializeException(storedException);
 
         public StoredResult SerializeResult<TResult>(TResult result)
             => _defaultSerializer.SerializeResult(result);

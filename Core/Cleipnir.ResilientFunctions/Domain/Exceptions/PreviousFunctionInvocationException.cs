@@ -3,12 +3,12 @@
 public sealed class PreviousFunctionInvocationException : RFunctionException
 {
     public FunctionId FunctionId { get; }
-    public RError Error { get; }
+    public PreviouslyThrownException Exception { get; }
 
-    public PreviousFunctionInvocationException(FunctionId functionId, RError error) 
+    public PreviousFunctionInvocationException(FunctionId functionId, PreviouslyThrownException exception) 
         : base(functionId.TypeId, $"'{functionId}' function invocation previously failed")
     {
         FunctionId = functionId;
-        Error = error;
+        Exception = exception;
     }
 }

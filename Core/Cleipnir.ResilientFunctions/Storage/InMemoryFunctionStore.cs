@@ -34,7 +34,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 Status = Status.Executing,
                 Epoch = 0,
                 SignOfLife = 0,
-                ErrorJson = null,
+                Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = null,
                 CrashedCheckFrequency = crashedCheckFrequency,
@@ -146,7 +146,7 @@ public class InMemoryFunctionStore : IFunctionStore
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook, 
         StoredResult storedResult, 
-        string? errorJson, 
+        StoredException? storedException, 
         long? postponeUntil,
         int expectedEpoch)
     {
@@ -163,7 +163,7 @@ public class InMemoryFunctionStore : IFunctionStore
             state.Param = storedParameter;
             state.Scrapbook = storedScrapbook;
             state.Result = storedResult;
-            state.ErrorJson = errorJson;
+            state.Exception = storedException;
             state.PostponeUntil = postponeUntil;
             state.Epoch += 1;
 
@@ -236,7 +236,7 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> FailFunction(FunctionId functionId, string errorJson, string scrapbookJson, int expectedEpoch)
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
         lock (_sync)
         {
@@ -246,13 +246,13 @@ public class InMemoryFunctionStore : IFunctionStore
             if (state.Epoch != expectedEpoch) return false.ToTask();
             
             state.Status = Status.Failed;
-            state.ErrorJson = errorJson;
+            state.Exception = storedException;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             
             return true.ToTask();
         }
     }
-
+    
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)
@@ -268,7 +268,7 @@ public class InMemoryFunctionStore : IFunctionStore
                     state.Scrapbook,
                     state.Status,
                     state.Result,
-                    state.ErrorJson,
+                    state.Exception,
                     state.PostponeUntil,
                     state.Version,
                     state.Epoch,
@@ -337,7 +337,7 @@ public class InMemoryFunctionStore : IFunctionStore
         public StoredScrapbook Scrapbook { get; set; } = null!;
         public Status Status { get; set; }
         public StoredResult Result { get; set; } = new StoredResult(ResultJson: null, ResultType: null);
-        public string? ErrorJson { get; set; }
+        public StoredException? Exception { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
