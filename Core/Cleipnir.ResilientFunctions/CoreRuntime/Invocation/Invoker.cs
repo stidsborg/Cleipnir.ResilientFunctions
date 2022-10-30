@@ -61,7 +61,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvocation(string functionInstanceId, TParam param, TScrapbook? scrapbook)
+    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         (var created, var inner, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);

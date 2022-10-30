@@ -443,7 +443,7 @@ public class RFunctions : IDisposable
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
                 controlPanelFactory
             );
@@ -617,7 +617,7 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ReInvoke,
-                rActionInvoker.ScheduleInvocation,
+                rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleReInvoke,
                 controlPanelFactory
             );
@@ -701,7 +701,7 @@ public class RFunctions : IDisposable
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
                 controlPanelFactory
             );
@@ -763,7 +763,7 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleInvocation,
+                rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
                 controlPanelFactory
             );
