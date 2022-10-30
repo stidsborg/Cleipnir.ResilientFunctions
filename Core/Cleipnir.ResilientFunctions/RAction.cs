@@ -20,17 +20,13 @@ public static class RAction
 public class RAction<TParam> where TParam : notnull
 {
     public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
-    public RAction.ReInvoke ReInvoke { get; }
     public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
-    public RAction.ScheduleReInvoke ScheduleReInvoke { get; }
     public ControlPanelFactory<TParam, RScrapbook> ControlPanel { get; }
     
     public RAction(RAction<TParam, RScrapbook> rAction)
     {
         Invoke = rAction.Invoke;
-        ReInvoke = rAction.ReInvoke;
         Schedule = rAction.Schedule;
-        ScheduleReInvoke = rAction.ScheduleReInvoke;
 
         ControlPanel = rAction.ControlPanel;
     }
@@ -39,22 +35,16 @@ public class RAction<TParam> where TParam : notnull
 public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
-    public RAction.ReInvoke ReInvoke { get; }
     public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
-    public RAction.ScheduleReInvoke ScheduleReInvoke { get; }
     public ControlPanelFactory<TParam, TScrapbook> ControlPanel { get; }
 
     internal RAction(
-        RAction.Invoke<TParam, TScrapbook> invoke, 
-        RAction.ReInvoke reInvoke, 
-        RAction.Schedule<TParam, TScrapbook> schedule, 
-        RAction.ScheduleReInvoke scheduleReInvoke,
+        RAction.Invoke<TParam, TScrapbook> invoke,
+        RAction.Schedule<TParam, TScrapbook> schedule,
         ControlPanelFactory<TParam, TScrapbook> controlPanelFactory)
     {
         Invoke = invoke;
-        ReInvoke = reInvoke;
         Schedule = schedule;
-        ScheduleReInvoke = scheduleReInvoke;
         ControlPanel = controlPanelFactory;
     }
 }

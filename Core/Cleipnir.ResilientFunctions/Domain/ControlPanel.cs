@@ -24,7 +24,7 @@ public class ControlPanelFactory<TParam, TScrapbook> where TParam : notnull wher
         _scheduleReInvoke = scheduleReInvoke;
         _functionTypeId = functionTypeId;
     }
-
+    
     public async Task<ControlPanel<TParam, TScrapbook>?> For(FunctionInstanceId functionInstanceId)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);

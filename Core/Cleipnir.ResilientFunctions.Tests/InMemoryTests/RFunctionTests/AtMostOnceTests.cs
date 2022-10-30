@@ -95,7 +95,7 @@ public class AtMostOnceTests
             });
 
         await rAction.Invoke("", "hello");
-        await rAction.ReInvoke("", expectedEpoch: 0);
+        await rAction.ControlPanel.For("").Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }
@@ -118,7 +118,7 @@ public class AtMostOnceTests
             });
 
         await rAction.Invoke("", "hello");
-        await rAction.ReInvoke("", expectedEpoch: 0);
+        await rAction.ControlPanel.For("").Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }

@@ -48,7 +48,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 0);
+        await rFunc.ControlPanel.For("something").Result!.ScheduleReInvoke();
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -104,8 +104,8 @@ public abstract class ScheduleReInvocationTests
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
 
         controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something");
-        await rAction.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: controlPanel!.Epoch); 
-        
+        await rAction.ControlPanel.For("something").Result!.ScheduleReInvoke();
+
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
@@ -221,64 +221,6 @@ public abstract class ScheduleReInvocationTests
         var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
         scrapbook.List.Single().ShouldBe("world");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-
-    public abstract Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState();
-    protected async Task ReInvocationSucceedsDespiteUnexpectedStatusWhenNotThrowOnUnexpectedFunctionState(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        const string functionType = "someFunctionType";
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
-            store,
-            new Settings(
-                unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-
-        var rFunc = rFunctions
-            .RegisterAction(
-                functionType,
-                (string _) => Task.FromException(new Exception("oh no"))
-            );
-
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
-
-        await Should.ThrowAsync<UnexpectedFunctionState>(
-            () => rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 1)
-        );
-
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-
-    public abstract Task ReInvocationFailsWhenTheFunctionDoesNotExist();
-    protected async Task ReInvocationFailsWhenTheFunctionDoesNotExist(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        const string functionType = "someFunctionType";
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
-            store,
-            new Settings(
-                unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-
-        var rFunc = rFunctions
-            .RegisterAction(
-                functionType,
-                (string _) => Task.FromException(new Exception("oh no"))
-            );
-
-        await Should.ThrowAsync<UnexpectedFunctionState>(() =>
-            rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 0)
-        );
-
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 }

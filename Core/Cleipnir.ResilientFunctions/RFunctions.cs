@@ -616,9 +616,7 @@ public class RFunctions : IDisposable
             );
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
-                rActionInvoker.ReInvoke,
                 rActionInvoker.ScheduleInvoke,
-                rActionInvoker.ScheduleReInvoke,
                 controlPanelFactory
             );
             _functions[functionTypeId] = registration;
@@ -762,9 +760,7 @@ public class RFunctions : IDisposable
             );
             var registration = new RAction<TParam, TScrapbook>(
                 rFuncInvoker.Invoke,
-                rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvoke,
-                rFuncInvoker.ScheduleReInvoke,
                 controlPanelFactory
             );
             _functions[functionTypeId] = registration;

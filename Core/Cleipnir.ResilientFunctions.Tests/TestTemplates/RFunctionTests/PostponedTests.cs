@@ -422,7 +422,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.ReInvoke(functionId.InstanceId.Value, expectedEpoch: 0)
+                () => rAction.ControlPanel.For(functionId.InstanceId.Value).Result!.ReInvoke()
             );
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -442,7 +442,7 @@ public abstract class PostponedTests
                 version: 0
             ).ShouldBeTrueAsync();
 
-            await rAction.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
+            await rAction.ControlPanel.For(functionId.InstanceId).Result!.ScheduleReInvoke();
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -507,7 +507,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.ReInvoke(functionId.InstanceId.Value, expectedEpoch: 0)
+                () => rAction.ControlPanel.For(functionId.InstanceId).Result!.ReInvoke()
             );
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -527,7 +527,7 @@ public abstract class PostponedTests
                 version: 0
             ).ShouldBeTrueAsync();
 
-            await rAction.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
+            await rAction.ControlPanel.For(functionId.InstanceId).Result!.ScheduleReInvoke();
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
