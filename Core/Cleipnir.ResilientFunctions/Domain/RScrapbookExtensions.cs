@@ -62,6 +62,52 @@ public static class RScrapbookExtensions
         setter(scrapbook, WorkStatus.Completed);
         if (flushCompletedStatusImmediately) await scrapbook.Save();
     }
+    
+    public static async Task DoAtLeastOnce(
+        this RScrapbook scrapbook, 
+        string workId, 
+        Func<Task> work, 
+        bool flushCompletedStatusImmediately = true)
+    {
+        if (scrapbook.StateDictionary.ContainsKey(workId))
+        {
+            var value = scrapbook.StateDictionary[workId];
+            var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var workStatus);
+            if (!success)
+                throw new InvalidOperationException($"Current value '{value}' could not be converted to {nameof(WorkStatus)} enum");
+
+            if (workStatus == WorkStatus.Completed) return;
+        }
+
+        scrapbook.StateDictionary[workId] = WorkStatus.Started.ToString();
+
+        await work();
+        
+        scrapbook.StateDictionary[workId] = WorkStatus.Completed.ToString();
+        if (flushCompletedStatusImmediately)
+            await scrapbook.Save();
+    }
+    
+    public static async Task DoAtLeastOnce<TScrapbook>(
+        this TScrapbook scrapbook, 
+        Expression<Func<TScrapbook, WorkStatus>> workStatus, 
+        Func<Task> work,
+        bool flushCompletedStatusImmediately = true) where TScrapbook : RScrapbook
+    {
+        var getterAndSetter = GetOrCreateGetterAndSetter(workStatus);
+        var getter = (Func<TScrapbook, WorkStatus>)getterAndSetter.Getter;
+        var setter = (Action<TScrapbook, WorkStatus>)getterAndSetter.Setter;
+
+        var workStatusValue = getter(scrapbook);
+        if (workStatusValue == WorkStatus.Completed) return;
+
+        setter(scrapbook, WorkStatus.Started);
+
+        await work();
+        
+        setter(scrapbook, WorkStatus.Completed);
+        if (flushCompletedStatusImmediately) await scrapbook.Save();
+    }
 
     private static GetterAndSetter GetOrCreateGetterAndSetter<TScrapbook>(Expression<Func<TScrapbook, WorkStatus>> property)
     {
