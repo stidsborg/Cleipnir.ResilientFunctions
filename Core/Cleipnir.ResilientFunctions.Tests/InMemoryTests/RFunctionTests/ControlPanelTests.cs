@@ -61,4 +61,12 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds()
         => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds()
+        => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task WaitingForExistingActionFromControlPanelToCompleteSucceeds()
+        => WaitingForExistingActionFromControlPanelToCompleteSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 }

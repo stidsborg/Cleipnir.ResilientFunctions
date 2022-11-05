@@ -135,6 +135,8 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
     }
+
+    public async Task WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
 }
 
 public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -271,4 +273,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
     }
+    
+    public async Task<TReturn> WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
 }

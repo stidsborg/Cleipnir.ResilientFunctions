@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -495,6 +496,71 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds();
+    protected async Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(WaitingForExistingFunctionFromControlPanelToCompleteSucceeds).ToFunctionTypeId();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var flag = new SyncedFlag();
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            async Task<string> (string param) =>
+            {
+                await flag.WaitForRaised();
+                return param;
+            });
+
+        await rFunc.Schedule(functionInstanceId, param: "param");
+
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Executing);
+
+        var completionTask = controlPanel.WaitForCompletion();
+        await Task.Delay(10);
+        completionTask.IsCompleted.ShouldBeFalse();
+        flag.Raise();
+
+        await BusyWait.UntilAsync(() => completionTask.IsCompleted);
+
+        var result = await completionTask;
+        result.ShouldBe("param");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task WaitingForExistingActionFromControlPanelToCompleteSucceeds();
+    protected async Task WaitingForExistingActionFromControlPanelToCompleteSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(WaitingForExistingActionFromControlPanelToCompleteSucceeds).ToFunctionTypeId();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var flag = new SyncedFlag();
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task (string param) => flag.WaitForRaised());
+
+        await rAction.Schedule(functionInstanceId, param: "param");
+
+        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Executing);
+
+        var completionTask = controlPanel.WaitForCompletion();
+        await Task.Delay(10);
+        completionTask.IsCompleted.ShouldBeFalse();
+        flag.Raise();
+
+        await BusyWait.UntilAsync(() => completionTask.IsCompleted);
+
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 }
