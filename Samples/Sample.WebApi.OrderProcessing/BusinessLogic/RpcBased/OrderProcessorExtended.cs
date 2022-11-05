@@ -50,7 +50,7 @@ public class OrderProcessorExtended : IRegisterRFuncOnInstantiation
             var totalPrice = scrapbook.TotalPrice.Value;
             var transactionId = scrapbook.TransactionId;
 
-            await _paymentProviderClient.Reserve(transactionId, totalPrice);
+            await _paymentProviderClient.Reserve(order.CustomerId, transactionId, totalPrice);
 
             if (scrapbook.ShipProductsStatus == Status.Started)
                 throw new ProductShipmentStartedButNotCompleted();

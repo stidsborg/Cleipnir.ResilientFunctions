@@ -14,18 +14,18 @@ public class OrderProcessingSaga
     private readonly FunctionTypeEventSources _eventSources;
     private readonly RAction<Order, Scrapbook> _registration;
 
-    private readonly IBankClient _bankClient;
+    private readonly IPaymentProviderClient _paymentProviderClient;
     private readonly IEmailClient _emailClient;
     private readonly IMessageQueueClient _messageQueueClient;
     private readonly IProductsClient _productsClient;
 
     public OrderProcessingSaga(
         RFunctions rFunctions, EventSources eventSources, 
-        IBankClient bankClient, IEmailClient emailClient, IMessageQueueClient messageQueueClient, 
+        IPaymentProviderClient paymentProviderClient, IEmailClient emailClient, IMessageQueueClient messageQueueClient, 
         IProductsClient productsClient)
     {
         _eventSources = eventSources.For(FunctionTypeId);
-        _bankClient = bankClient;
+        _paymentProviderClient = paymentProviderClient;
         _emailClient = emailClient;
         _messageQueueClient = messageQueueClient;
         _productsClient = productsClient;
@@ -53,7 +53,7 @@ public class OrderProcessingSaga
         using var eventSource = await _eventSources.Get(order.OrderId);
         
         var totalPrice = (await _productsClient.GetProductPrices(order.ProductIds)).Sum(p => p.Price);
-        await _bankClient.Reserve(bankTransactionId, totalPrice);
+        await _paymentProviderClient.Reserve(bankTransactionId, totalPrice);
 
         if (!eventSource.Existing.OfType<ProductsShipped>().Any())
         {

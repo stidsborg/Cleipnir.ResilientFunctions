@@ -54,7 +54,7 @@ public class OrderProcessor
                 await _messageBroker.Send(new ShipProducts(_order!.OrderId, _order.CustomerId, _order.ProductIds));
                 break;
             case State.ProductsShipped:
-                await _messageBroker.Send(new CaptureFunds(_order!.OrderId, _transactionId));
+                await _messageBroker.Send(new CaptureFunds(_order!.OrderId, _order.CustomerId!, _transactionId));
                 break;
             case State.FundsCaptured:
                 await _messageBroker.Send(new SendOrderConfirmationEmail(_order!.OrderId, _order.CustomerId));

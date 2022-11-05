@@ -20,7 +20,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
 
-        var transactionId = await _paymentProviderClient.Reserve(order.TotalPrice);
+        var transactionId = await _paymentProviderClient.Reserve(order.CustomerId, order.TotalPrice);
         await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
         await _paymentProviderClient.Capture(transactionId);
         await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);

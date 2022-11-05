@@ -39,7 +39,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         {
             Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
             
-            await _paymentProviderClient.Reserve(scrapbook.TransactionId, order.TotalPrice);
+            await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
             
             await scrapbook.DoAtMostOnce(
                 workStatus: s => s.ProductsShippedStatus,

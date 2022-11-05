@@ -27,7 +27,7 @@ public static class Example
         var saga = new OrderProcessingSaga(
             rFunctions,
             eventSources,
-            new BankClientStub(),
+            new PaymentProviderClientStub(),
             new EmailClientStub(),
             messageQueue,
             new ProductsClientStub()

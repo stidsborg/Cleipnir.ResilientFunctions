@@ -4,14 +4,14 @@ namespace Sample.Kodedyret.V1;
 
 public interface IPaymentProviderClient
 {
-    Task<Guid> Reserve(decimal amount);
+    Task<Guid> Reserve(Guid customerId, decimal amount);
     Task Capture(Guid transactionId);
     Task CancelReservation(Guid transactionId);
 }
 
 public class PaymentProviderClientStub : IPaymentProviderClient
 {
-    public Task<Guid> Reserve(decimal amount)
+    public Task<Guid> Reserve(Guid customerId, decimal amount)
         => Task
             .Delay(100)
             .ContinueWith(_ => Log.Logger.ForContext<IPaymentProviderClient>().Information($"PAYMENT_PROVIDER: Reserved '{amount}'"))

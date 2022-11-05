@@ -2,6 +2,7 @@
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging.Core;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
 using Sample.WebApi.OrderProcessing.DataAccess;
@@ -59,7 +60,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
                 .All
                 .OfType<ProductsTotalPrice>()
                 .NextEvent(MaxWaitMs)
-                .Select(p => p.TotalPrice);
+                .AfterDo(p => p.TotalPrice);
         
             await _messageBroker.Send(new ReserveFunds(order.OrderId, totalPrice, transactionId, order.CustomerId));
             await events.OfType<FundsReserved>().NextEvent(MaxWaitMs);

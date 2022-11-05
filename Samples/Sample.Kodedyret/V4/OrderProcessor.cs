@@ -46,7 +46,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
             await eventSource.All.OfType<ProductsShipped>().NextEvent(maxWaitMs: 5_000);
             
-            await _messageBroker.Send(new CaptureFunds(order.OrderId, scrapbook.TransactionId));
+            await _messageBroker.Send(new CaptureFunds(order.OrderId, order.CustomerId, scrapbook.TransactionId));
             await eventSource.All.OfType<FundsCaptured>().NextEvent(maxWaitMs: 5_000);
 
             await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId));

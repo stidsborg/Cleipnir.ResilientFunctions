@@ -59,7 +59,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             var prices = await _productsClient.GetProductPrices(order.ProductIds);
             var totalPrice = prices.Sum(p => p.Price);
 
-            await _paymentProviderClient.Reserve(transactionId, totalPrice);
+            await _paymentProviderClient.Reserve(order.CustomerId, transactionId, totalPrice);
             await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
             await _paymentProviderClient.Capture(transactionId);
             await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);

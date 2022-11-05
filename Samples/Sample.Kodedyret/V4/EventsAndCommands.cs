@@ -13,7 +13,7 @@ public record ProductsShipped(string OrderId) : EventsAndCommands;
 
 public record SendOrderConfirmationEmail(string OrderId, Guid CustomerId) : EventsAndCommands;
 
-public record CaptureFunds(string OrderId, Guid TransactionId) : EventsAndCommands;
+public record CaptureFunds(string OrderId, Guid CustomerId, Guid TransactionId) : EventsAndCommands;
 public record FundsCaptured(string OrderId) : EventsAndCommands;
 public record CancelFundsReservation(string OrderId, Guid TransactionId) : EventsAndCommands;
 public record FundsReservationCancelled(string OrderId) : EventsAndCommands;
