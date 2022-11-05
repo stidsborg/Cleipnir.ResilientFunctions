@@ -77,7 +77,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     continue;
                 case Status.Succeeded:
                     return 
-                        storedFunction.Result == default 
+                        storedFunction.Result.ResultType == default 
                             ? default! 
                             : storedFunction.Result.Deserialize<TReturn>(Serializer)!;
                 case Status.Failed:
