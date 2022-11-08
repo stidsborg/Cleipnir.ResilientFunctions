@@ -26,7 +26,7 @@ public class EventSourceWriter
 
     public EventSourceInstanceWriter For(FunctionInstanceId functionInstanceId) => new(functionInstanceId, this);
 
-    public async Task Append(FunctionInstanceId functionInstanceId, object @event, string? idempotencyKey, bool awakeIfPostponed)
+    public async Task Append(FunctionInstanceId functionInstanceId, object @event, string? idempotencyKey = null, bool awakeIfPostponed = false)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var eventJson = _eventSerializer.SerializeEvent(@event);
@@ -50,7 +50,7 @@ public class EventSourceWriter
             } catch (UnexpectedFunctionState) {}
     }
     
-    public async Task Append(FunctionInstanceId functionInstanceId, IEnumerable<EventAndIdempotencyKey> events, bool awakeIfPostponed)
+    public async Task Append(FunctionInstanceId functionInstanceId, IEnumerable<EventAndIdempotencyKey> events, bool awakeIfPostponed = false)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         await _eventStore.AppendEvents(

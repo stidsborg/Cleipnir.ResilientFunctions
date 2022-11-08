@@ -13,10 +13,10 @@ public class EventSourceInstanceWriter
         _writer = writer;
     }
 
-    public Task Append(object @event, string? idempotencyKey, bool awakeIfSuspended)
+    public Task Append(object @event, string? idempotencyKey = null, bool awakeIfSuspended = false)
         => _writer.Append(_functionInstanceId, @event, idempotencyKey, awakeIfSuspended);
 
-    public Task Append(IEnumerable<EventAndIdempotencyKey> events, bool awakeIfSuspended)
+    public Task Append(IEnumerable<EventAndIdempotencyKey> events, bool awakeIfSuspended = false)
         => _writer.Append(_functionInstanceId, events, awakeIfSuspended);
 
     public Task Truncate() => _writer.Truncate(_functionInstanceId);
