@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Sample.Kodedyret.V0;
 
 namespace Sample.Kodedyret.Controllers;
 
@@ -7,15 +6,15 @@ namespace Sample.Kodedyret.Controllers;
 [Route("[controller]")]
 public class OrderController : ControllerBase
 {
-    private readonly OrderProcessor _orderProcessor;
+    private readonly V0.OrderProcessor _orderProcessor;
 
-    public OrderController(OrderProcessor orderProcessor)
+    public OrderController(V0.OrderProcessor orderProcessor)
     {
         _orderProcessor = orderProcessor;
     }
     
     [HttpPost]
-    public async Task Post(Order order)
+    public async Task Post(V0.Order order)
     {
         await _orderProcessor.ProcessOrder(order);
     }

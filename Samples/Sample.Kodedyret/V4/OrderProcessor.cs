@@ -12,7 +12,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
     public RAction.Invoke<Order, Scrapbook> ProcessOrder { get; }
 
-    public OrderProcessor(RFunctions rFunctions)
+    public OrderProcessor(RFunctions rFunctions, EventSources eventSources, MessageBroker messageBroker)
     {
         var registration = rFunctions
             .RegisterMethod<Inner>()
@@ -22,6 +22,33 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             );
 
         ProcessOrder = registration.Invoke;
+
+        var eventSourceWriter = eventSources.For(nameof(OrderProcessor)).Writer;
+        
+        messageBroker.Subscribe(async msg =>
+        {
+            switch (msg)
+            {
+                case FundsCaptured e:
+                    await eventSourceWriter.Append(e.OrderId, e);
+                    break;
+                case FundsReservationCancelled e:
+                    await eventSourceWriter.Append(e.OrderId, e);
+                    break;
+                case FundsReserved e:
+                    await eventSourceWriter.Append(e.OrderId, e);
+                    break;
+                case OrderConfirmationEmailSent e:
+                    await eventSourceWriter.Append(e.OrderId, e);
+                    break;
+                case ProductsShipped e:
+                    await eventSourceWriter.Append(e.OrderId, e);
+                    break;
+
+                default:
+                    return;
+            }
+        });
     }
 
     public class Inner
@@ -41,7 +68,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             var eventSource = await _eventSources.Get(order.OrderId);
 
             await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
-            await eventSource.All.OfType<FundsCaptured>().NextEvent(maxWaitMs: 5_000);
+            await eventSource.All.OfType<FundsReserved>().NextEvent(maxWaitMs: 5_000);
             
             await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
             await eventSource.All.OfType<ProductsShipped>().NextEvent(maxWaitMs: 5_000);
@@ -58,6 +85,6 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 
     public class Scrapbook : RScrapbook
     {
-        public Guid TransactionId { get; set; }
+        public Guid TransactionId { get; set; } = Guid.NewGuid();
     }
 }
