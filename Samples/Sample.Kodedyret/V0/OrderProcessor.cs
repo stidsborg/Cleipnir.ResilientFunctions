@@ -1,9 +1,8 @@
-﻿using Cleipnir.ResilientFunctions.AspNetCore.Core;
-using Serilog;
+﻿using Serilog;
 
 namespace Sample.Kodedyret.V0;
 
-public class OrderProcessor : IRegisterRFuncOnInstantiation
+public class OrderProcessor //: IRegisterRFuncOnInstantiation
 {
     private readonly IPaymentProviderClient _paymentProviderClient;
     private readonly IEmailClient _emailClient;

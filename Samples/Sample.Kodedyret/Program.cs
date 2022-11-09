@@ -13,7 +13,7 @@ internal static class Program
         var port = args.Any() ? int.Parse(args[0]) : 5000;
         
         const string connectionString = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=kodedyret;";
-        await DatabaseHelper.RecreateDatabase(connectionString);
+        //await DatabaseHelper.RecreateDatabase(connectionString);
         
         var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +26,7 @@ internal static class Program
         // Add services to the container.
         V0.IoCBindings.AddBindings(builder.Services);
         
+        //todo add this line to get started using Resilient Functions
         builder.Services.UseResilientFunctions( 
             connectionString,
             _ => new Options(
