@@ -54,6 +54,8 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
     private readonly RAction.ReInvoke _reInvoke;
     private readonly RAction.ScheduleReInvoke _scheduleReInvoke;
+
+    private bool _changed;
     
     internal ControlPanel(
         InvocationHelper<TParam, TScrapbook, Unit> invocationHelper,
@@ -77,8 +79,8 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Epoch = epoch;
         Version = version;
         CrashedCheckFrequency = crashedCheckFrequency;
-        Param = param;
-        Scrapbook = scrapbook;
+        _param = param;
+        _scrapbook = scrapbook;
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
     }
@@ -89,10 +91,37 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public int Epoch { get; private set; }
     public int Version { get; private set; }
     public long CrashedCheckFrequency { get; private set; }
-    
-    public TParam Param { get; set; }
-    public TScrapbook Scrapbook { get; set; }
-    
+
+    private TParam _param;
+    public TParam Param
+    {
+        get
+        {
+            _changed = true;
+            return _param;
+        }
+        set
+        {
+            _changed = true;
+            _param = value;
+        }
+    }
+
+    private TScrapbook _scrapbook;
+    public TScrapbook Scrapbook
+    {
+        get
+        {
+            _changed = true;
+            return _scrapbook;
+        }
+        set
+        {
+            _changed = true;
+            _scrapbook = value;
+        }
+    }
+
     public DateTime? PostponedUntil { get; private set; }
     public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
 
@@ -112,14 +141,40 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
             FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception, Epoch
         );
 
-    public async Task<bool> SaveParameterAndScrapbook() 
-        => await _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
+    public async Task<bool> SaveParameterAndScrapbook()
+    {
+        var success = await _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
+        if (success)
+            Epoch += 1;
+
+        return success;
+    }
 
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
-    public async Task ReInvoke() => await _reInvoke(FunctionId.InstanceId.Value, Epoch);
-    public async Task ScheduleReInvoke() => await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
-    
+    public async Task ReInvoke()
+    {
+        var expectedEpoch = Epoch;
+        if (_changed)
+            if (await SaveParameterAndScrapbook())
+                expectedEpoch++;
+            else
+                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
+            
+        await _reInvoke(FunctionId.InstanceId.Value, expectedEpoch);   
+    }
+    public async Task ScheduleReInvoke()
+    {
+        var expectedEpoch = Epoch;
+        if (_changed)
+            if (await SaveParameterAndScrapbook())
+                expectedEpoch++;
+            else
+                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
+        
+        await _scheduleReInvoke(FunctionId.InstanceId.Value, expectedEpoch);
+    }
+
     public async Task Refresh()
     {
         var sf = await _invocationHelper.GetFunction(FunctionId);
@@ -134,6 +189,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Scrapbook = sf.Scrapbook;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
+        _changed = false;
     }
 
     public async Task WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
@@ -189,6 +245,8 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     private readonly RFunc.ReInvoke<TReturn> _reInvoke;
     private readonly RFunc.ScheduleReInvoke _scheduleReInvoke;
 
+    private bool _changed;
+
     internal ControlPanel(
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         RFunc.ReInvoke<TReturn> reInvoke,
@@ -212,8 +270,8 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Epoch = epoch;
         Version = version;
         CrashedCheckFrequency = crashedCheckFrequency;
-        Param = param;
-        Scrapbook = scrapbook;
+        _param = param;
+        _scrapbook = scrapbook;
         Result = result;
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
@@ -225,9 +283,37 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public int Epoch { get; private set; }
     public int Version { get; private set; }
     public long CrashedCheckFrequency { get; private set; }
-    
-    public TParam Param { get; set; }
-    public TScrapbook Scrapbook { get; set; }
+
+    private TParam _param;
+    public TParam Param
+    {
+        get
+        {
+            _changed = true;
+            return _param;
+        }
+        set
+        {
+            _changed = true;
+            _param = value;
+        }
+    }
+
+    private TScrapbook _scrapbook;
+    public TScrapbook Scrapbook
+    {
+        get
+        {
+            _changed = true;
+            return _scrapbook;
+        }
+        set
+        {
+            _changed = true;
+            _scrapbook = value;
+        }
+    }
+
     public TReturn? Result { get; set; }
     
     public DateTime? PostponedUntil { get; private set; }
@@ -248,14 +334,40 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         => _invocationHelper.SetFunctionState(
             FunctionId, Status.Failed, Param, Scrapbook, result: default, postponeUntil: null, exception, Epoch
         );
-    
-    public Task<bool> SaveParameterAndScrapbook()
-        => _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
-    
+
+    public async Task<bool> SaveParameterAndScrapbook()
+    {
+        var success = await _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
+        if (success)
+            Epoch += 1;
+
+        return success;
+    }
+
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
-    public async Task<TReturn> ReInvoke() => await _reInvoke(FunctionId.InstanceId.Value, Epoch);
-    public async Task ScheduleReInvoke() => await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
+    public async Task<TReturn> ReInvoke()
+    {
+        var expectedEpoch = Epoch;
+        if (_changed)
+            if (await SaveParameterAndScrapbook())
+                expectedEpoch++;
+            else
+                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
+            
+        return await _reInvoke(FunctionId.InstanceId.Value, expectedEpoch);   
+    }
+    public async Task ScheduleReInvoke()
+    {
+        var expectedEpoch = Epoch;
+        if (_changed)
+            if (await SaveParameterAndScrapbook())
+                expectedEpoch++;
+            else
+                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
+        
+        await _scheduleReInvoke(FunctionId.InstanceId.Value, expectedEpoch);
+    }
     
     public async Task Refresh()
     {

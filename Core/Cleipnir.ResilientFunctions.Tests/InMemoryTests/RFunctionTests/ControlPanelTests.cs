@@ -63,10 +63,26 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected()
+        => ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected()
+        => ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
     public override Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task WaitingForExistingActionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingActionFromControlPanelToCompleteSucceeds(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook()
+        => ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook()
+        => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(Utils.CreateInMemoryFunctionStoreTask());
 }

@@ -63,10 +63,26 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected()
+        => ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected()
+        => ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task WaitingForExistingActionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingActionFromControlPanelToCompleteSucceeds(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook()
+        => ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook()
+        => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(Sql.AutoCreateAndInitializeStore());
 }
