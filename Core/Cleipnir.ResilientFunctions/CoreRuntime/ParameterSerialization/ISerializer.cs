@@ -14,4 +14,6 @@ public interface ISerializer
     PreviouslyThrownException DeserializeException(StoredException storedException);
     StoredResult SerializeResult<TResult>(TResult result);
     TResult DeserializeResult<TResult>(string json, string type);
+    JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull;
+    object DeserializeEvent(string json, string type);
 }

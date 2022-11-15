@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging.Serialization;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
@@ -10,13 +10,13 @@ public class EventSources
     private readonly IEventStore _eventStore;
     private readonly RFunctions? _rFunctions;
     private readonly TimeSpan? _defaultPullFrequency;
-    private readonly IEventSerializer? _eventSerializer;
+    private readonly ISerializer? _eventSerializer;
 
     public EventSources(
         IEventStore eventStore,
         RFunctions? rFunctions,
         TimeSpan? defaultPullFrequency = null,
-        IEventSerializer? eventSerializer = null
+        ISerializer? eventSerializer = null
     )
     {
         _eventStore = eventStore;
@@ -28,13 +28,13 @@ public class EventSources
     public FunctionTypeEventSources For(
         string functionTypeId, 
         TimeSpan? pullFrequency = null, 
-        IEventSerializer? eventSerializer = null
+        ISerializer? eventSerializer = null
     ) => For(new FunctionTypeId(functionTypeId), pullFrequency ?? _defaultPullFrequency, eventSerializer);    
     
     public FunctionTypeEventSources For(
         FunctionTypeId functionTypeId, 
         TimeSpan? pullFrequency = null, 
-        IEventSerializer? eventSerializer = null
+        ISerializer? eventSerializer = null
     ) => new FunctionTypeEventSources(
         _eventStore, 
         _rFunctions,
@@ -47,13 +47,13 @@ public class EventSources
         string functionTypeId, 
         string functionInstanceId, 
         TimeSpan? pullFrequency = null,
-        IEventSerializer? eventSerializer = null
+        ISerializer? eventSerializer = null
     ) => Get(new FunctionId(functionTypeId, functionInstanceId), pullFrequency, eventSerializer);    
     
     public async Task<EventSource> Get(
         FunctionId functionId, 
         TimeSpan? pullFrequency = null, 
-        IEventSerializer? eventSerializer = null
+        ISerializer? eventSerializer = null
     )
     {
         var writer = new EventSourceWriter(

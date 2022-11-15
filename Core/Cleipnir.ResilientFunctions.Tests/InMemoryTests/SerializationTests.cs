@@ -102,5 +102,10 @@ public class SerializationTests
             => _defaultSerializer.SerializeResult(result);
         public TResult DeserializeResult<TResult>(string json, string type)
             => _defaultSerializer.DeserializeResult<TResult>(json, type);
+
+        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
+            => _defaultSerializer.SerializeEvent(@event);
+        public object DeserializeEvent(string json, string type)
+            => _defaultSerializer.DeserializeEvent(json, type);
     }
 }

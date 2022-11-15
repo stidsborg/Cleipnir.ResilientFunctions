@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging.Serialization;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
@@ -15,7 +15,7 @@ public class EventSource : IDisposable
     private readonly IEventStore _eventStore;
     private readonly EventSourceInstanceWriter _eventWriter;
     private readonly TimeSpan _pullFrequency;
-    private readonly IEventSerializer _eventSerializer;
+    private readonly ISerializer _eventSerializer;
     
     private readonly HashSet<string> _idempotencyKeys = new();
     private int _atEventCount;
@@ -48,12 +48,12 @@ public class EventSource : IDisposable
         IEventStore eventStore, 
         EventSourceInstanceWriter eventWriter,
         TimeSpan? pullFrequency, 
-        IEventSerializer? eventSerializer)
+        ISerializer? eventSerializer)
     {
         _functionId = functionId;
         _eventStore = eventStore;
         _eventWriter = eventWriter;
-        _eventSerializer = eventSerializer ?? DefaultEventSerializer.Instance;
+        _eventSerializer = eventSerializer ?? DefaultSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
     }
 

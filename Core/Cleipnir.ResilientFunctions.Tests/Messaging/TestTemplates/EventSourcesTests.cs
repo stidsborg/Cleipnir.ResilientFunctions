@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Messaging.Serialization;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Shouldly;
 
@@ -166,15 +167,36 @@ public abstract class EventSourcesTests
         Should.Throw<EventProcessingException>(() => eventSource.Existing.ToList());
     }
     
-    private class ExceptionThrowingEventSerializer : IEventSerializer
+    private class ExceptionThrowingEventSerializer : ISerializer
     {
         private readonly Type _failDeserializationOnType;
 
         public ExceptionThrowingEventSerializer(Type failDeserializationOnType) 
             => _failDeserializationOnType = failDeserializationOnType;
 
-        public string SerializeEvent(object @event) 
-            => DefaultEventSerializer.Instance.SerializeEvent(@event);
+        public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull 
+            => DefaultSerializer.Instance.SerializeParameter(parameter);
+
+        public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
+            => DefaultSerializer.Instance.DeserializeParameter<TParam>(json, type);
+
+        public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
+            => DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+        public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook
+            => DefaultSerializer.Instance.DeserializeScrapbook<TScrapbook>(json, type);
+
+        public StoredException SerializeException(Exception exception)
+            => DefaultSerializer.Instance.SerializeException(exception);
+        public PreviouslyThrownException DeserializeException(StoredException storedException)
+            => DefaultSerializer.Instance.DeserializeException(storedException);
+
+        public StoredResult SerializeResult<TResult>(TResult result)
+            => DefaultSerializer.Instance.SerializeResult(result);
+        public TResult DeserializeResult<TResult>(string json, string type)
+            => DefaultSerializer.Instance.DeserializeResult<TResult>(json, type);
+
+        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
+            => DefaultSerializer.Instance.SerializeEvent(@event);
 
         public object DeserializeEvent(string json, string type)
         {
@@ -182,7 +204,7 @@ public abstract class EventSourcesTests
             if (eventType == _failDeserializationOnType)
                 throw new Exception("Deserialization exception");
 
-            return DefaultEventSerializer.Instance.DeserializeEvent(json, type);
+            return DefaultSerializer.Instance.DeserializeEvent(json, type);
         }
     }
 }

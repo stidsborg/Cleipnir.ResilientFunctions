@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging.Serialization;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
@@ -13,18 +12,18 @@ public class EventSourceWriter
     private readonly FunctionTypeId _functionTypeId;
     private readonly IEventStore _eventStore;
     private readonly RFunctions? _rFunctions;
-    private readonly IEventSerializer _eventSerializer;
+    private readonly ISerializer _serializer;
 
     public EventSourceWriter(
         FunctionTypeId functionTypeId, 
         IEventStore eventStore, 
         RFunctions? rFunctions,
-        IEventSerializer? eventSerializer)
+        ISerializer? eventSerializer)
     {
         _functionTypeId = functionTypeId;
         _eventStore = eventStore;
         _rFunctions = rFunctions;
-        _eventSerializer = eventSerializer ?? DefaultEventSerializer.Instance;
+        _serializer = eventSerializer ?? DefaultSerializer.Instance;
     }
 
     public EventSourceInstanceWriter For(FunctionInstanceId functionInstanceId) => new(functionInstanceId, this);
@@ -32,8 +31,7 @@ public class EventSourceWriter
     public async Task Append(FunctionInstanceId functionInstanceId, object @event, string? idempotencyKey = null, bool awakeIfPostponed = false)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var eventJson = _eventSerializer.SerializeEvent(@event);
-        var eventType = @event.GetType().SimpleQualifiedName();
+        var (eventJson, eventType) = _serializer.SerializeEvent(@event);
         await _eventStore.AppendEvent(
             functionId,
             eventJson,
@@ -61,11 +59,8 @@ public class EventSourceWriter
             storedEvents: events.Select(eventAndIdempotencyKey =>
             {
                 var (@event, idempotencyKey) = eventAndIdempotencyKey;
-                return new StoredEvent(
-                    EventJson: _eventSerializer.SerializeEvent(@event),
-                    EventType: @event.GetType().SimpleQualifiedName(),
-                    idempotencyKey
-                );
+                var (json, type) = _serializer.SerializeEvent(@event);
+                return new StoredEvent(json, type, idempotencyKey);
             })
         );
         

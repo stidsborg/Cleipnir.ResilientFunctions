@@ -82,5 +82,10 @@ public class RFuncRegistrationTests
             => Default.SerializeResult(result);
         public TResult DeserializeResult<TResult>(string json, string type) 
             => Default.DeserializeResult<TResult>(json, type);
+
+        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
+            => Default.SerializeEvent(@event);
+        public object DeserializeEvent(string json, string type)
+            => Default.DeserializeEvent(json, type);
     }
 }

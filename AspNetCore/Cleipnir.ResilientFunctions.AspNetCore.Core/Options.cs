@@ -4,7 +4,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Messaging.Serialization;
 
 namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 
@@ -17,7 +16,6 @@ public class Options
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal ISerializer? Serializer { get; }
-    internal IEventSerializer? EventSerializer { get; }
     internal List<MiddlewareInstanceOrResolverFunc> Middlewares  { get; } = new();
 
     public Options(
@@ -27,8 +25,7 @@ public class Options
         TimeSpan? defaultEventsCheckFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
-        ISerializer? serializer = null,
-        IEventSerializer? eventSerializer = null
+        ISerializer? serializer = null
     )
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
@@ -38,7 +35,6 @@ public class Options
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
-        EventSerializer = eventSerializer;
     }
 
     public Options UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 

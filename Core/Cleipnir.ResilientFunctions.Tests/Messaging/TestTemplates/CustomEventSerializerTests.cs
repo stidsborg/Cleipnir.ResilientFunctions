@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Messaging.Serialization;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Shouldly;
 
@@ -27,25 +29,45 @@ public abstract class CustomEventSerializerTests
         
         eventSerializer.EventToDeserialize.Count.ShouldBe(1);
         var (eventJson, eventType) = eventSerializer.EventToDeserialize[0];
-        var deserializedEvent = DefaultEventSerializer.Instance.DeserializeEvent(eventJson, eventType);
+        var deserializedEvent = DefaultSerializer.Instance.DeserializeEvent(eventJson, eventType);
         deserializedEvent.ShouldBe("hello world");
     }
 
-    private class EventSerializer : IEventSerializer
+    private class EventSerializer : ISerializer
     {
         public SyncedList<object> EventToSerialize { get; } = new();
         public SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
-        
-        public string SerializeEvent(object @event)
+
+        public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull 
+            => DefaultSerializer.Instance.SerializeParameter(parameter);
+
+        public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
+            => DefaultSerializer.Instance.DeserializeParameter<TParam>(json, type);
+
+        public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
+            => DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+        public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook
+            => DefaultSerializer.Instance.DeserializeScrapbook<TScrapbook>(json, type);
+
+        public StoredException SerializeException(Exception exception)
+            => DefaultSerializer.Instance.SerializeException(exception);
+        public PreviouslyThrownException DeserializeException(StoredException storedException)
+            => DefaultSerializer.Instance.DeserializeException(storedException);
+
+        public StoredResult SerializeResult<TResult>(TResult result)
+            => DefaultSerializer.Instance.SerializeResult(result);
+        public TResult DeserializeResult<TResult>(string json, string type)
+            => DefaultSerializer.Instance.DeserializeResult<TResult>(json, type);
+
+        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
         {
             EventToSerialize.Add(@event);
-            return DefaultEventSerializer.Instance.SerializeEvent(@event);
+            return DefaultSerializer.Instance.SerializeEvent(@event);
         }
-
         public object DeserializeEvent(string json, string type)
         {
             EventToDeserialize.Add(Tuple.Create(json, type));
-            return DefaultEventSerializer.Instance.DeserializeEvent(json, type);
+            return DefaultSerializer.Instance.DeserializeEvent(json, type);
         }
     }
 }
