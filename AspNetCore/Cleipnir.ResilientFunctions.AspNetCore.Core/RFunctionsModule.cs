@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Cleipnir.ResilientFunctions.Utils.Monitor;

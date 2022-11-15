@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging;
 using Serilog;
 
 namespace Sample.Kodedyret.V4;

@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
-using Cleipnir.ResilientFunctions.Messaging.PostgreSQL;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 using Cleipnir.ResilientFunctions.PostgreSQL.Utils;
 using Microsoft.Extensions.DependencyInjection;

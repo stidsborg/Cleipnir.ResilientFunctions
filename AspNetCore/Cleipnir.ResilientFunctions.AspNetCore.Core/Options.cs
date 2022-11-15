@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Messaging.Core.Serialization;
+using Cleipnir.ResilientFunctions.Messaging.Serialization;
 
 namespace Cleipnir.ResilientFunctions.AspNetCore.Core;
 

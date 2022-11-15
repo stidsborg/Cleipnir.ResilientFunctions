@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging.Core;
+using Cleipnir.ResilientFunctions.Messaging;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
 using Sample.WebApi.OrderProcessing.DataAccess;
 using Sample.WebApi.OrderProcessing.Domain;
