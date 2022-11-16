@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -50,6 +51,20 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
             var store = new MySqlFunctionStore(ConnectionString); 
             await store.Initialize();
             await store.TruncateTable();
+            return store;
+        }
+        
+        public static async Task<IEventStore> CreateAndInitializeEventStore(
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerMemberName] string callMemberName = "")
+        {
+            var sourceFileName = sourceFilePath
+                .Split(new[] {"\\", "/"}, StringSplitOptions.None)
+                .Last()
+                .Replace(".cs", "");
+            var store = new MySqlEventStore(ConnectionString);
+            await store.DropUnderlyingTableIfExists();
+            await store.Initialize();
             return store;
         }
 

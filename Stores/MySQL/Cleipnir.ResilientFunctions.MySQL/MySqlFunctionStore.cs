@@ -12,16 +12,18 @@ public class MySqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public IEventStore EventStore => null!; //todo implement mysql event store
+    public IEventStore EventStore { get; }
     
     public MySqlFunctionStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
+        EventStore = new MySqlEventStore(connectionString, tablePrefix);
     }
 
     public async Task Initialize()
     {
+        await EventStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (

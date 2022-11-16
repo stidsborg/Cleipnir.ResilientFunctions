@@ -55,7 +55,7 @@ public abstract class EventStoreTests
         await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
 
         var storedEvent3 = new StoredEvent(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
-        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), "4");
+        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
         await eventStore.AppendEvents(functionId, new []{storedEvent3, storedEvent4});
         
         var events = (await eventStore.GetEvents(functionId, 0)).ToList();
@@ -67,7 +67,7 @@ public abstract class EventStoreTests
         events[2].DefaultDeserialize().ShouldBe(msg3);
         events[2].IdempotencyKey.ShouldBe("3");
         events[3].DefaultDeserialize().ShouldBe(msg4);
-        events[3].IdempotencyKey.ShouldBe("4");
+        events[3].IdempotencyKey.ShouldBeNull();
     }
     
     public abstract Task SkippedMessagesAreNotFetched();
