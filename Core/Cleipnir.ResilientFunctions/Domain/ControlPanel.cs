@@ -6,14 +6,14 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanelFactory<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
     private readonly RAction.ReInvoke _reInvoke;
     private readonly RAction.ScheduleReInvoke _scheduleReInvoke;
 
-    internal ControlPanelFactory(
+    internal ControlPanels(
         FunctionTypeId functionTypeId, 
         InvocationHelper<TParam, TScrapbook, Unit> invocationHelper, 
         RAction.ReInvoke reInvoke, 
@@ -195,14 +195,14 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public async Task WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
 }
 
-public class ControlPanelFactory<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly RFunc.ReInvoke<TReturn> _reInvoke;
     private readonly RFunc.ScheduleReInvoke _scheduleReInvoke;
 
-    internal ControlPanelFactory(
+    internal ControlPanels(
         FunctionTypeId functionTypeId, 
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper, 
         RFunc.ReInvoke<TReturn> reInvoke, 

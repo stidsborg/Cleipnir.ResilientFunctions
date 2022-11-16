@@ -16,7 +16,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
     private const int MaxWaitMs = 5_000;
     
     public RAction.Invoke<Order, Scrapbook> ProcessOrder { get; }
-    public ControlPanelFactory<Order, Scrapbook> ControlPanelFactory { get; }
+    public ControlPanels<Order, Scrapbook> ControlPanels { get; }
     private readonly EventSourceWriters _eventSourceWriters;
 
     public OrderProcessor(RFunctions rFunctions, MessageBroker messageBroker)
@@ -29,7 +29,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             );
 
         ProcessOrder = registration.Invoke;
-        ControlPanelFactory = registration.ControlPanel;
+        ControlPanels = registration.ControlPanels;
         _eventSourceWriters = registration.EventSourceWriters;
 
         messageBroker.Subscribe(HandleMessage);

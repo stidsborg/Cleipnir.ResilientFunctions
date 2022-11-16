@@ -429,7 +429,7 @@ public class InMemorySunshineTests
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam = new Synced<string>();
-        await registration.ControlPanel.For("id1").Result!.ReInvoke();
+        await registration.ControlPanels.For("id1").Result!.ReInvoke();
         syncedParam.Value.ShouldBe("hello world");
         
         syncedParam = new Synced<string>();
@@ -439,7 +439,7 @@ public class InMemorySunshineTests
         await registration.Invoke("id2", "hello universe");
         
         syncedParam = new Synced<string>();
-        await registration.ControlPanel.For("id2").Result!.ScheduleReInvoke();
+        await registration.ControlPanels.For("id2").Result!.ScheduleReInvoke();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
     }
@@ -585,7 +585,7 @@ public class InMemorySunshineTests
 
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ControlPanel.For("id1").Result!.ReInvoke();
+        await registration.ControlPanels.For("id1").Result!.ReInvoke();
         syncedParam.Value.ShouldBe("hello world");
         syncedScrapbook.Value.ShouldNotBeNull();
         
@@ -599,7 +599,7 @@ public class InMemorySunshineTests
         
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ControlPanel.For("id2").Result!.ScheduleReInvoke();
+        await registration.ControlPanels.For("id2").Result!.ScheduleReInvoke();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         syncedScrapbook.Value.ShouldNotBeNull();

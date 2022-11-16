@@ -21,7 +21,7 @@ public class RAction<TParam> where TParam : notnull
 {
     public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
-    public ControlPanelFactory<TParam, RScrapbook> ControlPanel { get; }
+    public ControlPanels<TParam, RScrapbook> ControlPanels { get; }
     public EventSourceWriters EventSourceWriters { get; }
     
     public RAction(RAction<TParam, RScrapbook> rAction)
@@ -29,7 +29,7 @@ public class RAction<TParam> where TParam : notnull
         Invoke = rAction.Invoke;
         Schedule = rAction.Schedule;
 
-        ControlPanel = rAction.ControlPanel;
+        ControlPanels = rAction.ControlPanels;
         EventSourceWriters = rAction.EventSourceWriters;
     }
 }
@@ -38,18 +38,18 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
 {
     public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
-    public ControlPanelFactory<TParam, TScrapbook> ControlPanel { get; }
+    public ControlPanels<TParam, TScrapbook> ControlPanels { get; }
     public EventSourceWriters EventSourceWriters { get; }
 
     internal RAction(
         RAction.Invoke<TParam, TScrapbook> invoke,
         RAction.Schedule<TParam, TScrapbook> schedule,
-        ControlPanelFactory<TParam, TScrapbook> controlPanelFactory, 
+        ControlPanels<TParam, TScrapbook> controlPanels, 
         EventSourceWriters eventSourceWriters)
     {
         Invoke = invoke;
         Schedule = schedule;
-        ControlPanel = controlPanelFactory;
+        ControlPanels = controlPanels;
         EventSourceWriters = eventSourceWriters;
     }
 }

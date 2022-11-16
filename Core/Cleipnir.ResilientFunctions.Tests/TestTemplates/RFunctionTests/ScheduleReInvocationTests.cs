@@ -48,7 +48,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ControlPanel.For("something").Result!.ScheduleReInvoke();
+        await rFunc.ControlPanels.For("something").Result!.ScheduleReInvoke();
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -98,13 +98,13 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
 
-        controlPanel = await rAction.ControlPanel.For(functionInstanceId: "something");
-        await rAction.ControlPanel.For("something").Result!.ScheduleReInvoke();
+        controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something");
+        await rAction.ControlPanels.For("something").Result!.ScheduleReInvoke();
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(

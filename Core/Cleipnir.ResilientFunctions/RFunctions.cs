@@ -440,7 +440,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(
+            var controlPanels = new ControlPanels<TParam, TScrapbook, TReturn>(
                 functionTypeId,
                 invocationHelper,
                 rFuncInvoker.ReInvoke,
@@ -451,7 +451,7 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
-                controlPanelFactory,
+                controlPanels,
                 new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
@@ -615,7 +615,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(
+            var controlPanels = new ControlPanels<TParam, TScrapbook>(
                 functionTypeId,
                 invocationHelper,
                 rActionInvoker.ReInvoke,
@@ -624,7 +624,7 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
-                controlPanelFactory,
+                controlPanels,
                 new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
@@ -698,7 +698,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook, TReturn>(
+            var controlPanels = new ControlPanels<TParam, TScrapbook, TReturn>(
                 functionTypeId,
                 invocationHelper,
                 rFuncInvoker.ReInvoke,
@@ -709,7 +709,7 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
-                controlPanelFactory,
+                controlPanels,
                 new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
@@ -761,7 +761,7 @@ public class RFunctions : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanelFactory = new ControlPanelFactory<TParam, TScrapbook>(
+            var controlPanels = new ControlPanels<TParam, TScrapbook>(
                 functionTypeId,
                 invocationHelper,
                 rFuncInvoker.ReInvoke,
@@ -770,7 +770,7 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
-                controlPanelFactory,
+                controlPanels,
                 new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;

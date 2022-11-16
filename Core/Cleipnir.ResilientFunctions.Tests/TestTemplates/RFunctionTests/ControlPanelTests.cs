@@ -30,7 +30,7 @@ public abstract class ControlPanelTests
         
         await rAction.Invoke(functionInstanceId, "");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.Delete().ShouldBeTrueAsync();
 
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
@@ -86,7 +86,7 @@ public abstract class ControlPanelTests
         
         await rAction.Invoke(functionInstanceId, "");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await store.IncrementEpoch(functionId).ShouldBeTrueAsync();
         await controlPanel.SaveParameterAndScrapbook(); //bump epoch
 
@@ -142,7 +142,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
@@ -218,7 +218,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
         
@@ -290,7 +290,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
@@ -364,7 +364,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId, param: "first");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Scrapbook.StateDictionary["Value"].ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
@@ -438,7 +438,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId, param: "first");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Scrapbook.StateDictionary["Value"].ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
@@ -511,10 +511,10 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId, param: "first");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
 
         {
-            var tempControlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+            var tempControlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
             await tempControlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync(); //increment epoch
         }
         
@@ -606,7 +606,7 @@ public abstract class ControlPanelTests
 
         await rAction.Schedule(functionInstanceId, param: "param");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
 
         var completionTask = controlPanel.WaitForCompletion();
@@ -660,7 +660,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId, param: "param");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
         await controlPanel.ReInvoke();
         

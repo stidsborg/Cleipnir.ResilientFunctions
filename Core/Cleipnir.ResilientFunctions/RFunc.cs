@@ -23,7 +23,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.ReInvoke<TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
-    public ControlPanelFactory<TParam, RScrapbook, TReturn> ControlPanel { get; }
+    public ControlPanels<TParam, RScrapbook, TReturn> ControlPanel { get; }
     public EventSourceWriters EventSourceWriters { get; }
 
     internal RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
@@ -43,7 +43,7 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public RFunc.ReInvoke<TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
-    public ControlPanelFactory<TParam, TScrapbook, TReturn> ControlPanel { get; }
+    public ControlPanels<TParam, TScrapbook, TReturn> ControlPanel { get; }
     public EventSourceWriters EventSourceWriters { get; }
 
     internal RFunc(
@@ -51,7 +51,7 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
         RFunc.ReInvoke<TReturn> reInvoke, 
         RFunc.Schedule<TParam, TScrapbook> schedule, 
         RFunc.ScheduleReInvoke scheduleReInvoke,
-        ControlPanelFactory<TParam, TScrapbook, TReturn> controlPanel, 
+        ControlPanels<TParam, TScrapbook, TReturn> controlPanel, 
         EventSourceWriters eventSourceWriters)
     {
         Invoke = invoke;
