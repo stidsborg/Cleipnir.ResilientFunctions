@@ -12,37 +12,35 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
     public RAction.Invoke<Order, Scrapbook> ProcessOrder { get; }
 
-    public OrderProcessor(RFunctions rFunctions, EventSources eventSources, MessageBroker messageBroker)
+    public OrderProcessor(RFunctions rFunctions, MessageBroker messageBroker)
     {
-        var registration = rFunctions
+        var rAction = rFunctions
             .RegisterMethod<Inner>()
             .RegisterAction<Order, Scrapbook>(
                 nameof(OrderProcessor),
                 inner => inner.ProcessOrder
             );
 
-        ProcessOrder = registration.Invoke;
+        ProcessOrder = rAction.Invoke;
 
-        var eventSourceWriter = eventSources.For(nameof(OrderProcessor)).Writer;
-        
         messageBroker.Subscribe(async msg =>
         {
             switch (msg)
             {
                 case FundsCaptured e:
-                    await eventSourceWriter.Append(e.OrderId, e);
+                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
                     break;
                 case FundsReservationCancelled e:
-                    await eventSourceWriter.Append(e.OrderId, e);
+                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
                     break;
                 case FundsReserved e:
-                    await eventSourceWriter.Append(e.OrderId, e);
+                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
                     break;
                 case OrderConfirmationEmailSent e:
-                    await eventSourceWriter.Append(e.OrderId, e);
+                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
                     break;
                 case ProductsShipped e:
-                    await eventSourceWriter.Append(e.OrderId, e);
+                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
                     break;
 
                 default:
@@ -54,18 +52,13 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
     public class Inner
     {
         private readonly MessageBroker _messageBroker;
-        private readonly FunctionTypeEventSources _eventSources;
 
-        public Inner(MessageBroker messageBroker, EventSources eventSources)
-        {
-            _messageBroker = messageBroker;
-            _eventSources = eventSources.For(nameof(OrderProcessor));
-        }
+        public Inner(MessageBroker messageBroker) => _messageBroker = messageBroker;
 
         public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
         {
             Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-            var eventSource = await _eventSources.Get(order.OrderId);
+            using var eventSource = await context.EventSource;
 
             await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
             await eventSource.All.OfType<FundsReserved>().NextEvent(maxWaitMs: 5_000);

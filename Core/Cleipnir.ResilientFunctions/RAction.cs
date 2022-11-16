@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions;
 
@@ -22,6 +22,7 @@ public class RAction<TParam> where TParam : notnull
     public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
     public ControlPanelFactory<TParam, RScrapbook> ControlPanel { get; }
+    public EventSourceWriters EventSourceWriters { get; }
     
     public RAction(RAction<TParam, RScrapbook> rAction)
     {
@@ -29,6 +30,7 @@ public class RAction<TParam> where TParam : notnull
         Schedule = rAction.Schedule;
 
         ControlPanel = rAction.ControlPanel;
+        EventSourceWriters = rAction.EventSourceWriters;
     }
 }
 
@@ -37,14 +39,17 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
     public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
     public ControlPanelFactory<TParam, TScrapbook> ControlPanel { get; }
+    public EventSourceWriters EventSourceWriters { get; }
 
     internal RAction(
         RAction.Invoke<TParam, TScrapbook> invoke,
         RAction.Schedule<TParam, TScrapbook> schedule,
-        ControlPanelFactory<TParam, TScrapbook> controlPanelFactory)
+        ControlPanelFactory<TParam, TScrapbook> controlPanelFactory, 
+        EventSourceWriters eventSourceWriters)
     {
         Invoke = invoke;
         Schedule = schedule;
         ControlPanel = controlPanelFactory;
+        EventSourceWriters = eventSourceWriters;
     }
 }

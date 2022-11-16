@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -12,6 +13,7 @@ public class InMemoryFunctionStore : IFunctionStore
     private readonly Dictionary<FunctionId, State> _states = new();
     private readonly object _sync = new();
 
+    public IEventStore EventStore { get; } = new InMemoryEventStore();
     public Task Initialize() => Task.CompletedTask;
 
     public Task<bool> CreateFunction(

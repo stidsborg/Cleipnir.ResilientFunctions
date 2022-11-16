@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -14,6 +15,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     private readonly object _sync = new();
     private readonly Subject<long> _afterPostponeFunctionSubject = new();
+    public IEventStore EventStore => _inner.EventStore;
     public IObservable<long> AfterPostponeFunctionStream
     {
         get

@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -14,6 +13,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
+    private readonly IEventStore _eventStore;
     private readonly SettingsWithDefaults _settings;
     private readonly int _version;
     
@@ -23,6 +23,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         SettingsWithDefaults settings,
         int version,
         IFunctionStore functionStore, 
+        IEventStore eventStore,
         ShutdownCoordinator shutdownCoordinator)
     {
         _settings = settings;
@@ -31,6 +32,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
         _functionStore = functionStore;
+        _eventStore = eventStore;
     }
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(FunctionId functionId, TParam param, TScrapbook scrapbook)
@@ -328,5 +330,25 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 ? null 
                 : serializer.DeserializeException(sf.Exception)
         );
+    }
+
+    public Func<Task<EventSource>> CreateAndInitializeEventSource(FunctionId functionId)
+    {
+        async Task<EventSource> CreateNewEventSource()
+        {
+            var eventSourceWriter = new EventSourceWriter(functionId, _eventStore, Serializer);
+            var eventSource = new EventSource(
+                functionId,
+                _eventStore,
+                eventSourceWriter,
+                _settings.EventSourcePullFrequency,
+                _settings.Serializer
+            );
+            await eventSource.Initialize();
+
+            return eventSource;
+        }
+
+        return CreateNewEventSource;
     }
 }

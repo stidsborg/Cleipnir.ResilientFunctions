@@ -12,7 +12,7 @@ public class Options
     internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? CrashedCheckFrequency { get; }
     internal TimeSpan? PostponedCheckFrequency { get; }
-    internal TimeSpan? DefaultEventsCheckFrequency { get; }
+    internal TimeSpan? EventSourcePullFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal ISerializer? Serializer { get; }
@@ -22,7 +22,7 @@ public class Options
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? crashedCheckFrequency = null, 
         TimeSpan? postponedCheckFrequency = null, 
-        TimeSpan? defaultEventsCheckFrequency = null,
+        TimeSpan? eventSourcePullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null
@@ -31,7 +31,7 @@ public class Options
         UnhandledExceptionHandler = unhandledExceptionHandler;
         CrashedCheckFrequency = crashedCheckFrequency;
         PostponedCheckFrequency = postponedCheckFrequency;
-        DefaultEventsCheckFrequency = defaultEventsCheckFrequency;
+        EventSourcePullFrequency = eventSourcePullFrequency;
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
@@ -60,6 +60,7 @@ public class Options
             UnhandledExceptionHandler,
             CrashedCheckFrequency,
             PostponedCheckFrequency,
+            EventSourcePullFrequency,
             DelayStartup,
             MaxParallelRetryInvocations,
             Serializer,

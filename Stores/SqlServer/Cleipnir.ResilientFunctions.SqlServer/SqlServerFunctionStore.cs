@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
@@ -13,10 +14,14 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly Func<Task<SqlConnection>> _connFunc;
     private readonly string _tablePrefix;
 
+    private readonly SqlServerEventStore _eventStore;
+    public IEventStore EventStore => _eventStore;
+    
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
         _connFunc = CreateConnection(connectionString);
         _tablePrefix = tablePrefix;
+        _eventStore = new SqlServerEventStore(connectionString, tablePrefix);
     }
     
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
@@ -31,6 +36,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task Initialize()
     {
+        await _eventStore.Initialize();
         await using var conn = await _connFunc();
         var sql = @$"
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions' and xtype='U')

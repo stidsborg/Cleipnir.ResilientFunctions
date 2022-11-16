@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MySql.Data.MySqlClient;
 using static Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
@@ -10,6 +11,8 @@ public class MySqlFunctionStore : IFunctionStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
+
+    public IEventStore EventStore => null!; //todo implement mysql event store
     
     public MySqlFunctionStore(string connectionString, string tablePrefix = "")
     {

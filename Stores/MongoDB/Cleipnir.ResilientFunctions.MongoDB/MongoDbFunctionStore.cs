@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MongoDB.Driver;
 
@@ -11,6 +12,8 @@ public class MongoDbFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _databaseName;
     private readonly string _collectionName;
+
+    public IEventStore EventStore => null!; //todo implement mongodb event store
     
     public MongoDbFunctionStore(string connectionString, string databaseName, string collectionName = "rfunctions")
     {

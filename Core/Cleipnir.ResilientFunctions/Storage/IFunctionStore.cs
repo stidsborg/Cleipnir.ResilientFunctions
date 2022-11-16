@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface IFunctionStore
 {
+    public IEventStore EventStore { get; }
     public Task Initialize();
     
     Task<bool> CreateFunction(

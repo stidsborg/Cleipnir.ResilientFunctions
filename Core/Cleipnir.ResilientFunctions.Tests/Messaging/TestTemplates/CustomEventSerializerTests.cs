@@ -14,12 +14,18 @@ public abstract class CustomEventSerializerTests
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
     protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IEventStore> eventStoreTask)
     {
-        var eventStore = await eventStoreTask;
-        var eventSerializer = new EventSerializer();
-        var eventSources = new EventSources(eventStore, rFunctions: null, eventSerializer: eventSerializer);
-        using var eventSource = await eventSources.Get(
+        var functionId = new FunctionId(
             functionTypeId: nameof(CustomEventSerializerTests),
             functionInstanceId: nameof(CustomEventSerializerIsUsedWhenSpecified)
+        );
+        var eventStore = await eventStoreTask;
+        var eventSerializer = new EventSerializer();
+        var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, eventSerializer),
+            pullFrequency: null,
+            eventSerializer
         );
 
         await eventSource.Append("hello world");

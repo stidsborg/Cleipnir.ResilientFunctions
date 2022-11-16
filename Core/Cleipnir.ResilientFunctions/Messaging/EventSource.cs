@@ -13,7 +13,7 @@ public class EventSource : IDisposable
 {
     private readonly FunctionId _functionId;
     private readonly IEventStore _eventStore;
-    private readonly EventSourceInstanceWriter _eventWriter;
+    private readonly EventSourceWriter _eventWriter;
     private readonly TimeSpan _pullFrequency;
     private readonly ISerializer _eventSerializer;
     
@@ -46,7 +46,7 @@ public class EventSource : IDisposable
     public EventSource(
         FunctionId functionId, 
         IEventStore eventStore, 
-        EventSourceInstanceWriter eventWriter,
+        EventSourceWriter eventWriter,
         TimeSpan? pullFrequency, 
         ISerializer? eventSerializer)
     {
@@ -122,13 +122,13 @@ public class EventSource : IDisposable
 
     public async Task Append(object @event, string? idempotencyKey = null)
     {
-        await _eventWriter.Append(@event, idempotencyKey, awakeIfSuspended: false);
+        await _eventWriter.Append(@event, idempotencyKey);
         await DeliverOutstandingEvents();
     }
 
     public async Task Append(IEnumerable<EventAndIdempotencyKey> events)
     {
-        await _eventWriter.Append(events, awakeIfSuspended: false);
+        await _eventWriter.Append(events);
         await DeliverOutstandingEvents();
     }
 

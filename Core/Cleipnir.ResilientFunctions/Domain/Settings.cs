@@ -15,6 +15,7 @@ public class Settings
     internal TimeSpan? PostponedCheckFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
+    internal TimeSpan? EventSourcePullFrequency { get; }
     internal ISerializer? Serializer { get; }
     internal IDependencyResolver? DependencyResolver { get; }
     
@@ -24,14 +25,15 @@ public class Settings
     public Settings(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? crashedCheckFrequency = null, 
-        TimeSpan? postponedCheckFrequency = null, 
+        TimeSpan? postponedCheckFrequency = null,
+        TimeSpan? eventSourcePullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null, 
         IDependencyResolver? dependencyResolver = null
     ) :this(
-        unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency, delayStartup, 
-        maxParallelRetryInvocations, serializer, dependencyResolver, 
+        unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency, eventSourcePullFrequency, 
+        delayStartup, maxParallelRetryInvocations, serializer, dependencyResolver, 
         middlewares: new List<MiddlewareInstanceOrResolverFunc>()
     ) { }
 
@@ -39,12 +41,12 @@ public class Settings
         Action<RFunctionException>? unhandledExceptionHandler, 
         TimeSpan? crashedCheckFrequency, 
         TimeSpan? postponedCheckFrequency, 
+        TimeSpan? eventSourcePullFrequency,
         TimeSpan? delayStartup, 
         int? maxParallelRetryInvocations, 
         ISerializer? serializer, 
         IDependencyResolver? dependencyResolver,
-        List<MiddlewareInstanceOrResolverFunc> middlewares
-    )
+        List<MiddlewareInstanceOrResolverFunc> middlewares)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         CrashedCheckFrequency = crashedCheckFrequency;
@@ -54,6 +56,7 @@ public class Settings
         Serializer = serializer;
         DependencyResolver = dependencyResolver;
         _middlewares = middlewares;
+        EventSourcePullFrequency = eventSourcePullFrequency;
     }
 
     public Settings UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
@@ -84,6 +87,7 @@ public record SettingsWithDefaults(
     UnhandledExceptionHandler UnhandledExceptionHandler,
     TimeSpan CrashedCheckFrequency,
     TimeSpan PostponedCheckFrequency,
+    TimeSpan EventSourcePullFrequency,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
@@ -101,6 +105,7 @@ public record SettingsWithDefaults(
                 : new UnhandledExceptionHandler(child.UnhandledExceptionHandler),
             child.CrashedCheckFrequency ?? CrashedCheckFrequency,
             child.PostponedCheckFrequency ?? PostponedCheckFrequency,
+            child.EventSourcePullFrequency ?? EventSourcePullFrequency,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
             child.Serializer ?? Serializer,
@@ -114,6 +119,7 @@ public record SettingsWithDefaults(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
             CrashedCheckFrequency: TimeSpan.FromSeconds(10),
             PostponedCheckFrequency: TimeSpan.FromSeconds(10),
+            EventSourcePullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 10,
             Serializer: DefaultSerializer.Instance,

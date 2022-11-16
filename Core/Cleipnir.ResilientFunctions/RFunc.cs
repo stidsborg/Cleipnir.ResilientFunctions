@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions;
 
@@ -24,6 +24,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
     public ControlPanelFactory<TParam, RScrapbook, TReturn> ControlPanel { get; }
+    public EventSourceWriters EventSourceWriters { get; }
 
     internal RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
     {
@@ -32,6 +33,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
         Schedule = rFunc.Schedule;
         ScheduleReInvoke = rFunc.ScheduleReInvoke;
         ControlPanel = rFunc.ControlPanel;
+        EventSourceWriters = rFunc.EventSourceWriters;
     }
 }
 
@@ -42,13 +44,15 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
     public ControlPanelFactory<TParam, TScrapbook, TReturn> ControlPanel { get; }
+    public EventSourceWriters EventSourceWriters { get; }
 
     internal RFunc(
         RFunc.Invoke<TParam, TScrapbook, TReturn> invoke, 
         RFunc.ReInvoke<TReturn> reInvoke, 
         RFunc.Schedule<TParam, TScrapbook> schedule, 
         RFunc.ScheduleReInvoke scheduleReInvoke,
-        ControlPanelFactory<TParam, TScrapbook, TReturn> controlPanel)
+        ControlPanelFactory<TParam, TScrapbook, TReturn> controlPanel, 
+        EventSourceWriters eventSourceWriters)
     {
         Invoke = invoke;
         ReInvoke = reInvoke;
@@ -56,5 +60,6 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
         ScheduleReInvoke = scheduleReInvoke;
 
         ControlPanel = controlPanel;
+        EventSourceWriters = eventSourceWriters;
     }
 }

@@ -69,19 +69,7 @@ public static class RFunctionsModule
 
             return new RFunctions(functionStore, resolvedSettings);
         });
-        
-        services.AddSingleton(sp =>
-            {
-                var o = sp.GetService<Options>();
-                return new EventSources(
-                    sp.GetRequiredService<IEventStore>(),
-                    sp.GetRequiredService<RFunctions>(),
-                    o?.DefaultEventsCheckFrequency
-                );
-            } 
-            
-        );
-        
+
         rootAssembly ??= Assembly.GetCallingAssembly();
         services.AddHostedService(s => new RFunctionsService(s, rootAssembly, gracefulShutdown));
         

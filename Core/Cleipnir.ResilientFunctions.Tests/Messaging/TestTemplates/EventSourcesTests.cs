@@ -20,8 +20,13 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore, rFunctions: null);
-        using var eventSource = await eventSources.Get(functionId);
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, DefaultSerializer.Instance),
+            pullFrequency: null,
+            DefaultSerializer.Instance
+        );
 
         // ReSharper disable once AccessToDisposedClosure
         async Task<object> FirstAsync() => await eventSource.All.FirstAsync();
@@ -40,8 +45,13 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore, rFunctions: null);
-        using var eventSource = await eventSources.Get(functionId);
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, DefaultSerializer.Instance),
+            pullFrequency: null,
+            DefaultSerializer.Instance
+        );
 
         // ReSharper disable once AccessToDisposedClosure
         async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
@@ -67,8 +77,13 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore, rFunctions: null);
-        using var eventSource = await eventSources.Get(functionId);
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, DefaultSerializer.Instance),
+            pullFrequency: null,
+            DefaultSerializer.Instance
+        );
 
         // ReSharper disable once AccessToDisposedClosure
         async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
@@ -96,8 +111,14 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore, rFunctions: null);
-        using var eventSource = await eventSources.Get(functionId);
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, DefaultSerializer.Instance),
+            pullFrequency: null,
+            DefaultSerializer.Instance
+        );
+        await eventSource.Initialize();
 
         // ReSharper disable once AccessToDisposedClosure
         async Task<object> FirstAsync() => await eventSource.All.FirstAsync();
@@ -119,8 +140,14 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(eventStore, rFunctions: null);
-        using var eventSource = await eventSources.Get(functionId);
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, DefaultSerializer.Instance),
+            pullFrequency: null,
+            DefaultSerializer.Instance
+        );
+        await eventSource.Initialize();
 
         // ReSharper disable once AccessToDisposedClosure
         async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
@@ -154,12 +181,13 @@ public abstract class EventSourcesTests
     {
         var functionId = new FunctionId("TypeId", "InstanceId");
         var eventStore = await eventStoreTask;
-        var eventSources = new EventSources(
-            eventStore, 
-            eventSerializer: new ExceptionThrowingEventSerializer(typeof(int)),
-            rFunctions: null
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, new ExceptionThrowingEventSerializer(typeof(int))),
+            pullFrequency: null,
+            new ExceptionThrowingEventSerializer(typeof(int))
         );
-        using var eventSource = await eventSources.Get(functionId);
 
         await eventSource.Append("hello world");
         await Should.ThrowAsync<EventProcessingException>(eventSource.Append(1));

@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.InnerAdapters;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
@@ -21,6 +22,7 @@ public class RFunctions : IDisposable
     private readonly Dictionary<FunctionTypeId, ScheduleResilientFunctionReInvocation> _scheduleReInvocations = new();
 
     private readonly IFunctionStore _functionStore;
+    private readonly IEventStore _eventStore;
     public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
@@ -31,6 +33,7 @@ public class RFunctions : IDisposable
     public RFunctions(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
+        _eventStore = functionStore.EventStore;
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
     }
@@ -414,7 +417,10 @@ public class RFunctions : IDisposable
             }
         
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(
+                settingsWithDefaults, version, 
+                _functionStore, _eventStore,
+                _shutdownCoordinator);
             var rFuncInvoker = new Invoker<Unit, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -445,7 +451,8 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
-                controlPanelFactory
+                controlPanelFactory,
+                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, epoch) => rFuncInvoker.ReInvoke(id, epoch);
@@ -588,7 +595,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, version, _functionStore, _eventStore, _shutdownCoordinator);
             var rActionInvoker = new Invoker<Unit, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
@@ -617,7 +624,8 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
-                controlPanelFactory
+                controlPanelFactory,
+                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, epoch) => rActionInvoker.ReInvoke(id, epoch);
@@ -670,7 +678,7 @@ public class RFunctions : IDisposable
             if (settingsWithDefaults.DependencyResolver == null)
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, version, _functionStore, _eventStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner: null,
@@ -701,7 +709,8 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
-                controlPanelFactory
+                controlPanelFactory,
+                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
             return registration;
@@ -732,7 +741,7 @@ public class RFunctions : IDisposable
             if (settingsWithDefaults.DependencyResolver == null)
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, version, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, version, _functionStore, _eventStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner: null,
@@ -761,7 +770,8 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
-                controlPanelFactory
+                controlPanelFactory,
+                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
             return registration;
