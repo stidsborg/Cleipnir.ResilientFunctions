@@ -27,12 +27,3 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: "Pa55word!"
-
-  mongo:
-    container_name: mongo-db
-    image: mongo   
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: "Pa55word!"
-    ports:
-      - "27017:27017"

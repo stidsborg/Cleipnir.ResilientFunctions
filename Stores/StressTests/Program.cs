@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.StressTests
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: StressTests <all, mongo, mysql, postgres, sqlserver>");
+                Console.WriteLine("Usage: StressTests <all, mysql, postgres, sqlserver>");
                 Console.WriteLine("       StressTests recreate_dbs");
                 return 1;
             }
@@ -18,8 +18,6 @@ namespace Cleipnir.ResilientFunctions.StressTests
             if (args[0].ToLower() == "recreate_dbs")
             {
                 Console.WriteLine("Recreating Databases:");
-                Console.WriteLine("MongoDB...");
-                await new MongoDbEngine().RecreateDatabase();
                 Console.WriteLine("MySQL...");
                 await new MySqlEngine().RecreateDatabase();
                 Console.WriteLine("Postgres...");
@@ -32,12 +30,10 @@ namespace Cleipnir.ResilientFunctions.StressTests
             var engines = new List<IEngine>();
 
             if (args.Any(arg => arg.ToLower() == "all"))
-                args = new[] { "mongo", "mysql", "postgres", "sqlserver" };
+                args = new[] { "mysql", "postgres", "sqlserver" };
             
             foreach (var arg in args)
             {
-                if (arg == "mongo")
-                    engines.Add(new MongoDbEngine());
                 if (arg == "mysql")
                     engines.Add(new MySqlEngine());
                 if (arg == "postgres")
@@ -48,7 +44,7 @@ namespace Cleipnir.ResilientFunctions.StressTests
             
             if (engines.Count == 0) 
             {
-                Console.WriteLine("Usage: StressTests <all, mongo, mysql, postgres, sqlserver>");
+                Console.WriteLine("Usage: StressTests <all, mysql, postgres, sqlserver>");
                 return 1;
             }
                 
