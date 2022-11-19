@@ -25,6 +25,15 @@ public class EventStoreTests :  TestTemplates.EventStoreTests
     public override Task TruncatedEventSourceContainsNoEvents()
         => TruncatedEventSourceContainsNoEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 
+    [TestMethod]
     public override Task NoExistingEventSourceCanBeTruncated()
         => NoExistingEventSourceCanBeTruncated(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task ExistingEventSourceCanBeReplacedWithProvidedEvents()
+        => ExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
+        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 }

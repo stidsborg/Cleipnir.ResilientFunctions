@@ -80,37 +80,45 @@ public class MySqlEventStore : IEventStore
     
     public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
-        var count = await GetNumberOfEvents(functionId);
+        var existingCount = await GetNumberOfEvents(functionId);
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        
         var transaction = await conn.BeginTransactionAsync();
+
+        await AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
+
+        await transaction.CommitAsync();
+    }
+
+    private async Task AppendEvents(
+        FunctionId functionId,
+        IEnumerable<StoredEvent> storedEvents,
+        long existingCount,
+        MySqlConnection connection,
+        MySqlTransaction transaction)
+    {
+        foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
-            foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
-            {
-                var sql = @$"    
+            var sql = @$"    
                 INSERT INTO {_tablePrefix}events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
                     (?, ?, ?, ?, ?, ?);";
            
-                await using var command = new MySqlCommand(sql, conn, transaction)
+            await using var command = new MySqlCommand(sql, connection, transaction)
+            {
+                Parameters =
                 {
-                    Parameters =
-                    {
-                        new() {Value = functionId.TypeId.Value},
-                        new() {Value = functionId.InstanceId.Value},
-                        new() {Value = count++},
-                        new() {Value = eventJson},
-                        new() {Value = eventType},
-                        new() {Value = idempotencyKey ?? (object) DBNull.Value}
-                    }
-                };
+                    new() {Value = functionId.TypeId.Value},
+                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = existingCount++},
+                    new() {Value = eventJson},
+                    new() {Value = eventType},
+                    new() {Value = idempotencyKey ?? (object) DBNull.Value}
+                }
+            };
 
-                await command.ExecuteNonQueryAsync();
-            }
+            await command.ExecuteNonQueryAsync();
         }
-
-        await transaction.CommitAsync();
     }
 
     private async Task<long> GetNumberOfEvents(FunctionId functionId)
@@ -130,20 +138,34 @@ public class MySqlEventStore : IEventStore
 
     public async Task Truncate(FunctionId functionId)
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await Truncate(functionId, conn, transaction: null);
+    }
 
+    private async Task Truncate(FunctionId functionId, MySqlConnection connection, MySqlTransaction? transaction)
+    {
         var sql = @$"    
                 DELETE FROM {_tablePrefix}events
                 WHERE function_type_id = ? AND function_instance_id = ?;";
-        await using var command = new MySqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
-            }
-        };
+        
+        await using var command =
+            transaction == null
+                ? new MySqlCommand(sql, connection)
+                : new MySqlCommand(sql, connection, transaction);
+
+        command.Parameters.Add(new() { Value = functionId.TypeId.Value });
+        command.Parameters.Add(new() { Value = functionId.InstanceId.Value });
+        
         await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var transaction = await conn.BeginTransactionAsync();
+        await Truncate(functionId, conn, transaction);
+        await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
+        await transaction.CommitAsync();
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

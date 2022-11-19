@@ -84,6 +84,14 @@ public class SqlServerEventStore : IEventStore
     {
         await using var conn = await CreateConnection();
         await using var transaction = conn.BeginTransaction();
+
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+        
+        await transaction.CommitAsync();
+    }
+    
+    private async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, SqlConnection connection, SqlTransaction transaction)
+    {
         foreach (var storedEvent in storedEvents)
         {
             var sql = @$"    
@@ -95,7 +103,7 @@ public class SqlServerEventStore : IEventStore
                 (SELECT COUNT(*) FROM {_tablePrefix}events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @EventJson, @EventType, @IdempotencyKey
             );";
-            await using var command = new SqlCommand(sql, conn, transaction);
+            await using var command = new SqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
@@ -103,21 +111,39 @@ public class SqlServerEventStore : IEventStore
             command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
             await command.ExecuteNonQueryAsync();
         }
-
-        await transaction.CommitAsync();
     }
 
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
+        await Truncate(functionId, conn, transaction: null);
+    }
 
+    private async Task Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
+    {
         var sql = @$"    
             DELETE FROM {_tablePrefix}Events
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        await using var command = new SqlCommand(sql, conn);
+        
+        await using var command = 
+            transaction == null
+                ? new SqlCommand(sql, connection)
+                : new SqlCommand(sql, connection, transaction);
+        
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await CreateConnection();
+        await using var transaction = conn.BeginTransaction();
+
+        await Truncate(functionId, conn, transaction);
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+        
+        await transaction.CommitAsync();
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

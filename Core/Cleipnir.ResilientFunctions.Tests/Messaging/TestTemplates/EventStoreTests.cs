@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -121,5 +123,65 @@ public abstract class EventStoreTests
         await eventStore.Truncate(functionId);
         var events = await eventStore.GetEvents(functionId, skip: 0);
         events.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingEventSourceCanBeReplacedWithProvidedEvents();
+    protected async Task ExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+
+        await eventStore.AppendEvent(
+            functionId,
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName()
+        );
+        
+        await eventStore.AppendEvent(
+            functionId,
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName()
+        );
+
+        await eventStore.Replace(
+            functionId,
+            new StoredEvent[]
+            {
+                new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
+                new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
+            }
+        );
+
+        var events = (await eventStore.GetEvents(functionId, skip: 0)).ToList();
+        events.Count.ShouldBe(2);
+        var event1 = (string) JsonSerializer.Deserialize(events[0].EventJson, Type.GetType(events[0].EventType, throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].EventJson, Type.GetType(events[1].EventType, throwOnError: true)!)!;
+        
+        event1.ShouldBe("hello to you");
+        event2.ShouldBe("hello from me");
+    }
+    
+    public abstract Task NonExistingEventSourceCanBeReplacedWithProvidedEvents();
+    protected async Task NonExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+
+        await eventStore.Replace(
+            functionId,
+            new StoredEvent[]
+            {
+                new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
+                new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
+            }
+        );
+
+        var events = (await eventStore.GetEvents(functionId, skip: 0)).ToList();
+        events.Count.ShouldBe(2);
+        var event1 = (string) JsonSerializer.Deserialize(events[0].EventJson, Type.GetType(events[0].EventType, throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].EventJson, Type.GetType(events[1].EventType, throwOnError: true)!)!;
+        
+        event1.ShouldBe("hello to you");
+        event2.ShouldBe("hello from me");
     }
 }

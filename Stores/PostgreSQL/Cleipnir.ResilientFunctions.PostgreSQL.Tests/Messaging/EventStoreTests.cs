@@ -25,4 +25,12 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
     [TestMethod]
     public override Task NoExistingEventSourceCanBeTruncated()
         => NoExistingEventSourceCanBeTruncated(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task ExistingEventSourceCanBeReplacedWithProvidedEvents()
+        => ExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
+        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.CreateAndInitializeEventStore());
 }

@@ -13,6 +13,7 @@ public interface IEventStore
     Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);
     
     Task Truncate(FunctionId functionId);
+    Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);
     
     Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip);
 }

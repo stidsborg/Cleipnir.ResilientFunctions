@@ -88,8 +88,16 @@ public class PostgreSqlEventStore : IEventStore
     public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         await using var conn = await CreateConnection();
+        await AppendEvents(functionId, storedEvents, conn, transaction: null);
+    }
 
-        var batch = new NpgsqlBatch(conn);
+    private async Task AppendEvents(
+        FunctionId functionId, 
+        IEnumerable<StoredEvent> storedEvents,
+        NpgsqlConnection connection, 
+        NpgsqlTransaction? transaction)
+    {
+        var batch = new NpgsqlBatch(connection, transaction);
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
             var sql = @$"    
@@ -117,11 +125,15 @@ public class PostgreSqlEventStore : IEventStore
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
+        await Truncate(functionId, conn, transaction: null);
+    }
 
+    private async Task Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
+    {
         var sql = @$"    
                 DELETE FROM {_tablePrefix}events
                 WHERE function_type_id = $1 AND function_instance_id = $2;";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, connection, transaction)
         {
             Parameters =
             {
@@ -130,6 +142,15 @@ public class PostgreSqlEventStore : IEventStore
             }
         };
         await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await CreateConnection();
+        await using var transaction = await conn.BeginTransactionAsync();
+        await Truncate(functionId, conn, transaction);
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+        await transaction.CommitAsync();
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
