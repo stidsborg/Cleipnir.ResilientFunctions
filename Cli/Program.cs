@@ -6,22 +6,13 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        if (args.Length != 5 || args[0].ToLower() != "pack-all")
-            return PrintUsageAndReturnError();
+        var root = Path.GetFullPath(@"C:\Repos\Cleipnir.ResilientFunctions");
+        var output = Path.GetFullPath(@".\nugets");
 
-        var root = Path.GetFullPath(args[1]);
-        var output = Path.GetFullPath(args[2]);
-        var oldVersion = args[3];
-        var newVersion = args[4];
+        if (Directory.Exists(output))
+            Directory.Delete(output, recursive: true);
         
-        if (!Directory.Exists(root))
-        {
-            Console.WriteLine($"Source folder does not exist: {args}");
-            return PrintUsageAndReturnError();
-        }
-
-        if (!Directory.Exists(output))
-            Directory.CreateDirectory(output);
+        Directory.CreateDirectory(output);
 
         Console.WriteLine($"Root path: {root}");
         Console.WriteLine($"Output path: {output}");
@@ -31,7 +22,7 @@ internal static class Program
         {
             Console.WriteLine("Updating " + projectPath);
             Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
-            UpdatePackageVersion(projectPath, oldVersion, newVersion);
+            UpdatePackageVersion(projectPath);
             PackProject(Path.GetDirectoryName(projectPath)!, output);
         }
 
@@ -48,17 +39,26 @@ internal static class Program
     private static bool IsPackageProject(string path)
         => File.ReadAllText(path).Contains("<Version>");
 
-    private static void UpdatePackageVersion(string path, string oldVersion, string newVersion)
+    private static void UpdatePackageVersion(string path)
     {
         var projectFileContent = File.ReadAllText(path);
-        projectFileContent = projectFileContent.Replace(oldVersion, newVersion);
+        projectFileContent = FindAndIncrementVersion(projectFileContent, path);
         File.WriteAllText(path, projectFileContent);
     }
 
-    private static int PrintUsageAndReturnError()
+    private static string FindAndIncrementVersion(string projectFileContent, string path)
     {
-        Console.WriteLine("Usage: CRF pack-all <root> <output> <old_version> <new_version>");
-        return -1;
+        var versionStartsAt = projectFileContent.IndexOf("<Version>", StringComparison.OrdinalIgnoreCase) + "<Version>".Length;
+        var versionEndsAt = projectFileContent.IndexOf("</Version>", StringComparison.OrdinalIgnoreCase);
+        var currentVersionString = projectFileContent[versionStartsAt..versionEndsAt];
+        Console.WriteLine($"Current version: '{currentVersionString}' for path: '{path}'");
+        
+        var versionArray = currentVersionString.Split(".").Select(int.Parse).ToArray();
+        versionArray[^1]++;
+        var newVersionString = string.Join(".", versionArray);
+
+        var newProjectFileContent = projectFileContent.Replace(currentVersionString, newVersionString);
+        return newProjectFileContent;
     }
 
     private static void PackProject(string projectPath, string outputPath)
