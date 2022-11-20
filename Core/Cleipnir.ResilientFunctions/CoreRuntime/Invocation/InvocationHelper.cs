@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using EventAndIdempotencyKey = Cleipnir.ResilientFunctions.Messaging.EventAndIdempotencyKey;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -292,15 +295,36 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public async Task<bool> SetParameterAndScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int expectedEpoch)
+    public async Task<bool> SaveControlPanelChanges(
+        FunctionId functionId, 
+        TParam param, 
+        TScrapbook scrapbook, 
+        ExistingEvents? existingEvents, 
+        int expectedEpoch)
     {
         var serializer = _settings.Serializer;
-        return await _functionStore.SetParameters(
+        var success= await _functionStore.SetParameters(
             functionId,
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
             expectedEpoch
         );
+        if (!success) return false;
+
+        if (existingEvents != null)
+        {
+            var storedEvents = existingEvents.EventsWithIdempotencyKeys
+                .Select(e =>
+                {
+                    var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
+                    return new StoredEvent(json, type, e.IdempotencyKey);
+                })
+                .ToList();
+            
+            await _functionStore.EventStore.Replace(functionId, storedEvents);
+        }
+
+        return true;
     }
 
     public async Task<bool> Delete(FunctionId functionId, int expectedEpoch)
@@ -351,4 +375,19 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
         return CreateNewEventSource;
     }
+
+    public async Task<List<EventAndIdempotencyKey>> GetEvents(FunctionId functionId)
+    {
+        var storedEvents = await _eventStore.GetEvents(functionId, skip: 0);
+        return storedEvents
+            .Select(se => new EventAndIdempotencyKey(
+                    _settings.Serializer.DeserializeEvent(se.EventJson, se.EventType),
+                    se.IdempotencyKey
+                )
+            )
+            .ToList();
+    }
+    
+    public async Task<ExistingEvents> GetExistingEvents(FunctionId functionId) 
+        => new ExistingEvents(await GetEvents(functionId));
 }

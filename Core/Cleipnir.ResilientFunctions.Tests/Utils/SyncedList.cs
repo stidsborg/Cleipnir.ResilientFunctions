@@ -22,6 +22,12 @@ namespace Cleipnir.ResilientFunctions.Tests.Utils
                 _list.Add(item);
         }
 
+        public void AddRange(IEnumerable<T> items)
+        {
+            lock (_list)
+                _list.AddRange(items);
+        }
+
         public void Clear()
         {
             lock (_list)

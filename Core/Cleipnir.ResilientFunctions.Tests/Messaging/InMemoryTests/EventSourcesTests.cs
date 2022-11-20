@@ -14,6 +14,10 @@ public class EventSourcesTests : TestTemplates.EventSourcesTests
         => EventSourcesSunshineScenario(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
+    public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
+        => ExistingEventsShouldBeSameAsAllAfterEmit(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
         => SecondEventWithExistingIdempotencyKeyIsIgnored(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 

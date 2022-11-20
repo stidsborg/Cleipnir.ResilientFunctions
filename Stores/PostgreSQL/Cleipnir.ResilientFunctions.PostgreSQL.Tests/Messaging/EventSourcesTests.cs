@@ -11,6 +11,10 @@ public class EventSourcesTests : ResilientFunctions.Tests.Messaging.TestTemplate
         => EventSourcesSunshineScenario(Sql.CreateAndInitializeEventStore());
 
     [TestMethod]
+    public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
+        => ExistingEventsShouldBeSameAsAllAfterEmit(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
         => SecondEventWithExistingIdempotencyKeyIsIgnored(Sql.CreateAndInitializeEventStore());
 

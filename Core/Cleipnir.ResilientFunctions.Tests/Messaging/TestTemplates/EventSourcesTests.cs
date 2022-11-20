@@ -39,6 +39,27 @@ public abstract class EventSourcesTests
 
         (await task).ShouldBe("hello world");
     }
+    
+    public abstract Task ExistingEventsShouldBeSameAsAllAfterEmit();
+    protected async Task ExistingEventsShouldBeSameAsAllAfterEmit(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+        using var eventSource = new EventSource(
+            functionId,
+            eventStore,
+            new EventSourceWriter(functionId, eventStore, DefaultSerializer.Instance),
+            pullFrequency: null,
+            DefaultSerializer.Instance
+        );
+
+        await eventSource.Append("hello world");
+
+        var nextEvent = await eventSource.All.NextEvent(maxWaitMs: 1_000);
+        nextEvent.ShouldBe("hello world");
+        eventSource.Existing.Count.ShouldBe(1);
+        eventSource.Existing[0].ShouldBe("hello world");
+    }
 
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnored();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnored(Task<IEventStore> eventStoreTask)

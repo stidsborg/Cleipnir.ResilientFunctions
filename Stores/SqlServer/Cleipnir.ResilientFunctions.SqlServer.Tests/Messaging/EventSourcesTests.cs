@@ -11,6 +11,10 @@ public class EventSourcesTests : Cleipnir.ResilientFunctions.Tests.Messaging.Tes
         => EventSourcesSunshineScenario(Sql.CreateAndInitializeEventStore());
 
     [TestMethod]
+    public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
+        => ExistingEventsShouldBeSameAsAllAfterEmit(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
         => SecondEventWithExistingIdempotencyKeyIsIgnored(Sql.CreateAndInitializeEventStore());
 

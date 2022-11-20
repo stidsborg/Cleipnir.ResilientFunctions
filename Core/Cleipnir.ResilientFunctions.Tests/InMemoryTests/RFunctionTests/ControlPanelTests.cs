@@ -85,4 +85,16 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook()
         => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents()
+        => ControlPanelsExistingEventsContainsPreviouslyAddedEvents(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ExistingEventsCanBeReplacedUsingControlPanel()
+        => ExistingEventsCanBeReplacedUsingControlPanel(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation()
+        => ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(Utils.CreateInMemoryFunctionStoreTask());
 }

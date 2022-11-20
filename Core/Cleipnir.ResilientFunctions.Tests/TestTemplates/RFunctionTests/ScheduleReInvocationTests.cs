@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -101,9 +100,8 @@ public abstract class ScheduleReInvocationTests
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
-
-        controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something");
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
+        
         await rAction.ControlPanels.For("something").Result!.ScheduleReInvoke();
 
         var functionId = new FunctionId(functionType, "something");
@@ -205,7 +203,7 @@ public abstract class ScheduleReInvocationTests
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         scrapbookList.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
-        await controlPanel.SaveParameterAndScrapbook();
+        await controlPanel.SaveChanges();
 
         controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something");
         await rFunc.ScheduleReInvoke(functionInstanceId: "something", controlPanel!.Epoch);

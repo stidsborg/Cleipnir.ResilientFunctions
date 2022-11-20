@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -88,7 +90,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await store.IncrementEpoch(functionId).ShouldBeTrueAsync();
-        await controlPanel.SaveParameterAndScrapbook(); //bump epoch
+        await controlPanel.SaveChanges(); //bump epoch
 
         await controlPanel.Delete().ShouldBeFalseAsync();
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
@@ -370,7 +372,7 @@ public abstract class ControlPanelTests
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
@@ -444,7 +446,7 @@ public abstract class ControlPanelTests
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         await controlPanel.Refresh();
         await controlPanel.ScheduleReInvoke();
 
@@ -515,7 +517,7 @@ public abstract class ControlPanelTests
 
         {
             var tempControlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync(); //increment epoch
+            await tempControlPanel.SaveChanges().ShouldBeTrueAsync(); //increment epoch
         }
         
         controlPanel.Param = "second";
@@ -544,7 +546,7 @@ public abstract class ControlPanelTests
 
         {
             var tempControlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync(); //increment epoch
+            await tempControlPanel.SaveChanges().ShouldBeTrueAsync(); //increment epoch
         }
         
         controlPanel.Param = "second";
@@ -637,7 +639,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId, param: "param");
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         await controlPanel.ReInvoke().ShouldBeAsync("param");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -650,7 +652,7 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook).ToFunctionTypeId();
+        var functionTypeId = nameof(ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook).ToFunctionTypeId();
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = rFunctions.RegisterAction(
@@ -661,9 +663,132 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         await controlPanel.ReInvoke();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents();
+    protected async Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ControlPanelsExistingEventsContainsPreviouslyAddedEvents).ToFunctionTypeId();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, RScrapbook _, Context context) =>
+            {
+                using var eventSource = await context.EventSource;
+                await eventSource.Append(param);
+            }
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var existingEvents = await controlPanel.Events;
+        existingEvents.Count().ShouldBe(1);
+        existingEvents[0].ShouldBe("param");
+        existingEvents[0] = "hello";
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingEventsCanBeReplacedUsingControlPanel();
+    protected async Task ExistingEventsCanBeReplacedUsingControlPanel(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ExistingEventsCanBeReplacedUsingControlPanel).ToFunctionTypeId();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var first = true;
+        var syncedList = new SyncedList<string>();
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, RScrapbook _, Context context) =>
+            {
+                using var eventSource = await context.EventSource;
+                if (first)
+                {
+                    first = false;
+                    await eventSource.Append("hello world", idempotencyKey: "1");
+                    await eventSource.Append("hello universe", idempotencyKey: "2");
+                }
+                else
+                {
+                    var existingEvents = eventSource.Existing.Select(e => e.ToString()!).ToList();
+                    syncedList.AddRange(existingEvents);
+                }
+            }
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var existingEvents = await controlPanel.Events;
+        existingEvents.Count().ShouldBe(2);
+        existingEvents.Replace(new []{ "hello to you", "hello from me" });
+        await controlPanel.SaveChanges();
+        await controlPanel.Refresh();
+        await controlPanel.ReInvoke();
+
+        syncedList.ShouldNotBeNull();
+        syncedList.Count.ShouldBe(2);
+        syncedList[0].ShouldBe("hello to you");
+        syncedList[1].ShouldBe("hello from me");
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation();
+    protected async Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation).ToFunctionTypeId();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var first = true;
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, RScrapbook _, Context context) =>
+            {
+                using var eventSource = await context.EventSource;
+                if (first)
+                {
+                    first = false;
+                    await eventSource.Append("hello world", idempotencyKey: "1");
+                    await eventSource.Append("hello universe", idempotencyKey: "2");
+                }
+            }
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Param = "test";
+        await controlPanel.SaveChanges();
+        await controlPanel.Refresh();
+
+        var events = (await controlPanel.Events).EventsWithIdempotencyKeys;
+        events.Count.ShouldBe(2);
+        events[0].Event.ShouldBe("hello world");
+        events[0].IdempotencyKey.ShouldBe("1");
+        events[1].Event.ShouldBe("hello universe");
+        events[1].IdempotencyKey.ShouldBe("2");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    
 }

@@ -49,6 +49,9 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public int Version { get; private set; }
     public long CrashedCheckFrequency { get; private set; }
 
+    private Task<ExistingEvents>? _events;
+    public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
+
     private TParam _param;
     public TParam Param
     {
@@ -98,12 +101,13 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
             FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception, Epoch
         );
 
-    public async Task<bool> SaveParameterAndScrapbook()
+    public async Task<bool> SaveChanges()
     {
-        var success = await _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
+        var changedEvents = _events == null ? null : await _events;
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, changedEvents, Epoch);
         if (success)
             Epoch += 1;
-
+        
         return success;
     }
 
@@ -113,7 +117,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     {
         var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveParameterAndScrapbook())
+            if (await SaveChanges())
                 expectedEpoch++;
             else
                 throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
@@ -124,7 +128,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     {
         var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveParameterAndScrapbook())
+            if (await SaveChanges())
                 expectedEpoch++;
             else
                 throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
@@ -147,6 +151,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
+        _events = null;
     }
 
     public async Task WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
@@ -196,6 +201,9 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public int Epoch { get; private set; }
     public int Version { get; private set; }
     public long CrashedCheckFrequency { get; private set; }
+    
+    private Task<ExistingEvents>? _events;
+    public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
 
     private TParam _param;
     public TParam Param
@@ -248,22 +256,23 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
             FunctionId, Status.Failed, Param, Scrapbook, result: default, postponeUntil: null, exception, Epoch
         );
 
-    public async Task<bool> SaveParameterAndScrapbook()
+    public async Task<bool> SaveChanges()
     {
-        var success = await _invocationHelper.SetParameterAndScrapbook(FunctionId, Param, Scrapbook, Epoch);
+        var changedEvents = _events == null ? null : await _events;
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, changedEvents, Epoch);
         if (success)
             Epoch += 1;
-
+        
         return success;
     }
-
+    
     public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
     public async Task<TReturn> ReInvoke()
     {
         var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveParameterAndScrapbook())
+            if (await SaveChanges())
                 expectedEpoch++;
             else
                 throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
@@ -274,7 +283,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     {
         var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveParameterAndScrapbook())
+            if (await SaveChanges())
                 expectedEpoch++;
             else
                 throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
@@ -297,6 +306,9 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
+
+        _changed = false;
+        _events = null;
     }
     
     public async Task<TReturn> WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);

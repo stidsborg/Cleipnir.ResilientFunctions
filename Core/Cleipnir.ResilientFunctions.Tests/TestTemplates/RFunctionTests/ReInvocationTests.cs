@@ -98,7 +98,7 @@ public abstract class ReInvocationTests
             
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         
         controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
@@ -149,7 +149,7 @@ public abstract class ReInvocationTests
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = 10;
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
        
         controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
@@ -198,7 +198,7 @@ public abstract class ReInvocationTests
         controlPanel.Param = 10;
         (controlPanel.Scrapbook is ListScrapbook<string>).ShouldBeTrue();
         controlPanel.Scrapbook = new ListScrapbook<int>();
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
        
         controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
@@ -241,7 +241,7 @@ public abstract class ReInvocationTests
         flag.Raise();
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         controlPanel.Scrapbook.Value = -1;
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
 
@@ -287,7 +287,7 @@ public abstract class ReInvocationTests
         flag.Raise();
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         controlPanel.Scrapbook.Value = -1;
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         
         var returned = await rFunc.ReInvoke(functionInstanceId: "something", expectedEpoch: 1);
         returned.ShouldBe("something");
@@ -384,7 +384,7 @@ public abstract class ReInvocationTests
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         controlPanel.Scrapbook.List.Clear();
-        await controlPanel.SaveParameterAndScrapbook().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges().ShouldBeTrueAsync();
         
         controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         var result = await rFunc.ReInvoke("something", expectedEpoch: controlPanel.Epoch); 
