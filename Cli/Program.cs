@@ -51,7 +51,7 @@ internal static class Program
         var versionStartsAt = projectFileContent.IndexOf("<Version>", StringComparison.OrdinalIgnoreCase) + "<Version>".Length;
         var versionEndsAt = projectFileContent.IndexOf("</Version>", StringComparison.OrdinalIgnoreCase);
         var currentVersionString = projectFileContent[versionStartsAt..versionEndsAt];
-        Console.WriteLine($"Current version: '{currentVersionString}' for path: '{path}'");
+        Console.WriteLine($"Current version: '{currentVersionString}' for project: '{path.Split('\\', '/').Last()}'");
         
         var versionArray = currentVersionString.Split(".").Select(int.Parse).ToArray();
         versionArray[^1]++;
