@@ -16,6 +16,66 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 public class SerializationTests
 {
     [TestMethod]
+    public void ConcreteTypeOfEventIsSerializedAndDeserializedByDefaultSerializer()
+    {
+        var serializer = DefaultSerializer.Instance;
+        Parent @event = new Child("Hello World");
+        var serialized = serializer.SerializeEvent(@event);
+        var deserialized = serializer.DeserializeEvent(serialized.Json, serialized.Type);
+        if (deserialized is not Child child)
+            throw new Exception("Expected event to be of child-type");
+                
+        child.Value.ShouldBe("Hello World");
+    }
+
+    [TestMethod]
+    public void ConcreteTypeOfParamIsSerializedAndDeserializedByDefaultSerializer()
+    {
+        var serializer = DefaultSerializer.Instance;
+        Parent param = new Child("Hello World");
+        var serialized = serializer.SerializeResult(param);
+        var deserialized = serializer.DeserializeResult<Parent>(serialized.ResultJson!, serialized.ResultType!);
+        if (deserialized is not Child child)
+            throw new Exception("Expected event to be of child-type");
+        
+        child.Value.ShouldBe("Hello World");
+    }
+    
+    [TestMethod]
+    public void ConcreteTypeOfResultIsSerializedAndDeserializedByDefaultSerializer()
+    {
+        var serializer = DefaultSerializer.Instance;
+        Parent param = new Child("Hello World");
+        var serialized = serializer.SerializeParameter(param);
+        var deserialized = serializer.DeserializeParameter<Parent>(serialized.ParamJson, serialized.ParamType);
+        if (deserialized is not Child child)
+            throw new Exception("Expected event to be of child-type");
+        
+        child.Value.ShouldBe("Hello World");
+    }
+
+    [TestMethod]
+    public void ConcreteTypeOfScrapbookIsSerializedAndDeserializedByDefaultSerializer()
+    {
+        var serializer = DefaultSerializer.Instance;
+        RScrapbook rScrapbook = new Scrapbook { Value = "Hello World" };
+        var serialized = serializer.SerializeScrapbook(rScrapbook);
+        var deserializedEvent = serializer.DeserializeParameter<RScrapbook>(serialized.ScrapbookJson, serialized.ScrapbookType);
+        if (deserializedEvent is not Scrapbook scrapbook)
+            throw new Exception("Expected event to be of child-type");
+        
+        scrapbook.Value.ShouldBe("Hello World");
+    }
+    
+    public record Parent;
+    public record Child(string Value) : Parent;
+
+    public class Scrapbook : RScrapbook
+    {
+        public string Value { get; set; }
+    }
+
+    [TestMethod]
     public async Task TypeNameChangeScenarioIsHandledSuccessfullyByCustomSerializer()
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

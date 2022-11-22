@@ -12,12 +12,12 @@ public class DefaultSerializer : ISerializer
     private DefaultSerializer() {}
     
     public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull
-        => new(JsonSerializer.Serialize(parameter), parameter.GetType().SimpleQualifiedName());
+        => new(JsonSerializer.Serialize(parameter, parameter.GetType()), parameter.GetType().SimpleQualifiedName());
     public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
         => (TParam) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
     public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
-        => new(JsonSerializer.Serialize(scrapbook), scrapbook.GetType().SimpleQualifiedName());
+        => new(JsonSerializer.Serialize(scrapbook, scrapbook.GetType()), scrapbook.GetType().SimpleQualifiedName());
     public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type)
         where TScrapbook : RScrapbook
     {
@@ -43,12 +43,12 @@ public class DefaultSerializer : ISerializer
         );
 
     public StoredResult SerializeResult<TResult>(TResult result)
-        => new(JsonSerializer.Serialize(result), result?.GetType().SimpleQualifiedName());
+        => new(JsonSerializer.Serialize(result, result?.GetType() ?? typeof(TResult)), result?.GetType().SimpleQualifiedName());
     public TResult DeserializeResult<TResult>(string json, string type) 
         => (TResult) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
     public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull 
-        => new(JsonSerializer.Serialize(@event), @event.GetType().SimpleQualifiedName());
+        => new(JsonSerializer.Serialize(@event, @event.GetType()), @event.GetType().SimpleQualifiedName());
     public object DeserializeEvent(string json, string type)
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 }
