@@ -207,11 +207,11 @@ internal static class InnerMethodToAsyncResultAdapters
 
     // ** !! ACTION !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Action<TParam>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, context) =>
+        return entity => (param, scrapbook, context) =>
         {
             var inner = innerMethodSelector(entity); 
             inner(param);
@@ -220,11 +220,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Action<TParam, Context>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, context) =>
+        return entity => (param, scrapbook, context) =>
         {
             var inner = innerMethodSelector(entity); 
             inner(param, context);
@@ -233,11 +233,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Task>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, context) =>
+        return entity => async (param, scrapbook, context) =>
         {
             var inner = innerMethodSelector(entity);   
             await inner(param);
@@ -259,11 +259,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Result>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, context) =>
+        return entity => (param, scrapbook, context) =>
         {
             var inner = innerMethodSelector(entity);
             var result = inner(param);
@@ -272,11 +272,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Context, Result>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, context) =>
+        return entity => (param, scrapbook, context) =>
         {
             var inner = innerMethodSelector(entity);
             var result = inner(param, context);
@@ -285,11 +285,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Task<Result>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, context) =>
+        return entity => async (param, scrapbook, context) =>
         {
             var inner = innerMethodSelector(entity);
             var result = await inner(param);
