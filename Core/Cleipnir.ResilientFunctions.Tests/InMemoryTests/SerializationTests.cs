@@ -72,7 +72,7 @@ public class SerializationTests
 
     public class Scrapbook : RScrapbook
     {
-        public string Value { get; set; }
+        public string Value { get; set; } = "";
     }
 
     [TestMethod]
