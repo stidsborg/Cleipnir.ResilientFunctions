@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL.Tests.UtilTests;
 

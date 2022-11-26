@@ -1,6 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL;
 

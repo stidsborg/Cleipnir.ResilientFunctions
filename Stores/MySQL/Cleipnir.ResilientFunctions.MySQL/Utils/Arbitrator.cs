@@ -1,5 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Utils.Arbitrator;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL.Utils;
 

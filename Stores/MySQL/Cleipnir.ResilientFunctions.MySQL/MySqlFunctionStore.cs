@@ -2,7 +2,7 @@
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using static Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
 
 namespace Cleipnir.ResilientFunctions.MySQL;

@@ -1,7 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.MySQL;
 using Cleipnir.ResilientFunctions.Storage;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using DatabaseHelper = Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
 
 namespace Cleipnir.ResilientFunctions.StressTests.Engines;
