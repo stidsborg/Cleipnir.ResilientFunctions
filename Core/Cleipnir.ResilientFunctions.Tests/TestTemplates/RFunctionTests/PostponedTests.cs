@@ -324,49 +324,7 @@ public abstract class PostponedTests
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
         }
     }
-    
-    public abstract Task PostponedActionIsNotInvokedOnHigherVersion();
-    protected async Task PostponedActionIsNotInvokedOnHigherVersion(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(PostponedActionIsNotInvokedOnHigherVersion),
-            functionInstanceId: "test"
-        );
-        await store.CreateFunction(
-            functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 10,
-            version: 2
-        ).ShouldBeTrueAsync();
-        
-        await store.PostponeFunction(
-            functionId,
-            postponeUntil: DateTime.UtcNow.Ticks - 1000,
-            new RScrapbook().ToJson(),
-            expectedEpoch: 0
-        ).ShouldBeTrueAsync();
-        
-        using var rFunctions = new RFunctions
-        (
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
-            )
-        );
-        rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
 
-        await Task.Delay(500);
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.Status.ShouldBe(Status.Postponed);
-        sf.Version.ShouldBe(2);
-    }
-    
     public abstract Task ThrownPostponeExceptionResultsInPostponedAction();
     protected async Task ThrownPostponeExceptionResultsInPostponedAction(Task<IFunctionStore> storeTask)
     {
@@ -417,8 +375,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -438,8 +395,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -502,8 +458,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -523,8 +478,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -591,8 +545,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -612,8 +565,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
 
             await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
@@ -678,8 +630,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -699,8 +650,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000,
-                version: 0
+                crashedCheckFrequency: 1000
             ).ShouldBeTrueAsync();
 
             await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);

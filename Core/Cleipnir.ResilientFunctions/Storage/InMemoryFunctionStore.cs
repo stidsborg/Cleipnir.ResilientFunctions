@@ -20,8 +20,7 @@ public class InMemoryFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook,
-        long crashedCheckFrequency, 
-        int version)
+        long crashedCheckFrequency)
     {
         lock (_sync)
         {
@@ -39,8 +38,7 @@ public class InMemoryFunctionStore : IFunctionStore
                 Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = null,
-                CrashedCheckFrequency = crashedCheckFrequency,
-                Version = version
+                CrashedCheckFrequency = crashedCheckFrequency
             };
 
             return true.ToTask();
@@ -65,7 +63,7 @@ public class InMemoryFunctionStore : IFunctionStore
         FunctionId functionId,
         Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
         int expectedEpoch,
-        long crashedCheckFrequency, int version)
+        long crashedCheckFrequency)
     {
         lock (_sync)
         {
@@ -86,7 +84,6 @@ public class InMemoryFunctionStore : IFunctionStore
             state.Epoch += 1;
             state.Status = Status.Executing;
             state.CrashedCheckFrequency = crashedCheckFrequency;
-            state.Version = version;
             return true.ToTask();
         }
     }
@@ -107,28 +104,26 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Executing)
-                .Where(s => s.Version <= versionUpperBound)
                 .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.SignOfLife, s.CrashedCheckFrequency))
                 .ToList()
                 .AsEnumerable()
                 .ToTask();
     }
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Postponed)
-                .Where(s => s.Version <= versionUpperBound)
                 .Where(s => s.PostponeUntil <= expiresBefore)
                 .Select(s =>
                     new StoredPostponedFunction(
@@ -270,7 +265,6 @@ public class InMemoryFunctionStore : IFunctionStore
                     state.Result,
                     state.Exception,
                     state.PostponeUntil,
-                    state.Version,
                     state.Epoch,
                     state.SignOfLife,
                     state.CrashedCheckFrequency
@@ -342,6 +336,5 @@ public class InMemoryFunctionStore : IFunctionStore
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
         public long CrashedCheckFrequency { get; set; }
-        public int Version { get; set; }
     }
 }

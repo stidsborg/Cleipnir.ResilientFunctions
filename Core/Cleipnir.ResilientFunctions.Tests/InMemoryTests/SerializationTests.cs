@@ -87,8 +87,7 @@ public class SerializationTests
             new FunctionId("typeId", "instanceId"),
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         
         using var rFunctions = new RFunctions(
@@ -109,7 +108,6 @@ public class SerializationTests
                     flag.Raise();
                     return Task.CompletedTask;
                 },
-                version: 0,
                 new Settings(serializer: serializer)
             );
 

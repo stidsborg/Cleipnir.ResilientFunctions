@@ -20,14 +20,14 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public IEventStore EventStore => _inner.EventStore;
     public Task Initialize() => _inner.Initialize();
 
-    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
-        => _inner.CreateFunction(functionId, param, storedScrapbook, crashedCheckFrequency, version);
+    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)
+        => _inner.CreateFunction(functionId, param, storedScrapbook, crashedCheckFrequency);
 
     public Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
-        => _inner.RestartExecution(functionId, paramAndScrapbook, expectedEpoch, crashedCheckFrequency, version);
+    public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
+        => _inner.RestartExecution(functionId, paramAndScrapbook, expectedEpoch, crashedCheckFrequency);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {
@@ -35,11 +35,11 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
-        => _inner.GetExecutingFunctions(functionTypeId, versionUpperBound);
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+        => _inner.GetExecutingFunctions(functionTypeId);
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
-        => _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+        => _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 

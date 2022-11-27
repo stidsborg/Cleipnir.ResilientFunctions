@@ -31,40 +31,38 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook,
-        long crashedCheckFrequency, int version)
+    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)
         => _crashed 
             ? Task.FromException<bool>(new TimeoutException()) 
             : _inner.CreateFunction(
                 functionId, 
                 param, 
                 storedScrapbook,
-                crashedCheckFrequency,
-                version
+                crashedCheckFrequency
             );
 
     public Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
+    public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.RestartExecution(functionId, paramAndScrapbook, expectedEpoch, crashedCheckFrequency, version);
+            : _inner.RestartExecution(functionId, paramAndScrapbook, expectedEpoch, crashedCheckFrequency);
     
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.UpdateSignOfLife(functionId, expectedEpoch, newSignOfLife);
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
         => _crashed
             ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
-            : _inner.GetExecutingFunctions(functionTypeId, versionUpperBound);
+            : _inner.GetExecutingFunctions(functionTypeId);
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
         => _crashed
             ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
-            : _inner.GetPostponedFunctions(functionTypeId, expiresBefore, versionUpperBound);
+            : _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, StoredParameter storedParameter,

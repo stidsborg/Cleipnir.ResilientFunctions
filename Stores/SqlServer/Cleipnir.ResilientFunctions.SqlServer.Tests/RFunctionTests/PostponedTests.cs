@@ -31,10 +31,6 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
         => PostponedActionIsCompletedByWatchDogAfterCrash(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
-    public override Task PostponedActionIsNotInvokedOnHigherVersion()
-        => PostponedActionIsNotInvokedOnHigherVersion(Sql.AutoCreateAndInitializeStore());
-
-    [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedAction()
         => ThrownPostponeExceptionResultsInPostponedAction(Sql.AutoCreateAndInitializeStore());
 

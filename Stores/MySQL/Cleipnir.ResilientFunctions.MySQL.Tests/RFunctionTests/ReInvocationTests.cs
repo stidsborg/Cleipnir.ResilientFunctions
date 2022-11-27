@@ -33,9 +33,6 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(Sql.AutoCreateAndInitializeStore());
     [TestMethod]
-    public override Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion()
-        => ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion(Sql.AutoCreateAndInitializeStore());
-    [TestMethod]
     public override Task ReInvocationThroughRFunctionsSunshine()
         => ReInvocationThroughRFunctionsSunshine(Sql.AutoCreateAndInitializeStore());
     [TestMethod]

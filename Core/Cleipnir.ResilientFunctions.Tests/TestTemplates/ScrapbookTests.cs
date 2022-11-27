@@ -29,8 +29,7 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
@@ -84,17 +83,15 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
             paramAndScrapbook: null,
             expectedEpoch: 0, 
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
-            
+        
         var scrapbook = new Scrapbook() {Name = "Peter"};
         scrapbook.Initialize(onSave: async () =>
         {

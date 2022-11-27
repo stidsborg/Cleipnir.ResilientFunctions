@@ -35,8 +35,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            TimeSpan.FromMilliseconds(10).Ticks,
-            version: 0
+            TimeSpan.FromMilliseconds(10).Ticks
         ).ShouldBeTrueAsync();
 
         _ = rFunctions.RegisterFunc(
@@ -72,8 +71,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-           TimeSpan.FromMilliseconds(10).Ticks,
-           version: 0   
+           TimeSpan.FromMilliseconds(10).Ticks
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -113,8 +111,7 @@ public abstract class VersioningTests
                 typeof(string).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            TimeSpan.FromMilliseconds(10).Ticks,
-            version: 0   
+            TimeSpan.FromMilliseconds(10).Ticks
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -159,8 +156,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            TimeSpan.FromMilliseconds(10).Ticks,
-            version: 0
+            TimeSpan.FromMilliseconds(10).Ticks
         ).ShouldBeTrueAsync();
         await store.CreateFunction(
             new FunctionId(
@@ -172,8 +168,7 @@ public abstract class VersioningTests
                 typeof(PersonV2).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            TimeSpan.FromMilliseconds(10).Ticks,
-            version: 0
+            TimeSpan.FromMilliseconds(10).Ticks
         ).ShouldBeTrueAsync();
 
         var invocations = new SyncedList<Person>();

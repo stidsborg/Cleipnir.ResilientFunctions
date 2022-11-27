@@ -17,8 +17,6 @@ internal class PostponedWatchdog
     private readonly TimeSpan _postponedCheckFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
-    private readonly TimeSpan _crashedCheckFrequency;
-    private readonly int _version;
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId,
@@ -26,9 +24,7 @@ internal class PostponedWatchdog
         WatchDogReInvokeFunc reInvoke,
         AsyncSemaphore asyncSemaphore,
         TimeSpan postponedCheckFrequency,
-        TimeSpan crashedCheckFrequency,
         TimeSpan delayStartUp,
-        int version,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
@@ -36,8 +32,6 @@ internal class PostponedWatchdog
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
-        _crashedCheckFrequency = crashedCheckFrequency;
-        _version = version;
         _reInvoke = reInvoke;
         _asyncSemaphore = asyncSemaphore;
         _postponedCheckFrequency = postponedCheckFrequency;
@@ -59,11 +53,7 @@ internal class PostponedWatchdog
                 var now = DateTime.UtcNow;
 
                 var expiresSoon = await _functionStore
-                    .GetPostponedFunctions(
-                        _functionTypeId,
-                        now.Add(_postponedCheckFrequency).Ticks,
-                        _version
-                    );
+                    .GetPostponedFunctions(_functionTypeId, now.Add(_postponedCheckFrequency).Ticks);
 
                 foreach (var expireSoon in expiresSoon)
                     _ = SleepAndThenReInvoke(expireSoon, now);

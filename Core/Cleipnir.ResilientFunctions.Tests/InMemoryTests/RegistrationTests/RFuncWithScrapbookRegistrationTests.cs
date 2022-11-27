@@ -38,7 +38,6 @@ public class RFuncWithScrapbookRegistrationTests
             .RegisterFunc<string, Scrapbook, string>(
                 _functionTypeId,
                 InnerFunc,
-                version: 0,
                 new Settings(serializer: serializer)
             )
             .Invoke;

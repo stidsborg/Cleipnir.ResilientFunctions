@@ -36,9 +36,6 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(CreateInMemoryStore());
     [TestMethod]
-    public override Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion()
-        => ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion(CreateInMemoryStore());
-    [TestMethod]
     public override Task ReInvocationThroughRFunctionsSunshine()
         => ReInvocationThroughRFunctionsSunshine(CreateInMemoryStore());
     [TestMethod]

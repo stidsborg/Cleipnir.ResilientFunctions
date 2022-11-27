@@ -41,7 +41,6 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL,
                 sign_of_life INT NOT NULL,
                 crashed_check_frequency BIGINT NOT NULL,
-                version INT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -66,14 +65,14 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency, int version)
+    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency, version)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
             VALUES
-                (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, 0, ?, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, 0, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -84,8 +83,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = crashedCheckFrequency},
-                new() {Value = version}
+                new() {Value = crashedCheckFrequency}
             }
         };
 
@@ -115,14 +113,14 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency, int version)
+    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
     {
         if (paramAndScrapbook == null)
         {
             await using var conn = await CreateOpenConnection(_connectionString);
             var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int) Status.Executing}, crashed_check_frequency = ?, version = ?
+            SET epoch = epoch + 1, status = {(int) Status.Executing}, crashed_check_frequency = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
             await using var command = new MySqlCommand(sql, conn)
@@ -130,7 +128,6 @@ public class MySqlFunctionStore : IFunctionStore
                 Parameters =
                 {
                     new() { Value = crashedCheckFrequency },
-                    new() { Value = version },
                     new() { Value = functionId.TypeId.Value },
                     new() { Value = functionId.InstanceId.Value },
                     new() { Value = expectedEpoch },
@@ -148,7 +145,7 @@ public class MySqlFunctionStore : IFunctionStore
             SET param_json = ?, param_type = ?,
                 scrapbook_json = ?, scrapbook_type = ?,
                 epoch = epoch + 1, status = {(int) Status.Executing}, 
-                crashed_check_frequency = ?, version = ?
+                crashed_check_frequency = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
             var (param, scrapbook) = paramAndScrapbook;
@@ -161,7 +158,6 @@ public class MySqlFunctionStore : IFunctionStore
                     new() { Value = scrapbook.ScrapbookJson },
                     new() { Value = scrapbook.ScrapbookType },
                     new() { Value = crashedCheckFrequency },
-                    new() { Value = version },
                     new() { Value = functionId.TypeId.Value },
                     new() { Value = functionId.InstanceId.Value },
                     new() { Value = expectedEpoch },
@@ -195,19 +191,18 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND status = {(int) Status.Executing} AND version <= ?";
+            WHERE function_type_id = ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value},
-                new() {Value = versionUpperBound}
+                new() {Value = functionTypeId.Value}
             }
         };
 
@@ -226,23 +221,19 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(
-        FunctionTypeId functionTypeId, 
-        long expiresBefore,
-        int versionUpperBound)
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             SELECT function_instance_id, epoch, postponed_until
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ? AND version <= ?";
+            WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() {Value = expiresBefore},
-                new() {Value = versionUpperBound},
+                new() {Value = expiresBefore}
             }
         };
         
@@ -461,7 +452,6 @@ public class MySqlFunctionStore : IFunctionStore
                 result_type,
                 exception_json,
                 postponed_until,
-                version,
                 epoch, 
                 sign_of_life,
                 crashed_check_frequency
@@ -496,10 +486,9 @@ public class MySqlFunctionStore : IFunctionStore
                 ),
                 storedException,
                 postponedUntil ? reader.GetInt64(8) : null,
-                Version: reader.GetInt32(9),
-                Epoch: reader.GetInt32(10),
-                SignOfLife: reader.GetInt32(11),
-                CrashedCheckFrequency: reader.GetInt64(12)
+                Epoch: reader.GetInt32(9),
+                SignOfLife: reader.GetInt32(10),
+                CrashedCheckFrequency: reader.GetInt64(11)
             );
         }
 

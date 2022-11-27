@@ -10,7 +10,6 @@ internal static class WatchDogsFactory
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke, 
         SettingsWithDefaults settings,
-        int version,
         ShutdownCoordinator shutdownCoordinator)
     {
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
@@ -20,7 +19,6 @@ internal static class WatchDogsFactory
             reInvoke,
             asyncSemaphore,
             settings.CrashedCheckFrequency,
-            version,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
@@ -32,9 +30,7 @@ internal static class WatchDogsFactory
             reInvoke,
             asyncSemaphore,
             settings.PostponedCheckFrequency,
-            settings.CrashedCheckFrequency,
             settings.DelayStartup,
-            version,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
         );

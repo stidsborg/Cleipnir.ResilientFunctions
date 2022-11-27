@@ -15,8 +15,7 @@ public interface IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        long crashedCheckFrequency,
-        int version
+        long crashedCheckFrequency
     );
     
     Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch);
@@ -24,14 +23,13 @@ public interface IFunctionStore
         FunctionId functionId,
         Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
         int expectedEpoch,
-        long crashedCheckFrequency,
-        int version
+        long crashedCheckFrequency
     );
     
     Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife);
 
-    Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, int versionUpperBound);
-    Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore, int versionUpperBound);
+    Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
+    Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
     
     Task<bool> SetFunctionState(
         FunctionId functionId,

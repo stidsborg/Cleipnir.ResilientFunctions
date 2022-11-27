@@ -26,12 +26,11 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var nonCompletes = await store
-            .GetExecutingFunctions(FunctionId.TypeId, versionUpperBound: 0)
+            .GetExecutingFunctions(FunctionId.TypeId)
             .ToTaskAsync();
             
         nonCompletes.Count.ShouldBe(1);
@@ -78,8 +77,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
@@ -87,7 +85,7 @@ public abstract class StoreTests
             .ShouldBeTrueAsync();
 
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(FunctionId.TypeId, versionUpperBound: 0);
+            await store.GetExecutingFunctions(FunctionId.TypeId);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(1);
@@ -104,8 +102,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.UpdateSignOfLife(
@@ -115,7 +112,7 @@ public abstract class StoreTests
         ).ShouldBeFalseAsync();
 
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(FunctionId.TypeId, versionUpperBound: 0);
+            await store.GetExecutingFunctions(FunctionId.TypeId);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(0);
@@ -132,8 +129,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
@@ -141,8 +137,7 @@ public abstract class StoreTests
                 FunctionId, 
                 paramAndScrapbook: null, 
                 expectedEpoch: 0,
-                crashedCheckFrequency: 100, 
-                version: 0
+                crashedCheckFrequency: 100
             ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -162,8 +157,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
@@ -171,8 +165,7 @@ public abstract class StoreTests
                 FunctionId, 
                 paramAndScrapbook: null,
                 expectedEpoch: 1,
-                crashedCheckFrequency: 100, 
-                version: 0
+                crashedCheckFrequency: 100
             ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -192,8 +185,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var storedScrapbook = new StoredScrapbook(
@@ -206,8 +198,7 @@ public abstract class StoreTests
                 FunctionId, 
                 paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook), 
                 expectedEpoch: 0,
-                crashedCheckFrequency: 100, 
-                version: 0
+                crashedCheckFrequency: 100
             ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -229,8 +220,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         var storedScrapbook = new StoredScrapbook(
@@ -243,8 +233,7 @@ public abstract class StoreTests
                 FunctionId, 
                 paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook),
                 expectedEpoch: 1,
-                crashedCheckFrequency: 100, 
-                version: 0
+                crashedCheckFrequency: 100
             ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -264,16 +253,14 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeFalseAsync();
     }
     
@@ -289,8 +276,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -302,8 +288,7 @@ public abstract class StoreTests
 
         var postponedFunctions = await store.GetPostponedFunctions(
             FunctionId.TypeId,
-            expiresBefore: nowTicks - 100,
-            versionUpperBound: 0
+            expiresBefore: nowTicks - 100
         );
         postponedFunctions.ShouldBeEmpty();
     }
@@ -320,8 +305,7 @@ public abstract class StoreTests
             FunctionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -333,8 +317,7 @@ public abstract class StoreTests
 
         var postponedFunctions = await store.GetPostponedFunctions(
             FunctionId.TypeId,
-            expiresBefore: nowTicks + 100,
-            versionUpperBound: 0
+            expiresBefore: nowTicks + 100
         );
         postponedFunctions.Count().ShouldBe(1);
     }
@@ -361,11 +344,10 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: crashedCheckFrequency,
-            version: 0
+            crashedCheckFrequency: crashedCheckFrequency
         );
 
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, versionUpperBound: 0).ToListAsync();
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
@@ -385,18 +367,16 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
-            version: 0
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
         );
 
         await store.RestartExecution(
             functionId, 
             paramAndScrapbook: null,
             expectedEpoch: 0,
-            crashedCheckFrequency, 
-            version: 0
+            crashedCheckFrequency
         );
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, versionUpperBound: 0).ToListAsync();
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
@@ -415,8 +395,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
-            version: 0
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
         ).ShouldBeTrueAsync();
 
         await store.IncrementEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
@@ -439,8 +418,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
-            version: 0
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
         ).ShouldBeTrueAsync();
 
         await store.IncrementEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();

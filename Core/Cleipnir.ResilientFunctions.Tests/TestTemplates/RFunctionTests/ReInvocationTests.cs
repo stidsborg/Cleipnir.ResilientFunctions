@@ -430,58 +430,6 @@ public abstract class ReInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion();
-    protected async Task ReInvocationFailsWhenTheFunctionIsAtUnsupportedVersion(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        const string functionType = "someFunctionType";
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        {
-            var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions(
-                crashableStore,
-                new Settings(
-                    unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
-                )
-            );
-
-            var rFunc = rFunctions.RegisterFunc(
-                functionType,
-                (string _) => NeverCompletingTask.OfType<string>(),
-                version: 2
-            ).Schedule;
-            await rFunc("instance", "hello world");
-        }
-
-        {
-            using var rFunctions = new RFunctions(
-                store,
-                new Settings(
-                    unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
-                )
-            );
-
-            var registration = rFunctions.RegisterFunc(
-                functionType,
-                (string _) => NeverCompletingTask.OfType<string>(),
-                version: 1
-            );
-            await Should.ThrowAsync<UnexpectedFunctionState>(
-                () => registration.Invoke("instance", "hello world")
-            );
-            await Should.ThrowAsync<UnexpectedFunctionState>(
-                () => registration.ReInvoke("instance", expectedEpoch: 0)
-            );
-            await Should.ThrowAsync<UnexpectedFunctionState>(
-                () => registration.ScheduleReInvoke("instance", expectedEpoch: 0)
-            );
-        }
-    }
-    
     public abstract Task ReInvocationThroughRFunctionsSunshine();
     protected async Task ReInvocationThroughRFunctionsSunshine(Task<IFunctionStore> storeTask)
     {

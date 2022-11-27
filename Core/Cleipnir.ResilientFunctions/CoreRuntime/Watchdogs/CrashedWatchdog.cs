@@ -14,7 +14,6 @@ internal class CrashedWatchdog
     private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _checkFrequency;
-    private readonly int _version;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -29,7 +28,6 @@ internal class CrashedWatchdog
         WatchDogReInvokeFunc reInvoke,
         AsyncSemaphore asyncSemaphore,
         TimeSpan checkFrequency,
-        int version,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -39,7 +37,6 @@ internal class CrashedWatchdog
         _reInvoke = reInvoke;
         _asyncSemaphore = asyncSemaphore;
         _checkFrequency = checkFrequency;
-        _version = version;
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -60,7 +57,7 @@ internal class CrashedWatchdog
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var currExecutingFunctions = await _functionStore
-                    .GetExecutingFunctions(_functionTypeId, _version);
+                    .GetExecutingFunctions(_functionTypeId);
 
                 var hangingFunctions = new List<StoredExecutingFunction>();
                 var newFunctionCounts = new Dictionary<FunctionInstanceId, ObservationAndRemainingCount>();

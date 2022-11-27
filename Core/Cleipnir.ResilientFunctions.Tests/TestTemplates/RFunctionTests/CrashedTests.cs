@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -247,48 +248,11 @@ public abstract class CrashedTests
         if (unhandledExceptionHandler.ThrownExceptions.Any())
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
-    
-    public abstract Task CrashedActionIsNotInvokedOnHigherVersion();
-    protected async Task CrashedActionIsNotInvokedOnHigherVersion(Task<IFunctionStore> storeTask)
+
+    public abstract Task CrashedActionReInvocationModeShouldBeRetry();
+    protected async Task CrashedActionReInvocationModeShouldBeRetry(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(CrashedActionIsNotInvokedOnHigherVersion),
-            functionInstanceId: "test"
-        );
-        await store.CreateFunction(
-            functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 10,
-            version: 2
-        ).ShouldBeTrueAsync();
-
-        using var rFunctions = new RFunctions
-        (
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                postponedCheckFrequency: TimeSpan.Zero
-            )
-        );
-        rFunctions.RegisterAction(functionId.TypeId, (string _) => { });
-
-        await Task.Delay(500);
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.Status.ShouldBe(Status.Executing);
-        sf.Version.ShouldBe(2);
-    }
-    
-    public abstract Task CrashedActionReInvocationModeShouldBeRetry();
-    protected Task CrashedActionReInvocationModeShouldBeRetry(Task<IFunctionStore> storeTask)
-    {
-        //todo refactor when invocation mode is supported again
-        return Task.CompletedTask;
-        /*var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var functionId = new FunctionId(
             functionTypeId: nameof(CrashedActionReInvocationModeShouldBeRetry),
@@ -297,31 +261,26 @@ public abstract class CrashedTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            scrapbookType: null,
-            crashedCheckFrequency: 10,
-            version: 0
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
-        using var rFunctions = new RFunctions
-        (
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                CrashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                PostponedCheckFrequency: TimeSpan.Zero
-            )
+        using var rFunctions = new RFunctions(store, new Settings(
+            unhandledExceptionHandler.Catch,
+            crashedCheckFrequency: TimeSpan.FromMilliseconds(10))
         );
 
         var syncedInvocationMode = new Synced<InvocationMode>();
         rFunctions.RegisterAction(
             functionId.TypeId,
-            (string _) => syncedInvocationMode.Value = ResilientInvocation.Mode
+            (string _, RScrapbook _, Context context) 
+                => syncedInvocationMode.Value = context.InvocationMode
         );
 
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf!.Status == Status.Succeeded)
         );
-        syncedInvocationMode.Value.ShouldBe(InvocationMode.Retry);*/
+        syncedInvocationMode.Value.ShouldBe(InvocationMode.Retry);
     }
 
     private class Scrapbook : RScrapbook

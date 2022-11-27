@@ -18,20 +18,17 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     private readonly IFunctionStore _functionStore;
     private readonly IEventStore _eventStore;
     private readonly SettingsWithDefaults _settings;
-    private readonly int _version;
-    
+
     private ISerializer Serializer { get; }
 
     public InvocationHelper(
         SettingsWithDefaults settings,
-        int version,
         IFunctionStore functionStore, 
         IEventStore eventStore,
         ShutdownCoordinator shutdownCoordinator)
     {
         _settings = settings;
-        _version = version;
-        
+
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
         _functionStore = functionStore;
@@ -50,8 +47,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks,
-                _version
+                crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks
             );
 
             if (!created) runningFunction.Dispose();
@@ -72,9 +68,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             if (storedFunction == null)
                 throw new FrameworkException(functionId.TypeId, $"Function {functionId} does not exist");
 
-            if (storedFunction.Version > _version)
-                throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{_version}'");
-            
             switch (storedFunction.Status)
             {
                 case Status.Executing:
@@ -197,8 +190,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
         if (sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
-        if (sf.Version > _version)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' is at unsupported version: '{sf.Version}'");
 
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var epoch = sf.Epoch + 1;
@@ -208,8 +199,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 paramAndScrapbook: null,
                 expectedEpoch: sf.Epoch,
-                _settings.CrashedCheckFrequency.Ticks,
-                _version
+                _settings.CrashedCheckFrequency.Ticks
             );
 
             if (!success)
@@ -342,7 +332,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             sf.Status,
             sf.Epoch,
-            sf.Version,
             sf.CrashedCheckFrequency, 
             Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
             Scrapbook: serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType),

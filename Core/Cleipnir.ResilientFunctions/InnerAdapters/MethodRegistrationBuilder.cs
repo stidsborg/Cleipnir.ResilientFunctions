@@ -17,14 +17,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TReturn>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => 
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -33,14 +31,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Context, TReturn>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull =>
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -49,14 +45,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => 
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -65,14 +59,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Context, Task<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => 
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -81,14 +73,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Result<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull =>
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -97,14 +87,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Context, Result<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => 
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -113,14 +101,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<Result<TReturn>>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => 
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -129,14 +115,12 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Context, Task<Result<TReturn>>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull => 
         new RFunc<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-                version,
                 settings
             )
         );
@@ -146,13 +130,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Action<TParam>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -160,13 +142,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Action<TParam, Context>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -174,13 +154,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -188,13 +166,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Context, Task>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
 
@@ -202,13 +178,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Result>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
 
@@ -216,13 +190,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Context, Result>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
 
@@ -230,13 +202,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, Task<Result>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
 
@@ -244,28 +214,20 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull
-        => _rFunctions.RegisterMethodAction(
-            functionTypeId,
-            inner,
-            version,
-            settings
-        );
+        => _rFunctions.RegisterMethodAction(functionTypeId, inner, settings);
     
     // ** !! FUNC WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, TReturn>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -273,13 +235,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, TReturn>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -287,13 +247,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -301,13 +259,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -315,13 +271,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Result<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -329,13 +283,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Result<TReturn>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
    
@@ -343,13 +295,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result<TReturn>>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
 
@@ -357,23 +307,20 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
-        => _rFunctions.RegisterMethodFunc(functionTypeId, inner, version, settings);
+        => _rFunctions.RegisterMethodFunc(functionTypeId, inner, settings);
     
     // ** !! ACTION WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Action<TParam, TScrapbook>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -381,13 +328,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Action<TParam, TScrapbook, Context>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -395,13 +340,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -409,13 +352,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -423,13 +364,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Result>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
     
@@ -437,13 +376,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Result>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
    
@@ -451,13 +388,11 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
             functionTypeId,
             InnerMethodToAsyncResultAdapters.ToInnerWithTaskResultReturn(inner),
-            version,
             settings
         );
 
@@ -465,8 +400,7 @@ public class MethodRegistrationBuilder<TEntity> where TEntity : notnull
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
         Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> inner,
-        int version = 0,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
-        => _rFunctions.RegisterMethodAction(functionTypeId, inner, version, settings);
+        => _rFunctions.RegisterMethodAction(functionTypeId, inner, settings);
 }

@@ -20,8 +20,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         RAction.ScheduleReInvoke scheduleReInvoke,
         FunctionId functionId, 
         Status status, 
-        int epoch, 
-        int version,
+        int epoch,
         long crashedCheckFrequency,
         TParam param, 
         TScrapbook scrapbook, 
@@ -34,7 +33,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
-        Version = version;
         CrashedCheckFrequency = crashedCheckFrequency;
         _param = param;
         _scrapbook = scrapbook;
@@ -46,7 +44,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
-    public int Version { get; private set; }
     public long CrashedCheckFrequency { get; private set; }
 
     private Task<ExistingEvents>? _events;
@@ -144,7 +141,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
 
         Status = sf.Status;
         Epoch = sf.Epoch;
-        Version = sf.Version;
         CrashedCheckFrequency = sf.CrashedCheckFrequency;
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;
@@ -171,8 +167,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         RFunc.ScheduleReInvoke scheduleReInvoke,
         FunctionId functionId, 
         Status status, 
-        int epoch, 
-        int version,
+        int epoch,
         long crashedCheckFrequency,
         TParam param, 
         TScrapbook scrapbook, 
@@ -186,7 +181,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
-        Version = version;
         CrashedCheckFrequency = crashedCheckFrequency;
         _param = param;
         _scrapbook = scrapbook;
@@ -199,7 +193,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
-    public int Version { get; private set; }
     public long CrashedCheckFrequency { get; private set; }
     
     private Task<ExistingEvents>? _events;
@@ -299,7 +292,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
 
         Status = sf.Status;
         Epoch = sf.Epoch;
-        Version = sf.Version;
         CrashedCheckFrequency = sf.CrashedCheckFrequency;
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;

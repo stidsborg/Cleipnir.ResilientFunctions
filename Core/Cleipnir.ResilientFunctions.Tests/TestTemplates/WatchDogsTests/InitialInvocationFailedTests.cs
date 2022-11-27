@@ -23,8 +23,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();
@@ -53,8 +52,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();
@@ -86,8 +84,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();
@@ -122,8 +119,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100,
-            version: 0
+            crashedCheckFrequency: 100
         );
 
         var flag = new SyncedFlag();

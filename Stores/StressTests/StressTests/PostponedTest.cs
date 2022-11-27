@@ -28,8 +28,7 @@ public static class PostponedTest
                 functionId,
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks,
-                version: 0
+                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
             );
             await store.PostponeFunction(
                 functionId,

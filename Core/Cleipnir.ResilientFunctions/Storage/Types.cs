@@ -11,7 +11,6 @@ public record StoredFunction(
     StoredResult Result,
     StoredException? Exception,
     long? PostponedUntil,
-    int Version,
     int Epoch,
     int SignOfLife,
     long CrashedCheckFrequency
