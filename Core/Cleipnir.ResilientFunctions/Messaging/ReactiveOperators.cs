@@ -69,7 +69,7 @@ public static class ReactiveOperators
 
         return tcs.Task;
     }
-    
+
     public static Task<List<T>> AllEvents<T>(this IObservable<T> observable, int maxWaitMs)
     {
         var tcs = new TaskCompletionSource<List<T>>();
