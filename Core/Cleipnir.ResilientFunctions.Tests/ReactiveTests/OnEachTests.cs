@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Reactive;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests.ReactiveExtensions
+namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 {
     [TestClass]
     public class OnEachTests

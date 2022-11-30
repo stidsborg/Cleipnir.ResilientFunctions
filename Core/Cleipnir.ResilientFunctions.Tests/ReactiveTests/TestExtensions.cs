@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests.ReactiveExtensions
+namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 {
     internal static class TestExtensions
     {
