@@ -84,7 +84,7 @@ public static class Linq
             var eventEmitted = false;
             var emittedEvent = default(T);
             
-            s.Subscribe(
+            var subscription = s.Subscribe(
                 onNext: t =>
                 {
                     eventEmitted = true;
@@ -98,6 +98,11 @@ public static class Linq
                         tcs.TrySetResult(emittedEvent!);
                 },
                 onError: e => tcs.TrySetException(e)
+            );
+
+            tcs.Task.ContinueWith(
+                _ => subscription.Dispose(),
+                TaskContinuationOptions.ExecuteSynchronously
             );
             
             return tcs.Task;
