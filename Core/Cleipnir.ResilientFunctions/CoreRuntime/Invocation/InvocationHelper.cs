@@ -158,24 +158,38 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
+            case Outcome.Suspend:
+                success = await _functionStore.SuspendFunction(
+                    functionId,
+                    result.Suspend!.UntilEventSourceCount,
+                    Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
+                    expectedEpoch
+                );
+                if (!success) throw new ConcurrentModificationException(functionId);
+                return;
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
 
-    public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponed)
+    public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponedOrSuspended)
     {
         switch (result.Outcome)
         {
             case Outcome.Succeed:
                 return;
             case Outcome.Postpone:
-                if (allowPostponed)
+                if (allowPostponedOrSuspended)
                     return;
                 else
                     throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
             case Outcome.Fail:
                 throw result.Fail!;
+            case Outcome.Suspend:
+                if (allowPostponedOrSuspended)
+                    return;
+                else
+                    throw new FunctionInvocationSuspendedException(functionId);
             default:
                 throw new ArgumentOutOfRangeException();
         }

@@ -48,6 +48,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type VARCHAR(255) NULL,
                 exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
+                suspend_until_eventsource_count INT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 sign_of_life INT NOT NULL DEFAULT 0,
                 crashed_check_frequency BIGINT NOT NULL,
@@ -422,6 +423,32 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
+    
+    public async Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Suspended}, suspend_until_eventsource_count = $1, scrapbook_json = $2
+            WHERE 
+                function_type_id = $3 AND 
+                function_instance_id = $4 AND 
+                epoch = $5";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = suspendUntilEventSourceCountAtLeast },
+                new() { Value = scrapbookJson },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
 
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
@@ -463,6 +490,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type,
                 exception_json,
                 postponed_until,
+                suspend_until_eventsource_count,
                 epoch, 
                 sign_of_life,
                 crashed_check_frequency
@@ -483,6 +511,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasException = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
+            var suspendedUntil = !await reader.IsDBNullAsync(9);
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
@@ -494,9 +523,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ),
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(7)),
                 postponedUntil ? reader.GetInt64(8) : null,
-                Epoch: reader.GetInt32(9),
-                SignOfLife: reader.GetInt32(10),
-                CrashedCheckFrequency: reader.GetInt64(11)
+                suspendedUntil ? reader.GetInt32(9) : null,
+                Epoch: reader.GetInt32(10),
+                SignOfLife: reader.GetInt32(11),
+                CrashedCheckFrequency: reader.GetInt64(12)
             );
         }
 

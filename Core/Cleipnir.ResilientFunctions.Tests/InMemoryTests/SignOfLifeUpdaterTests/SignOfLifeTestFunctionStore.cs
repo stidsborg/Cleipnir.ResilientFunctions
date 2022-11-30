@@ -63,6 +63,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
         => _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch);
 
+    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch)
+        => _inner.SuspendFunction(functionId, suspendUntilEventSourceCountAtLeast, scrapbookJson, expectedEpoch);
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _inner.GetFunction(functionId);
 

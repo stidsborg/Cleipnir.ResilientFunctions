@@ -53,6 +53,7 @@ public interface IFunctionStore
     Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch);
     Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch);
     Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch);
+    Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch);
 
     Task<StoredFunction?> GetFunction(FunctionId functionId);
     Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId);

@@ -80,7 +80,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponed: true);
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -124,7 +124,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponed: true);
+                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -228,12 +228,12 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch = 0)
         => await _invocationHelper.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponed = false)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
         await _invocationHelper.PersistResult(functionId, result, scrapbook, expectedEpoch);
         if (result.Outcome == Outcome.Postpone)
             _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
-        InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponed);
+        InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
     }
     
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)

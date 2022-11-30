@@ -53,6 +53,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultType NVARCHAR(255) NULL,
                     ExceptionJson NVARCHAR(MAX) NULL,
                     PostponedUntil BIGINT NULL,
+                    SuspendUntilEventSourceCount INT NULL,
                     Epoch INT NOT NULL,
                     SignOfLife INT NOT NULL,
                     CrashedCheckFrequency BIGINT NOT NULL,
@@ -400,6 +401,28 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
+    public async Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch)
+    {
+        await using var conn = await _connFunc();
+        
+        var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET Status = {(int) Status.Suspended}, SuspendUntilEventSourceCount = @SuspendUntilEventSourceCount, ScrapbookJson = @ScrapbookJson
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@SuspendUntilEventSourceCount", suspendUntilEventSourceCountAtLeast);
+        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
+    }
+
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
         await using var conn = await _connFunc();
@@ -421,7 +444,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
+    
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await _connFunc();
@@ -432,6 +455,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultJson, ResultType,
                     ExceptionJson,
                     PostponedUntil,
+                    SuspendUntilEventSourceCount,
                     Epoch, SignOfLife, 
                     CrashedCheckFrequency
             FROM {_tablePrefix}RFunctions
@@ -459,9 +483,10 @@ public class SqlServerFunctionStore : IFunctionStore
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
-                var epoch = reader.GetInt32(9);
-                var signOfLife = reader.GetInt32(10);
-                var crashedCheckFrequency = reader.GetInt64(11);
+                var suspendedUntil = reader.IsDBNull(9) ? default(int?) : reader.GetInt32(9);
+                var epoch = reader.GetInt32(10);
+                var signOfLife = reader.GetInt32(11);
+                var crashedCheckFrequency = reader.GetInt64(12);
 
                 return new StoredFunction(
                     functionId,
@@ -471,6 +496,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     new StoredResult(resultJson, resultType),
                     storedException,
                     postponedUntil,
+                    suspendedUntil,
                     epoch,
                     signOfLife,
                     crashedCheckFrequency

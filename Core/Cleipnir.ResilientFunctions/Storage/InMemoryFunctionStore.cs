@@ -230,6 +230,23 @@ public class InMemoryFunctionStore : IFunctionStore
             return true.ToTask();
         }
     }
+    
+    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+            
+            state.Status = Status.Suspended;
+            state.SuspendUntilEventSourceCountAtLeast = suspendUntilEventSourceCountAtLeast;
+            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            
+            return true.ToTask();
+        }
+    }
 
     public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
     {
@@ -247,7 +264,7 @@ public class InMemoryFunctionStore : IFunctionStore
             return true.ToTask();
         }
     }
-    
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)
@@ -265,6 +282,7 @@ public class InMemoryFunctionStore : IFunctionStore
                     state.Result,
                     state.Exception,
                     state.PostponeUntil,
+                    state.SuspendUntilEventSourceCountAtLeast,
                     state.Epoch,
                     state.SignOfLife,
                     state.CrashedCheckFrequency
@@ -336,5 +354,6 @@ public class InMemoryFunctionStore : IFunctionStore
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
         public long CrashedCheckFrequency { get; set; }
+        public int SuspendUntilEventSourceCountAtLeast { get; set; }
     }
 }
