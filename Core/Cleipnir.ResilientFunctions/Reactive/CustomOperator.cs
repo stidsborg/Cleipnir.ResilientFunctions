@@ -54,7 +54,14 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
             if (_completed)
                 return;
 
-            Operator(next, _onNext, _onCompletion, _onError);
+            try
+            {
+                Operator(next, _onNext, _onCompletion, _onError);
+            }
+            catch (Exception exception)
+            {
+                SignalError(exception);
+            }
         }
 
         private void SignalError(Exception exception)
