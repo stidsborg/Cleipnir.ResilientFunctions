@@ -25,7 +25,6 @@
 
     <ItemGroup>
       <Folder Include="Messaging" />
-      <Folder Include="ReactiveTests" />
     </ItemGroup>
 
 </Project>
