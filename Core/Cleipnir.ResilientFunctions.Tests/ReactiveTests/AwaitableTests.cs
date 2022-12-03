@@ -45,7 +45,9 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.SignalCompletion();
 
             var completed = false;
-            taken1.Subscribe(_ => { }, () => completed = true, _ => { });
+            var subscription = taken1.Subscribe(_ => { }, () => completed = true, _ => { });
+            subscription.Start();
+
             completed.ShouldBeTrue();
             
             t.IsCompleted.ShouldBeTrue();

@@ -6,6 +6,8 @@ namespace Cleipnir.ResilientFunctions.Reactive;
 
 public static class Linq
 {
+    #region Non leaf operators
+
     public static IStream<TOut> Select<TIn, TOut>(this IStream<TIn> s, Func<TIn, TOut> mapper) 
         => s.WithOperator<TIn, TOut>((next, notify, _, _) => notify(mapper(next)));
 
@@ -38,10 +40,10 @@ public static class Linq
     public static IStream<object> OfTypes<T1, T2>(this IStream<object> s) 
         => s.Where(m => m is T1 or T2);
 
-    public static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
+    private static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
         => new CustomOperator<TIn, TOut>(inner, operatorFunc);
-        
-    public static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Operator<TIn, TOut> @operator)
+
+    private static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Operator<TIn, TOut> @operator)
         => new CustomOperator<TIn, TOut>(inner, () => @operator);
 
     public static IStream<T> Take<T>(this IStream<T> s, int toTake)
@@ -77,34 +79,43 @@ public static class Linq
                 };
             });
 
+    #endregion
+
     public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
+
+    #region Leaf operators
+
     public static Task<T> Last<T>(this IStream<T> s)
     {
         var tcs = new TaskCompletionSource<T>();
-            var eventEmitted = false;
-            var emittedEvent = default(T);
-            
-            var subscription = s.Subscribe(
-                onNext: t =>
-                {
-                    eventEmitted = true;
-                    emittedEvent = t;
-                },
-                onCompletion: () =>
-                {
-                    if (!eventEmitted)
-                        tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
-                    else
-                        tcs.TrySetResult(emittedEvent!);
-                },
-                onError: e => tcs.TrySetException(e)
-            );
+        var eventEmitted = false;
+        var emittedEvent = default(T);
+        
+        var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                eventEmitted = true;
+                emittedEvent = t;
+            },
+            onCompletion: () =>
+            {
+                if (!eventEmitted)
+                    tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
+                else
+                    tcs.TrySetResult(emittedEvent!);
+            },
+            onError: e => tcs.TrySetException(e)
+        );
+        
+        subscription.Start();
 
-            tcs.Task.ContinueWith(
-                _ => subscription.Dispose(),
-                TaskContinuationOptions.ExecuteSynchronously
-            );
+        tcs.Task.ContinueWith(
+            _ => subscription.Dispose(),
+            TaskContinuationOptions.ExecuteSynchronously
+        );
             
-            return tcs.Task;
+        return tcs.Task;
     }  
+
+    #endregion
 }

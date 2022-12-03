@@ -2,13 +2,14 @@ using System;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
-public class OnEach<T> : IDisposable
+internal class OnEach<T> : IDisposable
 {
-    private readonly IDisposable _subscription;
-        
+    private readonly ISubscription _subscription;
+
     public OnEach(IStream<T> s, Action<T> onNext, Action onCompletion, Action<Exception> onError) 
         => _subscription = s.Subscribe(onNext, onCompletion, onError);
 
+    public void Start() => _subscription.Start();
     public void Dispose() => _subscription.Dispose();
 }
 
@@ -19,5 +20,10 @@ public static class OnEachExtension
         Action<T> onNext,
         Action? onCompletion = null,
         Action<Exception>? onError = null
-    ) => new OnEach<T>(s, onNext, onCompletion ?? (() => { }), onError ?? (_ => { }));
+    )
+    {
+        var @operator = new OnEach<T>(s, onNext, onCompletion ?? (() => { }), onError ?? (_ => { }));
+        @operator.Start();
+        return @operator;
+    } 
 }

@@ -34,7 +34,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.Emit(2);
             
             next.IsCompletedSuccessfully.ShouldBeTrue();
-            next.Result.ShouldBe(2);
+            next.Result.ShouldBe(1);
             
             source.Emit(3); //should not thrown an error
         }

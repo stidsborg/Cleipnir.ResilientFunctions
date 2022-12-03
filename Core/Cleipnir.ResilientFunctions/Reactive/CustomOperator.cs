@@ -12,47 +12,47 @@ public delegate void Operator<in TIn, out TOut>(
 public class CustomOperator<TIn, TOut> : IStream<TOut>
 {
     private readonly IStream<TIn> _inner;
-    private readonly Func<Operator<TIn, TOut>> _operatorFunc;
+    private readonly Func<Operator<TIn, TOut>> _operatorFactory;
 
-    public CustomOperator(IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
+    public CustomOperator(IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
     {
         _inner = inner;
-        _operatorFunc = operatorFunc;
+        _operatorFactory = operatorFactory;
     }
 
-    public IDisposable Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
-        => new Subscription(_inner, _operatorFunc, onNext, onCompletion, onError);
+    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
+        => new Subscription(_inner, _operatorFactory, onNext, onCompletion, onError);
 
-    private class Subscription : IDisposable
+    private class Subscription : ISubscription
     {
         private readonly Action<TOut> _onNext;
         private readonly Action _onCompletion;
         private readonly Action<Exception> _onError;
 
-        private IDisposable? _subscription;
-        private bool _completed;
-        private readonly object _sync = new();
+        private readonly ISubscription _subscription;
+        private volatile bool _completed;
 
-        public Operator<TIn, TOut> Operator { get; }
+        private Operator<TIn, TOut> Operator { get; }
 
         public Subscription(
             IStream<TIn> inner,
-            Func<Operator<TIn, TOut>> operatorFunc,
+            Func<Operator<TIn, TOut>> operatorFactory,
             Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
         {
             _onNext = onNext;
             _onCompletion = onCompletion;
             _onError = onError;
 
+            Operator = operatorFactory();
+            
             _subscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError);
-
-            Operator = operatorFunc();
         }
+
+        public void Start() => _subscription.Start();
 
         private void SignalNext(TIn next)
         {
-            if (_completed)
-                return;
+            if (_completed) return;
 
             try
             {
@@ -66,8 +66,7 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
         private void SignalError(Exception exception)
         {
-            if (_completed)
-                return;
+            if (_completed) return;
 
             Dispose();
             _onError(exception);
@@ -75,8 +74,7 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
         private void SignalCompletion()
         {
-            if (_completed)
-                return;
+            if (_completed) return;
 
             Dispose();
             _onCompletion();
@@ -84,14 +82,10 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
         public void Dispose()
         {
-            lock (_sync)
-            {
-                if (_completed) return;
-                _completed = true;
-            }
+            if (_completed) return;
             
-            _subscription?.Dispose();
-            _subscription = null;
+            _completed = true;
+            _subscription.Dispose();
         }
     }
 }
