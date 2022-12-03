@@ -90,6 +90,8 @@ public class Suspend
 
     public static Suspend Until(int eventSourceCountAtLeast) => new Suspend(eventSourceCountAtLeast);
     public static void Throw(int untilEventSourceCountAtLeast) => throw new SuspendInvocationException(untilEventSourceCountAtLeast);
+
+    public Result<T> ToResult<T>() => new Result<T>(this);
 }
 
 public class Result<T>
