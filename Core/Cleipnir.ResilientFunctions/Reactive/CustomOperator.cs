@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -13,7 +14,8 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 {
     private readonly IStream<TIn> _inner;
     private readonly Func<Operator<TIn, TOut>> _operatorFactory;
-
+    public int TotalEventCount => _inner.TotalEventCount;
+    
     public CustomOperator(IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
     {
         _inner = inner;
@@ -29,8 +31,8 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
         private readonly Action _onCompletion;
         private readonly Action<Exception> _onError;
 
-        private readonly ISubscription _subscription;
-        private volatile bool _completed;
+        private readonly ISubscription _innerSubscription;
+        private bool _completed;
 
         private Operator<TIn, TOut> Operator { get; }
 
@@ -45,10 +47,12 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
             Operator = operatorFactory();
             
-            _subscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError);
+            _innerSubscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError);
         }
 
-        public void Start() => _subscription.Start();
+        public int EventSourceTotalCount => _innerSubscription.EventSourceTotalCount;
+        public void Start() => _innerSubscription.Start();
+        public void ReplayUntil(int count) => _innerSubscription.ReplayUntil(count);
 
         private void SignalNext(TIn next)
         {
@@ -56,7 +60,7 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
             try
             {
-                Operator(next, _onNext, _onCompletion, _onError);
+                Operator(next, _onNext, SignalCompletion, SignalError);
             }
             catch (Exception exception)
             {
@@ -67,25 +71,21 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
         private void SignalError(Exception exception)
         {
             if (_completed) return;
-
-            Dispose();
+            _completed = true;
+            
             _onError(exception);
+            Dispose();
         }
 
         private void SignalCompletion()
         {
             if (_completed) return;
-
-            Dispose();
-            _onCompletion();
-        }
-
-        public void Dispose()
-        {
-            if (_completed) return;
-            
             _completed = true;
-            _subscription.Dispose();
+            
+            _onCompletion();
+            Dispose();
         }
+
+        public void Dispose() => _innerSubscription.Dispose();
     }
 }

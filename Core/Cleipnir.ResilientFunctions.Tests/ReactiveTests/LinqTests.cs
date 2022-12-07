@@ -65,5 +65,88 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.Emit("world");
             next2.IsCompletedSuccessfully.ShouldBeTrue();
         }
+        
+        [TestMethod]
+        public void StreamCanBeReplayedToCertainEventCountSuccessfully()
+        {
+            var source = new Source<string>();
+            source.Emit("hello");
+            source.Emit("world");
+
+            var completed = false;
+            var failed = false;
+            var latest = "";
+            var subscription = source.Subscribe(
+                onNext: s => latest = s,
+                onCompletion: () => completed = true,
+                onError: _ => failed = true
+            );
+
+            completed.ShouldBeFalse();
+            failed.ShouldBeFalse();
+            latest.ShouldBe("");
+            
+            subscription.ReplayUntil(1);
+            
+            completed.ShouldBeFalse();
+            failed.ShouldBeFalse();
+            latest.ShouldBe("hello");
+        }
+        
+        [TestMethod]
+        public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
+        {
+            var source = new Source<string>();
+            source.Emit("hello");
+            source.Emit("world");
+
+            var completed = false;
+            var failed = false;
+            var latest = "";
+            var subscription = source.Take(1).Subscribe(
+                onNext: s => latest = s,
+                onCompletion: () => completed = true,
+                onError: _ => failed = true
+            );
+
+            completed.ShouldBeFalse();
+            failed.ShouldBeFalse();
+            latest.ShouldBe("");
+            
+            subscription.ReplayUntil(2);
+            
+            completed.ShouldBeTrue();
+            failed.ShouldBeFalse();
+            latest.ShouldBe("hello");
+        }
+        
+        [TestMethod]
+        public void StreamCanBeReplayedToCertainEventCountWhenFailedEarlySuccessfully()
+        {
+            var source = new Source<string>();
+            source.Emit("hello");
+            source.Emit("world");
+
+            var completed = false;
+            var failed = false;
+            var latest = "";
+            var subscription = source
+                .Select<string, string>(_ => throw new Exception("oh no"))
+                .Subscribe(
+                    onNext: s => latest = s,
+                    onCompletion: () => completed = true,
+                    onError: _ => failed = true
+                );
+
+            completed.ShouldBeFalse();
+            failed.ShouldBeFalse();
+            latest.ShouldBe("");
+            
+            subscription.ReplayUntil(2);
+            
+            completed.ShouldBeFalse();
+            failed.ShouldBeTrue();
+            latest.ShouldBe("");
+        }
     }
 }

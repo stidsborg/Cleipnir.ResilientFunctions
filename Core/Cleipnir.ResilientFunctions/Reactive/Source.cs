@@ -5,20 +5,28 @@ using System.Linq;
 namespace Cleipnir.ResilientFunctions.Reactive;
 
 public interface ISource<T> : IStream<T>
-    {
-        void Emit(T toEmit);
-        void SignalError(Exception exception);
-        void SignalCompletion();
-    }
+{
+    void Emit(T toEmit);
+    void SignalError(Exception exception);
+    void SignalCompletion();
+}
 
 public class Source<T> : ISource<T>
 {
     private readonly Dictionary<int, Subscription> _subscriptions = new();
     private int _nextSubscriptionId;
     private bool _completed;
-    
-    private readonly List<EmittedEvent> _emittedEvents = new();
+
+    private readonly EmittedEvents _emittedEvents = new();
     private readonly object _sync = new();
+
+    public int TotalEventCount
+    {
+        get
+        {
+            lock (_sync) return _emittedEvents.Count;
+        }
+    }
 
     public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError)
     {
@@ -31,7 +39,7 @@ public class Source<T> : ISource<T>
                     onNext, 
                     onCompletion, 
                     onError,
-                    disposer: () =>
+                    unsubscribeToEvents: () =>
                     {
                         lock (_sync)
                             _subscriptions.Remove(subscriptionId);
@@ -51,10 +59,8 @@ public class Source<T> : ISource<T>
             if (_completed) throw new StreamCompletedException();
 
             var emittedEvent = new EmittedEvent(toEmit, completion: false, emittedException: null);
-            _emittedEvents.Add(emittedEvent);
+            _emittedEvents.Append(emittedEvent);
             subscriptions = _subscriptions.Values.ToList();
-            foreach (var subscription in subscriptions)
-                subscription.EnqueueEvent(emittedEvent);  
         }
 
         foreach (var subscription in subscriptions)
@@ -72,10 +78,8 @@ public class Source<T> : ISource<T>
                 .Select(toEmit => new EmittedEvent(toEmit, completion: false, emittedException: null))
                 .ToList();
             
-            _emittedEvents.AddRange(emittedEvents);
+            _emittedEvents.Append(emittedEvents);
             subscriptions = _subscriptions.Values.ToList();
-            foreach (var subscription in subscriptions)
-                subscription.EnqueueEvents(emittedEvents);  
         }
 
         foreach (var subscription in subscriptions)
@@ -92,11 +96,9 @@ public class Source<T> : ISource<T>
             _completed = true;
 
             var emittedEvent = new EmittedEvent(default, completion: false, emittedException: exception);
-            _emittedEvents.Add(emittedEvent);
+            _emittedEvents.Append(emittedEvent);
             
             subscriptions = _subscriptions.Values.ToList();
-            foreach (var subscription in subscriptions)
-                subscription.EnqueueEvent(emittedEvent);            
         }
         
         foreach (var subscription in subscriptions)
@@ -113,11 +115,9 @@ public class Source<T> : ISource<T>
             _completed = true;
             
             var emittedEvent = new EmittedEvent(default, completion: true, emittedException: null);
-            _emittedEvents.Add(emittedEvent);
+            _emittedEvents.Append(emittedEvent);
             
             subscriptions = _subscriptions.Values.ToList();
-            foreach (var subscription in subscriptions)
-                subscription.EnqueueEvent(emittedEvent);  
         }
         
         foreach (var subscription in subscriptions)
@@ -131,30 +131,59 @@ public class Source<T> : ISource<T>
         private Action<Exception> OnError { get; }
 
         private bool _disposed;
-        private bool _emittingEvents;
         private bool _started;
-        private readonly Queue<EmittedEvent> _queue;
+        private bool _replayed;
+        private bool _emittingEvents;
+        private readonly EmittedEvents _emittedEvents;
+        private int _skip;
         private readonly object _sync = new();
 
-        private Action Disposer { get; }
+        public int EventSourceTotalCount => _emittedEvents.Count;
+        private Action UnsubscribeToEvents { get; }
 
-        public Subscription(List<EmittedEvent> emittedEvents, Action<T> onNext, Action onCompletion, Action<Exception> onError, Action disposer)
+        public Subscription(EmittedEvents emittedEvents, Action<T> onNext, Action onCompletion, Action<Exception> onError, Action unsubscribeToEvents)
         {
+            _emittedEvents = emittedEvents;
+            
             OnNext = onNext;
             OnCompletion = onCompletion;
             OnError = onError;
 
-            Disposer = disposer;
-            _queue = new Queue<EmittedEvent>(emittedEvents);
+            UnsubscribeToEvents = unsubscribeToEvents;
         }
 
         public void Start()
         {
             lock (_sync)
-                _started = true;
+                if (_replayed)
+                    throw new InvalidOperationException("Cannot start a replayed subscription");
+                else    
+                    _started = true;
             
             DeliverOutstandingEvents();  
-        } 
+        }
+
+        public void ReplayUntil(int count)
+        {
+            lock (_sync)
+                if (_started)
+                    throw new InvalidOperationException("Cannot replay on a started subscription");
+                else    
+                    _replayed = true;
+
+            var toEmits = _emittedEvents.GetNewEvents(skip: 0);
+            toEmits = toEmits[..count];
+
+            foreach (var toEmit in toEmits)
+            {
+                if (toEmit.Completion)
+                    OnCompletion();
+                else if (toEmit.EmittedException != null)
+                    OnError(toEmit.EmittedException!);
+                else
+                    OnNext(toEmit.Event!);
+            }
+        }
 
         public void DeliverOutstandingEvents()
         {
@@ -163,25 +192,29 @@ public class Source<T> : ISource<T>
                     return;
                 else
                     _emittingEvents = true;
-
             try
             {
                 while (true)
                 {
-                    EmittedEvent toEmit;
-                    lock (_sync)
-                        if (!_queue.TryDequeue(out toEmit) || _disposed)
+                    var toEmits = _emittedEvents.GetNewEvents(_skip);
+                    _skip += toEmits.Length;
+                    
+                    if (toEmits.IsEmpty)
+                        lock (_sync)
                         {
                             _emittingEvents = false;
                             return;
                         }
-
-                    if (toEmit.Completion)
-                        OnCompletion();
-                    else if (toEmit.EmittedException != null)
-                        OnError(toEmit.EmittedException!);
-                    else
-                        OnNext(toEmit.Event!);
+                    
+                    foreach (var toEmit in toEmits)
+                    {
+                        if (toEmit.Completion)
+                            OnCompletion();
+                        else if (toEmit.EmittedException != null)
+                            OnError(toEmit.EmittedException!);
+                        else
+                            OnNext(toEmit.Event!);
+                    }
                 }
             }
             catch (Exception)
@@ -196,23 +229,10 @@ public class Source<T> : ISource<T>
             }
         }
 
-        public void EnqueueEvent(EmittedEvent @event)
-        {
-            lock (_sync)
-                _queue.Enqueue(@event);
-        }
-        
-        public void EnqueueEvents(IEnumerable<EmittedEvent> events)
-        {
-            lock (_sync)
-                foreach (var @event in events)
-                    _queue.Enqueue(@event);
-        }
-
         public void Dispose()
         {
             lock (_sync) _disposed = true;
-            Disposer();  
+            UnsubscribeToEvents();  
         }
     }
 
@@ -228,5 +248,63 @@ public class Source<T> : ISource<T>
             Completion = completion;
             EmittedException = emittedException;
         }
-    } 
+    }
+
+    private class EmittedEvents
+    {
+        private EmittedEvent[] _backingArray = new EmittedEvent[8];
+        private int _count;
+        private readonly object _sync = new();
+
+        public int Count
+        {
+            get
+            {
+                lock (_sync) return _count;
+            }
+        }
+
+        public void Append(EmittedEvent emittedEvent)
+        {
+            lock (_sync)
+            {
+                if (_backingArray.Length == _count)
+                {
+                    var prev = _backingArray;
+                    var curr = new EmittedEvent[prev.Length * 2];
+                    Array.Copy(sourceArray: prev, destinationArray: curr, length: prev.Length);
+                    _backingArray = curr;
+                }
+
+                _backingArray[_count] = emittedEvent;
+                _count++;   
+            }
+        }
+
+        public void Append(IEnumerable<EmittedEvent> emittedEvents)
+        {
+            lock (_sync)
+            {
+                foreach (var emittedEvent in emittedEvents)
+                {
+                    if (_backingArray.Length == _count)
+                    {
+                        var prev = _backingArray;
+                        var curr = new EmittedEvent[prev.Length * 2];
+                        Array.Copy(sourceArray: prev, destinationArray: curr, length: prev.Length);
+                        _backingArray = curr;
+                    }
+
+                    _backingArray[_count] = emittedEvent;
+                    _count++;   
+                }
+            }
+        }
+
+        public Span<EmittedEvent> GetNewEvents(int skip)
+        {
+            lock (_sync)
+                return _backingArray.AsSpan(start: skip, length: _count - skip);
+        }
+    }
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive.Awaiter;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
@@ -81,8 +83,6 @@ public static class Linq
 
     #endregion
 
-    public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
-
     #region Leaf operators
 
     public static Task<T> Last<T>(this IStream<T> s)
@@ -116,6 +116,76 @@ public static class Linq
             
         return tcs.Task;
     }  
+    
+    public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
+
+    public static async Task<T> NextOrSuspend<T>(this IStream<T> s)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var eventEmitted = false;
+        var emittedEvent = default(T);
+        
+        var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                eventEmitted = true;
+                emittedEvent = t;
+            },
+            onCompletion: () =>
+            {
+                if (!eventEmitted)
+                    tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
+                else
+                    tcs.TrySetResult(emittedEvent!);
+            },
+            onError: e => tcs.TrySetException(e)
+        );
+
+        var eventSourceTotalCount = subscription.EventSourceTotalCount;
+        subscription.ReplayUntil(eventSourceTotalCount);
+
+        if (!tcs.Task.IsCompleted && !eventEmitted)
+            throw new SuspendInvocationException(eventSourceTotalCount);
+
+        if (eventEmitted)
+            tcs.TrySetResult(emittedEvent!);
+        
+        return await tcs.Task;
+    }
+    
+    public static async Task<Result<T>> TryNextOrSuspend<T>(this IStream<T> s)
+    {
+        var tcs = new TaskCompletionSource<Result<T>>();
+        var eventEmitted = false;
+        var emittedEvent = default(T);
+        
+        var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                eventEmitted = true;
+                emittedEvent = t;
+            },
+            onCompletion: () =>
+            {
+                if (!eventEmitted)
+                    tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
+                else
+                    tcs.TrySetResult(emittedEvent!);
+            },
+            onError: e => tcs.TrySetException(e)
+        );
+
+        var eventSourceTotalCount = subscription.EventSourceTotalCount;
+        subscription.ReplayUntil(eventSourceTotalCount);
+
+        if (!tcs.Task.IsCompleted && !eventEmitted)
+            tcs.SetResult(Suspend.Until(eventSourceTotalCount).ToResult<T>());
+
+        if (eventEmitted)
+            tcs.TrySetResult(emittedEvent!);
+        
+        return await tcs.Task;
+    }
 
     #endregion
 }
