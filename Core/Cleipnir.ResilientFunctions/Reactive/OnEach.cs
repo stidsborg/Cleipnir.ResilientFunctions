@@ -9,7 +9,7 @@ internal class OnEach<T> : IDisposable
     public OnEach(IStream<T> s, Action<T> onNext, Action onCompletion, Action<Exception> onError) 
         => _subscription = s.Subscribe(onNext, onCompletion, onError);
 
-    public void Start() => _subscription.Start();
+    public void Start() => _subscription.DeliverExistingAndFuture();
     public void Dispose() => _subscription.Dispose();
 }
 

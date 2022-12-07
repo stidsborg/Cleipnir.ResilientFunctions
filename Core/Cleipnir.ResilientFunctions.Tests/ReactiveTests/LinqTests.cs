@@ -86,7 +86,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             failed.ShouldBeFalse();
             latest.ShouldBe("");
             
-            subscription.ReplayUntil(1);
+            subscription.DeliverExisting(1);
             
             completed.ShouldBeFalse();
             failed.ShouldBeFalse();
@@ -113,7 +113,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             failed.ShouldBeFalse();
             latest.ShouldBe("");
             
-            subscription.ReplayUntil(2);
+            subscription.DeliverExisting(2);
             
             completed.ShouldBeTrue();
             failed.ShouldBeFalse();
@@ -142,7 +142,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             failed.ShouldBeFalse();
             latest.ShouldBe("");
             
-            subscription.ReplayUntil(2);
+            subscription.DeliverExisting(2);
             
             completed.ShouldBeFalse();
             failed.ShouldBeTrue();

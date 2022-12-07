@@ -1,9 +1,6 @@
-﻿using System;
+﻿namespace Cleipnir.ResilientFunctions.Reactive;
 
-namespace Cleipnir.ResilientFunctions.Reactive;
-
-public interface IStream<out T>
+public interface IStream<T>
 {
-    public int TotalEventCount { get; }
-    ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError);
+    ISubscription Subscribe(Subscription<T> subscription, int? subscriptionGroupId = null);
 }

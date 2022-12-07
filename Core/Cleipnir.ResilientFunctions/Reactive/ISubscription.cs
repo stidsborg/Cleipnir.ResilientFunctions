@@ -4,7 +4,7 @@ namespace Cleipnir.ResilientFunctions.Reactive;
 
 public interface ISubscription : IDisposable
 {
-    int EventSourceTotalCount { get; }
-    void Start();
-    void ReplayUntil(int count);
+    public int SubscriptionGroupId { get; }
+    void DeliverExistingAndFuture();
+    int DeliverExisting();
 }

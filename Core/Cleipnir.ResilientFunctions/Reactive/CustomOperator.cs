@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -14,7 +14,6 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 {
     private readonly IStream<TIn> _inner;
     private readonly Func<Operator<TIn, TOut>> _operatorFactory;
-    public int TotalEventCount => _inner.TotalEventCount;
     
     public CustomOperator(IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
     {
@@ -39,7 +38,8 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
         public Subscription(
             IStream<TIn> inner,
             Func<Operator<TIn, TOut>> operatorFactory,
-            Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
+            Action<TOut> onNext, Action onCompletion, Action<Exception> onError,
+            int? subscriptionGroupId)
         {
             _onNext = onNext;
             _onCompletion = onCompletion;
@@ -47,12 +47,12 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
             Operator = operatorFactory();
             
-            _innerSubscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError);
+            _innerSubscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError, subscriptionGroupId);
         }
 
-        public int EventSourceTotalCount => _innerSubscription.EventSourceTotalCount;
-        public void Start() => _innerSubscription.Start();
-        public void ReplayUntil(int count) => _innerSubscription.ReplayUntil(count);
+        public int SubscriptionGroupId => _innerSubscription.SubscriptionGroupId;
+        public void DeliverExistingAndFuture() => _innerSubscription.DeliverExistingAndFuture();
+        public int DeliverExisting() => _innerSubscription.DeliverExisting();
 
         private void SignalNext(TIn next)
         {

@@ -28,17 +28,16 @@ public class Source<T> : ISource<T>
         }
     }
 
-    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError)
+    
+    public ISubscription Subscribe(IEnumerable<Subscription<T>> subscriptions)
     {
         lock (_sync)
         {
             var subscriptionId = _nextSubscriptionId++;
-            var subscription = 
+            var s = 
                 new Subscription(
-                    _emittedEvents, 
-                    onNext, 
-                    onCompletion, 
-                    onError,
+                    subscriptions.ToList(),
+                    _emittedEvents,
                     unsubscribeToEvents: () =>
                     {
                         lock (_sync)
@@ -46,11 +45,14 @@ public class Source<T> : ISource<T>
                     }
                 );
 
-            _subscriptions[subscriptionId] = subscription;
-            return subscription;
+            _subscriptions[subscriptionId] = s;
+            return s;
         }
     }
 
+    public ISubscription Subscribe(Subscription<T> subscription)
+        => Subscribe(new List<Subscription<T>>(1) { subscription });
+    
     public void Emit(T toEmit)
     {
         List<Subscription> subscriptions;
@@ -126,33 +128,26 @@ public class Source<T> : ISource<T>
 
     private class Subscription : ISubscription
     {
-        private Action<T> OnNext { get; }
-        private Action OnCompletion { get; }
-        private Action<Exception> OnError { get; }
-
         private bool _disposed;
         private bool _started;
         private bool _replayed;
         private bool _emittingEvents;
+        private readonly IReadOnlyList<Subscription<T>> _subscriptions;
         private readonly EmittedEvents _emittedEvents;
         private int _skip;
         private readonly object _sync = new();
 
-        public int EventSourceTotalCount => _emittedEvents.Count;
         private Action UnsubscribeToEvents { get; }
 
-        public Subscription(EmittedEvents emittedEvents, Action<T> onNext, Action onCompletion, Action<Exception> onError, Action unsubscribeToEvents)
+        public Subscription(IReadOnlyList<Subscription<T>> subscriptions, EmittedEvents emittedEvents, Action unsubscribeToEvents)
         {
+            _subscriptions = subscriptions;
             _emittedEvents = emittedEvents;
-            
-            OnNext = onNext;
-            OnCompletion = onCompletion;
-            OnError = onError;
 
             UnsubscribeToEvents = unsubscribeToEvents;
         }
 
-        public void Start()
+        public void DeliverExistingAndFuture()
         {
             lock (_sync)
                 if (_replayed)
@@ -163,7 +158,7 @@ public class Source<T> : ISource<T>
             DeliverOutstandingEvents();  
         }
 
-        public void ReplayUntil(int count)
+        public int DeliverExisting()
         {
             lock (_sync)
                 if (_started)
@@ -171,18 +166,21 @@ public class Source<T> : ISource<T>
                 else    
                     _replayed = true;
 
-            var toEmits = _emittedEvents.GetNewEvents(skip: 0);
-            toEmits = toEmits[..count];
+            var toEmits = _emittedEvents.GetEvents(skip: 0);
 
             foreach (var toEmit in toEmits)
+            foreach (var streamAction in _subscriptions)
             {
+                var (onNext, onCompletion, onError) = streamAction;
                 if (toEmit.Completion)
-                    OnCompletion();
+                    onCompletion();
                 else if (toEmit.EmittedException != null)
-                    OnError(toEmit.EmittedException!);
+                    onError(toEmit.EmittedException!);
                 else
-                    OnNext(toEmit.Event!);
+                    onNext(toEmit.Event!);
             }
+
+            return toEmits.Length;
         }
 
         public void DeliverOutstandingEvents()
@@ -196,7 +194,7 @@ public class Source<T> : ISource<T>
             {
                 while (true)
                 {
-                    var toEmits = _emittedEvents.GetNewEvents(_skip);
+                    var toEmits = _emittedEvents.GetEvents(_skip);
                     _skip += toEmits.Length;
                     
                     if (toEmits.IsEmpty)
@@ -207,13 +205,15 @@ public class Source<T> : ISource<T>
                         }
                     
                     foreach (var toEmit in toEmits)
+                    foreach (var streamAction in _subscriptions)
                     {
+                        var (onNext, onCompletion, onError) = streamAction;
                         if (toEmit.Completion)
-                            OnCompletion();
+                            onCompletion();
                         else if (toEmit.EmittedException != null)
-                            OnError(toEmit.EmittedException!);
+                            onError(toEmit.EmittedException!);
                         else
-                            OnNext(toEmit.Event!);
+                            onNext(toEmit.Event!);
                     }
                 }
             }
@@ -301,7 +301,7 @@ public class Source<T> : ISource<T>
             }
         }
 
-        public Span<EmittedEvent> GetNewEvents(int skip)
+        public Span<EmittedEvent> GetEvents(int skip)
         {
             lock (_sync)
                 return _backingArray.AsSpan(start: skip, length: _count - skip);

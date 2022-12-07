@@ -107,7 +107,7 @@ public static class Linq
             onError: e => tcs.TrySetException(e)
         );
         
-        subscription.Start();
+        subscription.DeliverExistingAndFuture();
 
         tcs.Task.ContinueWith(
             _ => subscription.Dispose(),
@@ -140,12 +140,11 @@ public static class Linq
             },
             onError: e => tcs.TrySetException(e)
         );
-
-        var eventSourceTotalCount = subscription.EventSourceTotalCount;
-        subscription.ReplayUntil(eventSourceTotalCount);
+        
+        var delivered = subscription.DeliverExisting();
 
         if (!tcs.Task.IsCompleted && !eventEmitted)
-            throw new SuspendInvocationException(eventSourceTotalCount);
+            throw new SuspendInvocationException(delivered);
 
         if (eventEmitted)
             tcs.TrySetResult(emittedEvent!);
@@ -174,12 +173,11 @@ public static class Linq
             },
             onError: e => tcs.TrySetException(e)
         );
-
-        var eventSourceTotalCount = subscription.EventSourceTotalCount;
-        subscription.ReplayUntil(eventSourceTotalCount);
+        
+        var delivered = subscription.DeliverExisting();
 
         if (!tcs.Task.IsCompleted && !eventEmitted)
-            tcs.SetResult(Suspend.Until(eventSourceTotalCount).ToResult<T>());
+            tcs.SetResult(Suspend.Until(delivered).ToResult<T>());
 
         if (eventEmitted)
             tcs.TrySetResult(emittedEvent!);
