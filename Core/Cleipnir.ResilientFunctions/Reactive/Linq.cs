@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -80,6 +81,9 @@ public static class Linq
                         left--;
                 };
             });
+
+    public static IStream<T> Merge<T>(this IStream<T> stream1, IStream<T> stream2)
+        => new MergeOperator<T>(stream1, stream2);
 
     #endregion
 
@@ -183,6 +187,20 @@ public static class Linq
             tcs.TrySetResult(emittedEvent!);
         
         return await tcs.Task;
+    }
+    
+    public static Task<List<T>> ToList<T>(this IStream<T> stream)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var list = new List<T>();
+        var subscription = stream.Subscribe(
+            onNext: t => list.Add(t),
+            onCompletion: () => tcs.TrySetResult(list),
+            onError: e => tcs.TrySetException(e)
+        );
+        subscription.DeliverExistingAndFuture();
+        
+        return tcs.Task;
     }
 
     #endregion

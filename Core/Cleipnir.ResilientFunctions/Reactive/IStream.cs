@@ -1,6 +1,13 @@
-﻿namespace Cleipnir.ResilientFunctions.Reactive;
+﻿using System;
 
-public interface IStream<T>
+namespace Cleipnir.ResilientFunctions.Reactive;
+
+public interface IStream<out T>
 {
-    ISubscription Subscribe(Subscription<T> subscription, int? subscriptionGroupId = null);
+    ISubscription Subscribe(
+        Action<T> onNext, 
+        Action onCompletion, 
+        Action<Exception> onError, 
+        int? subscriptionGroupId = null
+    );
 }

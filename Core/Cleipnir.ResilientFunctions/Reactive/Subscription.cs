@@ -2,4 +2,4 @@
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
-public record struct Subscription<T>(Action<T> OnNext, Action OnCompletion, Action<Exception> OnException);
+public record struct Subscription<T>(int SubscriptionId, Action<T> OnNext, Action OnCompletion, Action<Exception> OnException);

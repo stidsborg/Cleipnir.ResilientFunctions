@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -21,8 +20,8 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
         _operatorFactory = operatorFactory;
     }
 
-    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
-        => new Subscription(_inner, _operatorFactory, onNext, onCompletion, onError);
+    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
+        => new Subscription(_inner, _operatorFactory, onNext, onCompletion, onError, subscriptionGroupId);
 
     private class Subscription : ISubscription
     {
