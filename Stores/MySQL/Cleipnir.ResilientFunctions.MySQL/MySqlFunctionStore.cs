@@ -13,17 +13,20 @@ public class MySqlFunctionStore : IFunctionStore
     private readonly string _tablePrefix;
 
     public IEventStore EventStore { get; }
-    
+    public ITimeoutStore TimeoutStore { get; }
+
     public MySqlFunctionStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         EventStore = new MySqlEventStore(connectionString, tablePrefix);
+        TimeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
     }
 
     public async Task Initialize()
     {
         await EventStore.Initialize();
+        await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (

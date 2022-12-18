@@ -19,7 +19,7 @@ public class MySqlEventStore : IEventStore
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}events (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_events (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 position INT NOT NULL,
@@ -35,7 +35,7 @@ public class MySqlEventStore : IEventStore
     public async Task DropUnderlyingTableIfExists()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}events";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_events";
         await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -43,7 +43,7 @@ public class MySqlEventStore : IEventStore
     public async Task TruncateTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}events;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_events;";
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -54,10 +54,10 @@ public class MySqlEventStore : IEventStore
         var (eventJson, eventType, idempotencyKey) = storedEvent;
         
         var sql = @$"    
-                INSERT INTO {_tablePrefix}events
+                INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 SELECT ?, ?, COUNT(*), ?, ?, ? 
-                FROM {_tablePrefix}events
+                FROM {_tablePrefix}rfunctions_events
                 WHERE function_type_id = ? AND function_instance_id = ?";
         await using var command = new MySqlCommand(sql, conn)
         {
@@ -99,7 +99,7 @@ public class MySqlEventStore : IEventStore
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
             var sql = @$"    
-                INSERT INTO {_tablePrefix}events
+                INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
                     (?, ?, ?, ?, ?, ?);";
@@ -124,7 +124,7 @@ public class MySqlEventStore : IEventStore
     private async Task<long> GetNumberOfEvents(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = ? AND function_instance_id = ?";
+        var sql = @$"SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -145,7 +145,7 @@ public class MySqlEventStore : IEventStore
     private async Task Truncate(FunctionId functionId, MySqlConnection connection, MySqlTransaction? transaction)
     {
         var sql = @$"    
-                DELETE FROM {_tablePrefix}events
+                DELETE FROM {_tablePrefix}rfunctions_events
                 WHERE function_type_id = ? AND function_instance_id = ?;";
         
         await using var command =
@@ -173,7 +173,7 @@ public class MySqlEventStore : IEventStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         var sql = @$"    
             SELECT event_json, event_type, idempotency_key
-            FROM {_tablePrefix}events
+            FROM {_tablePrefix}rfunctions_events
             WHERE function_type_id = ? AND function_instance_id = ? AND position >= ?
             ORDER BY position ASC;";
         await using var command = new MySqlCommand(sql, conn)

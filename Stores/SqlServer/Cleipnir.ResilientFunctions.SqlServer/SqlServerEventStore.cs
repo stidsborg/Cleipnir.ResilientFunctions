@@ -23,8 +23,8 @@ public class SqlServerEventStore : IEventStore
         await using var conn = await CreateConnection();
 
         var sql = @$"
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}Events' and xtype='U')
-                CREATE TABLE {_tablePrefix}Events (
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions_Events' and xtype='U')
+                CREATE TABLE {_tablePrefix}RFunctions_Events (
                     FunctionTypeId NVARCHAR(255),
                     FunctionInstanceId NVARCHAR(255),
                     Position INT NOT NULL,
@@ -41,8 +41,8 @@ public class SqlServerEventStore : IEventStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            IF EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}Events' and xtype='U')
-                DROP TABLE IF EXISTS {_tablePrefix}Events;";
+            IF EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions_Events' and xtype='U')
+                DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Events;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -50,7 +50,7 @@ public class SqlServerEventStore : IEventStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}Events;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}RFunctions_Events;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -60,12 +60,12 @@ public class SqlServerEventStore : IEventStore
         await using var conn = await CreateConnection();
 
         var sql = @$"    
-            INSERT INTO {_tablePrefix}Events
+            INSERT INTO {_tablePrefix}RFunctions_Events
                 (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                (SELECT COUNT(*) FROM {_tablePrefix}events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @EventJson, @EventType, @IdempotencyKey
             );";
         await using var command = new SqlCommand(sql, conn);
@@ -95,12 +95,12 @@ public class SqlServerEventStore : IEventStore
         foreach (var storedEvent in storedEvents)
         {
             var sql = @$"    
-            INSERT INTO {_tablePrefix}Events
+            INSERT INTO {_tablePrefix}RFunctions_Events
                 (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                (SELECT COUNT(*) FROM {_tablePrefix}events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @EventJson, @EventType, @IdempotencyKey
             );";
             await using var command = new SqlCommand(sql, connection, transaction);
@@ -122,7 +122,7 @@ public class SqlServerEventStore : IEventStore
     private async Task Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
     {
         var sql = @$"    
-            DELETE FROM {_tablePrefix}Events
+            DELETE FROM {_tablePrefix}RFunctions_Events
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = 
@@ -151,7 +151,7 @@ public class SqlServerEventStore : IEventStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT EventJson, EventType, IdempotencyKey
-            FROM {_tablePrefix}Events
+            FROM {_tablePrefix}RFunctions_Events
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position >= @Position
             ORDER BY Position ASC;";
         

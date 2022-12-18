@@ -29,7 +29,7 @@ public class PostgreSqlEventStore : IEventStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}events (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_events (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 position INT NOT NULL,
@@ -45,7 +45,7 @@ public class PostgreSqlEventStore : IEventStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}events;";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_events;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -53,7 +53,7 @@ public class PostgreSqlEventStore : IEventStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}events;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_events;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -64,10 +64,10 @@ public class PostgreSqlEventStore : IEventStore
         var (eventJson, eventType, idempotencyKey) = storedEvent;
 
         var sql = @$"    
-                INSERT INTO {_tablePrefix}events
+                INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
-                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
+                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
@@ -101,10 +101,10 @@ public class PostgreSqlEventStore : IEventStore
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
             var sql = @$"    
-                INSERT INTO {_tablePrefix}events
+                INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
-                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
+                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
             var command = new NpgsqlBatchCommand(sql)
             {
                 Parameters =
@@ -131,7 +131,7 @@ public class PostgreSqlEventStore : IEventStore
     private async Task Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
     {
         var sql = @$"    
-                DELETE FROM {_tablePrefix}events
+                DELETE FROM {_tablePrefix}rfunctions_events
                 WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, connection, transaction)
         {
@@ -158,7 +158,7 @@ public class PostgreSqlEventStore : IEventStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT event_json, event_type, idempotency_key
-            FROM {_tablePrefix}events
+            FROM {_tablePrefix}rfunctions_events
             WHERE function_type_id = $1 AND function_instance_id = $2 AND position >= $3
             ORDER BY position ASC;";
         await using var command = new NpgsqlCommand(sql, conn)

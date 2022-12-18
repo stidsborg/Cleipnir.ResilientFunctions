@@ -14,6 +14,9 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly Func<Task<SqlConnection>> _connFunc;
     private readonly string _tablePrefix;
 
+    private readonly SqlServerTimeoutStore _timeoutStore;
+    public ITimeoutStore TimeoutStore => _timeoutStore;
+    
     private readonly SqlServerEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
     
@@ -22,6 +25,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _connFunc = CreateConnection(connectionString);
         _tablePrefix = tablePrefix;
         _eventStore = new SqlServerEventStore(connectionString, tablePrefix);
+        _timeoutStore = new SqlServerTimeoutStore(connectionString, tablePrefix);
     }
     
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
@@ -37,6 +41,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await _eventStore.Initialize();
+        await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
         var sql = @$"
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions' and xtype='U')

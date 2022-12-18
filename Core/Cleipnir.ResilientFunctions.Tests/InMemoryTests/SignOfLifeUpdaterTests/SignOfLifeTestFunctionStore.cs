@@ -18,6 +18,7 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public SignOfLifeTestFunctionStore(SignOfLifeCallback signOfLifeCallback) => _signOfLifeCallback = signOfLifeCallback;
 
     public IEventStore EventStore => _inner.EventStore;
+    public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Task Initialize() => _inner.Initialize();
 
     public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)

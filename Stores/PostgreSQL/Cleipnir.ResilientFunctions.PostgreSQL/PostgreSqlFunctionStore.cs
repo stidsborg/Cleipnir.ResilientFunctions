@@ -17,11 +17,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly PostgreSqlEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
 
+    private readonly PostgreSqlTimeoutStore _timeoutStore;
+    public ITimeoutStore TimeoutStore => _timeoutStore;
+
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _eventStore = new PostgreSqlEventStore(connectionString, tablePrefix);
+        _timeoutStore = new PostgreSqlTimeoutStore(connectionString, tablePrefix);
     } 
 
     private async Task<NpgsqlConnection> CreateConnection()
@@ -34,6 +38,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await _eventStore.Initialize();
+        await _timeoutStore.Initialize();
         await using var conn = await CreateConnection();
         var sql = $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (

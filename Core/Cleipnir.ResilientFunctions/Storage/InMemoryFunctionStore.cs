@@ -14,6 +14,7 @@ public class InMemoryFunctionStore : IFunctionStore
     private readonly object _sync = new();
 
     public IEventStore EventStore { get; } = new InMemoryEventStore();
+    public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
     public Task Initialize() => Task.CompletedTask;
 
     public Task<bool> CreateFunction(
