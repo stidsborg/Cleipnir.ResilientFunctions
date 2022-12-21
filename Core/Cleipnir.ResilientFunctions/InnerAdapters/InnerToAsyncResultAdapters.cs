@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.InnerAdapters;
@@ -14,8 +15,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            inner(param);
-            return Task.FromResult(Result.Succeed.ToUnit());
+            try
+            {
+                inner(param);
+                return Result.Succeed.ToUnit().ToTask();    
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
 
@@ -24,8 +31,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            inner(param, context);
-            return Task.FromResult(Result.Succeed.ToUnit());
+            try
+            {
+                inner(param, context);
+                return Result.Succeed.ToUnit().ToTask();    
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
     
@@ -34,8 +47,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            await inner(param);
-            return Result.Succeed.ToUnit();
+            try
+            {
+                await inner(param);    
+                return Result.Succeed.ToUnit();
+            } 
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -44,8 +63,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            await inner(param, context);
-            return Result.Succeed.ToUnit();
+            try
+            {
+                await inner(param, context);
+                return Result.Succeed.ToUnit();    
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -54,8 +79,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param);
-            return Task.FromResult(result.ToUnit());
+            try
+            {
+                var result = inner(param);
+                return result.ToUnit().ToTask();    
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
     
@@ -64,8 +95,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, context);
-            return Task.FromResult(result.ToUnit());
+            try
+            {
+                var result = inner(param, context);
+                return result.ToUnit().ToTask();    
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
    
@@ -74,8 +111,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param);
-            return result.ToUnit();
+            try
+            {
+                var result = await inner(param);
+                return result.ToUnit();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -84,8 +127,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, context);
-            return result.ToUnit();
+            try
+            {
+                var result = await inner(param, context);
+                return result.ToUnit();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -96,8 +145,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            inner(param, scrapbook);
-            return Task.FromResult(Result.Succeed.ToUnit());
+            try
+            {
+                inner(param, scrapbook);
+                return Task.FromResult(Result.Succeed.ToUnit());
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
     
@@ -106,10 +161,16 @@ internal static class InnerToAsyncResultAdapters
         where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         return (param, scrapbook, context) =>
-        {
-            inner(param, scrapbook, context);
-            return Task.FromResult(Result.Succeed.ToUnit());
-        };
+            {
+                try
+                {
+                    inner(param, scrapbook, context);
+                    return Task.FromResult(Result.Succeed.ToUnit());
+                }
+                catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+                catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+                catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
+            };
     }
     
     // ** ASYNC ** //
@@ -118,8 +179,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            await inner(param, scrapbook);
-            return Result.Succeed.ToUnit();
+            try
+            {
+                await inner(param, scrapbook);
+                return Result.Succeed.ToUnit();  
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -129,8 +196,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            await inner(param, scrapbook, context);
-            return Result.Succeed.ToUnit();
+            try
+            {
+                await inner(param, scrapbook, context);
+                return Result.Succeed.ToUnit();  
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -140,8 +213,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, scrapbook, context);
-            return result.ToUnit();
+            try
+            {
+                var result = await inner(param, scrapbook, context);
+                return result.ToUnit();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -151,8 +230,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, scrapbook);
-            return result.ToUnit().ToTask();
+            try
+            {
+                var result = inner(param, scrapbook);
+                return result.ToUnit().ToTask();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
     
@@ -162,8 +247,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, scrapbook, context);
-            return result.ToUnit().ToTask();
+            try
+            {
+                var result = inner(param, scrapbook, context);
+                return result.ToUnit().ToTask();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<Unit>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
         };
     }
    
@@ -173,8 +264,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, scrapbook);
-            return result.ToUnit();
+            try
+            {
+                var result = await inner(param, scrapbook);
+                return result.ToUnit();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
 
@@ -184,8 +281,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param);
-            return Task.FromResult(new Result<TReturn>(result));
+            try
+            {
+                var result = inner(param);
+                return Task.FromResult(new Result<TReturn>(result));
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -194,8 +297,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, context);
-            return Task.FromResult(new Result<TReturn>(result));
+            try
+            {
+                var result = inner(param, context);
+                return Task.FromResult(new Result<TReturn>(result));
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -204,8 +313,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param);
-            return Succeed.WithValue(result);
+            try
+            {
+                var result = await inner(param);
+                return Succeed.WithValue(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -214,8 +329,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, context);
-            return Succeed.WithValue(result);
+            try
+            {
+                var result = await inner(param, context);
+                return Succeed.WithValue(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -224,8 +345,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, context);
-            return result;
+            try
+            {
+                var result = await inner(param, context);
+                return result;
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -234,8 +361,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param);
-            return Task.FromResult(result);
+            try
+            {
+                var result = inner(param);
+                return Task.FromResult(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -244,8 +377,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, context);
-            return Task.FromResult(result);
+            try
+            {
+                var result = inner(param, context);
+                return Task.FromResult(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
    
@@ -254,8 +393,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param);
-            return result;
+            try
+            {
+                var result = await inner(param);
+                return result;
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -267,8 +412,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, scrapbook);
-            return Task.FromResult(new Result<TReturn>(result));
+            try
+            {
+                var result = inner(param, scrapbook);
+                return Task.FromResult(new Result<TReturn>(result));
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -279,8 +430,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, scrapbook, context);
-            return Task.FromResult(new Result<TReturn>(result));
+            try
+            {
+                var result = inner(param, scrapbook, context);
+                return Task.FromResult(new Result<TReturn>(result));
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -291,8 +448,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, scrapbook);
-            return Succeed.WithValue(result);
+            try
+            {
+                var result = await inner(param, scrapbook);
+                return Succeed.WithValue(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
     
@@ -303,8 +466,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, scrapbook, context);
-            return Succeed.WithValue(result);
+            try
+            {
+                var result = await inner(param, scrapbook, context);
+                return Succeed.WithValue(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
 
@@ -316,8 +485,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, scrapbook);
-            return Task.FromResult(result);
+            try
+            {
+                var result = inner(param, scrapbook);
+                return Task.FromResult(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -328,8 +503,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return (param, scrapbook, context) =>
         {
-            var result = inner(param, scrapbook, context);
-            return Task.FromResult(result);
+            try
+            {
+                var result = inner(param, scrapbook, context);
+                return Task.FromResult(result);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast).ToResult<TReturn>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
         };
     }
     
@@ -340,8 +521,14 @@ internal static class InnerToAsyncResultAdapters
     {
         return async (param, scrapbook, context) =>
         {
-            var result = await inner(param, scrapbook);
-            return result;
+            try
+            {
+                var result = await inner(param, scrapbook);
+                return result;
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.Until(exception.SuspendUntilEventSourceCountAtLeast); }
+            catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
 }

@@ -35,29 +35,28 @@ public class ExponentialBackoffMiddleware : IMiddleware
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         while (true)
-            try
-            {
-                return await next(param, scrapbook, context);
-            }
-            catch (Exception e)
-            {
-                _onException?.Invoke(e);
+        {
+            var result =  await next(param, scrapbook, context);
+            if (result.Outcome is not Outcome.Fail) return result;
+
+            var failedWithException = result.Fail!;
+            _onException?.Invoke(failedWithException);
                 
-                if (!scrapbook.StateDictionary.ContainsKey($"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"))
-                    scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"] = "0";
+            if (!scrapbook.StateDictionary.ContainsKey($"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"))
+                scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"] = "0";
 
-                var retriesSoFar = int.Parse(scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"]);
-                retriesSoFar++;
-                scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"] = retriesSoFar.ToString();
+            var retriesSoFar = int.Parse(scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"]);
+            retriesSoFar++;
+            scrapbook.StateDictionary[$"{nameof(ExponentialBackoffMiddleware)}.RetriesSoFar"] = retriesSoFar.ToString();
 
-                if (retriesSoFar >= _maxTries)
-                    throw;
+            if (retriesSoFar >= _maxTries)
+                return result;
 
-                var delay = _firstDelay * Math.Pow(_factor, retriesSoFar);
-                if (delay >= _inMemoryThreshold)
-                    return Postpone.For(delay);
+            var delay = _firstDelay * Math.Pow(_factor, retriesSoFar);
+            if (delay >= _inMemoryThreshold)
+                return Postpone.For(delay);
 
-                await Task.Delay(delay);
-            }
+            await Task.Delay(delay);
+        }
     }
 }

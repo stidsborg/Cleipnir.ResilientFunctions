@@ -54,7 +54,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, scrapbook, context);
         }
-        catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
         catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
         await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
@@ -77,7 +76,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, scrapbook, context);
                 }
-                catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
                 await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponedOrSuspended: true);
@@ -99,7 +97,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, scrapbook, context);
         }
-        catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
         catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
         await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
@@ -121,7 +118,6 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, scrapbook, context);
                 }
-                catch (PostponeInvocationException exception) { result = Postpone.Until(exception.PostponeUntil); }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
                 await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponedOrSuspended: true);

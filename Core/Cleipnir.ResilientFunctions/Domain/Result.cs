@@ -62,6 +62,9 @@ public class Fail
     public Fail(Exception exception) => Exception = exception;
 
     public static Fail WithException(Exception exception) => new Fail(exception);
+
+    public Result ToResult() => new(Exception);
+    public Result<T> ToResult<T>() => new(Exception);
 }
 
 public class Postpone
