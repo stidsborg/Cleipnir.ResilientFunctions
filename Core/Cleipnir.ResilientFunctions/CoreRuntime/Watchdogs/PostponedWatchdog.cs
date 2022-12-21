@@ -56,7 +56,6 @@ internal class PostponedWatchdog
                     _ = SleepAndThenReInvoke(expireSoon, now);
                 
                 await Task.Delay(_postponedCheckFrequency);
-                if (_shutdownCoordinator.ShutdownInitiated) return;
             }
         }
         catch (Exception innerException)
