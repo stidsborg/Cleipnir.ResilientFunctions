@@ -667,6 +667,53 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp();
+    protected async Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(Task<IFunctionStore> storeTask)
+    {
+        var functionTypeId = nameof(ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp);
+        const string functionInstanceId = "id";
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var store = await storeTask;
+
+        await store.CreateFunction(
+            functionId,
+            new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            crashedCheckFrequency: 0
+        ).ShouldBeTrueAsync();
+
+        await store.PostponeFunction(
+            functionId,
+            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            scrapbookJson: new RScrapbook().ToJson(),
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+
+        using var rFunctions = new RFunctions(
+            store,
+            new Settings(
+                unhandledExceptionHandler: unhandledExceptionCatcher.Catch,
+                postponedCheckFrequency: TimeSpan.FromSeconds(100)
+            )
+        );
+
+        var syncedParam = new Synced<string>();
+        var invokedFlag = new SyncedFlag();
+        rFunctions.RegisterAction(
+            functionTypeId,
+            void (string param) =>
+            {
+                syncedParam.Value = param; 
+                invokedFlag.Raise();
+            });
+
+        await invokedFlag.WaitForRaised(maxWaitMs: 250);
+        syncedParam.Value.ShouldBe("hello");
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     private class Scrapbook : RScrapbook
     {
         public int Value { get; set; }

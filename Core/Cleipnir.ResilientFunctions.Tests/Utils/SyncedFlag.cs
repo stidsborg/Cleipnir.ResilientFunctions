@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
@@ -29,6 +30,20 @@ public class SyncedFlag
     public Task WaitForRaised()
     {
         var tcs = new TaskCompletionSource();
+        lock (_sync)
+            if (_position == FlagPosition.Raised)
+                return Task.CompletedTask;
+            else
+                _waiters.Add(tcs);
+
+        return tcs.Task;
+    }
+    
+    public Task WaitForRaised(int maxWaitMs)
+    {
+        var tcs = new TaskCompletionSource();
+        Task.Delay(maxWaitMs).ContinueWith(_ => tcs.TrySetException(new TimeoutException()));
+        
         lock (_sync)
             if (_position == FlagPosition.Raised)
                 return Task.CompletedTask;

@@ -47,9 +47,6 @@ internal class PostponedWatchdog
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                await Task.Delay(_postponedCheckFrequency);
-                if (_shutdownCoordinator.ShutdownInitiated) return;
-
                 var now = DateTime.UtcNow;
 
                 var expiresSoon = await _functionStore
@@ -57,6 +54,9 @@ internal class PostponedWatchdog
 
                 foreach (var expireSoon in expiresSoon)
                     _ = SleepAndThenReInvoke(expireSoon, now);
+                
+                await Task.Delay(_postponedCheckFrequency);
+                if (_shutdownCoordinator.ShutdownInitiated) return;
             }
         }
         catch (Exception innerException)
@@ -74,8 +74,7 @@ internal class PostponedWatchdog
     private async Task SleepAndThenReInvoke(StoredPostponedFunction spf, DateTime now)
     {
         var functionId = new FunctionId(_functionTypeId, spf.InstanceId);
-        if (_shutdownCoordinator.ShutdownInitiated) return;
-        
+
         var postponedUntil = new DateTime(spf.PostponedUntil, DateTimeKind.Utc);
         var delay = TimeSpanHelper.Max(postponedUntil - now, TimeSpan.Zero);
         await Task.Delay(delay);
