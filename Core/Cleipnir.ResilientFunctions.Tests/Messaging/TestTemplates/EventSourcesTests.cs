@@ -1,13 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Shouldly;
@@ -29,10 +28,8 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-
-        // ReSharper disable once AccessToDisposedClosure
-        async Task<object> FirstAsync() => await eventSource.All.FirstAsync();
-        var task = FirstAsync();
+        
+        var task = eventSource.Next();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -58,10 +55,12 @@ public abstract class EventSourcesTests
 
         await eventSource.Append("hello world");
 
-        var nextEvent = await eventSource.All.NextEvent(maxWaitMs: 1_000);
+        var nextEvent = await eventSource.Next(maxWaitMs: 1_000);
         nextEvent.ShouldBe("hello world");
-        eventSource.Existing.Count.ShouldBe(1);
-        eventSource.Existing[0].ShouldBe("hello world");
+
+        var success = eventSource.OfType<string>().TryNext(out var next);
+        success.ShouldBeTrue();
+        next.ShouldBe("hello world");
     }
 
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnored();
@@ -77,10 +76,8 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-
-        // ReSharper disable once AccessToDisposedClosure
-        async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
-        var task = TakeTwo();
+        
+        var task = eventSource.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -111,9 +108,7 @@ public abstract class EventSourcesTests
             DefaultSerializer.Instance
         );
 
-        // ReSharper disable once AccessToDisposedClosure
-        async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
-        var task = TakeTwo();
+        var task = eventSource.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -146,10 +141,8 @@ public abstract class EventSourcesTests
             DefaultSerializer.Instance
         );
         await eventSource.Initialize();
-
-        // ReSharper disable once AccessToDisposedClosure
-        async Task<object> FirstAsync() => await eventSource.All.FirstAsync();
-        var task = FirstAsync();
+        
+        var task = eventSource.Next();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -177,9 +170,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
 
-        // ReSharper disable once AccessToDisposedClosure
-        async Task<IList<object>> TakeTwo() => await eventSource.All.Take(2).ToList();
-        var task = TakeTwo();
+        var task = eventSource.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -220,8 +211,8 @@ public abstract class EventSourcesTests
         
         await eventSource.Append("hello world");
         await Should.ThrowAsync<EventProcessingException>(eventSource.Append(1));
-        await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.All.Skip(1).NextEvent());
-        Should.Throw<EventProcessingException>(() => eventSource.Existing.ToList());
+        await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.Skip(1).Next());
+        Should.Throw<EventProcessingException>(() => eventSource.ToList());
     }
     
     private class ExceptionThrowingEventSerializer : ISerializer

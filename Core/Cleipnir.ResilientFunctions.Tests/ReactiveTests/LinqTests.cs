@@ -17,10 +17,10 @@ public class LinqTests
         var nextStringEmitted = source.OfType<string>().Next();
         nextStringEmitted.IsCompleted.ShouldBeFalse();
             
-        source.Emit(1);
+        source.SignalNext(1);
         nextStringEmitted.IsCompleted.ShouldBeFalse();
 
-        source.Emit("hello");
+        source.SignalNext("hello");
 
         nextStringEmitted.IsCompleted.ShouldBeTrue();
         nextStringEmitted.Result.ShouldBe("hello");
@@ -30,15 +30,15 @@ public class LinqTests
     public void NextOperatorEmitsLastEmittedEventAfterCompletionOfTheStream()
     {
         var source = new Source<int>();
-        source.Emit(1);
+        source.SignalNext(1);
             
         var next = source.Next();
-        source.Emit(2);
+        source.SignalNext(2);
             
         next.IsCompletedSuccessfully.ShouldBeTrue();
         next.Result.ShouldBe(1);
             
-        source.Emit(3); //should not thrown an error
+        source.SignalNext(3); //should not thrown an error
     }
 
     [TestMethod]
@@ -48,7 +48,7 @@ public class LinqTests
         var next = source.Where(_ => throw new InvalidOperationException("oh no")).Next();
             
         next.IsCompleted.ShouldBeFalse();
-        source.Emit("hello");
+        source.SignalNext("hello");
             
         next.IsFaulted.ShouldBeTrue();
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
@@ -61,10 +61,10 @@ public class LinqTests
         var next1 = source.Next();
         var next2 = source.Skip(1).Next();
             
-        source.Emit("hello");
+        source.SignalNext("hello");
         next1.IsCompletedSuccessfully.ShouldBeTrue();
         next2.IsCompleted.ShouldBeFalse();
-        source.Emit("world");
+        source.SignalNext("world");
         next2.IsCompletedSuccessfully.ShouldBeTrue();
     }
         
@@ -74,8 +74,8 @@ public class LinqTests
         var subscription2OnNextFlag = new SyncedFlag();
         var completeSubscription2OnNextFlag = new SyncedFlag();
         var source = new Source<string>();
-        source.Emit("hello");
-        source.Emit("world");
+        source.SignalNext("hello");
+        source.SignalNext("world");
 
         var completed1 = false;
         var failed1 = false;
@@ -142,13 +142,13 @@ public class LinqTests
             
         subscription1.DeliverExistingAndFuture();
             
-        source.Emit("hello");
+        source.SignalNext("hello");
         subscription1Emits.ShouldBe(1);
         subscription2Emits.ShouldBe(1);
             
         subscription1.Dispose();
             
-        source.Emit("world");
+        source.SignalNext("world");
         subscription1Emits.ShouldBe(1);
         subscription2Emits.ShouldBe(2);
     }
@@ -157,8 +157,8 @@ public class LinqTests
     public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
     {
         var source = new Source<string>();
-        source.Emit("hello");
-        source.Emit("world");
+        source.SignalNext("hello");
+        source.SignalNext("world");
 
         var completed = false;
         var failed = false;
@@ -184,8 +184,8 @@ public class LinqTests
     public void StreamCanBeReplayedToCertainEventCountWhenFailedEarlySuccessfully()
     {
         var source = new Source<string>();
-        source.Emit("hello");
-        source.Emit("world");
+        source.SignalNext("hello");
+        source.SignalNext("world");
 
         var completed = false;
         var failed = false;
@@ -218,7 +218,7 @@ public class LinqTests
 
         var emitsTask = source.Merge(toUpper).Take(2).ToList();
         
-        source.Emit("hello");
+        source.SignalNext("hello");
         
         emitsTask.IsCompletedSuccessfully.ShouldBeTrue();
         var emits = emitsTask.Result;

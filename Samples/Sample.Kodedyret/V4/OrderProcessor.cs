@@ -1,9 +1,8 @@
-﻿using System.Reactive.Linq;
-using Cleipnir.ResilientFunctions;
+﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive;
 using Serilog;
 
 namespace Sample.Kodedyret.V4;
@@ -61,16 +60,16 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             using var eventSource = await context.EventSource;
 
             await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
-            await eventSource.All.OfType<FundsReserved>().NextEvent(maxWaitMs: 5_000);
+            await eventSource.OfType<FundsReserved>().Next(maxWaitMs: 5_000);
             
             await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
-            await eventSource.All.OfType<ProductsShipped>().NextEvent(maxWaitMs: 5_000);
+            await eventSource.OfType<ProductsShipped>().Next(maxWaitMs: 5_000);
             
             await _messageBroker.Send(new CaptureFunds(order.OrderId, order.CustomerId, scrapbook.TransactionId));
-            await eventSource.All.OfType<FundsCaptured>().NextEvent(maxWaitMs: 5_000);
+            await eventSource.OfType<FundsCaptured>().Next(maxWaitMs: 5_000);
 
             await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId));
-            await eventSource.All.OfType<OrderConfirmationEmailSent>().NextEvent(5_000);
+            await eventSource.OfType<OrderConfirmationEmailSent>().Next(5_000);
 
             Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
         }        

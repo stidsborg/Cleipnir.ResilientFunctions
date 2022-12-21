@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Reactive;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class EventSource : IDisposable
+public class EventSource : IStream<object>, IDisposable
 {
     private readonly FunctionId _functionId;
     private readonly IEventStore _eventStore;
@@ -29,23 +28,9 @@ public class EventSource : IDisposable
     private volatile bool _disposed;
 
     public TimeoutProvider TimeoutProvider { get; }
+    
+    private readonly Source<object> _source;
 
-    private ImmutableList<object> _existing = ImmutableList<object>.Empty;
-    public IReadOnlyList<object> Existing
-    {
-        get
-        {
-            lock (_sync)
-                if (_thrownException == null)
-                    return _existing;
-                else
-                    throw _thrownException;
-        }
-    }
-    
-    private readonly ReplaySubject<object> _allSubject = new();
-    public IObservable<object> All => _allSubject;
-    
     public EventSource(
         FunctionId functionId, 
         IEventStore eventStore, 
@@ -60,6 +45,7 @@ public class EventSource : IDisposable
         TimeoutProvider = timeoutProvider;
         _eventSerializer = eventSerializer ?? DefaultSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
+        _source = new Source<object>();
     }
 
     public async Task Initialize()
@@ -109,9 +95,8 @@ public class EventSource : IDisposable
 
                 var deserialized = _eventSerializer
                     .DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
-                lock (_sync)
-                    _existing = _existing.Add(deserialized);
-                _allSubject.OnNext(deserialized);
+
+                _source.SignalNext(deserialized);
             }
         }
         catch (Exception e)
@@ -120,7 +105,7 @@ public class EventSource : IDisposable
             lock (_sync)
                 _thrownException = eventHandlingException;
                     
-            _allSubject.OnError(eventHandlingException);
+            _source.SignalError(eventHandlingException);
             throw eventHandlingException;
         }
     }
@@ -139,6 +124,9 @@ public class EventSource : IDisposable
 
     public Task Sync() => DeliverOutstandingEvents();
     public void Dispose() => _disposed = true;
+
+    public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null) 
+        => _source.Subscribe(onNext, onCompletion, onError, subscriptionGroupId);
 }
 
 public record EventAndIdempotencyKey(object Event, string? IdempotencyKey = null);

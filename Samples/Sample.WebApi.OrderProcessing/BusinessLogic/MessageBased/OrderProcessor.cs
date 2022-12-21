@@ -1,10 +1,9 @@
-﻿using System.Reactive.Linq;
-using Cleipnir.ResilientFunctions;
+﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.AspNetCore.Core;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive;
 using Sample.WebApi.OrderProcessing.Communication.Messaging;
 using Sample.WebApi.OrderProcessing.DataAccess;
 using Sample.WebApi.OrderProcessing.Domain;
@@ -66,26 +65,24 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         {
             var transactionId = scrapbook.TransactionId;
             using var eventSource = await context.EventSource;
-            var events = eventSource.All;
 
             await _messageBroker.Send(new GetProductsTotalPrice(order.OrderId, order.ProductIds));
             var totalPrice = await eventSource
-                .All
                 .OfType<ProductsTotalPrice>()
-                .NextEvent(MaxWaitMs)
-                .AfterDo(p => p.TotalPrice);
-        
+                .Select(p => p.TotalPrice)
+                .Next(MaxWaitMs);
+
             await _messageBroker.Send(new ReserveFunds(order.OrderId, totalPrice, transactionId, order.CustomerId));
-            await events.OfType<FundsReserved>().NextEvent(MaxWaitMs);
+            await eventSource.OfType<FundsReserved>().Next(MaxWaitMs);
         
             await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
-            await events.OfType<ProductsShipped>().NextEvent(MaxWaitMs);
+            await eventSource.OfType<ProductsShipped>().Next(MaxWaitMs);
 
             await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId));
-            await events.OfType<OrderConfirmationEmailSent>().NextEvent(MaxWaitMs);
+            await eventSource.OfType<OrderConfirmationEmailSent>().Next(MaxWaitMs);
         
             await _messageBroker.Send(new CaptureFunds(order.OrderId, transactionId));
-            await events.OfType<FundsCaptured>().NextEvent(MaxWaitMs);
+            await eventSource.OfType<FundsCaptured>().Next(MaxWaitMs);
         
             await _ordersRepository.Insert(order);
         }

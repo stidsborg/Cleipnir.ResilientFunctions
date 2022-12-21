@@ -14,8 +14,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public async Task SuspensionExceptionIsThrownWhenNoEventHasBeenEmittedFromLeafOperator()
         {
             var source = new Source<object>();
-            source.Emit("hello");
-            source.Emit("world");
+            source.SignalNext("hello");
+            source.SignalNext("world");
 
             await Should.ThrowAsync<SuspendInvocationException>(
                 () => source
@@ -28,9 +28,9 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public async Task EventIsEmittedInResultWhenEventHasBeenEmittedFromLeafOperator()
         {
             var source = new Source<object>();
-            source.Emit("hello");
-            source.Emit(1);
-            source.Emit("world");
+            source.SignalNext("hello");
+            source.SignalNext(1);
+            source.SignalNext("world");
 
             var next = await source
                 .OfType<int>()
@@ -43,8 +43,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public async Task TrySuspensionIsDetectedWhenNoEventHasBeenEmittedFromLeafOperator()
         {
             var source = new Source<object>();
-            source.Emit("hello");
-            source.Emit("world");
+            source.SignalNext("hello");
+            source.SignalNext("world");
 
             var result = await source
                 .OfType<int>()
@@ -58,9 +58,9 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public async Task EventIsEmittedInOptionResultWhenEventHasBeenEmittedFromLeafOperator()
         {
             var source = new Source<object>();
-            source.Emit("hello");
-            source.Emit(1);
-            source.Emit("world");
+            source.SignalNext("hello");
+            source.SignalNext(1);
+            source.SignalNext("world");
 
             var next = await source
                 .OfType<int>()

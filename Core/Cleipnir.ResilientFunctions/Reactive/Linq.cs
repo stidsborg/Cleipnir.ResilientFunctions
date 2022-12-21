@@ -123,6 +123,37 @@ public static class Linq
     
     public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
 
+    public static Task<T> Next<T>(this IStream<T> s, int maxWaitMs)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        _ = s.Take(1).Last().ContinueWith(t => tcs.TrySetResult(t.Result));
+        _ = Task.Delay(maxWaitMs).ContinueWith(_ => tcs.TrySetException(new TimeoutException($"Event was not emitted within threshold of {maxWaitMs}ms")));
+
+        return tcs.Task;
+    }
+
+    public static bool TryNext<T>(this IStream<T> s, out T? next)
+    {
+        var success = false;
+        var t = default(T);
+        var subscription = s.Subscribe(
+            onNext: tt =>
+            {
+                if (success) return;
+                
+                t = tt;
+                success = true;
+            },
+            onCompletion: () => { },
+            onError: _ => { }
+        );
+
+        subscription.DeliverExisting();
+        subscription.Dispose();
+        next = t;
+        return success;
+    }
+
     public static async Task<T> NextOrSuspend<T>(this IStream<T> s)
     {
         var tcs = new TaskCompletionSource<T>();
@@ -201,6 +232,21 @@ public static class Linq
         subscription.DeliverExistingAndFuture();
         
         return tcs.Task;
+    }
+    
+    public static List<T> ExistingToList<T>(this IStream<T> stream)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var list = new List<T>();
+        var subscription = stream.Subscribe(
+            onNext: t => list.Add(t),
+            onCompletion: () => tcs.TrySetResult(list),
+            onError: e => tcs.TrySetException(e)
+        );
+        subscription.DeliverExisting();
+        subscription.Dispose();
+
+        return list;
     }
 
     #endregion

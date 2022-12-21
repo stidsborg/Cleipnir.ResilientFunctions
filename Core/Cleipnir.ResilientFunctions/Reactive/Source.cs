@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Reactive;
 
 public interface ISource<T> : IStream<T>
 {
-    void Emit(T toEmit);
+    void SignalNext(T toEmit);
     void SignalError(Exception exception);
     void SignalCompletion();
 }
@@ -49,7 +49,7 @@ public class Source<T> : ISource<T>
         }
     }
     
-    public void Emit(T toEmit)
+    public void SignalNext(T toEmit)
     {
         List<SubscriptionGroup> subscriptions;
         lock (_sync)
@@ -65,7 +65,7 @@ public class Source<T> : ISource<T>
             subscription.DeliverOutstandingEvents();
     }
     
-    public void Emit(IEnumerable<T> toEmits)
+    public void SignalNext(IEnumerable<T> toEmits)
     {
         List<SubscriptionGroup> subscriptions;
         lock (_sync)

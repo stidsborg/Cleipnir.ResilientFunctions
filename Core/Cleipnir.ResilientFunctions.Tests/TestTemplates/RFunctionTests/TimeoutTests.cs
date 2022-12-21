@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
-using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -35,7 +34,7 @@ public abstract class TimeoutTests
             inner: async Task (string _, Context context) =>
             {
                 var es = await context.EventSource;
-                var timeoutTask = es.All.OfType<Timeout>().NextEvent();
+                var timeoutTask = es.OfType<Timeout>().Next();
                 await es.TimeoutProvider.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
                 timeoutTask.IsCompleted.ShouldBeFalse();
                 var timeout = await timeoutTask;

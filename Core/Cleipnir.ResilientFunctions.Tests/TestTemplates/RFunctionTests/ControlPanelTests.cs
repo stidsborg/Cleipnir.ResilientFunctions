@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -724,7 +725,7 @@ public abstract class ControlPanelTests
                 }
                 else
                 {
-                    var existingEvents = eventSource.Existing.Select(e => e.ToString()!).ToList();
+                    var existingEvents = eventSource.Select(e => e.ToString()!).ExistingToList();
                     syncedList.AddRange(existingEvents);
                 }
             }
