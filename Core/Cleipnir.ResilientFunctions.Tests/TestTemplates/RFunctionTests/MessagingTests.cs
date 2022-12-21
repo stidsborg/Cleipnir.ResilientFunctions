@@ -1,7 +1,7 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -42,12 +42,13 @@ public abstract class MessagingTests
     public async Task FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist(Task<IFunctionStore> functionStore)
     {
         var store = await functionStore;
-        
+
+        var functionId = new FunctionId(nameof(FunctionCompletesAfterAwaitedMessageIsReceived),"instanceId");
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rAction = rFunctions.RegisterFunc(
-            nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
+            functionId.TypeId,
             inner: async Task<string> (string _, Context context) =>
             {
                 var es = await context.EventSource;
@@ -55,6 +56,11 @@ public abstract class MessagingTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke("instanceId", ""));
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+            rAction.Invoke(functionId.InstanceId.Value, "")
+        );
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Suspended);
     }
 }
