@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
@@ -22,10 +23,12 @@ public class EventSource : IDisposable
     private int _deliverOutstandingEventsIteration;
     private EventProcessingException? _thrownException;
     
-    private readonly AsyncSemaphore _asyncSemaphore = new(1);
+    private readonly AsyncSemaphore _asyncSemaphore = new(maxParallelism: 1);
     private readonly object _sync = new();
     
     private volatile bool _disposed;
+
+    public TimeoutProvider TimeoutProvider { get; }
 
     private ImmutableList<object> _existing = ImmutableList<object>.Empty;
     public IReadOnlyList<object> Existing
@@ -47,12 +50,14 @@ public class EventSource : IDisposable
         FunctionId functionId, 
         IEventStore eventStore, 
         EventSourceWriter eventWriter,
+        TimeoutProvider timeoutProvider,
         TimeSpan? pullFrequency, 
         ISerializer? eventSerializer)
     {
         _functionId = functionId;
         _eventStore = eventStore;
         _eventWriter = eventWriter;
+        TimeoutProvider = timeoutProvider;
         _eventSerializer = eventSerializer ?? DefaultSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
     }

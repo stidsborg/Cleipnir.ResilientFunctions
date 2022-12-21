@@ -83,6 +83,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task TruncateTable()
     {
+        await _eventStore.TruncateTable();
+        await _timeoutStore.TruncateTable();
+        
         await using var conn = await CreateConnection();
         var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions";
         await using var command = new NpgsqlCommand(sql, conn);

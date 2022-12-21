@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -12,18 +13,19 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 public abstract class CustomEventSerializerTests
 {
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
-    protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IEventStore> eventStoreTask)
+    protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> eventStoreTask)
     {
         var functionId = new FunctionId(
             functionTypeId: nameof(CustomEventSerializerTests),
             functionInstanceId: nameof(CustomEventSerializerIsUsedWhenSpecified)
         );
-        var eventStore = await eventStoreTask;
+        var functionStore = await eventStoreTask;
         var eventSerializer = new EventSerializer();
         var eventSource = new EventSource(
             functionId,
-            eventStore,
-            new EventSourceWriter(functionId, eventStore, eventSerializer),
+            functionStore.EventStore,
+            new EventSourceWriter(functionId, functionStore.EventStore, eventSerializer),
+            new TimeoutProvider(functionStore.TimeoutStore, functionId),
             pullFrequency: null,
             eventSerializer
         );

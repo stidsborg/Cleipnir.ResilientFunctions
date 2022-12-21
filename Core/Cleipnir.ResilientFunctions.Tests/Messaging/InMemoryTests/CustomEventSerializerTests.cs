@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -11,5 +10,5 @@ public class CustomEventSerializerTests : TestTemplates.CustomEventSerializerTes
 {
     [TestMethod]
     public override Task CustomEventSerializerIsUsedWhenSpecified()
-        => CustomEventSerializerIsUsedWhenSpecified(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => CustomEventSerializerIsUsedWhenSpecified(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

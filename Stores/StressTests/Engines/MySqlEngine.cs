@@ -23,7 +23,7 @@ public class MySqlEngine : IEngine
 
         var store = new MySqlFunctionStore(ConnectionString);
         await store.Initialize();
-        await store.TruncateTable();
+        await store.TruncateTables();
     } 
     public async Task<int> NumberOfNonCompleted()
     {

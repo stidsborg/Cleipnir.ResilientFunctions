@@ -92,7 +92,7 @@ internal class CrashedWatchdog
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
-                    $"{nameof(CrashedWatchdog)} failed while executing: '{_functionTypeId}'",
+                    $"{nameof(CrashedWatchdog)} for '{_functionTypeId}' failed",
                     innerException: thrownException
                 )
             );

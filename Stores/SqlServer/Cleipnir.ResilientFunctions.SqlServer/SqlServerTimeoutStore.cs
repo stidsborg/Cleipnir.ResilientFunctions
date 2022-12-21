@@ -33,6 +33,15 @@ public class SqlServerTimeoutStore : ITimeoutStore
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
+    
+    public async Task TruncateTable()
+    {
+        await using var conn = await CreateConnection();
+        
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}RFunctions_Timeouts";
+        var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
 
     public async Task UpsertTimeout(StoredTimeout storedTimeout)
     {

@@ -12,15 +12,17 @@ public class MySqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public IEventStore EventStore { get; }
-    public ITimeoutStore TimeoutStore { get; }
+    private readonly MySqlEventStore _eventStore;
+    public IEventStore EventStore => _eventStore;
+    private readonly MySqlTimeoutStore _timeoutStore;
+    public ITimeoutStore TimeoutStore => _timeoutStore;
 
     public MySqlFunctionStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
-        EventStore = new MySqlEventStore(connectionString, tablePrefix);
-        TimeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
+        _eventStore = new MySqlEventStore(connectionString, tablePrefix);
+        _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
     }
 
     public async Task Initialize()
@@ -61,8 +63,11 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task TruncateTable()
+    public async Task TruncateTables()
     {
+        await _eventStore.TruncateTable();
+        await _timeoutStore.TruncateTable();
+        
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions";
         await using var command = new MySqlCommand(sql, conn);

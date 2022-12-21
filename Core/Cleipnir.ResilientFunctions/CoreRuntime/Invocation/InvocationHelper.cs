@@ -16,15 +16,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
-    private readonly IEventStore _eventStore;
     private readonly SettingsWithDefaults _settings;
 
     private ISerializer Serializer { get; }
 
     public InvocationHelper(
         SettingsWithDefaults settings,
-        IFunctionStore functionStore, 
-        IEventStore eventStore,
+        IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator)
     {
         _settings = settings;
@@ -32,7 +30,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
         _functionStore = functionStore;
-        _eventStore = eventStore;
     }
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(FunctionId functionId, TParam param, TScrapbook scrapbook)
@@ -363,11 +360,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     {
         async Task<EventSource> CreateNewEventSource()
         {
-            var eventSourceWriter = new EventSourceWriter(functionId, _eventStore, Serializer);
+            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore.EventStore, Serializer);
+            var timeoutProvider = new TimeoutProvider(_functionStore.TimeoutStore, functionId); 
             var eventSource = new EventSource(
                 functionId,
-                _eventStore,
+                _functionStore.EventStore,
                 eventSourceWriter,
+                timeoutProvider,
                 _settings.EventSourcePullFrequency,
                 _settings.Serializer
             );
@@ -381,7 +380,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     public async Task<List<EventAndIdempotencyKey>> GetEvents(FunctionId functionId)
     {
-        var storedEvents = await _eventStore.GetEvents(functionId, skip: 0);
+        var storedEvents = await _functionStore.EventStore.GetEvents(functionId, skip: 0);
         return storedEvents
             .Select(se => new EventAndIdempotencyKey(
                     _settings.Serializer.DeserializeEvent(se.EventJson, se.EventType),

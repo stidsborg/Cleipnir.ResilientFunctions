@@ -370,10 +370,7 @@ public class RFunctions : IDisposable
             }
         
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(
-                settingsWithDefaults, 
-                _functionStore, _eventStore,
-                _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<Unit, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner, 
@@ -530,7 +527,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _eventStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new Invoker<Unit, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
@@ -609,7 +606,7 @@ public class RFunctions : IDisposable
             if (settingsWithDefaults.DependencyResolver == null)
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _eventStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner: null,
@@ -670,7 +667,7 @@ public class RFunctions : IDisposable
             if (settingsWithDefaults.DependencyResolver == null)
                 throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
             
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _eventStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner: null,

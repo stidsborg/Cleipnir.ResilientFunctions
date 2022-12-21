@@ -50,7 +50,7 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
         {
             var store = new MySqlFunctionStore(ConnectionString); 
             await store.Initialize();
-            await store.TruncateTable();
+            await store.TruncateTables();
             return store;
         }
         

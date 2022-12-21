@@ -88,6 +88,9 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task Truncate()
     {
+        await _eventStore.TruncateTable();
+        await _timeoutStore.TruncateTable();
+        
         await using var conn = await _connFunc();
         var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions";
         await using var command = new SqlCommand(sql, conn);

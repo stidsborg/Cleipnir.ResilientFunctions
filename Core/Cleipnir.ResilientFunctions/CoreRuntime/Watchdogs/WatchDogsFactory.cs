@@ -35,7 +35,19 @@ internal static class WatchDogsFactory
             shutdownCoordinator
         );
 
+        var timeoutWatchdog = new TimeoutWatchdog(
+            functionTypeId,
+            functionStore.TimeoutStore,
+            functionStore.EventStore,
+            settings.Serializer,
+            settings.TimeoutCheckFrequency,
+            settings.DelayStartup,
+            settings.UnhandledExceptionHandler,
+            shutdownCoordinator
+        );
+
         _ = crashedWatchdog.Start();
         _ = postponedWatchdog.Start();
+        _ = timeoutWatchdog.Start();
     }
 }

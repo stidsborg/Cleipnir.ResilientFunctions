@@ -8,29 +8,29 @@ public class EventSourcesTests : Cleipnir.ResilientFunctions.Tests.Messaging.Tes
 {
     [TestMethod]
     public override Task EventSourcesSunshineScenario() 
-        => EventSourcesSunshineScenario(Sql.CreateAndInitializeEventStore());
+        => EventSourcesSunshineScenario(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
-        => ExistingEventsShouldBeSameAsAllAfterEmit(Sql.CreateAndInitializeEventStore());
+        => ExistingEventsShouldBeSameAsAllAfterEmit(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
-        => SecondEventWithExistingIdempotencyKeyIsIgnored(Sql.CreateAndInitializeEventStore());
+        => SecondEventWithExistingIdempotencyKeyIsIgnored(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
-        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(Sql.CreateAndInitializeEventStore());
+        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task EventSourcesSunshineScenarioUsingEventStore()
-        => EventSourcesSunshineScenarioUsingEventStore(Sql.CreateAndInitializeEventStore());
+        => EventSourcesSunshineScenarioUsingEventStore(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore()
-        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Sql.CreateAndInitializeEventStore());
+        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
-        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Sql.CreateAndInitializeEventStore());
+        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Sql.AutoCreateAndInitializeStore());
 }

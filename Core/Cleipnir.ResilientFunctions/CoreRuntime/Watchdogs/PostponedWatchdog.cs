@@ -63,7 +63,7 @@ internal class PostponedWatchdog
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
-                    $"{nameof(PostponedWatchdog)} failed while executing: '{_functionTypeId}'",
+                    $"{nameof(PostponedWatchdog)} for '{_functionTypeId}' failed",
                     innerException
                 )
             );
