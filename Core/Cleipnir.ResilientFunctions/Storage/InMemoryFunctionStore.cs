@@ -138,6 +138,24 @@ public class InMemoryFunctionStore : IFunctionStore
                 .ToTask();
     }
 
+    public Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
+    {
+        lock (_sync)
+            return _states
+                .Values
+                .Where(s => s.FunctionId.TypeId == functionTypeId)
+                .Where(s => s.Status == Status.Suspended)
+                .Where(s =>
+                {
+                    var events = EventStore.GetEvents(s.FunctionId, skip: 0).Result;
+                    return s.SuspendUntilEventSourceCountAtLeast <= events.Count();
+                })
+                .Select(s => new StoredEligibleSuspendedFunction(s.FunctionId.InstanceId, s.Epoch))
+                .ToList()
+                .AsEnumerable()
+                .ToTask();
+    }
+
     public Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 

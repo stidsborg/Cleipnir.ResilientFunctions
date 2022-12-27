@@ -259,6 +259,43 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    public async Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = @$"
+            SELECT rf.function_instance_id, rf.epoch
+            FROM {_tablePrefix}rfunctions AS rf
+            INNER JOIN (
+                SELECT events.function_instance_id, MAX(Position) + 1 AS events_count
+                FROM {_tablePrefix}rfunctions_events AS events
+                WHERE events.function_type_id = ?
+                GROUP BY events.function_instance_id
+            ) AS events 
+                ON rf.function_instance_id = events.function_instance_id
+            WHERE rf.function_type_id = ? AND 
+                  rf.status = {(int) Status.Suspended} AND
+                  rf.suspend_until_eventsource_count <= events.events_count";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionTypeId.Value},
+                new() {Value = functionTypeId.Value},
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var functions = new List<StoredEligibleSuspendedFunction>();
+        while (await reader.ReadAsync())
+        {
+            var functionInstanceId = reader.GetString(0);
+            var epoch = reader.GetInt32(1);
+            functions.Add(new StoredEligibleSuspendedFunction(functionInstanceId, epoch));
+        }
+
+        return functions;
+    }
+
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 

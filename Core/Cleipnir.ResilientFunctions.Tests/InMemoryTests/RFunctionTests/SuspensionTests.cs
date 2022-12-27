@@ -15,4 +15,11 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
     [TestMethod]
     public override Task FunctionCanBeSuspended()
         => FunctionCanBeSuspended(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded()
+        => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
 }

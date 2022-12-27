@@ -42,6 +42,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
         => _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
 
+    public Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId) 
+        => _inner.GetEligibleSuspendedFunctions(functionTypeId);
+
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 

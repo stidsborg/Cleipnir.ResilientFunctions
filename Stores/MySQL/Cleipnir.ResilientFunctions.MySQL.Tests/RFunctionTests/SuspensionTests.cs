@@ -12,4 +12,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task FunctionCanBeSuspended()
         => FunctionCanBeSuspended(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded()
+        => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(Sql.AutoCreateAndInitializeStore());
 }

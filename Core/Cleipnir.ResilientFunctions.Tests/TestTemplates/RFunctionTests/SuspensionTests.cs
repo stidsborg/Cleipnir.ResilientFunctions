@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -28,18 +28,14 @@ public abstract class SuspensionTests
             Result(string _) => Suspend.Until(1)
         );
 
-        _ = rAction.Invoke(functionInstanceId, "hello world");
-
-        await BusyWait.Until(
-            () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Suspended)
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+            () => rAction.Invoke(functionInstanceId, "hello world")
         );
 
-        var sf = await store
-            .GetFunction(functionId)
-            .SelectAsync(sf => sf?.SuspendedUntilEventSourceCount);
-
+        var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
-        sf.Value.ShouldBe(1);
+        sf.Status.ShouldBe(Status.Suspended);
+        sf.SuspendedUntilEventSourceCount.ShouldBe(1);
     }
     
     public abstract Task FunctionCanBeSuspended();
@@ -56,22 +52,57 @@ public abstract class SuspensionTests
             new Settings(unhandledExceptionHandler.Catch)
         );
 
-        var rAction = rFunctions.RegisterFunc(
+        var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             Result<string>(string _) => Suspend.Until(1)
         );
 
-        _ = rAction.Invoke(functionInstanceId, "hello world");
-
-        await BusyWait.Until(
-            () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Suspended)
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+            () => rFunc.Invoke(functionInstanceId, "hello world")
         );
 
-        var sf = await store
-            .GetFunction(functionId)
-            .SelectAsync(sf => sf?.SuspendedUntilEventSourceCount);
-
+        var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
-        sf.Value.ShouldBe(1);
+        sf.Status.ShouldBe(Status.Suspended);
+        sf.SuspendedUntilEventSourceCount.ShouldBe(1);
+    }
+    
+    public abstract Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded();
+    protected async Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = nameof(DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded).ToFunctionTypeId();
+        var functionInstanceId = "functionInstanceId";
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            Result<string>(string _) => Suspend.Until(2)
+        );
+
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+            () => rFunc.Invoke(functionInstanceId, "hello world")
+        );
+
+        (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
+
+        await rFunc.EventSourceWriters.For(functionInstanceId).Append("hello universe");
+
+        (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
+        
+        await rFunc.EventSourceWriters.For(functionInstanceId).Append("hello multiverse");
+        
+        var eligibleFunctions = await store
+            .GetEligibleSuspendedFunctions(functionTypeId)
+            .ToListAsync();
+        
+        eligibleFunctions.Count.ShouldBe(1);
+        eligibleFunctions[0].InstanceId.ShouldBe(functionInstanceId);
+        eligibleFunctions[0].Epoch.ShouldBe(0);
     }
 }

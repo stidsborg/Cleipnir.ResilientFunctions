@@ -21,6 +21,7 @@ public record StoredFunctionStatus(FunctionId FunctionId, Status Status, int Epo
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, int SignOfLife, long CrashedCheckFrequency);
 public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);
+public record StoredEligibleSuspendedFunction(FunctionInstanceId InstanceId, int Epoch);
 
 public record StoredParameter(string ParamJson, string ParamType);
 public record StoredResult(string? ResultJson, string? ResultType)

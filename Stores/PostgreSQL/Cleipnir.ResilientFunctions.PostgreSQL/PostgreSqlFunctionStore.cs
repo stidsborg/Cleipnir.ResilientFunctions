@@ -67,7 +67,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_postponed
             ON {_tablePrefix}rfunctions(function_type_id, postponed_until, function_instance_id)
             INCLUDE (epoch)
-            WHERE status = {(int) Status.Postponed};";
+            WHERE status = {(int) Status.Postponed};
+
+            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_suspended
+            ON {_tablePrefix}rfunctions(function_type_id, function_instance_id)
+            INCLUDE (epoch)
+            WHERE status = {(int) Status.Suspended};
+            ";
 
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -276,6 +282,42 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var epoch = reader.GetInt32(1);
             var postponedUntil = reader.GetInt64(2);
             functions.Add(new StoredPostponedFunction(functionInstanceId, epoch, postponedUntil));
+        }
+
+        return functions;
+    }
+
+    public async Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            SELECT rf.function_instance_id, rf.epoch
+            FROM {_tablePrefix}rfunctions AS rf
+            INNER JOIN (
+                SELECT events.function_instance_id, MAX(Position) + 1 AS events_count
+                FROM {_tablePrefix}rfunctions_events AS events
+                WHERE events.function_type_id = $1
+                GROUP BY events.function_instance_id
+            ) AS events 
+                ON rf.function_instance_id = events.function_instance_id
+            WHERE rf.function_type_id = $1 AND 
+                  rf.status = {(int) Status.Suspended} AND
+                  rf.suspend_until_eventsource_count <= events.events_count";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionTypeId.Value},
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var functions = new List<StoredEligibleSuspendedFunction>();
+        while (await reader.ReadAsync())
+        {
+            var functionInstanceId = reader.GetString(0);
+            var epoch = reader.GetInt32(1);
+            functions.Add(new StoredEligibleSuspendedFunction(functionInstanceId, epoch));
         }
 
         return functions;

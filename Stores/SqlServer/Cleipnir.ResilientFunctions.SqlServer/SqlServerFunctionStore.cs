@@ -72,16 +72,12 @@ public class SqlServerFunctionStore : IFunctionStore
                   ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
                   INCLUDE (Epoch)
                   WHERE Status = {(int)Status.Postponed};
+                CREATE INDEX {_tablePrefix}RFunctions_idx_Suspended
+                  ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
+                  INCLUDE (Epoch)
+                  WHERE Status = {(int)Status.Suspended}              
             END";
 
-        await using var command = new SqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task DropIfExists()
-    {
-        await using var conn = await _connFunc();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -253,7 +249,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, PostponedUntil
-            FROM {_tablePrefix}RFunctions WITH (NOLOCK)
+            FROM {_tablePrefix}RFunctions 
             WHERE FunctionTypeId = @FunctionTypeId 
               AND Status = {(int) Status.Postponed} 
               AND PostponedUntil <= @PostponedUntil";
@@ -272,6 +268,43 @@ public class SqlServerFunctionStore : IFunctionStore
                 var epoch = reader.GetInt32(1);
                 var postponedUntil = reader.GetInt64(2);
                 rows.Add(new StoredPostponedFunction(functionInstanceId, epoch, postponedUntil));    
+            }
+
+            reader.NextResult();
+        }
+
+        return rows;
+    }
+
+    public async Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+            SELECT rf.FunctionInstanceId, rf.Epoch
+            FROM {_tablePrefix}RFunctions AS rf
+            INNER JOIN (
+                SELECT events.FunctionInstanceId, MAX(Position) + 1 AS EventsCount
+                FROM {_tablePrefix}RFunctions_Events AS events
+                WHERE events.FunctionTypeId = @FunctionTypeId
+                GROUP BY events.FunctionInstanceId
+            ) AS events
+            ON rf.FunctionInstanceId = events.FunctionInstanceId AND 
+               rf.SuspendUntilEventSourceCount <= events.EventsCount
+            WHERE rf.FunctionTypeId = @FunctionTypeId AND 
+                  rf.status = {(int) Status.Suspended}";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var rows = new List<StoredEligibleSuspendedFunction>(); 
+        while (reader.HasRows)
+        {
+            while (reader.Read())
+            {
+                var functionInstanceId = reader.GetString(0);
+                var epoch = reader.GetInt32(1);
+                rows.Add(new StoredEligibleSuspendedFunction(functionInstanceId, epoch));    
             }
 
             reader.NextResult();
