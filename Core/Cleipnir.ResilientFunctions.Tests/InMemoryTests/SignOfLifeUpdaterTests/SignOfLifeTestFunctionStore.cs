@@ -45,6 +45,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId) 
         => _inner.GetEligibleSuspendedFunctions(functionTypeId);
 
+    public Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
+        => _inner.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
+
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 

@@ -32,6 +32,7 @@ public interface IFunctionStore
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
     Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId);
+    Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId);
 
     Task<bool> SetFunctionState(
         FunctionId functionId,

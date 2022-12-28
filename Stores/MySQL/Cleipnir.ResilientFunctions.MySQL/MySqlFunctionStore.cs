@@ -296,6 +296,40 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = @$"
+            SELECT rf.epoch
+            FROM {_tablePrefix}rfunctions AS rf
+            INNER JOIN (
+                SELECT MAX(Position) + 1 AS events_count
+                FROM {_tablePrefix}rfunctions_events AS events
+                WHERE events.function_type_id = ? AND
+                      events.function_instance_id = ?
+            ) AS events ON 1 = 1
+            WHERE rf.function_type_id = ? AND 
+                  rf.function_instance_id = ? AND
+                  rf.status = {(int) Status.Suspended} AND
+                  rf.suspend_until_eventsource_count <= events.events_count";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            return new Epoch(reader.GetInt32(0));
+
+        return null;
+    }
+
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 

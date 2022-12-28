@@ -323,6 +323,38 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            SELECT rf.epoch
+            FROM {_tablePrefix}rfunctions AS rf
+            INNER JOIN (
+                SELECT MAX(Position) + 1 AS events_count
+                FROM {_tablePrefix}rfunctions_events AS events
+                WHERE events.function_type_id = $1 AND 
+                      events.function_instance_id = $2
+            ) AS events ON 1=1
+            WHERE rf.function_type_id = $1 AND 
+                  rf.function_instance_id = $2 AND
+                  rf.status = {(int) Status.Suspended} AND
+                  rf.suspend_until_eventsource_count <= events.events_count";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            return new Epoch(reader.GetInt32(0));
+
+        return null;
+    }
+
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 

@@ -156,6 +156,18 @@ public class InMemoryFunctionStore : IFunctionStore
                 .ToTask();
     }
 
+    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
+    {
+        var eligibleFunctions = await GetEligibleSuspendedFunctions(functionId.TypeId);
+        var epoch = eligibleFunctions
+            .SingleOrDefault(f => f.InstanceId == functionId.InstanceId)
+            ?.Epoch;
+        return epoch == null 
+            ? null 
+            : new Epoch(epoch.Value);
+    }
+
+
     public Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 

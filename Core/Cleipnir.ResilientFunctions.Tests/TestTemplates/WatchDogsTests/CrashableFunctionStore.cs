@@ -71,6 +71,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IEnumerable<StoredEligibleSuspendedFunction>>(new TimeoutException())
             : _inner.GetEligibleSuspendedFunctions(functionTypeId);
 
+    public Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
+        => _crashed
+            ? Task.FromException<Epoch?>(new TimeoutException())
+            : _inner.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
+
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, StoredParameter storedParameter,
         StoredScrapbook storedScrapbook, StoredResult storedResult, StoredException? storedException, 

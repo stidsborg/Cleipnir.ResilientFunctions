@@ -46,3 +46,23 @@ internal static class StorageTypeExtensions
             ? default(TResult?) 
             : serializer.DeserializeResult<TResult>(result.ResultJson, result.ResultType);
 }
+
+public sealed class Epoch
+{
+    public int Value { get; }    
+    
+    public Epoch(int value) => Value = value;
+
+    public static implicit operator int(Epoch epoch) => epoch.Value;
+
+    public override bool Equals(object? obj)
+    {
+        return obj switch
+        {
+            Epoch epoch => epoch.Value == Value,
+            _ => false
+        };
+    }
+    
+    public override int GetHashCode() => Value;
+}

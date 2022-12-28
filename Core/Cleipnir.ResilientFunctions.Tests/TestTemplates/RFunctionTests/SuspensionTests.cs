@@ -36,6 +36,9 @@ public abstract class SuspensionTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         sf.SuspendedUntilEventSourceCount.ShouldBe(1);
+
+        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
+        epoch.ShouldBeNull();
     }
     
     public abstract Task FunctionCanBeSuspended();
@@ -65,6 +68,9 @@ public abstract class SuspensionTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         sf.SuspendedUntilEventSourceCount.ShouldBe(1);
+        
+        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
+        epoch.ShouldBeNull();
     }
     
     public abstract Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded();
@@ -73,6 +79,8 @@ public abstract class SuspensionTests
         var store = await storeTask;
         var functionTypeId = nameof(DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded).ToFunctionTypeId();
         var functionInstanceId = "functionInstanceId";
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions
         (
@@ -104,5 +112,9 @@ public abstract class SuspensionTests
         eligibleFunctions.Count.ShouldBe(1);
         eligibleFunctions[0].InstanceId.ShouldBe(functionInstanceId);
         eligibleFunctions[0].Epoch.ShouldBe(0);
+        
+        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
+        epoch.ShouldNotBeNull();
+        epoch.Value.ShouldBe(0);
     }
 }

@@ -313,6 +313,36 @@ public class SqlServerFunctionStore : IFunctionStore
         return rows;
     }
 
+    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+            SELECT rf.Epoch
+            FROM {_tablePrefix}RFunctions AS rf
+            INNER JOIN (
+                SELECT MAX(Position) + 1 AS EventsCount
+                FROM {_tablePrefix}RFunctions_Events AS events
+                WHERE events.FunctionTypeId = @FunctionTypeId AND 
+                      events.FunctionInstanceId = @FunctionInstanceId
+            ) AS events
+            ON 1 = 1 
+            WHERE rf.FunctionTypeId = @FunctionTypeId AND
+                  rf.FunctionInstanceId = @FunctionInstanceId AND
+                  rf.status = {(int) Status.Suspended} AND 
+                  rf.SuspendUntilEventSourceCount <= events.EventsCount";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (reader.HasRows)
+            while (reader.Read())
+                return new Epoch(reader.GetInt32(0));
+
+        return default;
+    }
+
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
