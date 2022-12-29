@@ -13,6 +13,7 @@ public class Options
     internal TimeSpan? CrashedCheckFrequency { get; }
     internal TimeSpan? PostponedCheckFrequency { get; }
     internal TimeSpan? TimeoutCheckFrequency { get; }
+    internal TimeSpan? SuspensionCheckFrequency { get; }
     internal TimeSpan? EventSourcePullFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
@@ -24,6 +25,7 @@ public class Options
         TimeSpan? crashedCheckFrequency = null, 
         TimeSpan? postponedCheckFrequency = null, 
         TimeSpan? timeoutCheckFrequency = null,
+        TimeSpan? suspensionCheckFrequency = null,
         TimeSpan? eventSourcePullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
@@ -34,6 +36,7 @@ public class Options
         CrashedCheckFrequency = crashedCheckFrequency;
         PostponedCheckFrequency = postponedCheckFrequency;
         TimeoutCheckFrequency = timeoutCheckFrequency;
+        SuspensionCheckFrequency = suspensionCheckFrequency;
         EventSourcePullFrequency = eventSourcePullFrequency;
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
@@ -64,6 +67,7 @@ public class Options
             CrashedCheckFrequency,
             PostponedCheckFrequency,
             TimeoutCheckFrequency,
+            SuspensionCheckFrequency,
             EventSourcePullFrequency,
             DelayStartup,
             MaxParallelRetryInvocations,

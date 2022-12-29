@@ -95,6 +95,7 @@ internal class PostponedWatchdog
         catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
         catch (FunctionInvocationPostponedException) { }
+        catch (FunctionInvocationSuspendedException) { }
         catch (Exception innerException)
         {
             _unhandledExceptionHandler.Invoke(

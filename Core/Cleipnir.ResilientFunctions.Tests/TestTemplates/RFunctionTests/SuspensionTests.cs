@@ -1,6 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -116,5 +118,41 @@ public abstract class SuspensionTests
         var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
         epoch.ShouldNotBeNull();
         epoch.Value.ShouldBe(0);
+    }
+    
+    public abstract Task EligibleSuspendedFunctionIsPickedUpByWatchdog();
+    protected async Task EligibleSuspendedFunctionIsPickedUpByWatchdog(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = nameof(EligibleSuspendedFunctionIsPickedUpByWatchdog).ToFunctionTypeId();
+        var functionInstanceId = "functionInstanceId";
+        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch, suspensionCheckFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        var flag = new SyncedFlag();
+        var rFunc = rFunctions.RegisterFunc<string, string>(
+            functionTypeId,
+            Result<string>(_) =>
+            {
+                if (flag.IsRaised) return "success";
+                flag.Raise();
+                return Suspend.Until(1);
+            });
+
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+            () => rFunc.Invoke(functionInstanceId, "hello world")
+        );
+
+        await rFunc.EventSourceWriters.For(functionInstanceId).Append("hello universe");
+        
+        await BusyWait.Until(
+            () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+        );
     }
 }

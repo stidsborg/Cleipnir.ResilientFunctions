@@ -22,4 +22,9 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
         );
 
+    [TestMethod]
+    public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
+        => EligibleSuspendedFunctionIsPickedUpByWatchdog(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }

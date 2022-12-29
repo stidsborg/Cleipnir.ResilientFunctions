@@ -14,6 +14,7 @@ public class Settings
     internal TimeSpan? CrashedCheckFrequency { get; }
     internal TimeSpan? PostponedCheckFrequency { get; }
     internal TimeSpan? TimeoutCheckFrequency { get; }
+    internal TimeSpan? SuspensionCheckFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? EventSourcePullFrequency { get; }
@@ -28,13 +29,14 @@ public class Settings
         TimeSpan? crashedCheckFrequency = null, 
         TimeSpan? postponedCheckFrequency = null,
         TimeSpan? timeoutCheckFrequency = null,
+        TimeSpan? suspensionCheckFrequency = null,
         TimeSpan? eventSourcePullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null, 
         IDependencyResolver? dependencyResolver = null
     ) :this(
-        unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency, timeoutCheckFrequency, eventSourcePullFrequency, 
+        unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency, timeoutCheckFrequency, suspensionCheckFrequency, eventSourcePullFrequency, 
         delayStartup, maxParallelRetryInvocations, serializer, dependencyResolver, 
         middlewares: new List<MiddlewareInstanceOrResolverFunc>()
     ) { }
@@ -44,6 +46,7 @@ public class Settings
         TimeSpan? crashedCheckFrequency, 
         TimeSpan? postponedCheckFrequency, 
         TimeSpan? timeoutCheckFrequency,
+        TimeSpan? suspensionCheckFrequency,
         TimeSpan? eventSourcePullFrequency,
         TimeSpan? delayStartup, 
         int? maxParallelRetryInvocations, 
@@ -55,6 +58,7 @@ public class Settings
         CrashedCheckFrequency = crashedCheckFrequency;
         PostponedCheckFrequency = postponedCheckFrequency;
         TimeoutCheckFrequency = timeoutCheckFrequency;
+        SuspensionCheckFrequency = suspensionCheckFrequency;
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
@@ -92,6 +96,7 @@ public record SettingsWithDefaults(
     TimeSpan CrashedCheckFrequency,
     TimeSpan PostponedCheckFrequency,
     TimeSpan TimeoutCheckFrequency,
+    TimeSpan SuspensionCheckFrequency,
     TimeSpan EventSourcePullFrequency,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
@@ -111,6 +116,7 @@ public record SettingsWithDefaults(
             child.CrashedCheckFrequency ?? CrashedCheckFrequency,
             child.PostponedCheckFrequency ?? PostponedCheckFrequency,
             child.TimeoutCheckFrequency ?? TimeoutCheckFrequency,
+            child.SuspensionCheckFrequency ?? SuspensionCheckFrequency,
             child.EventSourcePullFrequency ?? EventSourcePullFrequency,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
@@ -126,6 +132,7 @@ public record SettingsWithDefaults(
             CrashedCheckFrequency: TimeSpan.FromSeconds(10),
             PostponedCheckFrequency: TimeSpan.FromSeconds(10),
             TimeoutCheckFrequency: TimeSpan.FromSeconds(10),
+            SuspensionCheckFrequency: TimeSpan.FromSeconds(10), 
             EventSourcePullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 10,
