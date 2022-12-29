@@ -91,7 +91,7 @@ public abstract class EventSourcesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.EventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
+        (await functionStore.EventStore.GetEvents(functionId, 0)).Count().ShouldBe(2);
     }
     
     public abstract Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully();
@@ -124,7 +124,7 @@ public abstract class EventSourcesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.EventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
+        (await functionStore.EventStore.GetEvents(functionId, 0)).Count().ShouldBe(2);
     }
 
     public abstract Task EventSourcesSunshineScenarioUsingEventStore();
@@ -192,7 +192,7 @@ public abstract class EventSourcesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await eventStore.GetEvents(functionId, 0)).Count().ShouldBe(3);
+        (await eventStore.GetEvents(functionId, 0)).Count().ShouldBe(2);
     }
     
     public abstract Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();

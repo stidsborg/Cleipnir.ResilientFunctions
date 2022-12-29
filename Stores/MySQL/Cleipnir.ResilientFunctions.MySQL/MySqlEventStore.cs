@@ -26,7 +26,8 @@ public class MySqlEventStore : IEventStore
                 event_json TEXT NOT NULL,
                 event_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
-                PRIMARY KEY (function_type_id, function_instance_id, position)
+                PRIMARY KEY (function_type_id, function_instance_id, position),
+                UNIQUE INDEX (function_type_id, function_instance_id, idempotency_key)
             );";
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -72,7 +73,11 @@ public class MySqlEventStore : IEventStore
                 new() {Value = functionId.InstanceId.Value}
             }
         };
-        await command.ExecuteNonQueryAsync();
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (MySqlException e) when (e.Number == 1062) { }
     }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -96,8 +101,18 @@ public class MySqlEventStore : IEventStore
         MySqlConnection connection,
         MySqlTransaction transaction)
     {
+        var existingIdempotencyKeys = new HashSet<string>();
+        storedEvents = storedEvents.ToList();
+        if (storedEvents.Any(se => se.IdempotencyKey != null))
+            existingIdempotencyKeys = await GetExistingIdempotencyKeys(functionId, connection, transaction);
+        
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
+            if (idempotencyKey != null && existingIdempotencyKeys.Contains(idempotencyKey))
+                continue;
+            if (idempotencyKey != null)
+                existingIdempotencyKeys.Add(idempotencyKey);
+            
             var sql = @$"    
                 INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
@@ -119,6 +134,34 @@ public class MySqlEventStore : IEventStore
 
             await command.ExecuteNonQueryAsync();
         }
+    }
+
+    private async Task<HashSet<string>> GetExistingIdempotencyKeys(
+        FunctionId functionId,
+        MySqlConnection connection, MySqlTransaction transaction)
+    {
+        var sql = @$"    
+            SELECT idempotency_key
+            FROM {_tablePrefix}rfunctions_events
+            WHERE function_type_id = ? AND function_instance_id = ? AND idempotency_key IS NOT NULL";
+        await using var command = new MySqlCommand(sql, connection, transaction)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+            }
+        };
+        
+        var idempotencyKeys = new HashSet<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var idempotencyKey = reader.GetString(0);
+            idempotencyKeys.Add(idempotencyKey);
+        }
+
+        return idempotencyKeys;
     }
 
     private async Task<long> GetNumberOfEvents(FunctionId functionId)

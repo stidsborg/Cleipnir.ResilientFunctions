@@ -33,4 +33,12 @@ public class EventStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Test
     [TestMethod]
     public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
         => NonExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.CreateAndInitializeEventStore());
+    
+    [TestMethod]
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Sql.CreateAndInitializeEventStore());
 }

@@ -52,7 +52,7 @@ public abstract class FailedTests
                 .Invoke;
 
             await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
-            (await store.GetFunction(functionId)).ShouldNotBeNull();
+            await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         }
         {
             var flag = new SyncedFlag();

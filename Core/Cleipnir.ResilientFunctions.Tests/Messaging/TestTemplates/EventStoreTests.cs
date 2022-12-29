@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
@@ -183,5 +184,56 @@ public abstract class EventStoreTests
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
+    }
+    
+    public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource();
+    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Task<IEventStore> eventStoreTask)
+    {
+        var event1 = new StoredEvent(
+            JsonExtensions.ToJson("hello world"),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key"
+        );
+        var event2 = new StoredEvent(
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key"
+        );
+        
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+
+        await eventStore.AppendEvent(functionId, event1);
+        await eventStore.AppendEvent(functionId, event2);
+
+        var events = await eventStore.GetEvents(functionId, skip: 0).ToListAsync();
+        events.Count.ShouldBe(1);
+        events[0].IdempotencyKey.ShouldBe("idempotency_key");
+        events[0].DefaultDeserialize().ShouldBe("hello world");
+    }
+    
+    public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion();
+    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Task<IEventStore> eventStoreTask)
+    {
+        var event1 = new StoredEvent(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key"
+        );
+        var event2 = new StoredEvent(
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key"
+        );
+        
+        var functionId = new FunctionId("TypeId", "InstanceId");
+        var eventStore = await eventStoreTask;
+
+        await eventStore.AppendEvents(functionId, new [] {event1, event2});
+
+        var events = await eventStore.GetEvents(functionId, skip: 0).ToListAsync();
+        events.Count.ShouldBe(1);
+        events[0].IdempotencyKey.ShouldBe("idempotency_key");
+        events[0].DefaultDeserialize().ShouldBe("hello world");
     }
 }

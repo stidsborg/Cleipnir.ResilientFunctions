@@ -24,6 +24,7 @@ public class SqlServerEventStore : IEventStore
 
         var sql = @$"
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions_Events' and xtype='U')
+            BEGIN
                 CREATE TABLE {_tablePrefix}RFunctions_Events (
                     FunctionTypeId NVARCHAR(255),
                     FunctionInstanceId NVARCHAR(255),
@@ -32,7 +33,11 @@ public class SqlServerEventStore : IEventStore
                     EventType NVARCHAR(255) NOT NULL,   
                     IdempotencyKey VARCHAR(255),          
                     PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
-                );";
+                );
+                CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Events
+                ON {_tablePrefix}RFunctions_Events (FunctionTypeId, FunctionInstanceId, IdempotencyKey)
+                WHERE IdempotencyKey IS NOT NULL;; 
+            END;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -74,7 +79,11 @@ public class SqlServerEventStore : IEventStore
         command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
         command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
         command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
-        await command.ExecuteNonQueryAsync();
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (SqlException exception) when (exception.Number == 2601) {}
     }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -94,15 +103,33 @@ public class SqlServerEventStore : IEventStore
     {
         foreach (var storedEvent in storedEvents)
         {
-            var sql = @$"    
-            INSERT INTO {_tablePrefix}RFunctions_Events
-                (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
-            VALUES ( 
-                @FunctionTypeId, 
-                @FunctionInstanceId, 
-                (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                @EventJson, @EventType, @IdempotencyKey
-            );";
+            string sql;
+            if (storedEvent.IdempotencyKey == null)
+                sql = @$"    
+                    INSERT INTO {_tablePrefix}RFunctions_Events
+                        (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
+                    VALUES ( 
+                        @FunctionTypeId, 
+                        @FunctionInstanceId, 
+                        (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                        @EventJson, @EventType, @IdempotencyKey
+                    );";
+            else
+                sql = @$"
+                    INSERT INTO {_tablePrefix}RFunctions_Events
+                    SELECT 
+                        @FunctionTypeId, 
+                        @FunctionInstanceId, 
+                        (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                        @EventJson, @EventType, @IdempotencyKey
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM {_tablePrefix}RFunctions_Events
+                        WHERE FunctionTypeId = @FunctionTypeId AND
+                        FunctionInstanceId = @FunctionInstanceId AND
+                        IdempotencyKey = @IdempotencyKey
+                    );";
+
             await using var command = new SqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);

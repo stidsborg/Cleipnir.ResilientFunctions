@@ -32,4 +32,12 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
     [TestMethod]
     public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
         => NonExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Sql.CreateAndInitializeEventStore());
 }

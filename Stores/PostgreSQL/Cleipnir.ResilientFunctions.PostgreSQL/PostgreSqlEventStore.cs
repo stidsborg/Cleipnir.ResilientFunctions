@@ -37,7 +37,10 @@ public class PostgreSqlEventStore : IEventStore
                 event_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position)
-            );";
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_events_idempotencykeys
+            ON {_tablePrefix}rfunctions_events(function_type_id, function_instance_id, idempotency_key)";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -79,7 +82,12 @@ public class PostgreSqlEventStore : IEventStore
                 new() {Value = idempotencyKey ?? (object) DBNull.Value}
             }
         };
-        await command.ExecuteNonQueryAsync();
+
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (PostgresException e) when (e.SqlState == "23505") {}
     }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -100,11 +108,25 @@ public class PostgreSqlEventStore : IEventStore
         var batch = new NpgsqlBatch(connection, transaction);
         foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
         {
-            var sql = @$"    
+            string sql;
+            if (idempotencyKey == null)
+                sql = @$"    
                 INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
                     ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
+            else
+                sql = @$"
+                    INSERT INTO {_tablePrefix}rfunctions_events
+                    SELECT $1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM {_tablePrefix}rfunctions_events
+                        WHERE function_type_id = $1 AND
+                        function_instance_id = $2 AND
+                        idempotency_key = $5
+                    );";
+            
             var command = new NpgsqlBatchCommand(sql)
             {
                 Parameters =

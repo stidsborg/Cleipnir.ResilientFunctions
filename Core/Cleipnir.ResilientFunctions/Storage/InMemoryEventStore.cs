@@ -26,8 +26,11 @@ public class InMemoryEventStore : IEventStore
         {
             if (!_events.ContainsKey(functionId))
                 _events[functionId] = new List<StoredEvent>();
-            
-            _events[functionId].AddRange(storedEvents);
+
+            var events = _events[functionId];
+            foreach (var storedEvent in storedEvents)
+                if (storedEvent.IdempotencyKey == null || events.All(e => e.IdempotencyKey != storedEvent.IdempotencyKey))
+                    events.Add(storedEvent);
         }
 
         return Task.CompletedTask;

@@ -36,4 +36,12 @@ public class EventStoreTests :  TestTemplates.EventStoreTests
     [TestMethod]
     public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
         => NonExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
 }
