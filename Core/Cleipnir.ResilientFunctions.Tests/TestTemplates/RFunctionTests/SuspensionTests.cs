@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -154,5 +156,91 @@ public abstract class SuspensionTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
+    }
+    
+    public abstract Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag();
+    protected async Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionInstanceId = "functionInstanceId";
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch, suspensionCheckFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        var registration = rFunctions.RegisterFunc(
+            nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
+            async Task<string> (string param, Context context) =>
+            {
+                var eventSource = await context.EventSource;
+                var next = await eventSource.OfType<string>().NextOrSuspend();
+                return next;
+            }
+        );
+
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+            registration.Invoke(functionInstanceId, "hello world")
+        );
+
+        var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
+        await eventSourceWriter.AppendEvent("hello universe");
+
+        var controlPanel = await registration.ControlPanel.For(functionInstanceId);
+        controlPanel.ShouldNotBeNull();
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+
+        await controlPanel.Refresh();
+        controlPanel.Result.ShouldBe("hello universe");
+    }
+    
+    public abstract Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog();
+    protected async Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionInstanceId = "functionInstanceId";
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch, suspensionCheckFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        var registration = rFunctions.RegisterFunc(
+            nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
+            async Task<string> (string param, Context context) =>
+            {
+                var eventSource = await context.EventSource;
+                var next = await eventSource.OfType<string>().NextOrSuspend();
+                return next;
+            }
+        );
+
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+            registration.Invoke(functionInstanceId, "hello world")
+        );
+
+        var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
+        await eventSourceWriter.AppendEvent("hello universe", reInvokeImmediatelyIfSuspended: false);
+
+        var controlPanel = await registration.ControlPanel.For(functionInstanceId);
+        controlPanel.ShouldNotBeNull();
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+
+        await controlPanel.Refresh();
+        controlPanel.Result.ShouldBe("hello universe");
     }
 }

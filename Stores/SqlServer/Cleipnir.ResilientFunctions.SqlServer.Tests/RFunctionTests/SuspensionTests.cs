@@ -21,4 +21,12 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag()
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(Sql.AutoCreateAndInitializeStore());
 }

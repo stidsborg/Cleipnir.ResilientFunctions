@@ -27,4 +27,16 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
         );
+
+    [TestMethod]
+    public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag()
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
+    [TestMethod]
+    public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }
