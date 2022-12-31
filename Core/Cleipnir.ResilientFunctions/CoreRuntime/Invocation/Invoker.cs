@@ -166,7 +166,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 persisted,
                 wrappedInner,
                 scrapbook,
-                new Context(functionId, InvocationMode.Direct, _invocationHelper.CreateAndInitializeEventSource(functionId)),
+                new Context(functionId, InvocationMode.Direct, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke)),
                 Disposable.Combine(disposables)
             );
         }
@@ -208,7 +208,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 wrappedInner,
                 param,
                 scrapbook,
-                new Context(functionId, InvocationMode.Retry, _invocationHelper.CreateAndInitializeEventSource(functionId)),
+                new Context(functionId, InvocationMode.Retry, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke)),
                 epoch,
                 Disposable.Combine(disposables)
             );

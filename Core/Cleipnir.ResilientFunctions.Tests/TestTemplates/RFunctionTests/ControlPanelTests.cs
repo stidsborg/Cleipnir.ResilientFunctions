@@ -685,7 +685,7 @@ public abstract class ControlPanelTests
             async Task(string param, RScrapbook _, Context context) =>
             {
                 using var eventSource = await context.EventSource;
-                await eventSource.Append(param);
+                await eventSource.AppendEvent(param);
             }
         );
 
@@ -720,8 +720,8 @@ public abstract class ControlPanelTests
                 if (first)
                 {
                     first = false;
-                    await eventSource.Append("hello world", idempotencyKey: "1");
-                    await eventSource.Append("hello universe", idempotencyKey: "2");
+                    await eventSource.AppendEvent("hello world", idempotencyKey: "1");
+                    await eventSource.AppendEvent("hello universe", idempotencyKey: "2");
                 }
                 else
                 {
@@ -768,8 +768,8 @@ public abstract class ControlPanelTests
                 if (first)
                 {
                     first = false;
-                    await eventSource.Append("hello world", idempotencyKey: "1");
-                    await eventSource.Append("hello universe", idempotencyKey: "2");
+                    await eventSource.AppendEvent("hello world", idempotencyKey: "1");
+                    await eventSource.AppendEvent("hello universe", idempotencyKey: "2");
                 }
             }
         );

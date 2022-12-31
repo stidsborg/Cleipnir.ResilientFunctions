@@ -27,19 +27,19 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             switch (msg)
             {
                 case FundsCaptured e:
-                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
+                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e.OrderId, e.OrderId);
                     break;
                 case FundsReservationCancelled e:
-                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
+                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e.OrderId, e.OrderId);
                     break;
                 case FundsReserved e:
-                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
+                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e.OrderId, e.OrderId);
                     break;
                 case OrderConfirmationEmailSent e:
-                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
+                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e.OrderId, e.OrderId);
                     break;
                 case ProductsShipped e:
-                    await rAction.EventSourceWriters.For(e.OrderId).Append(e.OrderId, e.OrderId);
+                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e.OrderId, e.OrderId);
                     break;
 
                 default:

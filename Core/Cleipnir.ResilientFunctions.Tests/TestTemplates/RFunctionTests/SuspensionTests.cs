@@ -101,11 +101,11 @@ public abstract class SuspensionTests
 
         (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
 
-        await rFunc.EventSourceWriters.For(functionInstanceId).Append("hello universe");
+        await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello universe");
 
         (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
         
-        await rFunc.EventSourceWriters.For(functionInstanceId).Append("hello multiverse");
+        await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello multiverse", reInvokeImmediatelyIfSuspended: false);
         
         var eligibleFunctions = await store
             .GetEligibleSuspendedFunctions(functionTypeId)
@@ -149,7 +149,7 @@ public abstract class SuspensionTests
             () => rFunc.Invoke(functionInstanceId, "hello world")
         );
 
-        await rFunc.EventSourceWriters.For(functionInstanceId).Append("hello universe");
+        await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello universe");
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)

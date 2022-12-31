@@ -33,7 +33,7 @@ public abstract class MessagingTests
         invocationTask.IsCompleted.ShouldBeFalse();
         
         var eventSourceWriter = rAction.EventSourceWriters.For("instanceId");
-        await eventSourceWriter.Append("hello world");
+        await eventSourceWriter.AppendEvent("hello world");
         var result = await invocationTask;
         result.ShouldBe("hello world");
     }

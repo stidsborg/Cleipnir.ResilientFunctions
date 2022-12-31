@@ -401,7 +401,7 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
                 controlPanels,
-                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
+                new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, epoch) => rFuncInvoker.ReInvoke(id, epoch);
@@ -556,7 +556,7 @@ public class RFunctions : IDisposable
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
                 controlPanels,
-                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
+                new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, epoch) => rActionInvoker.ReInvoke(id, epoch);
@@ -637,7 +637,7 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleReInvoke,
                 controlPanels,
-                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
+                new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
             return registration;
@@ -696,7 +696,7 @@ public class RFunctions : IDisposable
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
                 controlPanels,
-                new EventSourceWriters(functionTypeId, _eventStore, settingsWithDefaults.Serializer)
+                new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
             return registration;

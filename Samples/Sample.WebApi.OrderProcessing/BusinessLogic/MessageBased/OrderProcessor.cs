@@ -47,7 +47,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         };
         if (@event == null) return;
         
-        await _eventSourceWriters.For(orderId).Append(@event, idempotencyKey: null);
+        await _eventSourceWriters.For(orderId).AppendEvent(@event, idempotencyKey: null);
     }
 
     public class Inner

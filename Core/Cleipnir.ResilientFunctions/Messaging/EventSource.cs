@@ -110,16 +110,16 @@ public class EventSource : IStream<object>, IDisposable
         }
     }
 
-    public async Task Append(object @event, string? idempotencyKey = null)
+    public async Task AppendEvent(object @event, string? idempotencyKey = null)
     {
-        await _eventWriter.Append(@event, idempotencyKey);
-        await DeliverOutstandingEvents();
+        await _eventWriter.AppendEvent(@event, idempotencyKey, reInvokeImmediatelyIfSuspended: false);
+        await Sync();
     }
 
-    public async Task Append(IEnumerable<EventAndIdempotencyKey> events)
+    public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
     {
-        await _eventWriter.Append(events);
-        await DeliverOutstandingEvents();
+        await _eventWriter.AppendEvents(events, reInvokeImmediatelyIfSuspended: false);
+        await Sync();
     }
 
     public Task Sync() => DeliverOutstandingEvents();

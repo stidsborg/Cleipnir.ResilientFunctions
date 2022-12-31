@@ -13,24 +13,24 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 public abstract class CustomEventSerializerTests
 {
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
-    protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> eventStoreTask)
+    protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = new FunctionId(
             functionTypeId: nameof(CustomEventSerializerTests),
             functionInstanceId: nameof(CustomEventSerializerIsUsedWhenSpecified)
         );
-        var functionStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
         var eventSerializer = new EventSerializer();
         var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
-            new EventSourceWriter(functionId, functionStore.EventStore, eventSerializer),
+            new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask),
             new TimeoutProvider(functionStore.TimeoutStore, functionId),
             pullFrequency: null,
             eventSerializer
         );
 
-        await eventSource.Append("hello world");
+        await eventSource.AppendEvent("hello world");
         
         eventSerializer.EventToSerialize.Count.ShouldBe(1);
         eventSerializer.EventToSerialize[0].ShouldBe("hello world");
