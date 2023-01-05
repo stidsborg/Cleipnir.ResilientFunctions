@@ -1,4 +1,5 @@
 ﻿using System;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -6,7 +7,7 @@ public class MergeOperator<T> : IStream<T>
 {
     private readonly IStream<T> _stream1;
     private readonly IStream<T> _stream2;
-    
+
     public MergeOperator(IStream<T> stream1, IStream<T> stream2)
     {
         _stream1 = stream1;
@@ -27,7 +28,9 @@ public class MergeOperator<T> : IStream<T>
         private readonly ISubscription _subscription2;
         private bool _subscription2Completed;
         private bool _completed;
-        
+
+        public IStream<object> Source { get; }
+
         public Subscription(
             IStream<T> inner1,
             IStream<T> inner2,
@@ -40,9 +43,12 @@ public class MergeOperator<T> : IStream<T>
 
             _subscription1 = inner1.Subscribe(SignalNext, SignalCompletion1, SignalError, subscriptionGroupId);
             _subscription2 = inner2.Subscribe(SignalNext, SignalCompletion2, SignalError, _subscription1.SubscriptionGroupId);
+            Source = _subscription1.Source;
             SubscriptionGroupId = _subscription1.SubscriptionGroupId;
+            TimeoutProvider = _subscription1.TimeoutProvider;
         }
 
+        public ITimeoutProvider TimeoutProvider { get; }
         public int SubscriptionGroupId { get; }
         public void DeliverExistingAndFuture() => _subscription1.DeliverExistingAndFuture();
         public int DeliverExisting() => _subscription1.DeliverExisting();

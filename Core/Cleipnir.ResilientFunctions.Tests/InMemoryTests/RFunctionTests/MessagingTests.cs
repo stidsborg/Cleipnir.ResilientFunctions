@@ -19,4 +19,10 @@ public class MessagingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RF
         => FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
         );
+    
+    [TestMethod]
+    public override Task TimeoutEventCausesSuspendedFunctionToBeReInvoked()
+        => TimeoutEventCausesSuspendedFunctionToBeReInvoked(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
 }

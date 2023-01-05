@@ -13,7 +13,7 @@ public class LinqTests
     [TestMethod]
     public void EventsCanBeFilteredByType()
     {
-        var source = new Source<object>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         var nextStringEmitted = source.OfType<string>().Next();
         nextStringEmitted.IsCompleted.ShouldBeFalse();
             
@@ -29,7 +29,7 @@ public class LinqTests
     [TestMethod]
     public void NextOperatorEmitsLastEmittedEventAfterCompletionOfTheStream()
     {
-        var source = new Source<int>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext(1);
             
         var next = source.Next();
@@ -44,7 +44,7 @@ public class LinqTests
     [TestMethod]
     public void ThrownExceptionInOperatorResultsInLeafThrowingSameException()
     {
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         var next = source.Where(_ => throw new InvalidOperationException("oh no")).Next();
             
         next.IsCompleted.ShouldBeFalse();
@@ -57,7 +57,7 @@ public class LinqTests
     [TestMethod]
     public void SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
     {
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         var next1 = source.Next();
         var next2 = source.Skip(1).Next();
             
@@ -73,14 +73,14 @@ public class LinqTests
     {
         var subscription2OnNextFlag = new SyncedFlag();
         var completeSubscription2OnNextFlag = new SyncedFlag();
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
         source.SignalNext("world");
 
         var completed1 = false;
         var failed1 = false;
         var latest1 = "";
-        var subscription1 = source.Subscribe(
+        var subscription1 = source.OfType<string>().Subscribe(
             onNext: s => latest1 = s,
             onCompletion: () => completed1 = true,
             onError: _ => failed1 = true
@@ -89,7 +89,7 @@ public class LinqTests
         var completed2 = false;
         var failed2 = false;
         var latest2 = "";
-        var subscription2 = source.Subscribe(
+        var subscription2 = source.OfType<string>().Subscribe(
             onNext: s =>
             {
                 latest2 = s;
@@ -123,7 +123,7 @@ public class LinqTests
     [TestMethod]
     public void StreamsInSameSubscriptionGroupCanBeDisposedSuccessfully()
     {
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
 
         var subscription1Emits = 0;
         var subscription2Emits = 0;
@@ -156,14 +156,14 @@ public class LinqTests
     [TestMethod]
     public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
     {
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
         source.SignalNext("world");
 
         var completed = false;
         var failed = false;
         var latest = "";
-        var subscription = source.Take(1).Subscribe(
+        var subscription = source.OfType<string>().Take(1).Subscribe(
             onNext: s => latest = s,
             onCompletion: () => completed = true,
             onError: _ => failed = true
@@ -183,7 +183,7 @@ public class LinqTests
     [TestMethod]
     public void StreamCanBeReplayedToCertainEventCountWhenFailedEarlySuccessfully()
     {
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
         source.SignalNext("world");
 
@@ -191,6 +191,7 @@ public class LinqTests
         var failed = false;
         var latest = "";
         var subscription = source
+            .OfType<string>()
             .Select<string, string>(_ => throw new Exception("oh no"))
             .Subscribe(
                 onNext: s => latest = s,
@@ -212,9 +213,9 @@ public class LinqTests
     [TestMethod]
     public void MergeTests()
     {
-        var source = new Source<string>();
+        var source = new Source(NoOpTimeoutProvider.Instance);
 
-        var toUpper = source.Select(s => s.ToUpper());
+        var toUpper = source.OfType<string>().Select(s => s.ToUpper());
 
         var emitsTask = source.Merge(toUpper).Take(2).ToList();
         

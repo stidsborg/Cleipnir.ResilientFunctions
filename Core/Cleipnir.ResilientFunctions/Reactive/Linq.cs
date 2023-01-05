@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive.Awaiter;
 
@@ -218,6 +219,56 @@ public static class Linq
             tcs.TrySetResult(emittedEvent!);
         
         return await tcs.Task;
+    }
+    
+    public static Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, TimeSpan expiresIn)
+        => SuspendUntilNextOrTimeoutEventFired(s, timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
+    
+    public static async Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, DateTime expiresAt)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        
+        ISubscription? subscription = null;
+        ISubscription? timeoutSubscription = null;
+        
+        subscription = s.Subscribe(
+            onNext: t =>
+            {
+                // ReSharper disable once AccessToModifiedClosure
+                subscription?.Dispose();
+                // ReSharper disable once AccessToModifiedClosure
+                timeoutSubscription?.Dispose();
+
+                tcs.TrySetResult(t);
+            },
+            onCompletion: () => { },
+            onError: e => tcs.TrySetException(e)
+        );
+
+        timeoutSubscription = subscription
+            .Source
+            .OfType<Timeout>()
+            .Where(t => t.TimeoutId == timeoutId)
+            .Subscribe(
+                onNext: _ =>
+                {
+                    subscription.Dispose();
+                    // ReSharper disable once AccessToModifiedClosure
+                    timeoutSubscription?.Dispose();
+                    
+                    tcs.TrySetException(new TimeoutException("Event was not emitted within timeout"));
+                },
+                onCompletion: () => {},
+                onError: _ => {},
+                subscription.SubscriptionGroupId
+            );
+        
+        var delivered = subscription.DeliverExisting();
+
+        if (tcs.Task.IsCompleted) return await tcs.Task;
+        
+        await subscription.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
+        throw new SuspendInvocationException(delivered);
     }
     
     public static Task<List<T>> ToList<T>(this IStream<T> stream)

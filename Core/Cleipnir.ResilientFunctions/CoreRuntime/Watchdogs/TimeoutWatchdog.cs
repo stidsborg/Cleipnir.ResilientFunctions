@@ -16,28 +16,25 @@ internal class TimeoutWatchdog
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly ITimeoutStore _timeoutStore;
-    private readonly IEventStore _eventStore;
-    private readonly ISerializer _serializer;
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    private readonly EventSourceWriters _eventSourceWriters;
 
     public TimeoutWatchdog(
         FunctionTypeId functionTypeId,
-        ITimeoutStore timeoutStore, 
-        IEventStore eventStore,
-        ISerializer serializer,
+        EventSourceWriters eventSourceWriters,
+        ITimeoutStore timeoutStore,
         TimeSpan checkFrequency, 
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
+        _eventSourceWriters = eventSourceWriters;
         _timeoutStore = timeoutStore;
-        _eventStore = eventStore;
-        _serializer = serializer;
-        
+
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -77,12 +74,11 @@ internal class TimeoutWatchdog
     {
         foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.OrderBy(t => t.Expiry))
         {
-            var expiryDateTime = new DateTime(expiry, DateTimeKind.Utc);
-            var delay = TimeSpanHelper.Max(expiryDateTime - DateTime.UtcNow, TimeSpan.Zero);
+            var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
+            var delay = TimeSpanHelper.Max(expiresAt - DateTime.UtcNow, TimeSpan.Zero);
             await Task.Delay(delay);
-            var timeoutEvent = new Timeout(timeoutId, expiryDateTime);
-            var (json, type) = _serializer.SerializeEvent(timeoutEvent);
-            await _eventStore.AppendEvent(functionId, json, type, idempotencyKey: $"Timeout¤{timeoutId}");
+            await _eventSourceWriters.For(functionId.InstanceId).AppendEvent(new Timeout(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }
 }

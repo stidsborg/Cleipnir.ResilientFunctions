@@ -1,4 +1,5 @@
 ﻿using System;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -13,7 +14,7 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 {
     private readonly IStream<TIn> _inner;
     private readonly Func<Operator<TIn, TOut>> _operatorFactory;
-    
+
     public CustomOperator(IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
     {
         _inner = inner;
@@ -31,8 +32,10 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
         private readonly ISubscription _innerSubscription;
         private bool _completed;
-
+        
         private Operator<TIn, TOut> Operator { get; }
+
+        public IStream<object> Source => _innerSubscription.Source;
 
         public Subscription(
             IStream<TIn> inner,
@@ -49,6 +52,7 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
             _innerSubscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError, subscriptionGroupId);
         }
 
+        public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
         public int SubscriptionGroupId => _innerSubscription.SubscriptionGroupId;
         public void DeliverExistingAndFuture() => _innerSubscription.DeliverExistingAndFuture();
         public int DeliverExisting() => _innerSubscription.DeliverExisting();

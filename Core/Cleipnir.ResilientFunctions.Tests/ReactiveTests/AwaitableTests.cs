@@ -13,11 +13,11 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public void StreamResultIsReflectedInAwaitable()
         {
-            var source = new Source<int>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
 
             static async Task<int> Do(IStream<int> s) => await s.Last();
 
-            var t = Do(source);
+            var t = Do(source.OfType<int>());
             
             t.IsCompleted.ShouldBeFalse();
             
@@ -33,12 +33,12 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public void StreamResultThrowsExceptionWhenNoResultIsReceivedBeforeCompletion()
         {
-            var source = new Source<int>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
             var taken1 = source.Take(1);
 
             static async Task<int> Do(IStream<int> s) => await s.Last();
 
-            var t = Do(source);
+            var t = Do(source.OfType<int>());
 
             t.IsCompleted.ShouldBeFalse();
 
@@ -58,11 +58,11 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public void StreamResultThrowsExceptionWhenExceptionHasBeenSignaled()
         {
-            var source = new Source<int>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
 
             static async Task<int> Do(IStream<int> s) => await s.Last();
 
-            var t = Do(source);
+            var t = Do(source.OfType<int>());
 
             t.IsCompleted.ShouldBeFalse();
             

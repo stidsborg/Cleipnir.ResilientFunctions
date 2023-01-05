@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -35,11 +36,16 @@ internal static class WatchDogsFactory
             shutdownCoordinator
         );
 
+        var eventSourceWriters = new EventSourceWriters(
+            functionTypeId,
+            functionStore,
+            settings.Serializer,
+            scheduleReInvocation: (id, epoch) => reInvoke(id, epoch)
+        );
         var timeoutWatchdog = new TimeoutWatchdog(
             functionTypeId,
+            eventSourceWriters,
             functionStore.TimeoutStore,
-            functionStore.EventStore,
-            settings.Serializer,
             settings.TimeoutCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,

@@ -13,7 +13,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task SuspensionExceptionIsThrownWhenNoEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source<object>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext("world");
 
@@ -27,7 +27,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task EventIsEmittedInResultWhenEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source<object>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext(1);
             source.SignalNext("world");
@@ -42,7 +42,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task TrySuspensionIsDetectedWhenNoEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source<object>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext("world");
 
@@ -57,7 +57,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task EventIsEmittedInOptionResultWhenEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source<object>();
+            var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext(1);
             source.SignalNext("world");

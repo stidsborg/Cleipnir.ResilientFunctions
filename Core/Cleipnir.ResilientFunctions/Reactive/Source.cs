@@ -2,26 +2,31 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
-public interface ISource<T> : IStream<T>
+public interface ISource : IStream<object>
 {
-    void SignalNext(T toEmit);
+    void SignalNext(object toEmit);
     void SignalError(Exception exception);
     void SignalCompletion();
 }
 
-public class Source<T> : ISource<T>
+public class Source : ISource
 {
     private readonly Dictionary<int, SubscriptionGroup> _subscriptionGroups = new();
     private int _nextSubscriptionId;
     private bool _completed;
 
+    private readonly ITimeoutProvider _timeoutProvider;
     private readonly EmittedEvents _emittedEvents = new();
     private readonly object _sync = new();
 
-    public ISubscription Subscribe(Action<T> onNext, 
+    public Source(ITimeoutProvider timeoutProvider) => _timeoutProvider = timeoutProvider;
+
+    public ISubscription Subscribe(
+        Action<object> onNext, 
         Action onCompletion, 
         Action<Exception> onError, 
         int? subscriptionGroupId = null)
@@ -38,6 +43,8 @@ public class Source<T> : ISource<T>
                 new SubscriptionGroup(
                     chosenSubscriptionGroupId,
                     _emittedEvents,
+                    _timeoutProvider,
+                    source: this,
                     unsubscribeToEvents: id =>
                     {
                         lock (_sync)
@@ -49,7 +56,7 @@ public class Source<T> : ISource<T>
         }
     }
     
-    public void SignalNext(T toEmit)
+    public void SignalNext(object toEmit)
     {
         List<SubscriptionGroup> subscriptions;
         lock (_sync)
@@ -65,7 +72,7 @@ public class Source<T> : ISource<T>
             subscription.DeliverOutstandingEvents();
     }
     
-    public void SignalNext(IEnumerable<T> toEmits)
+    public void SignalNext(IEnumerable<object> toEmits)
     {
         List<SubscriptionGroup> subscriptions;
         lock (_sync)
@@ -124,11 +131,11 @@ public class Source<T> : ISource<T>
 
     private struct EmittedEvent
     {
-        public T? Event { get; }
+        public object? Event { get; }
         public bool Completion { get; }
         public Exception? EmittedException { get; }
 
-        public EmittedEvent(T? @event, bool completion, Exception? emittedException)
+        public EmittedEvent(object? @event, bool completion, Exception? emittedException)
         {
             Event = @event;
             Completion = completion;
@@ -197,6 +204,7 @@ public class Source<T> : ISource<T>
     private class SubscriptionGroup
     {
         private readonly int _subscriptionGroupId;
+        private readonly Source _source;
         
         private bool _disposed;
         private bool _started;
@@ -204,16 +212,24 @@ public class Source<T> : ISource<T>
         private bool _emittingEvents;
         private ImmutableArray<Subscription> _subscriptions = ImmutableArray<Subscription>.Empty;
         private readonly EmittedEvents _emittedEvents;
+        private readonly ITimeoutProvider _timeoutProvider;
         private int _skip;
         private readonly object _sync = new();
 
         private Action<int> UnsubscribeToEvents { get; }
 
-        public SubscriptionGroup(int subscriptionGroupId, EmittedEvents emittedEvents, Action<int> unsubscribeToEvents)
+        public SubscriptionGroup(
+            int subscriptionGroupId, 
+            EmittedEvents emittedEvents,
+            ITimeoutProvider timeoutProvider,
+            Source source,
+            Action<int> unsubscribeToEvents)
         {
             _subscriptionGroupId = subscriptionGroupId;
             _emittedEvents = emittedEvents;
+            _timeoutProvider = timeoutProvider;
             UnsubscribeToEvents = unsubscribeToEvents;
+            _source = source;
         }
 
         public void DeliverExistingAndFuture()
@@ -296,9 +312,9 @@ public class Source<T> : ISource<T>
             }
         }
 
-        public ISubscription AddSubscription(Action<T> onNext, Action onCompletion, Action<Exception> onError)
+        public ISubscription AddSubscription(Action<object> onNext, Action onCompletion, Action<Exception> onError)
         {
-            var subscription = new Subscription(onNext, onCompletion, onError, subscriptionGroup: this);
+            var subscription = new Subscription(onNext, onCompletion, onError, subscriptionGroup: this, _timeoutProvider, _source);
             _subscriptions = _subscriptions.Add(subscription);
             return subscription;
         }
@@ -323,22 +339,29 @@ public class Source<T> : ISource<T>
         
         private class Subscription : ISubscription
         {
-            public Action<T> OnNext { get; }
+            public Action<object> OnNext { get; }
             public Action OnCompletion { get; }
             public Action<Exception> OnError { get; }
+            
+            public IStream<object> Source { get; }
             
             private readonly SubscriptionGroup _subscriptionGroup;
             
             public Subscription(
-                Action<T> onNext, Action onCompletion, Action<Exception> onError,
-                SubscriptionGroup subscriptionGroup)
+                Action<object> onNext, Action onCompletion, Action<Exception> onError,
+                SubscriptionGroup subscriptionGroup,
+                ITimeoutProvider timeoutProvider,
+                IStream<object> source)
             {
                 OnNext = onNext;
                 OnCompletion = onCompletion;
                 OnError = onError;
+                Source = source;
                 _subscriptionGroup = subscriptionGroup;
+                TimeoutProvider = timeoutProvider;
             }
-
+            
+            public ITimeoutProvider TimeoutProvider { get; }
             public int SubscriptionGroupId => _subscriptionGroup._subscriptionGroupId;
             public void DeliverExistingAndFuture() => _subscriptionGroup.DeliverExistingAndFuture();
             public int DeliverExisting() => _subscriptionGroup.DeliverExisting();

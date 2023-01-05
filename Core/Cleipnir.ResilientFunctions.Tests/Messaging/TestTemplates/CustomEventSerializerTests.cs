@@ -21,11 +21,12 @@ public abstract class CustomEventSerializerTests
         );
         var functionStore = await functionStoreTask;
         var eventSerializer = new EventSerializer();
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
-            new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask),
-            new TimeoutProvider(functionStore.TimeoutStore, functionId),
+            eventSourceWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             eventSerializer
         );

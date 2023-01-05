@@ -29,7 +29,8 @@ public class EventSource : IStream<object>, IDisposable
 
     public TimeoutProvider TimeoutProvider { get; }
     
-    private readonly Source<object> _source;
+    private readonly Source _source;
+    public IStream<object> Source => _source;
 
     public EventSource(
         FunctionId functionId, 
@@ -45,7 +46,7 @@ public class EventSource : IStream<object>, IDisposable
         TimeoutProvider = timeoutProvider;
         _eventSerializer = eventSerializer ?? DefaultSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
-        _source = new Source<object>();
+        _source = new Source(timeoutProvider);
     }
 
     public async Task Initialize()

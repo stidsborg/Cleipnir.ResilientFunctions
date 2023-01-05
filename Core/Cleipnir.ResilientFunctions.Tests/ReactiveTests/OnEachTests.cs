@@ -14,8 +14,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         {
             var captures = new List<int>();
 
-            var source = new Source<int>();
-            var subscription = source.OnEach(captures.Add);
+            var source = new Source(NoOpTimeoutProvider.Instance);
+            var subscription = source.OfType<int>().OnEach(captures.Add);
             
             source.SignalNext(1);
             source.SignalNext(2);
