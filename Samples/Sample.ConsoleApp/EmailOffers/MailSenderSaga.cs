@@ -13,22 +13,13 @@ public static class EmailSenderSaga
     public static async Task Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
     {
         var (recipients, subject, content) = mailAndRecipients;
-        if (!scrapbook.Initialized)
-        {
-            //must be first invocation - add all recipients to scrapbook's queue
-            foreach (var recipient in recipients)
-                scrapbook.RecipientsLeft.Enqueue(recipient);
-
-            scrapbook.Initialized = true;
-            await scrapbook.Save();
-        }
 
         using var client = new SmtpClient();
         await client.ConnectAsync("mail.smtpbucket.com", 8025);
         
-        while (scrapbook.RecipientsLeft.Any())
+        for (var atRecipient = scrapbook.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
         {
-            var recipient = scrapbook.RecipientsLeft.Dequeue();
+            var recipient = recipients[atRecipient];
             var message = new MimeMessage();
             message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
             message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
@@ -37,20 +28,20 @@ public static class EmailSenderSaga
             message.Body = new TextPart(TextFormat.Html) { Text = content };
             await client.SendAsync(message);
 
+            scrapbook.AtRecipient = atRecipient;
             await scrapbook.Save();
         }
     }
 
     public class Scrapbook : RScrapbook
     {
-        public Queue<EmailAddress> RecipientsLeft { get; set; } = new();
-        public bool Initialized { get; set; }
+        public int AtRecipient { get; set; }
     }
 }
 
 public record EmailAddress(string Name, string Address);
 public record MailAndRecipients(
-    IEnumerable<EmailAddress> Recipients,
+    List<EmailAddress> Recipients,
     string Subject,
     string Content
 );

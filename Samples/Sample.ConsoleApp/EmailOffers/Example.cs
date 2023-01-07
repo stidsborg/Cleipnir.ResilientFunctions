@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
@@ -27,10 +28,10 @@ public static class Example
         await rAction(
             functionInstanceId: offerDate.ToString(),
             param: new MailAndRecipients(
-                new[]
+                new List<EmailAddress>
                 {
-                    new EmailAddress("Peter Hansen", "peter@gmail.com"),
-                    new EmailAddress("Ulla Hansen", "ulla@gmail.com")
+                    new("Peter Hansen", "peter@gmail.com"),
+                    new("Ulla Hansen", "ulla@gmail.com")
                 },
                 Subject: "Dreaming yourself away?",
                 Content: "We have found these great offers for you!"
