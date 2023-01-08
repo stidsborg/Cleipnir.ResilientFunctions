@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive.Awaiter;
+using Cleipnir.ResilientFunctions.Reactive.Operators;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 

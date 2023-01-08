@@ -1,7 +1,7 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 
-namespace Cleipnir.ResilientFunctions.Reactive;
+namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
 public class MergeOperator<T> : IStream<T>
 {
