@@ -41,8 +41,29 @@ public static class Linq
                 notify(t);
         });
 
-    public static IStream<object> OfTypes<T1, T2>(this IStream<object> s) 
-        => s.Where(m => m is T1 or T2);
+    public static IStream<Either<T1, T2>> OfTypes<T1, T2>(this IStream<object> s)
+        => s.WithOperator<object, Either<T1, T2>>(
+            () => (next, notify, completion, exception) =>
+            {
+                if (next is T1 t1)
+                    notify(Either<T1, T2>.CreateFirst(t1));
+                else if (next is T2 t2)
+                    notify(Either<T1, T2>.CreateSecond(t2));
+            }
+        );
+    
+    public static IStream<Either<T1, T2, T3>> OfTypes<T1, T2, T3>(this IStream<object> s)
+        => s.WithOperator<object, Either<T1, T2, T3>>(
+            () => (next, notify, completion, exception) =>
+            {
+                if (next is T1 t1)
+                    notify(Either<T1, T2, T3>.CreateFirst(t1));
+                else if (next is T2 t2)
+                    notify(Either<T1, T2, T3>.CreateSecond(t2));
+                else if (next is T3 t3)
+                    notify(Either<T1, T2, T3>.CreateThird(t3));
+            }
+        );
 
     private static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
         => new CustomOperator<TIn, TOut>(inner, operatorFunc);

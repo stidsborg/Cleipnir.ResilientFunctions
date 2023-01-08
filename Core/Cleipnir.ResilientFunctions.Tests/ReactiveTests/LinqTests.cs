@@ -227,4 +227,72 @@ public class LinqTests
         emits[0].ShouldBe("hello");
         emits[1].ShouldBe("HELLO");
     }
+    
+    [TestMethod]
+    public void OfTwoTypesTest()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        source.SignalNext(2);
+        
+        {
+            var either = source.OfTypes<string, int>().Next().Result;
+            either.ValueSpecified.ShouldBe(Either<string, int>.Value.First);
+            either.HasFirst.ShouldBeTrue();
+            either.Do(first: s => s.ShouldBe("hello"), second: _ => throw new Exception("Unexpected value"));
+            var matched = either.Match(first: s => s.ToUpper(), second: _ => throw new Exception("Unexpected value"));
+            matched.ShouldBe("HELLO");
+        }
+
+        {
+            var either = source.Skip(1).OfTypes<string, int>().Next().Result;
+            either.ValueSpecified.ShouldBe(Either<string, int>.Value.Second);
+            either.HasFirst.ShouldBeFalse();
+            either.Do(first: _ => throw new Exception("Unexpected value"), second: i => i.ShouldBe(2));
+            var matched = either.Match(first: _ => throw new Exception("Unexpected value"), second: i => i.ToString());
+            matched.ShouldBe("2");
+        }
+    }
+    
+    [TestMethod]
+    public void OfThreeTypesTest()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        source.SignalNext(2);
+        source.SignalNext(25L);
+        
+        {
+            var either = source.OfTypes<string, int, long>().Next().Result;
+            either.ValueSpecified.ShouldBe(Either<string, int, long>.Value.First);
+            either.HasFirst.ShouldBeTrue();
+            either.Do(
+                first: s => s.ShouldBe("hello"),
+                second: _ => throw new Exception("Unexpected value"),
+                third: _ => throw new Exception("Unexpected value")
+            );
+            var matched = either.Match(
+                first: s => s.ToUpper(), 
+                second: _ => throw new Exception("Unexpected value"),
+                third: _ => throw new Exception("Unexpected value"));
+            matched.ShouldBe("HELLO");
+        }
+
+        {
+            var either = source.Skip(2).OfTypes<string, int, long>().Next().Result;
+            either.ValueSpecified.ShouldBe(Either<string, int, long>.Value.Third);
+            either.HasFirst.ShouldBeFalse();
+            either.Do(
+                first: _ => throw new Exception("Unexpected value"),
+                second: _ => throw new Exception("Unexpected value"),
+                third: i => i.ShouldBe(25L)
+            );
+            var matched = either.Match(
+                first: _ => throw new Exception("Unexpected value"),
+                second: _ => throw new Exception("Unexpected value"),
+                third: i => i.ToString()
+            );
+            matched.ShouldBe("25");
+        }
+    }
 }
