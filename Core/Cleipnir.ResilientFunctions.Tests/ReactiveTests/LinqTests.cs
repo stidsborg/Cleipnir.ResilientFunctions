@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive;
@@ -351,5 +352,54 @@ public class LinqTests
         source.SignalError(new TimeoutException());
         await BusyWait.UntilAsync(() => task.IsFaulted);
         await Should.ThrowAsync<TimeoutException>(task);
+    }
+
+    [TestMethod]
+    public async Task BufferOperatorTest()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+
+        var nextTask = source.Buffer(2).Next();
+        var listTask = source.Buffer(2).ToList();
+        
+        nextTask.IsCompleted.ShouldBeFalse();
+        listTask.IsCompleted.ShouldBeFalse();
+        source.SignalNext("world");
+        
+        nextTask.IsCompletedSuccessfully.ShouldBeTrue();
+        var result = await nextTask;
+        result.Count.ShouldBe(2);
+        result[0].ShouldBe("hello");
+        result[1].ShouldBe("world");
+
+        source.SignalNext("hello");
+        source.SignalNext("universe");
+        source.SignalCompletion();
+        
+        listTask.IsCompletedSuccessfully.ShouldBeTrue();
+        var list = await listTask;
+        list.Count.ShouldBe(2);
+        var flatten = list.SelectMany(_ => _).ToList();
+        flatten.Count.ShouldBe(4);
+        flatten[0].ShouldBe("hello");
+        flatten[1].ShouldBe("world");
+        flatten[2].ShouldBe("hello");
+        flatten[3].ShouldBe("universe");
+    }
+    
+    [TestMethod]
+    public async Task BufferOperatorOnCompletionEmitsBufferContent()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+
+        var nextTask = source.Buffer(2).Next();
+        
+        source.SignalCompletion();
+        nextTask.IsCompletedSuccessfully.ShouldBeTrue();
+        var emitted = await nextTask;
+        emitted.Count.ShouldBe(1);
+        emitted[0].ShouldBe("hello");
     }
 }

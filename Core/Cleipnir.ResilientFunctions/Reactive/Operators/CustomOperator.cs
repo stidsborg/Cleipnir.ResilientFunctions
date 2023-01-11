@@ -60,10 +60,14 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
         private void SignalNext(TIn next)
         {
             if (_completed) return;
-
+            
             try
             {
-                Operator(next, _onNext, SignalCompletion, SignalError);
+                Operator(
+                    next, 
+                    _onNext, 
+                    signalCompletion: () => { SignalCompletion(); Dispose(); }, 
+                    signalException: exception => { SignalError(exception); Dispose(); });
             }
             catch (Exception exception)
             {
@@ -73,20 +77,14 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
 
         private void SignalError(Exception exception)
         {
-            if (_completed) return;
             _completed = true;
-            
-            _onError(exception);
-            Dispose();
+            _onError(exception);   
         }
-
+        
         private void SignalCompletion()
         {
-            if (_completed) return;
             _completed = true;
-            
             _onCompletion();
-            Dispose();
         }
 
         public void Dispose() => _innerSubscription.Dispose();
