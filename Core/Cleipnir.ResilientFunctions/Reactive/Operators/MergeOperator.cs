@@ -27,6 +27,9 @@ public class MergeOperator<T> : IStream<T>
         private bool _subscription1Completed;
         private readonly ISubscription _subscription2;
         private bool _subscription2Completed;
+        private readonly StreamEventSequencer<Either> _streamEventSequencer;
+
+        private readonly object _sync = new();
         private bool _completed;
 
         public IStream<object> Source { get; }
@@ -41,8 +44,33 @@ public class MergeOperator<T> : IStream<T>
             _onCompletion = onCompletion;
             _onError = onError;
 
-            _subscription1 = inner1.Subscribe(SignalNext, SignalCompletion1, SignalError, subscriptionGroupId);
-            _subscription2 = inner2.Subscribe(SignalNext, SignalCompletion2, SignalError, _subscription1.SubscriptionGroupId);
+            _streamEventSequencer = new StreamEventSequencer<Either>(HandleEither, onCompletion: () => {}, onError: _ => {});
+
+            _subscription1 = inner1.Subscribe(
+                onNext: next => _streamEventSequencer.HandleNext(
+                    new Either(fromStream1: true, StreamEvent<T>.CreateFromNext(next))
+                ),
+                onCompletion: () => _streamEventSequencer.HandleNext(
+                    new Either(fromStream1: true, StreamEvent<T>.CreateFromCompletion())
+                ),
+                onError: e => _streamEventSequencer.HandleNext(
+                    new Either(fromStream1: true, StreamEvent<T>.CreateFromException(e))
+                ), 
+                subscriptionGroupId
+            );
+            _subscription2 = inner2.Subscribe(
+                onNext: next => _streamEventSequencer.HandleNext(
+                    new Either(fromStream1: false, StreamEvent<T>.CreateFromNext(next))
+                ),
+                onCompletion: () => _streamEventSequencer.HandleNext(
+                    new Either(fromStream1: false, StreamEvent<T>.CreateFromCompletion())
+                ),
+                onError: e => _streamEventSequencer.HandleNext(
+                    new Either(fromStream1: false, StreamEvent<T>.CreateFromException(e))
+                ), 
+                _subscription1.SubscriptionGroupId
+            );
+
             Source = _subscription1.Source;
             SubscriptionGroupId = _subscription1.SubscriptionGroupId;
             TimeoutProvider = _subscription1.TimeoutProvider;
@@ -53,9 +81,29 @@ public class MergeOperator<T> : IStream<T>
         public void DeliverExistingAndFuture() => _subscription1.DeliverExistingAndFuture();
         public int DeliverExisting() => _subscription1.DeliverExisting();
 
+        private void HandleEither(Either either)
+        {
+            switch (either.StreamEvent.Status)
+            {
+                case StreamEventStatus.SignalNext:
+                    SignalNext(either.StreamEvent.Next);
+                    break;
+                case StreamEventStatus.SignalCompletion:
+                    if (either.FromStream1)
+                        SignalCompletion1();
+                    else
+                        SignalCompletion2();
+                    break;
+                case StreamEventStatus.SignalError:
+                    SignalError(either.StreamEvent.Error!);
+                    break;
+            }
+        }
+        
         private void SignalNext(T next)
         {
-            if (_completed) return;
+            lock (_sync)
+                if (_completed) return;
 
             try
             {
@@ -69,8 +117,9 @@ public class MergeOperator<T> : IStream<T>
 
         private void SignalError(Exception exception)
         {
-            if (_completed) return;
-            _completed = true;
+            lock (_sync)
+                if (_completed) return;
+                else _completed = true;
 
             _onError(exception);
 
@@ -82,41 +131,46 @@ public class MergeOperator<T> : IStream<T>
 
         private void SignalCompletion1()
         {
-            if (_subscription1Completed) return;
-            _subscription1Completed = true;
-            _subscription1.Dispose();
-            
-            if (!(_subscription1Completed && _subscription2Completed)) return;
-            
-            _completed = true;
+            lock (_sync)
+            {
+                if (_subscription1Completed) return;
+                _subscription1Completed = true;
+                if (!(_subscription1Completed && _subscription2Completed)) return;
+                _completed = true;
+            }
 
             _onCompletion();
         }
         
         private void SignalCompletion2()
         {
-            if (_subscription2Completed) return;
-            _subscription2Completed = true;
-            _subscription2.Dispose();
-            
-            if (!(_subscription1Completed && _subscription2Completed)) return;
-            
-            _completed = true;
+            lock (_sync)
+            {
+                if (_subscription2Completed) return;
+                _subscription2Completed = true;
+                if (!(_subscription1Completed && _subscription2Completed)) return;
+                _completed = true;
+            }
 
             _onCompletion();
         }
 
         public void Dispose()
         {
-            if (!_subscription1Completed)
-                _subscription1.Dispose();
-            
-            _subscription1Completed = true;
+            _subscription1.Dispose();
+            _subscription2.Dispose();
+        }
 
-            if (!_subscription2Completed)
-                _subscription2.Dispose();
-            
-            _subscription2Completed = true;
+        private readonly struct Either
+        {
+            public StreamEvent<T> StreamEvent { get; }
+            public bool FromStream1 { get; }
+
+            public Either(bool fromStream1, StreamEvent<T> streamEvent)
+            {
+                FromStream1 = fromStream1;
+                StreamEvent = streamEvent;
+            }
         }
     }
 }
