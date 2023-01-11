@@ -75,7 +75,7 @@ public static class Linq
     public static IStream<T> Take<T>(this IStream<T> s, int toTake)
     {
         if (toTake < 1)
-            throw new ArgumentException("Must take a non-negative number of elements", nameof(toTake));
+            throw new ArgumentException("Must take a positive number of elements", nameof(toTake));
 
         return s.WithOperator<T, T>(
             () =>
@@ -92,7 +92,11 @@ public static class Linq
     }
 
     public static IStream<T> Skip<T>(this IStream<T> s, int toSkip)
-        => s.WithOperator<T, T>(
+    {
+        if (toSkip < 0)
+            throw new ArgumentException("Must take a non-negative number of elements", nameof(toSkip));
+
+        return s.WithOperator<T, T>(
             () =>
             {
                 var left = toSkip;
@@ -104,6 +108,7 @@ public static class Linq
                         left--;
                 };
             });
+    }
 
     public static IStream<T> Merge<T>(this IStream<T> stream1, IStream<T> stream2)
         => new MergeOperator<T>(stream1, stream2);
@@ -292,7 +297,7 @@ public static class Linq
         await subscription.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
         throw new SuspendInvocationException(delivered);
     }
-    
+
     public static Task<List<T>> ToList<T>(this IStream<T> stream)
     {
         var tcs = new TaskCompletionSource<List<T>>();
@@ -303,10 +308,10 @@ public static class Linq
             onError: e => tcs.TrySetException(e)
         );
         subscription.DeliverExistingAndFuture();
-        
+
         return tcs.Task;
     }
-    
+
     public static List<T> ExistingToList<T>(this IStream<T> stream)
     {
         var tcs = new TaskCompletionSource<List<T>>();
