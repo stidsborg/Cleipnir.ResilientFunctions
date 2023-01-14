@@ -90,6 +90,27 @@ public static class Linq
                 };
             });
     }
+    
+    public static IStream<T> TakeUntil<T>(this IStream<T> s, Func<T, bool> predicate)
+    {
+        return s.WithOperator<T, T>(
+            () =>
+            {
+                var completed = false; 
+               
+                return (next, notify, complete, _) =>
+                {
+                    if (completed) return;
+                    if (!predicate(next))
+                        notify(next);
+                    else
+                    {
+                        complete();
+                        completed = true;
+                    }
+                };
+            });
+    }
 
     public static IStream<T> Skip<T>(this IStream<T> s, int toSkip)
     {
