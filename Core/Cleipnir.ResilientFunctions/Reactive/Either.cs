@@ -59,6 +59,26 @@ public class Either<T1, T2>
                 break;
         }
     }
+    
+    public object? AsObject()
+    {
+        return ValueSpecified switch
+        {
+            Value.First => First,
+            Value.Second => Second,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    public T As<T>() where T : T1, T2 
+    {
+        return ValueSpecified switch
+        {
+            Value.First => (T) First!,
+            Value.Second => (T) Second!,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    } 
 
     public enum Value
     {
@@ -144,6 +164,28 @@ public class Either<T1, T2, T3>
                 break;
         }
     }
+
+    public object? AsObject()
+    {
+        return ValueSpecified switch
+        {
+            Value.First => First,
+            Value.Second => Second,
+            Value.Third => Third,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public T As<T>() where T : T1, T2, T3 
+    {
+        return ValueSpecified switch
+        {
+            Value.First => (T) First!,
+            Value.Second => (T) Second!,
+            Value.Third => (T) Third!,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    } 
 
     public enum Value
     {
