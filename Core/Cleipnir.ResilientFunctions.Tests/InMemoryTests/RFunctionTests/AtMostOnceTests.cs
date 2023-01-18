@@ -17,7 +17,7 @@ public class AtMostOnceTests
     public async Task AtMostOnceWorkIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
         
         var rAction = rFunctions.RegisterAction(
@@ -49,7 +49,7 @@ public class AtMostOnceTests
     public async Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
         
         var rAction = rFunctions.RegisterAction(
@@ -81,7 +81,7 @@ public class AtMostOnceTests
     public async Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
         
         var rAction = rFunctions.RegisterAction(
@@ -104,7 +104,7 @@ public class AtMostOnceTests
     public async Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
-        var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
         
         var rAction = rFunctions.RegisterAction(
