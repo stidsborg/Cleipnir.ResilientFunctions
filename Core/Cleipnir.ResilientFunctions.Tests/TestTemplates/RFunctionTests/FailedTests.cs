@@ -29,7 +29,7 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFunctionTypeId();
+        var functionTypeId = callerMemberName.ToFunctionTypeId() + throwUnhandledException.ToString();
         var functionId = new FunctionId(functionTypeId, PARAM);
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
