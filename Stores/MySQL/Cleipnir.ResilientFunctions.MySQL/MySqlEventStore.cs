@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System.Data;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using MySqlConnector;
 
@@ -202,13 +203,38 @@ public class MySqlEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var transaction = await conn.BeginTransactionAsync();
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
+
+        if (expectedEpoch != null && !await IsFunctionAtEpoch(functionId, expectedEpoch.Value, conn, transaction))
+            return false;
+        
         await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
         await transaction.CommitAsync();
+        return true;
+    }
+
+    private async Task<bool> IsFunctionAtEpoch(FunctionId functionId, int expectedEpoch, MySqlConnection conn, MySqlTransaction transaction)
+    {
+        var sql = @$"    
+            SELECT COUNT(*)
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = ? AND function_instance_id = ? AND epoch >= ?;";
+        await using var command = new MySqlCommand(sql, conn, transaction)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new () {Value = expectedEpoch}
+            }
+        };
+
+        var count = (long?) await command.ExecuteScalarAsync();
+        return count == 1;
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

@@ -17,17 +17,21 @@ public static class RFunctionsModule
         Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null
-    ) => UseResilientFunctions(
+    )
+    {
+        var inMemoryFunctionStore = new InMemoryFunctionStore();
+        return UseResilientFunctions(
             services,
-            new InMemoryFunctionStore(),
-            new InMemoryEventStore(),
+            inMemoryFunctionStore,
+            inMemoryFunctionStore,
             options,
             gracefulShutdown,
             rootAssembly,
             initializeDatabase: false,
             arbitrator: new InMemoryArbitrator(),
             monitor: new InMemoryMonitor()
-        );
+        );   
+    }
 
     public static IServiceCollection UseResilientFunctions(
         IServiceCollection services,

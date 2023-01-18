@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -162,15 +163,37 @@ public class SqlServerEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = conn.BeginTransaction(IsolationLevel.RepeatableRead);
 
+        if (expectedEpoch.HasValue && !await IsFunctionAtEpoch(functionId, conn, transaction, expectedEpoch.Value))
+            return false;
+                
         await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, conn, transaction);
         
         await transaction.CommitAsync();
+        return true;
+    }
+
+    private async Task<bool> IsFunctionAtEpoch(FunctionId functionId, SqlConnection connection, SqlTransaction transaction, int expectedEpoch)
+    {
+        var sql = @$"    
+            SELECT COUNT(*)
+            FROM {_tablePrefix}RFunctions
+            WHERE FunctionTypeId = @FunctionTypeId AND 
+                  FunctionInstanceId = @FunctionInstanceId AND
+                  Epoch = @ExpectedEpoch;";
+        
+        await using var command = new SqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+        var count = (int?) await command.ExecuteScalarAsync();
+        return count == 1;
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

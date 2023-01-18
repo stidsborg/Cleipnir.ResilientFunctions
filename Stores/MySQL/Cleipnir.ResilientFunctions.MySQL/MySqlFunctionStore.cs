@@ -639,18 +639,29 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
+        
         var sql = $@"
+            START TRANSACTION;
+            DELETE FROM {_tablePrefix}rfunctions_events
+            WHERE 
+                function_type_id = ? AND 
+                function_instance_id = ?;
             DELETE FROM {_tablePrefix}rfunctions
             WHERE 
                 function_type_id = ? AND 
-                function_instance_id = ? ";
+                function_instance_id = ?";
+        
         if (expectedEpoch != null)
-            sql += "AND epoch = ? ";
+            sql += " AND epoch = ? ";
 
+        sql += "; COMMIT";
+        
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value}
             }
@@ -659,6 +670,6 @@ public class MySqlFunctionStore : IFunctionStore
             command.Parameters.Add(new() { Value = expectedEpoch.Value });
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        return affectedRows > 0;
     }
 }

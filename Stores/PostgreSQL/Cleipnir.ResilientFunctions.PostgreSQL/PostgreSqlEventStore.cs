@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -166,13 +167,39 @@ public class PostgreSqlEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync();
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
+
+        if (expectedEpoch != null && !await IsFunctionAtEpoch(functionId, expectedEpoch.Value, conn, transaction))
+            return false;
+        
         await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, conn, transaction);
         await transaction.CommitAsync();
+        
+        return true;
+    }
+
+    private async Task<bool> IsFunctionAtEpoch(FunctionId functionId, int expectedEpoch, NpgsqlConnection conn, NpgsqlTransaction transaction)
+    {
+        var sql = @$"    
+            SELECT COUNT(*)
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = $1 AND function_instance_id = $2 AND epoch = $3;";
+        await using var command = new NpgsqlCommand(sql, conn, transaction)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new () {Value = expectedEpoch}
+            }
+        };
+
+        var count = (long?) await command.ExecuteScalarAsync();
+        return count == 1;
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

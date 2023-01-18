@@ -11,37 +11,37 @@ public class EventStoreTests :  TestTemplates.EventStoreTests
 {
     [TestMethod]
     public override Task AppendedMessagesCanBeFetchedAgain()
-        => AppendedMessagesCanBeFetchedAgain(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => AppendedMessagesCanBeFetchedAgain(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain()
-        => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
-        => SkippedMessagesAreNotFetched(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => SkippedMessagesAreNotFetched(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task TruncatedEventSourceContainsNoEvents()
-        => TruncatedEventSourceContainsNoEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => TruncatedEventSourceContainsNoEvents(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task NoExistingEventSourceCanBeTruncated()
-        => NoExistingEventSourceCanBeTruncated(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => NoExistingEventSourceCanBeTruncated(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task ExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => ExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => ExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(new InMemoryEventStore().CastTo<IEventStore>().ToTask());
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 }

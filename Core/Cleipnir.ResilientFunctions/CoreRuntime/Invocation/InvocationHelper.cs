@@ -322,7 +322,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 })
                 .ToList();
             
-            await _functionStore.EventStore.Replace(functionId, storedEvents);
+            await _functionStore.EventStore.Replace(functionId, storedEvents, expectedEpoch: expectedEpoch + 1);
         }
 
         return true;

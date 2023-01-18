@@ -8,18 +8,21 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class InMemoryFunctionStore : IFunctionStore
+public class InMemoryFunctionStore : IFunctionStore, IEventStore
 {
     private readonly Dictionary<FunctionId, State> _states = new();
+    private readonly Dictionary<FunctionId, List<StoredEvent>> _events = new();
     private readonly object _sync = new();
 
-    public IEventStore EventStore { get; } = new InMemoryEventStore();
+    public IEventStore EventStore => this;
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
     public Task Initialize() => Task.CompletedTask;
 
+    #region FunctionStore
+
     public Task<bool> CreateFunction(
-        FunctionId functionId, 
-        StoredParameter param, 
+        FunctionId functionId,
+        StoredParameter param,
         StoredScrapbook storedScrapbook,
         long crashedCheckFrequency)
     {
@@ -62,7 +65,7 @@ public class InMemoryFunctionStore : IFunctionStore
 
     public Task<bool> RestartExecution(
         FunctionId functionId,
-        Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 
+        Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook,
         int expectedEpoch,
         long crashedCheckFrequency)
     {
@@ -79,7 +82,7 @@ public class InMemoryFunctionStore : IFunctionStore
             {
                 var (param, scrapbook) = paramAndScrapbook;
                 state.Param = param;
-                state.Scrapbook = scrapbook;   
+                state.Scrapbook = scrapbook;
             }
 
             state.Epoch += 1;
@@ -162,19 +165,19 @@ public class InMemoryFunctionStore : IFunctionStore
         var epoch = eligibleFunctions
             .SingleOrDefault(f => f.InstanceId == functionId.InstanceId)
             ?.Epoch;
-        return epoch == null 
-            ? null 
+        return epoch == null
+            ? null
             : new Epoch(epoch.Value);
     }
 
 
     public Task<bool> SetFunctionState(
-        FunctionId functionId, 
-        Status status, 
+        FunctionId functionId,
+        Status status,
         StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook, 
-        StoredResult storedResult, 
-        StoredException? storedException, 
+        StoredScrapbook storedScrapbook,
+        StoredResult storedResult,
+        StoredException? storedException,
         long? postponeUntil,
         int expectedEpoch)
     {
@@ -219,7 +222,7 @@ public class InMemoryFunctionStore : IFunctionStore
             if (!_states.ContainsKey(functionId)) return false.ToTask();
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-            
+
             state.Param = storedParameter;
             state.Scrapbook = storedScrapbook;
             state.Epoch += 1;
@@ -236,11 +239,11 @@ public class InMemoryFunctionStore : IFunctionStore
 
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-            
+
             state.Status = Status.Succeeded;
             state.Result = result;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
-            
+
             return true.ToTask();
         }
     }
@@ -253,11 +256,11 @@ public class InMemoryFunctionStore : IFunctionStore
 
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-            
+
             state.Status = Status.Postponed;
             state.PostponeUntil = postponeUntil;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
-            
+
             return true.ToTask();
         }
     }
@@ -270,11 +273,11 @@ public class InMemoryFunctionStore : IFunctionStore
 
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-            
+
             state.Status = Status.Suspended;
             state.SuspendUntilEventSourceCountAtLeast = suspendUntilEventSourceCountAtLeast;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
-            
+
             return true.ToTask();
         }
     }
@@ -287,11 +290,11 @@ public class InMemoryFunctionStore : IFunctionStore
 
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-            
+
             state.Status = Status.Failed;
             state.Exception = storedException;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
-            
+
             return true.ToTask();
         }
     }
@@ -347,6 +350,7 @@ public class InMemoryFunctionStore : IFunctionStore
             if (expectedEpoch == null)
             {
                 _states.Remove(functionId);
+                _events.Remove(functionId);
                 return true.ToTask();
             }
             
@@ -354,9 +358,10 @@ public class InMemoryFunctionStore : IFunctionStore
             if (state.Epoch == expectedEpoch.Value)
             {
                 _states.Remove(functionId);
+                _events.Remove(functionId);
                 return true.ToTask();
             }
-
+            
             return false.ToTask();
         }
     }
@@ -375,4 +380,66 @@ public class InMemoryFunctionStore : IFunctionStore
         public long CrashedCheckFrequency { get; set; }
         public int SuspendUntilEventSourceCountAtLeast { get; set; }
     }
+    #endregion
+    #region EventStore
+
+    public Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+        => AppendEvents(functionId, new[] { storedEvent });
+
+    public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+
+    public Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        lock (_sync)
+        {
+            if (!_events.ContainsKey(functionId))
+                _events[functionId] = new List<StoredEvent>();
+
+            var events = _events[functionId];
+            foreach (var storedEvent in storedEvents)
+                if (storedEvent.IdempotencyKey == null ||
+                    events.All(e => e.IdempotencyKey != storedEvent.IdempotencyKey))
+                    events.Add(storedEvent);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task Truncate(FunctionId functionId)
+    {
+        lock (_sync)
+            _events[functionId] = new List<StoredEvent>();
+
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
+
+            var state = _states[functionId];
+            if (expectedEpoch.HasValue && state.Epoch != expectedEpoch)
+                return false.ToTask();
+            
+            _events[functionId] = storedEvents.ToList();
+            return true.ToTask();
+        }
+    }
+
+    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
+    {
+        lock (_sync)
+        {
+            if (!_events.ContainsKey(functionId))
+                return Enumerable.Empty<StoredEvent>().ToTask();
+
+            return _events[functionId].Skip(skip).ToList().AsEnumerable().ToTask();
+        }
+    }
+
+    #endregion
 }
