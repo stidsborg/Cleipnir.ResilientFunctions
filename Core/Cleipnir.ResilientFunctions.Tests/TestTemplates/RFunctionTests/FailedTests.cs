@@ -29,19 +29,20 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFunctionTypeId() + throwUnhandledException.ToString();
+        var functionTypeId = callerMemberName.ToFunctionTypeId();
         var functionId = new FunctionId(functionTypeId, PARAM);
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var rFunc = new RFunctions
-                (
-                    store,
-                    new Settings(
-                        unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero,
-                        postponedCheckFrequency: TimeSpan.Zero
-                    )
+            using var rFunctions = new RFunctions
+            (
+                store,
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    crashedCheckFrequency: TimeSpan.Zero,
+                    postponedCheckFrequency: TimeSpan.Zero
                 )
+            );
+            var rFunc = rFunctions
                 .RegisterAction(
                     functionTypeId,
                     (string _) =>
@@ -102,15 +103,16 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
-                (
-                    store, 
-                    new Settings(
-                        unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                        postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
-                    )
+            using var rFunctions = new RFunctions
+            (
+                store,
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
                 )
+            );
+            var nonCompletingRFunctions = rFunctions
                 .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) =>
@@ -164,15 +166,16 @@ public abstract class FailedTests
         var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
-                (
-                    store, 
-                    new Settings(
-                        unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
-                        postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
-                    )
+            using var rFunctions = new RFunctions
+            (
+                store,
+                new Settings(
+                    unhandledExceptionHandler.Catch,
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(0),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
                 )
+            );
+            var nonCompletingRFunctions = rFunctions 
                 .RegisterAction(
                     functionTypeId,
                     (string _) => Task.FromException(new Exception())
@@ -258,8 +261,11 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            var nonCompletingRFunctions = new RFunctions
-                (store, new Settings(unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero))
+            using var rFunctions = new RFunctions(
+                store,
+                new Settings(unhandledExceptionHandler.Catch, crashedCheckFrequency: TimeSpan.Zero)
+            );
+            var nonCompletingRFunctions = rFunctions 
                 .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) => 
