@@ -17,23 +17,27 @@ public static class RScrapbookExtensions
         Func<Task> work, 
         bool flushCompletedStatusImmediately = true)
     {
-        if (scrapbook.StateDictionary.ContainsKey(workId))
         {
-            var value = scrapbook.StateDictionary[workId];
-            var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var workStatus);
-            if (!success)
-                throw new InvalidOperationException($"Current value '{value}' could not be converted to {nameof(WorkStatus)} enum");
+            using var _ = await scrapbook.Lock();
+            if (scrapbook.StateDictionary.ContainsKey(workId))
+            {
+                var value = scrapbook.StateDictionary[workId];
+                var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var workStatus);
+                if (!success)
+                    throw new InvalidOperationException($"Current value '{value}' could not be converted to {nameof(WorkStatus)} enum");
 
-            if (workStatus == WorkStatus.Completed) return;
-            if (workStatus == WorkStatus.Started) 
-                throw new InvalidOperationException("Previous work was started but not completed");
+                if (workStatus == WorkStatus.Completed) return;
+                if (workStatus == WorkStatus.Started) 
+                    throw new InvalidOperationException("Previous work was started but not completed");
+            }
+
+            scrapbook.StateDictionary[workId] = WorkStatus.Started.ToString();
+            await scrapbook.Save();
         }
 
-        scrapbook.StateDictionary[workId] = WorkStatus.Started.ToString();
-        await scrapbook.Save();
-
         await work();
-        
+
+        using var __ = await scrapbook.Lock();
         scrapbook.StateDictionary[workId] = WorkStatus.Completed.ToString();
         if (flushCompletedStatusImmediately)
             await scrapbook.Save();
@@ -49,18 +53,22 @@ public static class RScrapbookExtensions
         var getter = (Func<TScrapbook, WorkStatus>)getterAndSetter.Getter;
         var setter = (Action<TScrapbook, WorkStatus>)getterAndSetter.Setter;
 
-        var workStatusValue = getter(scrapbook);
-        if (workStatusValue == WorkStatus.Completed) return;
-        if (workStatusValue == WorkStatus.Started)
-            throw new InvalidOperationException("Previous work was started but not completed");
+        {
+            using var _ = await scrapbook.Lock();
+            var workStatusValue = getter(scrapbook);
+            if (workStatusValue == WorkStatus.Completed) return;
+            if (workStatusValue == WorkStatus.Started)
+                throw new InvalidOperationException("Previous work was started but not completed");
+            setter(scrapbook, WorkStatus.Started);
+            await scrapbook.Save(); 
+        }
 
-        setter(scrapbook, WorkStatus.Started);
-        await scrapbook.Save(); 
-        
         await work();
         
+        using var __ = await scrapbook.Lock();
         setter(scrapbook, WorkStatus.Completed);
-        if (flushCompletedStatusImmediately) await scrapbook.Save();
+        if (flushCompletedStatusImmediately) 
+            await scrapbook.Save();
     }
     
     public static async Task DoAtLeastOnce(
@@ -69,20 +77,24 @@ public static class RScrapbookExtensions
         Func<Task> work, 
         bool flushCompletedStatusImmediately = true)
     {
-        if (scrapbook.StateDictionary.ContainsKey(workId))
         {
-            var value = scrapbook.StateDictionary[workId];
-            var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var workStatus);
-            if (!success)
-                throw new InvalidOperationException($"Current value '{value}' could not be converted to {nameof(WorkStatus)} enum");
+            using var _ = await scrapbook.Lock();
+            if (scrapbook.StateDictionary.ContainsKey(workId))
+            {
+                var value = scrapbook.StateDictionary[workId];
+                var success = Enum.TryParse<WorkStatus>(value, ignoreCase: true, out var workStatus);
+                if (!success)
+                    throw new InvalidOperationException($"Current value '{value}' could not be converted to {nameof(WorkStatus)} enum");
 
-            if (workStatus == WorkStatus.Completed) return;
+                if (workStatus == WorkStatus.Completed) return;
+            }
+
+            scrapbook.StateDictionary[workId] = WorkStatus.Started.ToString();
         }
-
-        scrapbook.StateDictionary[workId] = WorkStatus.Started.ToString();
-
+        
         await work();
         
+        using var __ = await scrapbook.Lock();
         scrapbook.StateDictionary[workId] = WorkStatus.Completed.ToString();
         if (flushCompletedStatusImmediately)
             await scrapbook.Save();
@@ -98,13 +110,17 @@ public static class RScrapbookExtensions
         var getter = (Func<TScrapbook, WorkStatus>)getterAndSetter.Getter;
         var setter = (Action<TScrapbook, WorkStatus>)getterAndSetter.Setter;
 
-        var workStatusValue = getter(scrapbook);
-        if (workStatusValue == WorkStatus.Completed) return;
+        {
+            using var _ = await scrapbook.Lock();
+            var workStatusValue = getter(scrapbook);
+            if (workStatusValue == WorkStatus.Completed) return;
 
-        setter(scrapbook, WorkStatus.Started);
-
+            setter(scrapbook, WorkStatus.Started);    
+        }
+        
         await work();
         
+        using var __ = await scrapbook.Lock();
         setter(scrapbook, WorkStatus.Completed);
         if (flushCompletedStatusImmediately) await scrapbook.Save();
     }

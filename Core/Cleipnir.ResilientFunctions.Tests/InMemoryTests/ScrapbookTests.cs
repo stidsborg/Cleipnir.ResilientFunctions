@@ -45,6 +45,20 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             }
         }
         
+        [TestMethod]
+        public async Task NewLockIsNotGrantedWhileScrapbookIsAlreadyLocked()
+        {
+            var scrapbook = new RScrapbook();
+
+            var lock1 = await scrapbook.Lock();
+            var lock2Task = scrapbook.Lock();
+            
+            lock2Task.IsCompleted.ShouldBeFalse();
+            await Task.Delay(5);
+            lock1.Dispose();
+            await BusyWait.UntilAsync(() => lock2Task.IsCompletedSuccessfully);
+        }
+        
         private class TestScrapbook : RScrapbook {}
     }
 }

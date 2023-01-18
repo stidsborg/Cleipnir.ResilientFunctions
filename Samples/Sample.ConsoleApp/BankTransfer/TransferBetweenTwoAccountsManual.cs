@@ -1,37 +1,44 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace ConsoleApp.BankTransfer;
 
-public sealed class TransferSaga 
+public sealed class TransferSaga
 {
-    private IBankClient BankClient { get; }
-
-    public TransferSaga(RFunctions rFunctions, IBankClient bankClient)
+    private readonly RAction<Transfer, RScrapbook> _rAction;
+    public TransferSaga(RFunctions rFunctions)
     {
-        BankClient = bankClient;
-        Perform = rFunctions
-            .RegisterAction<Transfer>(
-                "Transfers".ToFunctionTypeId(),
-                _Perform
-            )
-            .Invoke;
+        _rAction = rFunctions
+            .RegisterMethod<Inner>()
+            .RegisterAction<Transfer, RScrapbook>(
+                functionTypeId: nameof(TransferSaga),
+                inner => inner.Perform
+            );
     }
-    
-    public RAction.Invoke<Transfer, RScrapbook> Perform { get; }
-    private async Task<Result> _Perform(Transfer transfer)
+
+    public Task Perform(Transfer transfer)
+        => _rAction.Invoke(transfer.TransferId.ToString(), transfer);
+
+    public class Inner
     {
-        try
+        private IBankClient BankClient { get; }
+        
+        public Inner(IBankClient bankClient) => BankClient = bankClient;
+
+        public async Task Perform(Transfer transfer, RScrapbook scrapbook)
         {
-            await BankClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount);
-            await BankClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount);
-            return Succeed.WithoutValue;
-        }
-        catch (Exception exception)
-        {
-            return Fail.WithException(exception);
+            var deductTask = scrapbook.DoAtMostOnce(
+                "DeductAmount",
+                () => BankClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
+            );
+            
+            var addTask = scrapbook.DoAtMostOnce(
+                "AddAmount",
+                () => BankClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
+            );
+
+            await Task.WhenAll(deductTask, addTask);
         }
     }
 }
