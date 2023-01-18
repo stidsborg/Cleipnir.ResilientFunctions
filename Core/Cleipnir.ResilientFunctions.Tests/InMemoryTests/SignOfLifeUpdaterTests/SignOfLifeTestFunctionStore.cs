@@ -79,6 +79,6 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId)
         => _inner.GetFunctionStatus(functionId);
 
-    public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null)
-        => _inner.DeleteFunction(functionId, expectedEpoch, expectedStatus);
+    public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+        => _inner.DeleteFunction(functionId, expectedEpoch);
 }

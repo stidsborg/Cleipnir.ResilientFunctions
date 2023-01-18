@@ -337,38 +337,26 @@ public class InMemoryFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null)
+    public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(functionId))
                 return false.ToTask();
             
-            if (expectedEpoch == null && expectedStatus == null)
-            {
-                _states.Remove(functionId);
-                return true.ToTask();
-            }
-            var state = _states[functionId];
-            if (expectedEpoch != null && state.Epoch == expectedEpoch.Value && 
-                expectedStatus != null && state.Status == expectedStatus.Value)
-            {
-                _states.Remove(functionId);
-                return true.ToTask();
-            }
-
-            if (expectedEpoch != null && state.Epoch == expectedEpoch.Value && expectedStatus == null)
-            {
-                _states.Remove(functionId);
-                return true.ToTask();
-            }
-
-            if (expectedStatus != null && state.Status == expectedStatus.Value && expectedEpoch == null)
+            if (expectedEpoch == null)
             {
                 _states.Remove(functionId);
                 return true.ToTask();
             }
             
+            var state = _states[functionId];
+            if (state.Epoch == expectedEpoch.Value)
+            {
+                _states.Remove(functionId);
+                return true.ToTask();
+            }
+
             return false.ToTask();
         }
     }

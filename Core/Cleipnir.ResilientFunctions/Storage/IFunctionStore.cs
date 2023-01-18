@@ -61,5 +61,5 @@ public interface IFunctionStore
     Task<StoredFunction?> GetFunction(FunctionId functionId);
     Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId);
 
-    Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null);
+    Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null);
 }

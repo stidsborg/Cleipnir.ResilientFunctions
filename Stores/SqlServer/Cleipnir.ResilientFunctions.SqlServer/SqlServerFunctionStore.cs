@@ -605,7 +605,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null, Status? expectedStatus = null)
+    public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -615,17 +615,13 @@ public class SqlServerFunctionStore : IFunctionStore
 
         if (expectedEpoch != null)
             sql += "AND Epoch = @ExpectedEpoch ";
-        if (expectedStatus != null)
-            sql += "AND Status = @ExpectedStatus";
-        
+
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         if (expectedEpoch != null)
             command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch.Value);
-        if (expectedStatus != null)
-            command.Parameters.AddWithValue("@ExpectedStatus", (int) expectedStatus.Value);
-
+        
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }

@@ -225,51 +225,7 @@ public abstract class StoreCrudTests
 
         await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
     }
-    
-    public abstract Task ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected();
-    public async Task ExistingFunctionIsNotDeletedWhenStatusIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        await store.CreateFunction(
-            FunctionId,
-            Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
-        ).ShouldBeTrueAsync();
 
-        await store.SucceedFunction(
-            FunctionId,
-            new StoredResult(ResultJson: null, ResultType: null),
-            scrapbookJson: new TestScrapbook().ToJson(),
-            expectedEpoch: 0
-        ).ShouldBeTrueAsync();
-
-        await store.DeleteFunction(FunctionId, expectedStatus: Status.Executing).ShouldBeFalseAsync();
-        await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
-    }
-    
-    public abstract Task ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected();
-    public async Task ExistingFunctionIsNotDeletedWhenStatusAndEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        await store.CreateFunction(
-            FunctionId,
-            Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
-        ).ShouldBeTrueAsync();
-
-        await store.SucceedFunction(
-            FunctionId,
-            new StoredResult(ResultJson: null, ResultType: null),
-            scrapbookJson: new TestScrapbook().ToJson(),
-            expectedEpoch: 0
-        ).ShouldBeTrueAsync();
-        
-        await store.DeleteFunction(FunctionId, expectedStatus: Status.Executing, expectedEpoch: 0).ShouldBeFalseAsync();
-        await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
-    }
-    
     public abstract Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction();
     public async Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {
