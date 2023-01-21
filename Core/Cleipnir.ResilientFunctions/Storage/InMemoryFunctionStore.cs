@@ -418,11 +418,17 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     {
         lock (_sync)
         {
+            if (expectedEpoch == null)
+            {
+                _events[functionId] = storedEvents.ToList();
+                return true.ToTask();    
+            }
+            
             if (!_states.ContainsKey(functionId))
                 return false.ToTask();
 
             var state = _states[functionId];
-            if (expectedEpoch.HasValue && state.Epoch != expectedEpoch)
+            if (state.Epoch != expectedEpoch)
                 return false.ToTask();
             
             _events[functionId] = storedEvents.ToList();
