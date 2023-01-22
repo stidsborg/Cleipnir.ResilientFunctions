@@ -14,9 +14,9 @@ public class SyncedCounter
     private int _current;
     private readonly object _sync = new();
 
-    public void Increment()
+    public int Increment()
     {
         lock (_sync)
-            _current++;
+            return _current++;
     }
 }
