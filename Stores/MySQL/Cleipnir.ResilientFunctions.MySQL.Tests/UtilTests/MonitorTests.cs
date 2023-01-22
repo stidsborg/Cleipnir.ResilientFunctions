@@ -46,6 +46,7 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
         var monitor = new Cleipnir.ResilientFunctions.MySQL.Utils.Monitor(Sql.ConnectionString, tablePrefix: memberName);
+        await monitor.DropUnderlyingTable();
         await monitor.Initialize();
         return monitor;
     }
