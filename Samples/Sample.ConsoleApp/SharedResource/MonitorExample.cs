@@ -17,9 +17,9 @@ public class MonitorExample
         ResourceApi2 = resourceApi2;
     }
 
-    public async Task<Result> UpdateSubscription(string rFuncId, string resourceId, string value)
+    public async Task<Result> Invoke(string id, string resourceId, string value)
     {
-        await using var @lock = await Monitor.Acquire(group: nameof(UpdateSubscription), key: rFuncId);
+        await using var @lock = await Monitor.Acquire(group: nameof(MonitorExample), key: id);
         if (@lock == null)
             return Postpone.For(10_000);
 

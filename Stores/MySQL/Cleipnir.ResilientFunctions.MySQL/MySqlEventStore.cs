@@ -34,7 +34,7 @@ public class MySqlEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task DropUnderlyingTableIfExists()
+    public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_events";

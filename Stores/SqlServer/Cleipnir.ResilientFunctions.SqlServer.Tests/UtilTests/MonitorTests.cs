@@ -57,6 +57,6 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     {
         await using var conn = new SqlConnection(Sql.ConnectionString);
         await conn.OpenAsync();
-        return await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {memberName}Monitor");
+        return await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {memberName}RFunctions_Monitor");
     }
 }

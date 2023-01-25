@@ -12,7 +12,8 @@ using Cleipnir.ResilientFunctions.Storage;
 namespace Cleipnir.ResilientFunctions.Testing;
 
 public class SpecificFunctionTestHelper : IDisposable
-{ 
+{
+    private readonly Utilities _utilities;
     public FunctionId FunctionId { get; }
     public InMemoryFunctionStore FunctionStore { get; }
 
@@ -28,8 +29,9 @@ public class SpecificFunctionTestHelper : IDisposable
     private readonly List<IDisposable> _disposables = new();
     private readonly object _sync = new();
     
-    public SpecificFunctionTestHelper(FunctionId functionId, InMemoryFunctionStore functionStore)
+    public SpecificFunctionTestHelper(FunctionId functionId, InMemoryFunctionStore functionStore, Utilities utilities)
     {
+        _utilities = utilities;
         FunctionId = functionId;
         FunctionStore = functionStore;
     }
@@ -39,7 +41,8 @@ public class SpecificFunctionTestHelper : IDisposable
         => new Context(
             FunctionId,
             invocationMode,
-            eventSourceFactory: () => InMemoryEventSource.ToTask()
+            eventSourceFactory: () => InMemoryEventSource.ToTask(),
+            _utilities
         );
 
     public EventSource InMemoryEventSource

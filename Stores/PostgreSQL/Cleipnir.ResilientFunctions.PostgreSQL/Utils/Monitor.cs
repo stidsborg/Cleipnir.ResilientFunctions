@@ -17,10 +17,10 @@ public class Monitor : IMonitor
 
     public async Task Initialize()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}monitor (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_monitor (
                 groupname VARCHAR(255) PRIMARY KEY NOT NULL,                
                 keyid VARCHAR(255) NOT NULL
             );";
@@ -31,9 +31,9 @@ public class Monitor : IMonitor
 
     public async Task DropUnderlyingTable()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
-        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}monitor";
+        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_monitor";
         
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -41,11 +41,11 @@ public class Monitor : IMonitor
 
     public async Task<IMonitor.ILock?> Acquire(string group, string key)
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         {
             var sql = @$"           
-            INSERT INTO {_tablePrefix}monitor (groupname, keyid)
+            INSERT INTO {_tablePrefix}rfunctions_monitor (groupname, keyid)
             VALUES ($1, $2)
             ON CONFLICT DO NOTHING;";
             await using var command = new NpgsqlCommand(sql, conn)
@@ -63,7 +63,7 @@ public class Monitor : IMonitor
         {
             var sql = @$"
                 SELECT COUNT(*) 
-                FROM {_tablePrefix}monitor
+                FROM {_tablePrefix}rfunctions_monitor
                 WHERE groupname = $1 AND keyid = $2;";
             await using var command = new NpgsqlCommand(sql, conn)
             {
@@ -82,9 +82,9 @@ public class Monitor : IMonitor
 
     public async Task Release(string group, string key)
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
-        var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE groupname = $1 AND keyid = $2";
+        var sql = @$"DELETE FROM {_tablePrefix}rfunctions_monitor WHERE groupname = $1 AND keyid = $2";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =

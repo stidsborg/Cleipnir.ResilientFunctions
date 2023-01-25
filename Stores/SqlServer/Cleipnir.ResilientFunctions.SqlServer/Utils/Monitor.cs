@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Microsoft.Data.SqlClient;
 
@@ -23,7 +22,7 @@ public class Monitor : IMonitor
         try
         {
             var sql = @$"
-                CREATE TABLE {_tablePrefix}Monitor (
+                CREATE TABLE {_tablePrefix}RFunctions_Monitor (
                     [GroupName] NVARCHAR(255) PRIMARY KEY NOT NULL,                
                     [KeyId] NVARCHAR(255) NOT NULL
                 )";
@@ -38,21 +37,24 @@ public class Monitor : IMonitor
         }
     }
 
+    public async Task TruncateTable()
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions_Monitor";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task DropUnderlyingTable()
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
-        try
-        {
-            var sql = $"DROP TABLE {_tablePrefix}Monitor";
-            await using var command = new SqlCommand(sql, conn);
-            await command.ExecuteNonQueryAsync();
-        }
-        catch (SqlException e)
-        {
-            if (e.Number != SqlError.TABLE_DOES_NOT_EXIST)
-                throw;
-        }
+
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Monitor";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<IMonitor.ILock?> Acquire(string group, string key)
@@ -62,8 +64,8 @@ public class Monitor : IMonitor
             await using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
             var sql = @$"
-                IF (SELECT COUNT(*) FROM {_tablePrefix}Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId) = 0
-                    INSERT INTO {_tablePrefix}Monitor ([GroupName], [KeyId])
+                IF (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId) = 0
+                    INSERT INTO {_tablePrefix}RFunctions_Monitor ([GroupName], [KeyId])
                     VALUES (@GroupName, @KeyId);";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@GroupName", group);
@@ -87,7 +89,7 @@ public class Monitor : IMonitor
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
-        var sql = $"DELETE FROM {_tablePrefix}Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId";
+        var sql = $"DELETE FROM {_tablePrefix}RFunctions_Monitor WHERE [GroupName] = @GroupName AND [KeyId] = @KeyId";
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@GroupName", group);
         command.Parameters.AddWithValue("@KeyId", key);

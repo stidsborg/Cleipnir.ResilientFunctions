@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Utils.Arbitrator;
+using Cleipnir.ResilientFunctions.Utils.Monitor;
+using Cleipnir.ResilientFunctions.Utils.Register;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -16,6 +20,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 
     public IEventStore EventStore => this;
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
+
+    public Utilities Utilities { get; } = new(new InMemoryMonitor(), new InMemoryRegister(), new InMemoryArbitrator());
     public Task Initialize() => Task.CompletedTask;
 
     #region FunctionStore

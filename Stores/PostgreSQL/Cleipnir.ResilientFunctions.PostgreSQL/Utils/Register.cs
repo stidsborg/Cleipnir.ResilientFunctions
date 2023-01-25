@@ -96,7 +96,7 @@ public class Register : IRegister
         else
         {
             //setIfEmpty is true
-            var batch = new NpgsqlBatch(conn);
+            await using var batch = new NpgsqlBatch(conn);
             {
                 var command = 
                     new NpgsqlBatchCommand($"DELETE FROM {_tablePrefix}rfunctions_register WHERE groupName = $1 AND keyId = $2 AND value = $3")
@@ -130,7 +130,7 @@ public class Register : IRegister
             
                 batch.BatchCommands.Add(command);
             }
-
+            
             var affectedRows = await batch.ExecuteNonQueryAsync(); 
             return affectedRows > 0;   
         }

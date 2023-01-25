@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -19,6 +20,7 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
 
     public IEventStore EventStore => _inner.EventStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
+    public Utilities Utilities => _inner.Utilities;
     public Task Initialize() => _inner.Initialize();
 
     public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)

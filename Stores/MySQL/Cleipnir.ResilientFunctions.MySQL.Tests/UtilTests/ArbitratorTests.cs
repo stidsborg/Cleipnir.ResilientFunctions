@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using Cleipnir.ResilientFunctions.MySQL.Utils;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -45,7 +46,7 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
     
     private async Task<IArbitrator> CreateArbitrator([CallerMemberName] string memberName = "")
     {
-        var arbitrator = new Arbitrator(Sql.ConnectionString, tablePrefix: memberName);
+        var arbitrator = new Arbitrator(Sql.ConnectionString);
         await arbitrator.DropUnderlyingTable();
         await arbitrator.Initialize();
         return arbitrator;

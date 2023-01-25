@@ -45,7 +45,7 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new Cleipnir.ResilientFunctions.MySQL.Utils.Monitor(Sql.ConnectionString, tablePrefix: memberName);
+        var monitor = new Cleipnir.ResilientFunctions.MySQL.Utils.Monitor(Sql.ConnectionString);
         await monitor.DropUnderlyingTable();
         await monitor.Initialize();
         return monitor;
@@ -54,7 +54,7 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
     {
         await using var conn = await Sql.ConnFunc();
-        var sql = $"SELECT COUNT(*) FROM {memberName.ToLower()}monitor";
+        var sql = $"SELECT COUNT(*) FROM rfunctions_monitor";
         await using var command = new MySqlCommand(sql, conn);
         var count = (int) (long) (await command.ExecuteScalarAsync() ?? 0);
         return count;

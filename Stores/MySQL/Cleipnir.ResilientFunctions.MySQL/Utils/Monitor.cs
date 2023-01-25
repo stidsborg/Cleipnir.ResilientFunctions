@@ -18,7 +18,7 @@ public class Monitor : IMonitor
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}monitor (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_monitor (
                 groupname VARCHAR(255) PRIMARY KEY NOT NULL,                
                 keyid VARCHAR(255) NOT NULL
             );";
@@ -30,7 +30,7 @@ public class Monitor : IMonitor
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}monitor";
+        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_monitor";
         
         await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -40,7 +40,7 @@ public class Monitor : IMonitor
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         {
-            var sql = $"INSERT IGNORE INTO {_tablePrefix}monitor (groupname, keyid) VALUES (?, ?)";
+            var sql = $"INSERT IGNORE INTO {_tablePrefix}rfunctions_monitor (groupname, keyid) VALUES (?, ?)";
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
@@ -56,7 +56,7 @@ public class Monitor : IMonitor
         {
             var sql = @$"
                 SELECT COUNT(*) 
-                FROM {_tablePrefix}monitor
+                FROM {_tablePrefix}rfunctions_monitor
                 WHERE groupname = ? AND keyid = ?;";
             await using var command = new MySqlCommand(sql, conn)
             {
@@ -76,7 +76,7 @@ public class Monitor : IMonitor
     public async Task Release(string group, string key)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"DELETE FROM {_tablePrefix}monitor WHERE groupname = ? AND keyid = ?";
+        var sql = @$"DELETE FROM {_tablePrefix}rfunctions_monitor WHERE groupname = ? AND keyid = ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =

@@ -34,9 +34,10 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
             conn.Execute($"CREATE DATABASE {databaseName}");
         }
 
-        public static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
+        private static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new SqlServerFunctionStore(ConnectionString, $"{testClass}_{testMethod}");
+            var store = new SqlServerFunctionStore(ConnectionString);
+            await store.DropIfExists();
             await store.Initialize();
             return store;
         }

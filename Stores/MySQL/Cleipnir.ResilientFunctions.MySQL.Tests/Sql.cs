@@ -48,9 +48,9 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
 
         private static async Task<MySqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new MySqlFunctionStore(ConnectionString); 
+            var store = new MySqlFunctionStore(ConnectionString);
+            await store.DropIfExists();
             await store.Initialize();
-            await store.TruncateTables();
             return store;
         }
         
@@ -63,7 +63,7 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
                 .Last()
                 .Replace(".cs", "");
             var store = new MySqlEventStore(ConnectionString);
-            await store.DropUnderlyingTableIfExists();
+            await store.DropUnderlyingTable();
             await store.Initialize();
             return store;
         }

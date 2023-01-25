@@ -47,7 +47,7 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new Monitor(Sql.ConnectionString, tablePrefix: memberName);
+        var monitor = new Monitor(Sql.ConnectionString);
         await monitor.Initialize();
         return monitor;
     }
@@ -56,7 +56,7 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     {
         var conn = new NpgsqlConnection(Sql.ConnectionString);
         await conn.OpenAsync();
-        var sql = $"SELECT COUNT(*) FROM {memberName}Monitor";
+        var sql = $"SELECT COUNT(*) FROM rfunctions_monitor";
         await using var command = new NpgsqlCommand(sql, conn);
         var count = (int) (long) (await command.ExecuteScalarAsync() ?? 0);
         return count;

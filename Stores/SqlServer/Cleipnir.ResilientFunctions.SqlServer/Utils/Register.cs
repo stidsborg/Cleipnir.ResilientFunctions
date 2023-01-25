@@ -215,4 +215,14 @@ public class Register : IRegister
         var count = (int?) await command.ExecuteScalarAsync();
         return count > 0;
     }
+
+    public async Task TruncateTable()
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions_Register";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
 }

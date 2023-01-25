@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -17,6 +18,7 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly Subject<long> _afterPostponeFunctionSubject = new();
     public IEventStore EventStore => _inner.EventStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
+    public Utilities Utilities => _inner.Utilities;
 
     public IObservable<long> AfterPostponeFunctionStream
     {

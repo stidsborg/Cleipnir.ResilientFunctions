@@ -22,6 +22,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly Utilities _utilities;
 
     internal Invoker(
         FunctionTypeId functionTypeId,
@@ -30,7 +31,8 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         IDependencyResolver? dependencyResolver,
         MiddlewarePipeline middlewarePipeline,
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
-        UnhandledExceptionHandler unhandledExceptionHandler)
+        UnhandledExceptionHandler unhandledExceptionHandler,
+        Utilities utilities)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
@@ -39,6 +41,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         _middlewarePipeline = middlewarePipeline;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _utilities = utilities;
     }
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
@@ -166,7 +169,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 persisted,
                 wrappedInner,
                 scrapbook,
-                new Context(functionId, InvocationMode.Direct, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke)),
+                new Context(functionId, InvocationMode.Direct, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke), _utilities),
                 Disposable.Combine(disposables)
             );
         }
@@ -208,7 +211,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 wrappedInner,
                 param,
                 scrapbook,
-                new Context(functionId, InvocationMode.Retry, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke)),
+                new Context(functionId, InvocationMode.Retry, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke), _utilities),
                 epoch,
                 Disposable.Combine(disposables)
             );

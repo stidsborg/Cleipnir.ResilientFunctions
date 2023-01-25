@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -16,6 +17,10 @@ public class MySqlFunctionStore : IFunctionStore
     public IEventStore EventStore => _eventStore;
     private readonly MySqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
+    public Utilities Utilities { get; }
+    private readonly Utils.Monitor _monitor;
+    private readonly Utils.Arbitrator _arbitrator;
+    private readonly Utils.Register _register;
 
     public MySqlFunctionStore(string connectionString, string tablePrefix = "")
     {
@@ -23,10 +28,17 @@ public class MySqlFunctionStore : IFunctionStore
         _tablePrefix = tablePrefix;
         _eventStore = new MySqlEventStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
+        _monitor = new(connectionString, _tablePrefix);
+        _arbitrator = new(connectionString, _tablePrefix);
+        _register = new(connectionString, _tablePrefix);
+        Utilities = new Utilities(_monitor, _register, _arbitrator);
     }
 
     public async Task Initialize()
     {
+        await _monitor.Initialize();
+        await _register.Initialize();
+        await _arbitrator.Initialize();
         await EventStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -57,6 +69,11 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task DropIfExists()
     {
+        await _eventStore.DropUnderlyingTable();
+        await _monitor.DropUnderlyingTable();
+        await _register.DropUnderlyingTable();
+        await _arbitrator.DropUnderlyingTable();
+        
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";
         await using var command = new MySqlCommand(sql, conn);

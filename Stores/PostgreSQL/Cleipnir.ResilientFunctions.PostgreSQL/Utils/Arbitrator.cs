@@ -20,7 +20,7 @@ public class Arbitrator : IArbitrator
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         var sql = @$"            
-                CREATE TABLE IF NOT EXISTS {_tablePrefix}arbitrator (
+                CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_arbitrator (
                     groupName VARCHAR(255) NOT NULL,
                     keyId VARCHAR(255) NOT NULL,
                     value VARCHAR(255) NOT NULL,
@@ -35,7 +35,7 @@ public class Arbitrator : IArbitrator
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}arbitrator";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_arbitrator";
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -52,7 +52,7 @@ public class Arbitrator : IArbitrator
         await conn.OpenAsync();
 
         var sql = $@"
-            INSERT INTO {_tablePrefix}arbitrator
+            INSERT INTO {_tablePrefix}rfunctions_arbitrator
                 (groupName, keyId, value)
             VALUES
                 ($1, $2, $3)
@@ -72,7 +72,7 @@ public class Arbitrator : IArbitrator
             if (affectedRows == 1) return true;    
         }
         {
-            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}arbitrator WHERE groupName=$1 AND keyId=$2 AND value=$3";
+            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}rfunctions_arbitrator WHERE groupName=$1 AND keyId=$2 AND value=$3";
             await using var command = new NpgsqlCommand(sql, conn)
             {
                 Parameters =
@@ -96,7 +96,7 @@ public class Arbitrator : IArbitrator
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $@"DELETE FROM {_tablePrefix}arbitrator WHERE groupName=$1 AND keyId=$2";
+        var sql = $@"DELETE FROM {_tablePrefix}rfunctions_arbitrator WHERE groupName=$1 AND keyId=$2";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =

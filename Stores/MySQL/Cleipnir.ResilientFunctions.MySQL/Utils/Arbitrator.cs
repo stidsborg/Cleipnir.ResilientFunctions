@@ -18,7 +18,7 @@ public class Arbitrator : IArbitrator
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"            
-                CREATE TABLE IF NOT EXISTS {_tablePrefix}arbitrator (
+                CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_arbitrator (
                     groupName VARCHAR(255) NOT NULL,
                     keyId VARCHAR(255) NOT NULL,
                     value VARCHAR(255) NOT NULL,
@@ -32,7 +32,7 @@ public class Arbitrator : IArbitrator
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}arbitrator";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_arbitrator";
         await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -48,7 +48,7 @@ public class Arbitrator : IArbitrator
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
         var sql = $@"
-            INSERT IGNORE INTO {_tablePrefix}arbitrator
+            INSERT IGNORE INTO {_tablePrefix}rfunctions_arbitrator
                 (groupName, keyId, value)
             VALUES
                 (?, ?, ?)";
@@ -67,7 +67,7 @@ public class Arbitrator : IArbitrator
             if (affectedRows == 1) return true;    
         }
         {
-            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}arbitrator WHERE groupName=? AND keyId=? AND value=?";
+            sql = @$"SELECT COUNT(*) FROM {_tablePrefix}rfunctions_arbitrator WHERE groupName=? AND keyId=? AND value=?";
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
@@ -90,7 +90,7 @@ public class Arbitrator : IArbitrator
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
-        var sql = $@"DELETE FROM {_tablePrefix}arbitrator WHERE groupName=? AND keyId=?";
+        var sql = $@"DELETE FROM {_tablePrefix}rfunctions_arbitrator WHERE groupName=? AND keyId=?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =

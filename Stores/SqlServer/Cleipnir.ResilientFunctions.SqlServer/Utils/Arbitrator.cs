@@ -44,17 +44,10 @@ public class Arbitrator : IArbitrator
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
-        try
-        {
-            var sql = $"DROP TABLE {_tablePrefix}Arbitrator";
-            await using var command = new SqlCommand(sql, conn);
-            await command.ExecuteNonQueryAsync();
-        }
-        catch (SqlException e)
-        {
-            if (e.Number != SqlError.TABLE_DOES_NOT_EXIST)
-                throw;
-        }
+
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Arbitrator";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public Task<bool> Propose(string group, string key, string value)
@@ -122,5 +115,14 @@ public class Arbitrator : IArbitrator
             command.Parameters.AddWithValue("@KeyId", key);
             await command.ExecuteNonQueryAsync();
         }
+    }
+
+    public async Task TruncateTable()
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+        var sql = $"TRUNCATE TABLE {_tablePrefix}Arbitrator";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 }

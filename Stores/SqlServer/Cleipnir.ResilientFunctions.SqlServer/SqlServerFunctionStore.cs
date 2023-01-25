@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -16,9 +17,13 @@ public class SqlServerFunctionStore : IFunctionStore
 
     private readonly SqlServerTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
-    
+
     private readonly SqlServerEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
+    public Utilities Utilities { get; }
+    private readonly Utils.Monitor _monitor;
+    private readonly Utils.Arbitrator _arbitrator;
+    private readonly Utils.Register _register;
     
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
@@ -26,6 +31,10 @@ public class SqlServerFunctionStore : IFunctionStore
         _tablePrefix = tablePrefix;
         _eventStore = new SqlServerEventStore(connectionString, tablePrefix);
         _timeoutStore = new SqlServerTimeoutStore(connectionString, tablePrefix);
+        _monitor = new(connectionString, _tablePrefix);
+        _arbitrator = new(connectionString, _tablePrefix);
+        _register = new(connectionString, _tablePrefix);
+        Utilities = new Utilities(_monitor, _register, _arbitrator);
     }
     
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
@@ -40,6 +49,9 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task Initialize()
     {
+        await _monitor.Initialize();
+        await _register.Initialize();
+        await _arbitrator.Initialize();
         await _eventStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
@@ -81,9 +93,25 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
+    
+    public async Task DropIfExists()
+    {
+        await _monitor.DropUnderlyingTable();
+        await _register.DropUnderlyingTable();
+        await _arbitrator.DropUnderlyingTable();
+        await _eventStore.DropUnderlyingTable();
+        
+        await using var conn = await _connFunc();
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
 
     public async Task Truncate()
     {
+        await _monitor.TruncateTable();
+        await _register.TruncateTable();
+        await _arbitrator.TruncateTable();
         await _eventStore.TruncateTable();
         await _timeoutStore.TruncateTable();
         

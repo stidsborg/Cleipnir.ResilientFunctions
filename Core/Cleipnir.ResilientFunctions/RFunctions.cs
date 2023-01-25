@@ -378,7 +378,8 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 invocationHelper,
-                settingsWithDefaults.UnhandledExceptionHandler
+                settingsWithDefaults.UnhandledExceptionHandler,
+                _functionStore.Utilities
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -535,7 +536,8 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 invocationHelper,
-                settingsWithDefaults.UnhandledExceptionHandler
+                settingsWithDefaults.UnhandledExceptionHandler,
+                _functionStore.Utilities
             );
             
             WatchDogsFactory.CreateAndStart(
@@ -614,7 +616,8 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 invocationHelper,
-                settingsWithDefaults.UnhandledExceptionHandler
+                settingsWithDefaults.UnhandledExceptionHandler,
+                _functionStore.Utilities
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -675,7 +678,8 @@ public class RFunctions : IDisposable
                 settingsWithDefaults.DependencyResolver,
                 new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 invocationHelper,
-                settingsWithDefaults.UnhandledExceptionHandler
+                settingsWithDefaults.UnhandledExceptionHandler,
+                _functionStore.Utilities
             );
 
             WatchDogsFactory.CreateAndStart(

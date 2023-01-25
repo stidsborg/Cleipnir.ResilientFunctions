@@ -23,11 +23,13 @@ public class Context
     }
 
     public InvocationMode InvocationMode { get; }
+    public Utilities Utilities { get; }
     
-    public Context(FunctionId functionId, InvocationMode invocationMode, Func<Task<EventSource>> eventSourceFactory)
+    public Context(FunctionId functionId, InvocationMode invocationMode, Func<Task<EventSource>> eventSourceFactory, Utilities utilities)
     {
         FunctionId = functionId;
         InvocationMode = invocationMode;
         _eventSourceFactory = eventSourceFactory;
+        Utilities = utilities;
     }
 }

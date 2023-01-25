@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 
@@ -10,6 +11,7 @@ public interface IFunctionStore
 {
     public IEventStore EventStore { get; }
     public ITimeoutStore TimeoutStore { get; }
+    public Utilities Utilities { get; }
     public Task Initialize();
     
     Task<bool> CreateFunction(
