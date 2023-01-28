@@ -3,12 +3,12 @@ using System.Threading.Tasks;
 
 namespace ConsoleApp.BankTransfer;
 
-public interface IBankClient
+public interface IBankCentralClient
 {
     Task<bool> PostTransaction(Guid transactionId, string account, decimal amount);
 }
 
-public class BankClient : IBankClient
+public class BankCentralClient : IBankCentralClient
 {
     public Task<bool> PostTransaction(Guid transactionId, string account, decimal amount)
     {

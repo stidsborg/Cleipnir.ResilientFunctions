@@ -13,10 +13,10 @@ public static class Example
     {
         var rFunctions = new RFunctions(
             new InMemoryFunctionStore(),
-            new Settings(dependencyResolver: new FuncDependencyResolver(_ => new BankClient()))
+            new Settings(dependencyResolver: new FuncDependencyResolver(_ => new BankCentralClient()))
         );
 
-        var transferSaga = new TransferSaga(rFunctions);
+        var transferSaga = new TransferSagaV1(rFunctions);
         var transfer = new Transfer(
             TransferId: Guid.NewGuid(),
             FromAccount: "FAccount",
