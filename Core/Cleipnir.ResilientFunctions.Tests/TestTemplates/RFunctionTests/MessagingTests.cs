@@ -57,7 +57,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Context context) =>
             {
                 var es = await context.EventSource;
-                return await es.OfType<string>().NextOrSuspend();
+                return await es.SuspendUntilNextOfType<string>();
             }
         );
 

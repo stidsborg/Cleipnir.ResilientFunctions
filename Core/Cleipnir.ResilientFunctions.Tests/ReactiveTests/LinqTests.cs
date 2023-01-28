@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -41,6 +42,28 @@ public class LinqTests
         next.Result.ShouldBe(1);
             
         source.SignalNext(3); //should not thrown an error
+    }
+    
+    [TestMethod]
+    public void NextOperatorWithSuspensionAndTimeoutSucceedsWithImmediateSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        var nextOrSuspend = source.OfType<int>().SuspendUntilNext(TimeSpan.FromMilliseconds(250));
+        source.SignalNext(1);
+        nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
+        
+        nextOrSuspend.Result.ShouldBe(1);
+    }
+    
+    [TestMethod]
+    public async Task NextOperatorWithSuspensionAndTimeoutThrowsExceptionWhenNothingIsSignaled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        await Should.ThrowAsync<SuspendInvocationException>(
+            () => source.OfType<int>().SuspendUntilNext(TimeSpan.FromMilliseconds(10))
+        );
     }
 
     [TestMethod]

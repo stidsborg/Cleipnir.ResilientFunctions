@@ -18,9 +18,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.SignalNext("world");
 
             await Should.ThrowAsync<SuspendInvocationException>(
-                () => source
-                    .OfType<int>()
-                    .NextOrSuspend()
+                () => source.SuspendUntilNextOfType<int>()
             );
         }
         
@@ -32,42 +30,38 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.SignalNext(1);
             source.SignalNext("world");
 
-            var next = await source
-                .OfType<int>()
-                .NextOrSuspend();
-            
+            var next = await source.SuspendUntilNextOfType<int>();
+
             next.ShouldBe(1);
         }
         
         [TestMethod]
-        public async Task TrySuspensionIsDetectedWhenNoEventHasBeenEmittedFromLeafOperator()
+        public void TrySuspensionIsDetectedWhenNoEventHasBeenEmittedFromLeafOperator()
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext("world");
-
-            var result = await source
-                .OfType<int>()
-                .TryNextOrSuspend();
             
-            result.Outcome.ShouldBe(Outcome.Suspend);
-            result.Suspend!.UntilEventSourceCount.ShouldBe(2);
+            var success = source.TryNextOfType<int>(out var next, out var totalEventSourceCount);
+
+            success.ShouldBeFalse();
+            totalEventSourceCount.ShouldBe(2);
         }
         
         [TestMethod]
-        public async Task EventIsEmittedInOptionResultWhenEventHasBeenEmittedFromLeafOperator()
+        public void EventIsEmittedInOptionResultWhenEventHasBeenEmittedFromLeafOperator()
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext(1);
+            source.SignalNext(2);
             source.SignalNext("world");
 
-            var next = await source
-                .OfType<int>()
-                .TryNextOrSuspend();
-            
-            next.Outcome.ShouldBe(Outcome.Succeed);
-            next.SucceedWithValue.ShouldBe(1);
+            var success = source.TryNextOfType<int>(out var next, out var totalEventSourceCount);
+
+            success.ShouldBeTrue();
+            next.ShouldBe(1);
+            totalEventSourceCount.ShouldBe(4);
         }
     }
 }

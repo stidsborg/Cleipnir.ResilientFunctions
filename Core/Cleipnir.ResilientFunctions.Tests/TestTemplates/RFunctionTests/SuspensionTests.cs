@@ -176,7 +176,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Context context) =>
             {
                 var eventSource = await context.EventSource;
-                var next = await eventSource.OfType<string>().NextOrSuspend();
+                var next = await eventSource.SuspendUntilNextOfType<string>();
                 return next;
             }
         );
@@ -219,7 +219,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Context context) =>
             {
                 var eventSource = await context.EventSource;
-                var next = await eventSource.OfType<string>().NextOrSuspend();
+                var next = await eventSource.SuspendUntilNextOfType<string>();
                 return next;
             }
         );

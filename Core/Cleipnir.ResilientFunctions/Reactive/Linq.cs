@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive.Awaiter;
@@ -171,20 +170,53 @@ public static class Linq
         );
             
         return tcs.Task;
-    }  
-    
-    public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
+    }
 
+    public static Task<List<T>> ToList<T>(this IStream<T> stream)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var list = new List<T>();
+        var subscription = stream.Subscribe(
+            onNext: t => list.Add(t),
+            onCompletion: () => tcs.TrySetResult(list),
+            onError: e => tcs.TrySetException(e)
+        );
+        subscription.DeliverExistingAndFuture();
+
+        return tcs.Task;
+    }
+
+    public static List<T> ExistingToList<T>(this IStream<T> stream)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var list = new List<T>();
+        var subscription = stream.Subscribe(
+            onNext: t => list.Add(t),
+            onCompletion: () => tcs.TrySetResult(list),
+            onError: e => tcs.TrySetException(e)
+        );
+        subscription.DeliverExisting();
+        subscription.Dispose();
+
+        return list;
+    }
+
+    // ** NEXT RELATED OPERATORS ** //
+    public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
     public static Task<T> Next<T>(this IStream<T> s, int maxWaitMs)
+        => s.Next(TimeSpan.FromMilliseconds(maxWaitMs));
+    public static Task<T> Next<T>(this IStream<T> s, TimeSpan maxWait)
     {
         var tcs = new TaskCompletionSource<T>();
         _ = s.Take(1).Last().ContinueWith(t => tcs.TrySetResult(t.Result));
-        _ = Task.Delay(maxWaitMs).ContinueWith(_ => tcs.TrySetException(new TimeoutException($"Event was not emitted within threshold of {maxWaitMs}ms")));
+        _ = Task.Delay(maxWait).ContinueWith(_ => tcs.TrySetException(new TimeoutException($"Event was not emitted within threshold of {maxWait}")));
 
         return tcs.Task;
     }
 
     public static bool TryNext<T>(this IStream<T> s, out T? next)
+        => TryNext(s, out next, out _);
+    public static bool TryNext<T>(this IStream<T> s, out T? next, out int totalEventSourceCount)
     {
         var success = false;
         var t = default(T);
@@ -200,13 +232,86 @@ public static class Linq
             onError: _ => { }
         );
 
-        subscription.DeliverExisting();
+        totalEventSourceCount = subscription.DeliverExisting();
         subscription.Dispose();
         next = t;
         return success;
     }
 
-    public static async Task<T> NextOrSuspend<T>(this IStream<T> s)
+    public static Task<T> NextOfType<T>(this IStream<object> s)
+        => s.OfType<T>().Next();
+    public static Task<T> NextOfType<T>(this IStream<object> s, TimeSpan maxWait)
+        => s.OfType<T>().Next(maxWait);
+    public static bool TryNextOfType<T>(this IStream<object> s, out T? next)
+        => s.TryNextOfType(out next, out _);
+    
+    public static bool TryNextOfType<T>(this IStream<object> s, out T? next, out int totalEventSourceCount)
+        => s.OfType<T>().TryNext(out next, out totalEventSourceCount);
+    
+    public static Task<T> SuspendUntilNext<T>(this IStream<T> s, TimeSpan waitBeforeSuspension)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var sync = new object();
+        var waitForNextElapsed = false;
+        var completed = false;
+        
+        var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                lock (sync)
+                {
+                    if (waitForNextElapsed || completed) return;
+                    completed = true;
+                }
+
+                tcs.TrySetResult(t);
+            },
+            onCompletion: () =>
+            {
+                lock (sync)
+                {
+                    if (waitForNextElapsed || completed) return;
+                    completed = true;
+                }
+                
+                tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
+            },
+            onError: e =>
+            {
+                lock (sync)
+                {
+                    if (waitForNextElapsed || completed) return;
+                    completed = true;
+                }
+                
+                tcs.TrySetException(e);
+            });
+
+        subscription.DeliverExistingAndFuture();
+
+        _ = Task.Delay(waitBeforeSuspension).ContinueWith(_ =>
+        {
+            lock (sync)
+            {
+                if (completed) return;
+                waitForNextElapsed = true;
+            }
+
+            subscription.Dispose();
+
+            SuspendUntilNext(s).ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                    tcs.TrySetResult(task.Result);
+                else
+                    tcs.TrySetException(task.Exception!.InnerException!);
+            });
+        });
+        
+        _ = tcs.Task.ContinueWith(_ => subscription.Dispose());
+        return tcs.Task;
+    }
+    public static async Task<T> SuspendUntilNext<T>(this IStream<T> s)
     {
         var tcs = new TaskCompletionSource<T>();
         var eventEmitted = false;
@@ -238,43 +343,11 @@ public static class Linq
         
         return await tcs.Task;
     }
-    
-    public static async Task<Result<T>> TryNextOrSuspend<T>(this IStream<T> s)
-    {
-        var tcs = new TaskCompletionSource<Result<T>>();
-        var eventEmitted = false;
-        var emittedEvent = default(T);
-        
-        var subscription = s.Subscribe(
-            onNext: t =>
-            {
-                eventEmitted = true;
-                emittedEvent = t;
-            },
-            onCompletion: () =>
-            {
-                if (!eventEmitted)
-                    tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
-                else
-                    tcs.TrySetResult(emittedEvent!);
-            },
-            onError: e => tcs.TrySetException(e)
-        );
-        
-        var delivered = subscription.DeliverExisting();
-
-        if (!tcs.Task.IsCompleted && !eventEmitted)
-            tcs.SetResult(Suspend.Until(delivered).ToResult<T>());
-
-        if (eventEmitted)
-            tcs.TrySetResult(emittedEvent!);
-        
-        return await tcs.Task;
-    }
+    public static Task<T> SuspendUntilNextOfType<T>(this IStream<object> s)
+        => s.OfType<T>().SuspendUntilNext();
     
     public static Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, TimeSpan expiresIn)
         => SuspendUntilNextOrTimeoutEventFired(s, timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
-    
     public static async Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, DateTime expiresAt)
     {
         var tcs = new TaskCompletionSource<T>();
@@ -321,35 +394,5 @@ public static class Linq
         await subscription.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
         throw new SuspendInvocationException(delivered);
     }
-
-    public static Task<List<T>> ToList<T>(this IStream<T> stream)
-    {
-        var tcs = new TaskCompletionSource<List<T>>();
-        var list = new List<T>();
-        var subscription = stream.Subscribe(
-            onNext: t => list.Add(t),
-            onCompletion: () => tcs.TrySetResult(list),
-            onError: e => tcs.TrySetException(e)
-        );
-        subscription.DeliverExistingAndFuture();
-
-        return tcs.Task;
-    }
-
-    public static List<T> ExistingToList<T>(this IStream<T> stream)
-    {
-        var tcs = new TaskCompletionSource<List<T>>();
-        var list = new List<T>();
-        var subscription = stream.Subscribe(
-            onNext: t => list.Add(t),
-            onCompletion: () => tcs.TrySetResult(list),
-            onError: e => tcs.TrySetException(e)
-        );
-        subscription.DeliverExisting();
-        subscription.Dispose();
-
-        return list;
-    }
-
     #endregion
 }
