@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Reflection;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
@@ -23,7 +22,6 @@ public static class RFunctionsModule
         return UseResilientFunctions(
             services,
             inMemoryFunctionStore,
-            inMemoryFunctionStore,
             options,
             gracefulShutdown,
             rootAssembly,
@@ -36,7 +34,6 @@ public static class RFunctionsModule
     public static IServiceCollection UseResilientFunctions(
         IServiceCollection services,
         IFunctionStore functionStore,
-        IEventStore eventStore,
         Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null,
@@ -46,10 +43,7 @@ public static class RFunctionsModule
     )
     {
         if (initializeDatabase)
-        {
             functionStore.Initialize().GetAwaiter().GetResult();
-            eventStore.Initialize().GetAwaiter().GetResult();
-        }
 
         if (options != null)
             services.AddSingleton(options);
@@ -60,7 +54,6 @@ public static class RFunctionsModule
         services.AddSingleton<ServiceProviderDependencyResolver>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton(functionStore);
-        services.AddSingleton(eventStore);
 
         services.AddSingleton(sp =>
         {
