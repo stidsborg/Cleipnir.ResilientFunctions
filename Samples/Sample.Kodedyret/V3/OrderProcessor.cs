@@ -8,20 +8,20 @@ namespace Sample.Kodedyret.V3;
 
 public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
-    public RAction.Invoke<Order, Scrapbook> ProcessOrder { get; }
+    private readonly RAction<Order, Scrapbook> _rAction;
 
     public OrderProcessor(RFunctions rFunctions)
     {
-        var registration = rFunctions
+        _rAction = rFunctions
             .RegisterMethod<Inner>()
             .RegisterAction<Order, Scrapbook>(
                 nameof(OrderProcessor),
                 inner => inner.ProcessOrder
             );
-
-        ProcessOrder = registration.Invoke;
     }
 
+    public Task ProcessOrder(Order order) => _rAction.Invoke(order.OrderId, order);
+    
     public class Inner
     {
         private readonly IPaymentProviderClient _paymentProviderClient;
