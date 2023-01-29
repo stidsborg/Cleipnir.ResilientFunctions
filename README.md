@@ -1,7 +1,5 @@
 # Cleipnir's Resilient Functions
-**“The saga-pattern realized using no-fuzz ordinary dotnet code”** 
-
-*Simply providing a way to ensure your code gets run - until you say it is done!*
+**The saga-pattern realized using no-fuzz ordinary C#-code** - "*Simply providing a way to ensure your code gets run - until you say it is done!"*
 
 Resilient Functions is a simple and intuitive .NET framework for managing the execution of functions which must complete in their entirety despite: failures, restarts, deployments, versioning etc. 
 
