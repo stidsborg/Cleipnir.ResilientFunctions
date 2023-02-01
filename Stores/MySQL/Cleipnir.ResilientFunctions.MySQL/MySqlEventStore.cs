@@ -78,7 +78,8 @@ public class MySqlEventStore : IEventStore
         {
             await command.ExecuteNonQueryAsync();
         }
-        catch (MySqlException e) when (e.Number == 1062) { }
+        catch (MySqlException e) when (e.Number == 1062) { } //ignore duplicate idempotency key
+        catch (MySqlException e) when (e.Number == 1213) { await AppendEvent(functionId, storedEvent); }
     }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
