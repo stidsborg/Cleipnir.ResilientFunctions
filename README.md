@@ -19,7 +19,7 @@ Out-of-the-box you also get:
 * simple debuggability & testability
 * easy versioning of functions
 * graceful shutdown
-* register custom middleware to address cross-cutting corcerns
+* add custom middleware to address cross-cutting corcerns
 
 If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Documentation/raw/main/Presentation.pdf)  
 
