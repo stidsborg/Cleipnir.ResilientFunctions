@@ -244,7 +244,6 @@ public static class Linq
         => s.OfType<T>().Next(maxWait);
     public static bool TryNextOfType<T>(this IStream<object> s, out T? next)
         => s.TryNextOfType(out next, out _);
-    
     public static bool TryNextOfType<T>(this IStream<object> s, out T? next, out int totalEventSourceCount)
         => s.OfType<T>().TryNext(out next, out totalEventSourceCount);
     
@@ -345,7 +344,12 @@ public static class Linq
     }
     public static Task<T> SuspendUntilNextOfType<T>(this IStream<object> s)
         => s.OfType<T>().SuspendUntilNext();
-    
+    public static Task<T> SuspendUntilNextOfType<T>(this IStream<object> s, TimeSpan waitBeforeSuspension)
+        => s.OfType<T>().SuspendUntilNext(waitBeforeSuspension);
+    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IStream<object> s, string timeoutId, TimeSpan expiresIn)
+        => s.OfType<T>().SuspendUntilNextOrTimeoutEventFired(timeoutId, expiresIn);
+    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IStream<object> s, string timeoutId, DateTime expiresAt)
+        => s.OfType<T>().SuspendUntilNextOrTimeoutEventFired(timeoutId, expiresAt);
     public static Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, TimeSpan expiresIn)
         => SuspendUntilNextOrTimeoutEventFired(s, timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
     public static async Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, DateTime expiresAt)
