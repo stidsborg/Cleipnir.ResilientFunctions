@@ -8,75 +8,70 @@ using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
 namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
-public static class PostponedTest
+public class SuspensionTest
 {
     public static async Task<TestResult> Perform(IEngine helper)
     {
-        const int testSize = 1000;
+        const int testSize = 1_000;
+
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
 
-        var start = DateTime.UtcNow.AddSeconds(30);
-        Console.WriteLine("POSTPONED_TEST: Expected start: " + start);
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        Console.WriteLine("POSTPONED_TEST: Initializing");
+        
+        Console.WriteLine("SUSPENSION_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
-            var functionId = new FunctionId(nameof(PostponedTest), i.ToString());
+            var functionId = new FunctionId("SuspensionTest", i.ToString()); 
             await store.CreateFunction(
                 functionId,
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
             );
-            await store.PostponeFunction(
+            await store.SuspendFunction(
                 functionId,
-                postponeUntil: start.Ticks,
-                scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
+                suspendUntilEventSourceCountAtLeast: 1,
+                scrapbookJson: new RScrapbook().ToJson(),
                 expectedEpoch: 0
             );
+
+            await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
         }
+        
         stopWatch.Stop();
         var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
-        Console.WriteLine($"POSTPONED_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
+        Console.WriteLine($"SUSPENSION_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
 
-        using var rFunctions1 = new RFunctions(
+        Console.WriteLine("SUSPENSION_TEST: Waiting for invocations to begin");
+        using var rFunctions = new RFunctions(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                postponedCheckFrequency: TimeSpan.FromSeconds(1)
+                suspensionCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-        rFunctions1.RegisterFunc(
-            nameof(PostponedTest),
-            int (string param) => 1 
+        var _ = rFunctions.RegisterAction(
+            "SuspensionTest",
+            void(string param) => { }
         );
-
+        
         using var rFunctions2 = new RFunctions(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                postponedCheckFrequency: TimeSpan.FromSeconds(1)
+                crashedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-        rFunctions2.RegisterFunc(
-            nameof(PostponedTest),
-            int (string param) => 2
+        _ = rFunctions2.RegisterAction(
+            "SuspensionTest",
+            void(string param) => { }
         );
 
-        Console.WriteLine("POSTPONED_TEST: Waiting for invocations to begin");
-        await Task.Delay(3000);
+        var executionAverageSpeed = await 
+            WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "SUSPENSION_TEST: ");
 
-       while (true)
-       {
-           var startingIn = start - DateTime.UtcNow;
-           Console.WriteLine("POSTPONED_TEST: Starting in: " + startingIn);
-           if (startingIn < TimeSpan.FromSeconds(1)) break;
-           await Task.Delay(500);
-       }
-       
-       var executionAverageSpeed = await WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "POSTPONED_TEST:");
-       return new TestResult(insertionAverageSpeed, executionAverageSpeed);
+        return new TestResult(insertionAverageSpeed, executionAverageSpeed);
     }
 }
