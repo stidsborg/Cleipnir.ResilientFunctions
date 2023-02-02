@@ -197,7 +197,7 @@ Our starting point is the following 4-step order-flow:
 4. Email order confirmation to customer
 
 
-In ordinary C# code this translates to [source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_0/Ordering/OrderProcessor.cs):
+In ordinary C# code this translates to ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_0/Ordering/OrderProcessor.cs)):
 ```csharp
 public async Task ProcessOrder(Order order)
 {
