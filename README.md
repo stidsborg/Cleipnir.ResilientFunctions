@@ -57,7 +57,7 @@ builder.Services.UseResilientFunctions(
 );
 ```
 
-Finally, register function with the framework ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_2/Ordering/OrderProcessor.cs)):
+Finally, register a function with the framework ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_2/Ordering/OrderProcessor.cs)):
 ```csharp
 public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
