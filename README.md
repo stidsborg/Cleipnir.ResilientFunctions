@@ -122,28 +122,28 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         inner => inner.ProcessOrder
       );
 
-      messageBroker.Subscribe(async msg =>
+    messageBroker.Subscribe(async msg =>
+    {
+      switch (msg)
       {
-        switch (msg)
-        {
-          case FundsCaptured e:
-            await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsCaptured)}.{e.OrderId}");
-            break;
-          case FundsReservationCancelled e:
-            await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsReservationCancelled)}.{e.OrderId}");
-            break;
-          case FundsReserved e:
-            await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsReserved)}.{e.OrderId}");
-            break;
-           case OrderConfirmationEmailSent e:
-             await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(OrderConfirmationEmailSent)}.{e.OrderId}");
-             break;
-           case ProductsShipped e:
-             await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(ProductsShipped)}.{e.OrderId}");
-             break;
-            default: return;
-        }
-      });
+        case FundsCaptured e:
+          await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsCaptured)}.{e.OrderId}");
+          break;
+        case FundsReservationCancelled e:
+          await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsReservationCancelled)}.{e.OrderId}");
+          break;
+        case FundsReserved e:
+          await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsReserved)}.{e.OrderId}");
+          break;
+         case OrderConfirmationEmailSent e:
+           await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(OrderConfirmationEmailSent)}.{e.OrderId}");
+           break;
+         case ProductsShipped e:
+           await RAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(ProductsShipped)}.{e.OrderId}");
+           break;
+         default: return;
+      }
+    });
   }
     
   public Task ProcessOrder(Order order) => RAction.Invoke(order.OrderId, order);
