@@ -188,7 +188,7 @@ During this chapter we will work our way step-by-step from a simple order-flow i
 
 Resilient Functions supports both RPC-based and messaging-based solutions. At first in this chapter a RPC solution will be presented, after which a message-based solution is presented. 
 
-All source code examples together with a ready to run web-api application can be found in [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing).
+All source code examples together with a ready to run web-api application can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing).
 
 Our starting point is the following 4-step order-flow:
 1. Reserve funds from PaymentProvider (i.e. customer’s credit card)
