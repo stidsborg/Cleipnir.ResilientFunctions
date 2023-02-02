@@ -34,6 +34,7 @@ If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipn
   * [Sending customer emails](#sending-customer-emails)
 
 ## Getting Started
+Firstly, install nuget package.
 ```powershell
 Install-Package Cleipnir.ResilientFunctions.AspNetCore.Postgres
 ```
@@ -46,7 +47,7 @@ or
 Install-Package Cleipnir.ResilientFunctions.AspNetCore.MySql
 ```
 
-And add the following to ASP.NET Core's `Program.cs`:
+Secondly, add the following to ASP.NET Core's `Program.cs`:
 ```csharp
 builder.Services.UseResilientFunctions( 
   connectionString,
@@ -106,19 +107,276 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 }
 ```
 
-## Elevator Pitch
-Still curious - ok awesome! 
+## Learning by doing
+Sometimes the simplest approach to understand something is to see it in action. 
+During this chapter we will work our way step-by-step from a simple order-flow in an ordinary ASP.NET Core project into a fully resilient and robust order-flow implementation supported by the framework. 
 
-Our starting point is the following 4-step **order-flow**:
+Firstly, a RPC-based solution will be presented; after which a message-based solution is shown. 
+
+The source code can be found in this [repository](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing)
+
+Our starting point is the following 4-step order-flow:
 1. Reserve funds from PaymentProvider (i.e. customer’s credit card)
-2. Ship products to customer (make call to the logistics service api)
+2. Ship products to customer (get delivery confirmation from logistics service)
 3. Capture funds from PaymentProvider (redeem credit card reservation)
-4. Email order confirmation to customer (using an external email service)
+4. Email order confirmation to customer
 
-Let us assume that the Payment Provider requires a client generated transaction id to be sent along in all requests for a given order. 
-Thus, allowing the Payment Provider to recognize if it has previously processed a given request. In effect making the payment provider api idempotent. 
 
-In this scenario a robust order-flow can be realized using either a RPC or message-based approach as shown below:
+In ordinary C# code this translates to [source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_0/Ordering/OrderProcessor.cs):
+```csharp
+public async Task ProcessOrder(Order order)
+{
+  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+
+  var transactionId = Guid.NewGuid();
+  await _paymentProviderClient.Reserve(transactionId, order.CustomerId, order.TotalPrice);
+  await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
+  await _paymentProviderClient.Capture(transactionId);
+  await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+
+  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' completed");
+}
+```
+
+Currently, the order-flow is not robust against crashes. For instance if the process crashes just before capturing the funds from the payment provider then the ordered products are shipped to the customer but without anything being deducted from the customer’s credit card. Not an ideal situation for the business. No matter how we rearrange the flow either edge-case might arise:
+products are shipped to the customer without payment being deducted from the customer’s credit card
+payment is deducted from the customer’s credit card but products are never shipped
+
+Thus, to rectify the situation we must ensure that the flow is restarted if it did not complete in a previous invocation. In Cleipnir this is accomplished by registering the order processing function with the framework.
+
+This can be done by changing the code in the following way [source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_1/Ordering/OrderProcessor.cs):
+
+```csharp
+public class OrderProcessor : IRegisterRFuncOnInstantiation
+{
+  private RAction.Invoke<Order, RScrapbook> RAction { get; }
+
+  public OrderProcessor(RFunctions rFunctions)
+  {
+    var registration = rFunctions
+      .RegisterMethod<Inner>()
+      .RegisterAction<Order>(
+        nameof(OrderProcessor),
+        inner => inner.ProcessOrder
+      );
+
+
+     RAction = registration.Invoke;
+  }
+
+  public Task ProcessOrder(Order order) => RAction.Invoke(order.OrderId, order);
+
+  public class Inner
+  {
+    private readonly IPaymentProviderClient _paymentProviderClient;
+    private readonly IEmailClient _emailClient;
+    private readonly ILogisticsClient _logisticsClient;
+
+    public Inner(IPaymentProviderClient paymentProviderClient, IEmailClient emailClient, ILogisticsClient logisticsClient)
+    {
+      _paymentProviderClient = paymentProviderClient;
+      _emailClient = emailClient;
+      _logisticsClient = logisticsClient;
+    }
+
+
+    public async Task ProcessOrder(Order order)
+    {
+      Log.Logger.ForContext<OrderProcessor>().Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+
+      var transactionId = Guid.Empty;
+      await _paymentProviderClient.Reserve(order.CustomerId, transactionId, order.TotalPrice);
+      await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
+      await _paymentProviderClient.Capture(transactionId);
+      await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+
+      Log.Logger.ForContext<OrderProcessor>().Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' completed");
+    }       
+  }
+}
+```
+
+Sometimes simply wrapping a business flow inside the framework is enough. This would be the case if all the steps in the flow were idempotent. In that situation it is fine to call an endpoint multiple times without causing unintended side-effects.
+
+*At-least-once & Idempotency:*
+
+However, in the order-flow presented here this is not the case. The payment provider requires the caller to provide a transaction-id. Thus, the same transaction-id must be provided when re-executing the flow. In Cleipnir this challenge is solved by using a scrapbook. A scrapbook is a user-defined sub-type which holds state useful when/if the function invocation is retried. Using it one can ensure that the same transaction id is always used for the same order in the following way:
+
+Scrapbook:
+```csharp 
+public class Scrapbook : RScrapbook
+{
+  public Guid TransactionId { get; set; }
+}
+```
+
+Order-flow:
+```csharp
+public async Task ProcessOrder(Order order, Scrapbook scrapbook)
+{
+  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+
+
+  if (scrapbook.TransactionId == Guid.Empty)
+  {
+    scrapbook.TransactionId = Guid.NewGuid();
+    await scrapbook.Save();
+  }
+  
+  await _paymentProviderClient.Reserve(scrapbook.TransactionId, order.CustomerId, order.TotalPrice);
+  await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
+  await _paymentProviderClient.Capture(scrapbook.TransactionId);
+  await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+
+  Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
+}
+```
+
+Essentially, a scrapbook is simply a poco-class which can be saved on demand. In the example given, the code may be simplified further, as the scrapbook is also saved by the before the first function invocation begins. I.e.
+
+```csharp
+public class Scrapbook : RScrapbook
+{
+   public Guid TransactionId { get; set; } = Guid.NewGuid();
+}
+```
+
+```csharp
+public async Task ProcessOrder(Order order, Scrapbook scrapbook)
+{
+  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+
+  await _paymentProviderClient.Reserve(scrapbook.TransactionId, order.CustomerId, order.TotalPrice);
+  await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
+  await _paymentProviderClient.Capture(scrapbook.TransactionId);
+  await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+
+  Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
+}
+```
+
+*At-most-once API:*
+For the sake of presenting the framework’s versatility let us assume that the logistics’ API is not idempotent and it is out of our control to change that. Thus, every time a successful call is made to the logistics service the content of the order is shipped to the customer. 
+
+As a result the business requires that the order-flow is not retried if the flow crashes immediately after a call has been started to the logistics-service but no response has been received yet. This can again be accomplished by using the scrapbook:
+
+```csharp
+public class Scrapbook : RScrapbook
+{
+  public Guid TransactionId { get; set; } = Guid.NewGuid();
+  public WorkStatus ProductsShippedStatus { get; set; }
+}
+```
+
+```csharp
+public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
+{
+  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+  
+  await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
+
+  if (scrapbook.ProductsShippedStatus == WorkStatus.NotStarted)
+  {
+    scrapbook.ProductsShippedStatus = WorkStatus.Started;
+    await scrapbook.Save();
+
+    await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
+
+    scrapbook.ProductsShippedStatus = WorkStatus.Completed;
+    await scrapbook.Save();
+  }
+  if (scrapbook.ProductsShippedStatus == WorkStatus.Started)
+    throw new InvalidOperationException("The logistics service was called previously without a response");
+
+  await _paymentProviderClient.Capture(scrapbook.TransactionId);           
+
+  await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+
+  Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
+}  
+```
+
+A failed/exception throwing function is not automatically retried by the framework. Instead it must be manually re-invoked by using the function instance’s associated control-panel. Using the function’s control panel both the parameter and scrapbook may be changed before the function is retried. 
+For instance, assuming it is determined that the products where not shipped for a certain order, then the following code re-invokes the order with the scrapbook changed accordingly. 
+
+
+```csharp
+private readonly RAction<Order, Scrapbook> _rAction;
+private async Task Retry(string orderId)
+{
+  var controlPanel = await _rAction.ControlPanels.For(orderId);
+  controlPanel!.Scrapbook.ProductsShippedStatus = WorkStatus.Completed;
+  await controlPanel.ReInvoke();
+}
+```
+
+The framework has built-in support for the at-most-once pattern presented above using the scrapbook as follows:
+
+```csharp
+public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
+{
+  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+  
+  await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
+  
+  await scrapbook.DoAtMostOnce(
+    workStatus: s => s.ProductsShippedStatus,
+    work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
+  );
+
+  await _paymentProviderClient.Capture(scrapbook.TransactionId);           
+
+  await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+
+  Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
+}
+```
+
+*Testing:*
+It is simple to test a resilient function as it is just a matter of creating an instance of the type containing the resilient function and invoking the method.
+
+Verifying that the order processing fails on a retry if a request in a previous invocation has been sent to the logistics service but no reply received yet can be accomplished as follows: 
+
+```csharp
+[TestMethod]
+public async Task OrderProcessorFailsOnRetryWhenLogisticsWorkHasStartedButNotCompleted()
+{
+  var sut = new OrderProcessor.Inner(
+    PaymentProviderClientStub,
+    EmailClientStub,
+    LogisticsClientStub
+  );
+
+  var order = new Order(
+    OrderId: "MK-54321",
+    CustomerId: Guid.NewGuid(),
+    ProductIds: new[] { Guid.NewGuid(), Guid.NewGuid() },
+    TotalPrice: 120M
+  );
+  var scrapbookSaved = false;
+  var scrapbook = new OrderProcessor.Scrapbook
+  {
+    TransactionId = Guid.NewGuid(),
+    ProductsShippedStatus = WorkStatus.Started
+  };
+  scrapbook.Initialize(onSave: () => { scrapbookSaved = true; return Task.CompletedTask; });
+
+  await Should.ThrowAsync<InvalidOperationException>(() => sut.ProcessOrder(order, scrapbook));
+  
+  scrapbookSaved.ShouldBeFalse();
+  scrapbook.ProductsShippedStatus.ShouldBe(WorkStatus.Started);
+  EmailClientStub.SendOrderConfirmationInvocations.ShouldBeEmpty();
+  LogisticsClientStub.ShipProductsInvocations.ShouldBeEmpty();
+  PaymentProviderClientStub.ReserveInvocations.Count.ShouldBe(1);
+  PaymentProviderClientStub.CaptureInvocations.ShouldBeEmpty();
+  PaymentProviderClientStub.CancelReservationInvocations.ShouldBeEmpty();
+}
+```
+
+```csharp
+
+```
+
 
 <ins>RPC:</ins>
 ```csharp
