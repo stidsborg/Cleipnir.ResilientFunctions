@@ -25,7 +25,7 @@ If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipn
 
 | What it is not? |
 | --- |
-| Resilient Functions is not a message-broker based solution. Meaning, it does not need a message-broker to operate. Also there is no event replay or similar occuring when it retries a function invocation. <br /><br />In short, when a function is re-invoked the latest state is passed to the function by the framework and nothing else.<br />|
+| Resilient Functions is not a message-broker based solution. Meaning, it does not need a message-broker to operate.<br />|
 
 ## Sections
 * [Getting Started](#getting-started)
