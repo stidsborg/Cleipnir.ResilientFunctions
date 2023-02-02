@@ -107,7 +107,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 }
 ```
 
-Alternativly, a message-based solution ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)):
+Alternativly, registering a function using a message-based solution ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)) can be accomplished as follows:
 ```csharp
 public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
