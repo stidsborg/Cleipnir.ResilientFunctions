@@ -34,7 +34,7 @@ If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipn
   * [Sending customer emails](#sending-customer-emails)
 
 ## Getting Started
-Firstly, install nuget package.
+Firstly, install the relevant nuget package.
 ```powershell
 Install-Package Cleipnir.ResilientFunctions.AspNetCore.Postgres
 ```
