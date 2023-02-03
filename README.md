@@ -12,29 +12,29 @@ It requires a minimal amount of setup to get started and seamlessly scales with 
 Crucially, all this allows the **saga pattern** to be implemented in a simple yet powerful way. 
 
 Out-of-the-box you also get:
+* ASP.NET Core integration with graceful shutdown support
 * synchronized invocation across multiple process instances
 * cloud independance & support for multiple databases
 * simple debuggability & testability
 * easy versioning of functions
-* graceful shutdown
 * add custom middleware to address cross-cutting corcerns
 
 If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Documentation/raw/main/Presentation.pdf)  
 
 | What it is not? |
 | --- |
-| Resilient Functions is not a message-broker based solution. It is a fully self-contained solution.<br />|
+| Unlike other saga frameworks Resilient Functions does not require a message-broker to operate.<br /> It is a fully self-contained solution - which operates on top of a database of choice or in-memory when testing.<br />|
 
 ## Sections
 * [Getting Started](#getting-started)
-* [Elevator Pitch](#elevator-pitch)
+* [Learning by doing](#learning-by-doing)
 * [Show me more code](#show-me-more-code)
   * [Hello World](#hello-world) 
   * [HTTP-call & Database](#http-call--database)
   * [Sending customer emails](#sending-customer-emails)
 
 ## Getting Started
-Firstly, install the relevant nuget package (using either Postgres, SqlServer or MySQL) into a ASP.NET Core project. 
+Firstly, install the relevant nuget package (using either Postgres, SqlServer or MySQL as persistence layer) into a ASP.NET Core project. 
 ```powershell
 Install-Package Cleipnir.ResilientFunctions.AspNetCore.Postgres
 ```
@@ -107,7 +107,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 }
 ```
 
-Alternativly, registering a function using a message-based solution ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)) can be accomplished as follows:
+Alternativly, registering a function for a message-based solution ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)) can be accomplished as can be accomplished as follows:
 ```csharp
 public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
