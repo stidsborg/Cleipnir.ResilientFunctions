@@ -6,6 +6,18 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        args = args.Select(arg => arg.ToLowerInvariant()).ToArray();
+        if (args.Length == 0 || (args[0] != "all" && args[0] != "update_version" && args[0] != "pack"))
+        {
+            Console.WriteLine("Usage: dotnet run all");
+            Console.WriteLine("       dotnet run update_version");
+            Console.WriteLine("       dotnet run pack");
+            return 1;
+        }
+
+        var updateVersion = args[0] == "all" || args[0] == "update_version";
+        var pack = args[0] == "all" || args[0] == "pack";
+
         var root = Path.GetFullPath(@"C:\Repos\Cleipnir.ResilientFunctions");
         var output = Path.GetFullPath(@".\nugets");
 
@@ -16,15 +28,23 @@ internal static class Program
 
         Console.WriteLine($"Root path: {root}");
         Console.WriteLine($"Output path: {output}");
-
-        Console.WriteLine("Projects: ");
-        foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
-        {
-            Console.WriteLine("Updating " + projectPath);
-            Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
-            UpdatePackageVersion(projectPath);
-            PackProject(Path.GetDirectoryName(projectPath)!, output);
-        }
+        
+        Console.WriteLine("Processing projects: ");
+        if (updateVersion)
+            foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
+            {
+                Console.WriteLine("Updating package version: " + LeafFolderName(projectPath));
+                Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
+                UpdatePackageVersion(projectPath);
+            }
+        
+        if (pack)
+            foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
+            {
+                Console.WriteLine("Packing nuget package: " + LeafFolderName(projectPath));
+                Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
+                PackProject(Path.GetDirectoryName(projectPath)!, output);
+            }
 
         return 0;
     }
@@ -78,4 +98,7 @@ internal static class Program
 
         p.WaitForExit();
     }
+
+    private static string LeafFolderName(string path)
+        => Path.GetDirectoryName(path)!.Split('\\').Last();
 }
