@@ -273,9 +273,13 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 
 Sometimes simply wrapping a business flow inside the framework is enough. This would be the case if all the steps in the flow were idempotent. In that situation it is fine to call an endpoint multiple times without causing unintended side-effects.
 
-*At-least-once & Idempotency:*
+<ins>At-least-once & Idempotency:</ins>
 
-However, in the order-flow presented here this is not the case. The payment provider requires the caller to provide a transaction-id. Thus, the same transaction-id must be provided when re-executing the flow. In Cleipnir this challenge is solved by using a scrapbook. A scrapbook is a user-defined sub-type which holds state useful when/if the function invocation is retried. Using it one can ensure that the same transaction id is always used for the same order in the following way:
+However, in the order-flow presented here this is not the case. 
+
+The payment provider requires the caller to provide a transaction-id. Thus, the same transaction-id must be provided when re-executing the flow. 
+
+In Cleipnir this challenge is solved by using a scrapbook. A scrapbook is a user-defined sub-type which holds state useful when/if the function invocation is retried. Using it one can ensure that the same transaction id is always used for the same order in the following way:
 
 Scrapbook:
 ```csharp 
@@ -307,7 +311,9 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 }
 ```
 
-Essentially, a scrapbook is simply a poco-class which can be saved on demand. In the example given, the code may be simplified further, as the scrapbook is also saved by the before the first function invocation begins. I.e.
+Essentially, a scrapbook is simply a poco-class which can be saved on demand. 
+
+In the example given, the code may be simplified further, as the scrapbook is also saved by the before the first function invocation begins. I.e.
 
 ```csharp
 public class Scrapbook : RScrapbook
@@ -330,7 +336,7 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 }
 ```
 
-*At-most-once API:*
+<ins>At-most-once API:</ins>
 For the sake of presenting the framework’s versatility let us assume that the logistics’ API is not idempotent and it is out of our control to change that. Thus, every time a successful call is made to the logistics service the content of the order is shipped to the customer. 
 
 As a result the business requires that the order-flow is not retried if the flow crashes immediately after a call has been started to the logistics-service but no response has been received yet. This can again be accomplished by using the scrapbook:
@@ -371,9 +377,10 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 }  
 ```
 
-A failed/exception throwing function is not automatically retried by the framework. Instead it must be manually re-invoked by using the function instance’s associated control-panel. Using the function’s control panel both the parameter and scrapbook may be changed before the function is retried. 
-For instance, assuming it is determined that the products where not shipped for a certain order, then the following code re-invokes the order with the scrapbook changed accordingly. 
+A failed/exception throwing function is not automatically retried by the framework. Instead it must be manually re-invoked by using the function instance’s associated control-panel. 
 
+Using the function’s control panel both the parameter and scrapbook may be changed before the function is retried. 
+For instance, assuming it is determined that the products where not shipped for a certain order, then the following code re-invokes the order with the scrapbook changed accordingly. 
 
 ```csharp
 private readonly RAction<Order, Scrapbook> _rAction;
@@ -407,8 +414,8 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 }
 ```
 
-*Testing:*
-It is simple to test a resilient function as it is just a matter of creating an instance of the type containing the resilient function and invoking the method.
+<ins>Testing:</ins>
+It is simple to test a resilient function as it is just a matter of creating an instance of the type containing the resilient function and invoking the method in question.
 
 Verifying that the order processing fails on a retry if a request in a previous invocation has been sent to the logistics service but no reply received yet can be accomplished as follows: 
 
@@ -448,35 +455,6 @@ public async Task OrderProcessorFailsOnRetryWhenLogisticsWorkHasStartedButNotCom
 }
 ```
 
-```csharp
-
-```
-
-
-<ins>RPC:</ins>
-```csharp
-public async Task ProcessOrder(Order order)
-{
-  Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-            
-  await _paymentProviderClient.Reserve(order.TransactionId, order.CustomerId, order.TotalPrice);
-            
-  await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
-
-  await _paymentProviderClient.Capture(order.TransactionId);            
-
-  await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
-
-  Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
-}
-```
-It is noted that all code in the example is ordinary C#-code. There is no magic going on. What the framework provides in the example is re-trying the function invocation if it fails. 
-
-However, there is more power at your disposal. For instance, how would you solve the issue of the logistics service not being idempotent? That is for each succesfully received request the logistics service will ship all the order's products to the customer. Can we ensure that at-most-one call ever reaches the logistics service? [Curious? You can try to solve the challenge here!](https://github.com/stidsborg/Cleipnir.ResilientFunctions.SagaChallenge/tree/main/Challenge%231)
-
-Also how would you solve the challenge of changing code? I.e. assume a brand enum is added to the order which must be forwarded to the different external services. Can we make code changes directly to the example above affecting both new functions having a brand and old functions now having a brand?
-[If you are up for it you can try to solve the challenge here!](https://github.com/stidsborg/Cleipnir.ResilientFunctions.SagaChallenge/tree/main/Challenge%232)
-
 <ins>Message-based:</ins>
 ```csharp
 public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
@@ -499,26 +477,30 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
   Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");      
 }
 ```
-There is a bit more going on in the example above compared to the previous example. 
-However, the flow is actually very similar to RPC-based. For once it is sequential but it is also robust. The flow may crash at any point, be restarted and continue from the point it got to before the crash.
+There is a bit more going on in the example above compared to the previous RPC-example. 
+However, the flow is actually very similar to RPC-based. It is sequential and robust. The flow may crash at any point, be restarted and continue from the point it got to before the crash.
 
-Also, the message broker is just a stand-in - thus not a framework concept - for RabbitMQ, Kafka or some other messaging infrastructure. In a real application the message broker would be replaced with the actual way the application broadcasts a message/event to other services.
-Secondly, each resilient function has an associated private event source. When events are received from the outside they can be placed into the relevant resilient function's event source - thereby allowing the function to continue its flow. 
+It is noted that the message broker is just a stand-in - thus not a framework concept - for RabbitMQ, Kafka or some other messaging infrastructure. In a real application the message broker would be replaced with the actual way the application broadcasts a message/event to other services.
+Furthermore, each resilient function has an associated private event source. When events are received outside the application they can be placed into the relevant resilient function's event source - thereby allowing the function to continue its flow. 
 
 | Did you know? |
 | --- |
-| The framework allows awaiting events in-memory or suspending the invocation until an event has been appended to the event source |
-
-
-#### Exception Handling / Rollback logic
-The acute reader might have noticed that the previous examples are lacking exception handling. Primarily, this is to keep them simple. The nitty gritty details of communicating with the payment provider, email and logistics services are assumed to exist inside their respective methods. Thus, this is where the relevant exception handling and retry logic resides. 
-
-However, as the code inside a resilient function is ordinary C#-code you are free to implement exception handling as you think fit. Moreover, the framework has constructs for applying exponential or linear backoff strategies around a user specified function (see backoff strategies under scenarios). This provides a simple way to add retry logic to your code. 
+| The framework allows awaiting events both in-memory or suspending the invocation until an event has been appended to the event source. </br>Thus, allowing the developer to find the sweet-spot per use-case between performance and releasing resources.|
 
 ## Show me more code
-Firstly, the compulsory, ‘*hello world*’-example can be realized as follows:
+Resilient Functions does not require ASP.NET Core to operate. Thus, getting started in a console-application can be accomplished only using the core package:
+
+```powershell
+Install-Package Cleipnir.ResilientFunctions
+```
+
+Or `Cleipnir.ResilientFunctions.PostgresSQL`, `Cleipnir.ResilientFunctions.SqlServer` or `Cleipnir.ResilientFunctions.MySQL` if persistence is required.
+
+In the following chapter several stand-alone examples are presented. 
 
 ### Hello-World
+Firstly, the compulsory, ‘*hello world*’-example can be realized as follows:
+
 ```csharp
 var store = new InMemoryFunctionStore();
 var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
