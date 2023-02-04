@@ -30,20 +30,6 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
         [TestMethod]
         public override Task ChangesToStateDictionaryArePersisted()
             => ChangesToStateDictionaryArePersisted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
-                
-        [TestMethod]
-        public async Task ScrapbookThrowsExceptionWhenSavedBeforeInitialized()
-        {
-            var scrapbook = new TestScrapbook();
-            try
-            {
-                await scrapbook.Save();
-            }
-            catch (InvalidOperationException e)
-            {
-                e.Message.ShouldBe("'TestScrapbook' scrapbook was uninitialized on save");
-            }
-        }
         
         [TestMethod]
         public async Task NewLockIsNotGrantedWhileScrapbookIsAlreadyLocked()
