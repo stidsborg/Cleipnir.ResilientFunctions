@@ -314,7 +314,7 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 
 Essentially, a scrapbook is simply a poco-class which can be saved on demand. 
 
-In the example given, the code may be simplified further, as the scrapbook is also saved by the before the first function invocation begins. I.e.
+In the example given, the code may be simplified further, as the scrapbook is also saved by the framework before the first function invocation begins. I.e.
 
 ```csharp
 public class Scrapbook : RScrapbook
