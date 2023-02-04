@@ -416,6 +416,7 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 ```
 
 <ins>Testing:</ins>
+
 It is simple to test a resilient function as it is just a matter of creating an instance of the type containing the resilient function and invoking the method in question.
 
 Verifying that the order processing fails on a retry if a request in a previous invocation has been sent to the logistics service but no reply received yet can be accomplished as follows: 
