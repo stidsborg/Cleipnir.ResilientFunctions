@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
@@ -39,7 +40,11 @@ public class EventSourceWriter
 
         var epoch = await _functionStore.IsFunctionSuspendedAndEligibleForReInvocation(_functionId);
         if (epoch != null)
-            await _scheduleReInvocation(_functionId.InstanceId.Value, epoch);
+            try
+            {
+                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch);    
+            } catch (UnexpectedFunctionState) {}
+            
     }
 
     public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events, bool reInvokeImmediatelyIfSuspended = true)
@@ -58,7 +63,10 @@ public class EventSourceWriter
 
         var epoch = await _functionStore.IsFunctionSuspendedAndEligibleForReInvocation(_functionId);
         if (epoch != null)
-            await _scheduleReInvocation(_functionId.InstanceId.Value, epoch);
+            try
+            {
+                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch);    
+            } catch (UnexpectedFunctionState) {}
     } 
 
     public Task Truncate() => _eventStore.Truncate(_functionId);
