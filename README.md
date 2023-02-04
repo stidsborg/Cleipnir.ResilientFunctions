@@ -186,7 +186,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 Sometimes the simplest approach to understand something is to see it in action. 
 During this chapter we will work our way step-by-step from a simple order-flow in an ordinary ASP.NET Core project into a fully resilient and robust order-flow implementation supported by the framework. 
 
-Resilient Functions supports both RPC-based and messaging-based solutions. At first in this chapter a RPC solution will be presented, after which a message-based solution is presented. 
+Resilient Functions supports both RPC-based and messaging-based communication. At first in this chapter a RPC solution will be presented, after which a message-based solution is presented. 
 
 All source code examples together with a ready to run web-api application can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing).
 
