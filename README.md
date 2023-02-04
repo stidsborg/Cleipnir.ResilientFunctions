@@ -337,6 +337,7 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 ```
 
 <ins>At-most-once API:</ins>
+
 For the sake of presenting the framework’s versatility let us assume that the logistics’ API is not idempotent and it is out of our control to change that. Thus, every time a successful call is made to the logistics service the content of the order is shipped to the customer. 
 
 As a result the business requires that the order-flow is not retried if the flow crashes immediately after a call has been started to the logistics-service but no response has been received yet. This can again be accomplished by using the scrapbook:
