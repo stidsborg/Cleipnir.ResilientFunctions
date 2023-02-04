@@ -214,8 +214,8 @@ public async Task ProcessOrder(Order order)
 ```
 
 Currently, the order-flow is not robust against crashes. For instance if the process crashes just before capturing the funds from the payment provider then the ordered products are shipped to the customer but without anything being deducted from the customer’s credit card. Not an ideal situation for the business. No matter how we rearrange the flow either edge-case might arise:
-products are shipped to the customer without payment being deducted from the customer’s credit card
-payment is deducted from the customer’s credit card but products are never shipped
+- products are shipped to the customer without payment being deducted from the customer’s credit card
+- payment is deducted from the customer’s credit card but products are never shipped
 
 Thus, to rectify the situation we must ensure that the flow is restarted if it did not complete in a previous invocation. In Cleipnir this is accomplished by registering the order processing function with the framework.
 
