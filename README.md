@@ -360,8 +360,8 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
     scrapbook.ProductsShippedStatus = WorkStatus.Completed;
     await scrapbook.Save();
   }
-  if (scrapbook.ProductsShippedStatus == WorkStatus.Started)
-    throw new InvalidOperationException("The logistics service was called previously without a response");
+  else if (scrapbook.ProductsShippedStatus == WorkStatus.Started)
+    throw new InvalidOperationException("A request to the logistics service was previously sent without a response being received before crash");
 
   await _paymentProviderClient.Capture(scrapbook.TransactionId);           
 
