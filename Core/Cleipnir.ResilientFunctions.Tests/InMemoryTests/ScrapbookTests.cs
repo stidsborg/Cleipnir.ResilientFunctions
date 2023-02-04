@@ -59,6 +59,21 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             await BusyWait.UntilAsync(() => lock2Task.IsCompletedSuccessfully);
         }
         
+        [TestMethod]
+        public void ScrapbookThrowsExceptionIsInitializedMultipleTimes()
+        {
+            var scrapbook = new RScrapbook();
+            scrapbook.Initialize(() => Task.CompletedTask);
+            Should.Throw<InvalidOperationException>(() => scrapbook.Initialize(() => Task.CompletedTask));
+        }
+        
+        [TestMethod]
+        public void ScrapbookThrowsExceptionIfSavedBeforeInitialized()
+        {
+            var scrapbook = new RScrapbook();
+            Should.ThrowAsync<InvalidOperationException>(() => scrapbook.Save());
+        }
+        
         private class TestScrapbook : RScrapbook {}
     }
 }

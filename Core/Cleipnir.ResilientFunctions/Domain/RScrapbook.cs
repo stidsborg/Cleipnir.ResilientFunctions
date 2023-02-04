@@ -10,10 +10,28 @@ public class RScrapbook
     private Func<Task>? OnSave { get; set; }
     private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
     public Dictionary<string, string> StateDictionary { get; set; } = new(); //allows for state accessible from middleware etc
+    
+    private bool _initialized;
 
-    public void Initialize(Func<Task> onSave) => OnSave = onSave;
+    public void Initialize(Func<Task> onSave)
+    {
+        ArgumentNullException.ThrowIfNull(onSave);
+        
+        if (_initialized)
+            throw new InvalidOperationException("Scrapbook has already been initialized");
+        
+        _initialized = true;
+        OnSave = onSave;
+    }
 
-    public virtual async Task Save() => await (OnSave?.Invoke() ?? Task.CompletedTask);
+    public virtual async Task Save()
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("Scrapbook must be initialized before save");
+        
+        await OnSave!.Invoke();  
+    } 
+    
     public Task<IDisposable> Lock() => _semaphore.Take();
 }
 
