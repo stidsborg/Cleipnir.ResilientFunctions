@@ -24,23 +24,23 @@ public class SqlServerEventStore : IEventStore
         await using var conn = await CreateConnection();
 
         var sql = @$"
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions_Events' and xtype='U')
-            BEGIN
-                CREATE TABLE {_tablePrefix}RFunctions_Events (
-                    FunctionTypeId NVARCHAR(255),
-                    FunctionInstanceId NVARCHAR(255),
-                    Position INT NOT NULL,
-                    EventJson NVARCHAR(MAX) NOT NULL,
-                    EventType NVARCHAR(255) NOT NULL,   
-                    IdempotencyKey VARCHAR(255),          
-                    PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
-                );
-                CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Events
-                ON {_tablePrefix}RFunctions_Events (FunctionTypeId, FunctionInstanceId, IdempotencyKey)
-                WHERE IdempotencyKey IS NOT NULL;; 
-            END;";
+        CREATE TABLE {_tablePrefix}RFunctions_Events (
+            FunctionTypeId NVARCHAR(255),
+            FunctionInstanceId NVARCHAR(255),
+            Position INT NOT NULL,
+            EventJson NVARCHAR(MAX) NOT NULL,
+            EventType NVARCHAR(255) NOT NULL,   
+            IdempotencyKey VARCHAR(255),          
+            PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
+        );
+        CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Events
+            ON {_tablePrefix}RFunctions_Events (FunctionTypeId, FunctionInstanceId, IdempotencyKey)
+            WHERE IdempotencyKey IS NOT NULL;";
         var command = new SqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
+        try
+        {
+            await command.ExecuteNonQueryAsync();    
+        } catch (SqlException exception) when (exception.Number == 2714) {}
     }
     
     public async Task DropUnderlyingTable()

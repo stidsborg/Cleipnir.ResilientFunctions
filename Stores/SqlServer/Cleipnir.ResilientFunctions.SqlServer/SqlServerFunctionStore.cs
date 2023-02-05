@@ -55,43 +55,43 @@ public class SqlServerFunctionStore : IFunctionStore
         await _eventStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
-        var sql = @$"
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions' and xtype='U')
-            BEGIN
-                CREATE TABLE {_tablePrefix}RFunctions (
-                    FunctionTypeId NVARCHAR(200) NOT NULL,
-                    FunctionInstanceId NVARCHAR(200) NOT NULL,
-                    ParamJson NVARCHAR(MAX) NOT NULL,
-                    ParamType NVARCHAR(255) NOT NULL,
-                    ScrapbookJson NVARCHAR(MAX) NOT NULL,
-                    ScrapbookType NVARCHAR(255) NOT NULL,
-                    Status INT NOT NULL,
-                    ResultJson NVARCHAR(MAX) NULL,
-                    ResultType NVARCHAR(255) NULL,
-                    ExceptionJson NVARCHAR(MAX) NULL,
-                    PostponedUntil BIGINT NULL,
-                    SuspendUntilEventSourceCount INT NULL,
-                    Epoch INT NOT NULL,
-                    SignOfLife INT NOT NULL,
-                    CrashedCheckFrequency BIGINT NOT NULL,
-                    PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
-                );
-                CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
-                  ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
-                  INCLUDE (Epoch, SignOfLife)
-                  WHERE Status = {(int)Status.Executing};
-                CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
-                  ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
-                  INCLUDE (Epoch)
-                  WHERE Status = {(int)Status.Postponed};
-                CREATE INDEX {_tablePrefix}RFunctions_idx_Suspended
-                  ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
-                  INCLUDE (Epoch)
-                  WHERE Status = {(int)Status.Suspended}              
-            END";
+        var sql = @$"    
+            CREATE TABLE {_tablePrefix}RFunctions (
+                FunctionTypeId NVARCHAR(200) NOT NULL,
+                FunctionInstanceId NVARCHAR(200) NOT NULL,
+                ParamJson NVARCHAR(MAX) NOT NULL,
+                ParamType NVARCHAR(255) NOT NULL,
+                ScrapbookJson NVARCHAR(MAX) NOT NULL,
+                ScrapbookType NVARCHAR(255) NOT NULL,
+                Status INT NOT NULL,
+                ResultJson NVARCHAR(MAX) NULL,
+                ResultType NVARCHAR(255) NULL,
+                ExceptionJson NVARCHAR(MAX) NULL,
+                PostponedUntil BIGINT NULL,
+                SuspendUntilEventSourceCount INT NULL,
+                Epoch INT NOT NULL,
+                SignOfLife INT NOT NULL,
+                CrashedCheckFrequency BIGINT NOT NULL,
+                PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
+            );
+            CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
+                ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
+                INCLUDE (Epoch, SignOfLife)
+                WHERE Status = {(int)Status.Executing};
+            CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
+                ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
+                INCLUDE (Epoch)
+                WHERE Status = {(int)Status.Postponed};
+            CREATE INDEX {_tablePrefix}RFunctions_idx_Suspended
+                ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
+                INCLUDE (Epoch)
+                WHERE Status = {(int)Status.Suspended};";
 
         await using var command = new SqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
+        try
+        {
+            await command.ExecuteNonQueryAsync();    
+        } catch (SqlException exception) when (exception.Number == 2714) {}
     }
     
     public async Task DropIfExists()

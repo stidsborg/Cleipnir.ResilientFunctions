@@ -25,6 +25,9 @@ public abstract class StoreCrudTests
     protected async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
+        await store.Initialize();
+        await store.Initialize();
+        
         await store.CreateFunction(
             FunctionId,
             Param,

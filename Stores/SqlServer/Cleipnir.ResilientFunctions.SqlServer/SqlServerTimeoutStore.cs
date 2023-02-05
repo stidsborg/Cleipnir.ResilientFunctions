@@ -21,17 +21,19 @@ public class SqlServerTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         
-        var sql = @$"
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions_Timeouts' and xtype='U')
-                CREATE TABLE {_tablePrefix}RFunctions_Timeouts (
-                    FunctionTypeId NVARCHAR(255),
-                    FunctionInstanceId NVARCHAR(255),
-                    TimeoutId VARCHAR(255),
-                    Expires BIGINT,          
-                    PRIMARY KEY (FunctionTypeId, FunctionInstanceId, TimeoutId)
-                );";
+        var sql = @$"            
+            CREATE TABLE {_tablePrefix}RFunctions_Timeouts (
+                FunctionTypeId NVARCHAR(255),
+                FunctionInstanceId NVARCHAR(255),
+                TimeoutId VARCHAR(255),
+                Expires BIGINT,          
+                PRIMARY KEY (FunctionTypeId, FunctionInstanceId, TimeoutId)
+            );";
         var command = new SqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
+        try
+        {
+            await command.ExecuteNonQueryAsync();    
+        } catch (SqlException exception) when (exception.Number == 2714) {}
     }
     
     public async Task TruncateTable()
