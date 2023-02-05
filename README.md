@@ -220,7 +220,7 @@ Currently, the order-flow is not robust against crashes. For instance if the pro
 Thus, to rectify the situation we must ensure that the flow is restarted if it did not complete in a previous invocation. In Cleipnir this is accomplished by registering the order processing function with the framework.
 
 ### RPC-solution
-This can be done by changing the code in the following way [source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_1/Ordering/OrderProcessor.cs):
+Registering a function with the framework can be done by changing the code in the following way ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_1/Ordering/OrderProcessor.cs)):
 
 ```csharp
 public class OrderProcessor : IRegisterRFuncOnInstantiation
