@@ -224,7 +224,8 @@ No matter how we rearrange the flow a crash might lead to either situation:
 - products are shipped to the customer without payment being deducted from the customer’s credit card
 - payment is deducted from the customer’s credit card but products are never shipped
 
-<ins>**Ensuring restart on crashes or restarts:**</ins>
+**Ensuring restart on crashes or restarts:**
+
 Thus, to rectify the situation we must ensure that the flow is *restarted* if it did not complete in a previous invocation. 
 In Cleipnir this is accomplished by registering the order processing function with the framework.
 
@@ -293,7 +294,7 @@ In Cleipnir this challenge is solved by using a *scrapbook*.
 
 A scrapbook is a user-defined sub-type which holds state useful when/if the function invocation is retried. Using it one can ensure that the same transaction id is always used for the same order in the following way:
 
-<ins>Scrapbook:</ins>
+
 ```csharp 
 public class Scrapbook : RScrapbook
 {
@@ -301,7 +302,6 @@ public class Scrapbook : RScrapbook
 }
 ```
 
-<ins>Order-flow:</ins>
 ```csharp
 public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 {
@@ -415,7 +415,7 @@ private async Task Retry(string orderId)
 }
 ```
 
-**At-most-once easy syntax:**
+**At-most-once convenience syntax:**
 
 The framework has built-in support for the at-most-once (and at-least-once) pattern presented above using the scrapbook as follows:
 
@@ -486,8 +486,8 @@ public async Task OrderProcessorFailsOnRetryWhenLogisticsWorkHasStartedButNotCom
   PaymentProviderClientStub.CaptureInvocations.ShouldBeEmpty();
   PaymentProviderClientStub.CancelReservationInvocations.ShouldBeEmpty();
 }
-
 ```
+
 ### Message-based Solution 
 Message- or event-driven system are omnipresent in enterprise architectures today. 
 
