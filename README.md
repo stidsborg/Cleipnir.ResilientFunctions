@@ -14,7 +14,7 @@ Crucially, all this allows the **saga pattern** to be implemented in a simple ye
 Out-of-the-box you also get:
 * ASP.NET Core integration with graceful shutdown support
 * synchronized invocation across multiple process instances
-* cloud independance & support for multiple databases
+* cloud independence & support for multiple databases
 * simple debuggability & testability
 * easy versioning of functions
 * add custom middleware to address cross-cutting corcerns
@@ -34,6 +34,8 @@ If you like a slide deck can be found [here](https://github.com/stidsborg/Cleipn
   * [Sending customer emails](#sending-customer-emails)
 
 ## Getting Started
+Only three steps needs to be performed to get started.
+
 Firstly, install the relevant nuget package (using either Postgres, SqlServer or MySQL as persistence layer) into a ASP.NET Core project. 
 ```powershell
 Install-Package Cleipnir.ResilientFunctions.AspNetCore.Postgres
@@ -107,7 +109,7 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 }
 ```
 
-Alternativly, registering a function for a message-based solution ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)) can be accomplished as follows:
+Alternatively, registering a function for a message-based solution ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)) can be accomplished as follows:
 ```csharp
 public class OrderProcessor : IRegisterRFuncOnInstantiation
 {
@@ -183,10 +185,11 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 ```
 
 ## Learning by doing
-Sometimes the simplest approach to understand something is to see it in action. 
+Sometimes the simplest approach to understand something is to see it in action.
+
 During this chapter we will work our way step-by-step from a simple order-flow in an ordinary ASP.NET Core project into a fully resilient and robust order-flow implementation supported by the framework. 
 
-Resilient Functions supports both RPC-based and messaging-based communication. At first in this chapter a RPC solution will be presented, after which a message-based solution is presented. 
+Resilient Functions supports both RPC-based and messaging-based communication. Solutions to both approaches are presented in this chapter.  
 
 All source code examples together with a ready to run web-api application can be found [here](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing).
 
@@ -213,11 +216,17 @@ public async Task ProcessOrder(Order order)
 }
 ```
 
-Currently, the order-flow is not robust against crashes. For instance if the process crashes just before capturing the funds from the payment provider then the ordered products are shipped to the customer but without anything being deducted from the customer’s credit card. Not an ideal situation for the business. No matter how we rearrange the flow either edge-case might arise:
+Currently, the order-flow is not robust against *crashes* or *restarts*. 
+
+For instance if the process crashes just before capturing the funds from the payment provider then the ordered products are shipped to the customer but without anything being deducted from the customer’s credit card. 
+Not an ideal situation for the business. 
+No matter how we rearrange the flow a crash might lead to either situation:
 - products are shipped to the customer without payment being deducted from the customer’s credit card
 - payment is deducted from the customer’s credit card but products are never shipped
 
-Thus, to rectify the situation we must ensure that the flow is restarted if it did not complete in a previous invocation. In Cleipnir this is accomplished by registering the order processing function with the framework.
+<ins>**Ensuring restart on crashes or restarts:**</ins>
+Thus, to rectify the situation we must ensure that the flow is *restarted* if it did not complete in a previous invocation. 
+In Cleipnir this is accomplished by registering the order processing function with the framework.
 
 ### RPC-solution
 Registering a function with the framework can be done by changing the code in the following way ([source code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Rpc/Version_1/Ordering/OrderProcessor.cs)):
@@ -235,7 +244,6 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
         nameof(OrderProcessor),
         inner => inner.ProcessOrder
       );
-
 
      RAction = registration.Invoke;
   }
@@ -255,7 +263,6 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
       _logisticsClient = logisticsClient;
     }
 
-
     public async Task ProcessOrder(Order order)
     {
       Log.Logger.ForContext<OrderProcessor>().Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
@@ -272,17 +279,21 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
 }
 ```
 
-Sometimes simply wrapping a business flow inside the framework is enough. This would be the case if all the steps in the flow were idempotent. In that situation it is fine to call an endpoint multiple times without causing unintended side-effects.
+Sometimes simply wrapping a business flow inside the framework is enough. 
 
-<ins>At-least-once & Idempotency:</ins>
+This would be the case if all the steps in the flow were idempotent. In that situation it is fine to call an endpoint multiple times without causing unintended side-effects.
+
+#### At-least-once & Idempotency
 
 However, in the order-flow presented here this is not the case. 
 
 The payment provider requires the caller to provide a transaction-id. Thus, the same transaction-id must be provided when re-executing the flow. 
 
-In Cleipnir this challenge is solved by using a scrapbook. A scrapbook is a user-defined sub-type which holds state useful when/if the function invocation is retried. Using it one can ensure that the same transaction id is always used for the same order in the following way:
+In Cleipnir this challenge is solved by using a *scrapbook*. 
 
-Scrapbook:
+A scrapbook is a user-defined sub-type which holds state useful when/if the function invocation is retried. Using it one can ensure that the same transaction id is always used for the same order in the following way:
+
+<ins>Scrapbook:</ins>
 ```csharp 
 public class Scrapbook : RScrapbook
 {
@@ -290,12 +301,11 @@ public class Scrapbook : RScrapbook
 }
 ```
 
-Order-flow:
+<ins>Order-flow:</ins>
 ```csharp
 public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 {
   Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-
 
   if (scrapbook.TransactionId == Guid.Empty)
   {
@@ -312,7 +322,7 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 }
 ```
 
-Essentially, a scrapbook is simply a poco-class which can be saved on demand. 
+Essentially, a scrapbook is simply a user-defined poco-class which can be saved on demand. 
 
 In the example given, the code may be simplified further, as the scrapbook is also saved by the framework before the first function invocation begins. I.e.
 
@@ -337,11 +347,17 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook)
 }
 ```
 
-<ins>At-most-once API:</ins>
+#### At-most-once API:
 
-For the sake of presenting the framework’s versatility let us assume that the logistics’ API is not idempotent and it is out of our control to change that. Thus, every time a successful call is made to the logistics service the content of the order is shipped to the customer. 
+For the sake of presenting the framework’s versatility let us assume that the logistics’ API is *not* idempotent and that it is out of our control to change that. 
 
-As a result the business requires that the order-flow is not retried if the flow crashes immediately after a call has been started to the logistics-service but no response has been received yet. This can again be accomplished by using the scrapbook:
+Thus, every time a successful call is made to the logistics service the content of the order is shipped to the customer. 
+
+As a result the order-flow must fail if it is restarted and:
+* a request was previously sent to logistics-service 
+* but no response was received. 
+ 
+This can again be accomplished by using the scrapbook:
 
 ```csharp
 public class Scrapbook : RScrapbook
@@ -379,9 +395,14 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 }  
 ```
 
-A failed/exception throwing function is not automatically retried by the framework. Instead it must be manually re-invoked by using the function instance’s associated control-panel. 
+A *failed/exception throwing* function is not automatically retried by the framework. 
+
+Instead it must be manually re-invoked by using the function instance’s associated control-panel. 
+
+**Control Panel:**
 
 Using the function’s control panel both the parameter and scrapbook may be changed before the function is retried. 
+
 For instance, assuming it is determined that the products where not shipped for a certain order, then the following code re-invokes the order with the scrapbook changed accordingly. 
 
 ```csharp
@@ -394,7 +415,9 @@ private async Task Retry(string orderId)
 }
 ```
 
-The framework has built-in support for the at-most-once pattern presented above using the scrapbook as follows:
+**At-most-once easy syntax:**
+
+The framework has built-in support for the at-most-once (and at-least-once) pattern presented above using the scrapbook as follows:
 
 ```csharp
 public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
@@ -416,11 +439,18 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 }
 ```
 
-<ins>Testing:</ins>
+#### Testing
 
-It is simple to test a resilient function as it is just a matter of creating an instance of the type containing the resilient function and invoking the method in question.
+It is simple to test a resilient function as:
+* it is just a matter of creating an instance of the type containing the resilient function 
+* and invoking the method in question.
 
-Verifying that the order processing fails on a retry if a request in a previous invocation has been sent to the logistics service but no reply received yet can be accomplished as follows: 
+Verifying that the order processing fails:
+* when retried
+* and a request in a previous invocation has been sent to the logistics service 
+* but no reply was received 
+
+Can be accomplished as follows:
 
 ```csharp
 [TestMethod]
@@ -456,8 +486,23 @@ public async Task OrderProcessorFailsOnRetryWhenLogisticsWorkHasStartedButNotCom
   PaymentProviderClientStub.CaptureInvocations.ShouldBeEmpty();
   PaymentProviderClientStub.CancelReservationInvocations.ShouldBeEmpty();
 }
+
 ```
-### Message-based Solution ###
+### Message-based Solution 
+Message- or event-driven system are omnipresent in enterprise architectures today. 
+
+They fundamentally differ from RPC-based in that:
+* messages related to the same order are not delivered to the same process 
+
+This has huge implications in how a saga-flow is implemented and as a result a simple sequential flow - as in the case of the order-flow:
+* becomes fragmented and hard to reason about
+* inefficient - each time a message is received the entire state must be reestablished
+* inflexible
+
+Cleipnir Resilient Functions takes a novel approach by piggy-backing on the features described so far and using event-sourcing and reactive programming together to form a simple and extremely useful abstraction.
+
+As a result order-flow can be implemented as follows ([source-code](https://github.com/stidsborg/Cleipnir.ResilientFunctions.Sample.OrderProcessing/blob/main/Messaging/Version_0/Ordering/OrderProcessor.cs)):
+
 ```csharp
 public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
 {
@@ -482,12 +527,17 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 There is a bit more going on in the example above compared to the previous RPC-example. 
 However, the flow is actually very similar to RPC-based. It is sequential and robust. The flow may crash at any point, be restarted and continue from the point it got to before the crash.
 
-It is noted that the message broker is just a stand-in - thus not a framework concept - for RabbitMQ, Kafka or some other messaging infrastructure. In a real application the message broker would be replaced with the actual way the application broadcasts a message/event to other services.
-Furthermore, each resilient function has an associated private event source. When events are received outside the application they can be placed into the relevant resilient function's event source - thereby allowing the function to continue its flow. 
+It is noted that the message broker is just a stand-in - thus not a framework concept - for RabbitMQ, Kafka or some other messaging infrastructure client. 
+
+In a real application the message broker would be replaced with the actual way the application broadcasts a message/event to other services.
+
+
+Furthermore, each resilient function has an associated private **event source**. When events are received outside the application they can be placed into the relevant resilient function's event source - thereby allowing the function to continue its flow. 
 
 | Did you know? |
 | --- |
 | The framework allows awaiting events both in-memory or suspending the invocation until an event has been appended to the event source. </br>Thus, allowing the developer to find the sweet-spot per use-case between performance and releasing resources.|
+
 
 ## Show me more code
 Resilient Functions does not require ASP.NET Core to operate. Thus, getting started in a console-application can be accomplished only using the core package:
