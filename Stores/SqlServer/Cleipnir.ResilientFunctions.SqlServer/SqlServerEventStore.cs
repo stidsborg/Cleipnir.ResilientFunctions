@@ -46,9 +46,7 @@ public class SqlServerEventStore : IEventStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
-            IF EXISTS (SELECT * FROM sysobjects WHERE name='{_tablePrefix}RFunctions_Events' and xtype='U')
-                DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Events;";
+        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Events;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
