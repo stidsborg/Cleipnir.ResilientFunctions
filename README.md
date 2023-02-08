@@ -598,66 +598,34 @@ public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionSt
 ### Sending customer emails
 Consider a travel agency which wants to send a promotional email to its customers:
 ```csharp
-public static async Task RegisterAndInvoke()
+public static class EmailSenderSaga
 {
-  var store = new InMemoryFunctionStore();
-        
-  var functions = new RFunctions(
-    store,
-    new Settings(UnhandledExceptionHandler: Console.WriteLine)
-  );
-
-  var rAction = functions
-    .RegisterActionWithScrapbook<MailAndRecipients, EmailSenderSaga.Scrapbook>(
-      "OffersMailSender",
-      EmailSenderSaga.Start
-    ).Invoke;
-
-  var offerDate = new DateOnly(2022, 1, 1);
-  await rAction(
-    functionInstanceId: offerDate.ToString(),
-    param: new MailAndRecipients(
-      new[]
-      {
-        new EmailAddress("Peter Hansen", "peter@gmail.com"),
-        new EmailAddress("Ulla Hansen", "ulla@gmail.com")
-      },
-      Subject: "Dreaming yourself away?",
-      Content: "We have found these great offers for you!"
-    )
-  );
-        
-  Console.WriteLine("Offers sent successfully");
-}
-
-public static async Task<Return> StartMailSending(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
-{
-  var (recipients, subject, content) = mailAndRecipients;
-  if (!scrapbook.Initialized)
+  public static async Task Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
   {
-    //must be first invocation - add all recipients to scrapbook's queue
-    foreach (var recipient in recipients)
-      scrapbook.RecipientsLeft.Enqueue(recipient);
+    var (recipients, subject, content) = mailAndRecipients;
 
-    scrapbook.Initialized = true;
-    await scrapbook.Save();
+    using var client = new SmtpClient();
+    await client.ConnectAsync("mail.smtpbucket.com", 8025);
+        
+    for (var atRecipient = scrapbook.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
+    {
+      var recipient = recipients[atRecipient];
+      var message = new MimeMessage();
+      message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
+      message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
+
+      message.Subject = subject;
+      message.Body = new TextPart(TextFormat.Html) { Text = content };
+      await client.SendAsync(message);
+
+      scrapbook.AtRecipient = atRecipient;
+      await scrapbook.Save();
+    }
   }
 
-  using var client = new SmtpClient();
-  await client.ConnectAsync("mail.smtpbucket.com", 8025);
-        
-  while (scrapbook.RecipientsLeft.Any())
+  public class Scrapbook : RScrapbook
   {
-    var recipient = scrapbook.RecipientsLeft.Dequeue();
-    var message = new MimeMessage();
-    message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
-    message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
-
-    message.Subject = subject;
-    message.Body = new TextPart(TextFormat.Html) { Text = content };
-    await client.SendAsync(message);
-
-    await scrapbook.Save();
+    public int AtRecipient { get; set; }
   }
 }
 ```
