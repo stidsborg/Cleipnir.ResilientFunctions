@@ -418,6 +418,7 @@ public class SqlServerFunctionStore : IFunctionStore
         if (affectedRows == 0 || transaction == null)
             return affectedRows > 0;
 
+        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
         var (storedEvents, existingCount) = events!;
         if (existingCount != affectedRows)
             return false;

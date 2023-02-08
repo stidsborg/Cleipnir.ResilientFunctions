@@ -397,8 +397,10 @@ public class MySqlFunctionStore : IFunctionStore
             return affectedRows == 1;
 
         var (storedEvents, existingCount) = events!;
-        await _eventStore.Truncate(functionId, conn, transaction);
-        await _eventStore.AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
+        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
+        if (affectedRows != existingCount)
+            return false;
+        await _eventStore.AppendEvents(functionId, storedEvents, await _eventStore.GetNumberOfEvents(functionId), conn, transaction);
 
         await transaction.CommitAsync();
         return true;
