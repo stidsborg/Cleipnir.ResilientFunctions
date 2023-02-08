@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -152,7 +151,7 @@ public abstract class EventStoreTests
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
             },
-            expectedEpoch: null
+            expectedCount: null
         );
 
         var events = (await eventStore.GetEvents(functionId, skip: 0)).ToList();
@@ -177,7 +176,7 @@ public abstract class EventStoreTests
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
             },
-            expectedEpoch: null
+            expectedCount: null
         );
 
         var events = (await eventStore.GetEvents(functionId, skip: 0)).ToList();

@@ -256,6 +256,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         TScrapbook scrapbook,
         DateTime? postponeUntil,
         Exception? exception,
+        ExistingEvents? existingEvents,
         int expectedEpoch
     )
     {
@@ -268,6 +269,19 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedResult: StoredResult.Null,
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
+            existingEvents == null 
+                ? null 
+                : new ReplaceEvents(
+                    Events: existingEvents
+                        .EventsWithIdempotencyKeys
+                        .Select(e =>
+                        {
+                            var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
+                            return new StoredEvent(json, type, e.IdempotencyKey);
+                        })
+                        .ToList(), 
+                    existingEvents.ExistingCount
+                  ),
             expectedEpoch
         );
     }
@@ -280,6 +294,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         TReturn? result,
         DateTime? postponeUntil,
         Exception? exception,
+        ExistingEvents? existingEvents,
         int expectedEpoch
     )
     {
@@ -292,6 +307,19 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
+            existingEvents == null 
+                ? null 
+                : new ReplaceEvents(
+                    Events: existingEvents
+                        .EventsWithIdempotencyKeys
+                        .Select(e =>
+                        {
+                            var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
+                            return new StoredEvent(json, type, e.IdempotencyKey);
+                        })
+                        .ToList(), 
+                    existingEvents.ExistingCount
+                ),
             expectedEpoch
         );
     }
@@ -304,28 +332,25 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         int expectedEpoch)
     {
         var serializer = _settings.Serializer;
-        var success= await _functionStore.SetParameters(
+        return await _functionStore.SetParameters(
             functionId,
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            existingEvents == null 
+                ? null 
+                : new ReplaceEvents(
+                    Events: existingEvents
+                        .EventsWithIdempotencyKeys
+                        .Select(e =>
+                        {
+                            var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
+                            return new StoredEvent(json, type, e.IdempotencyKey);
+                        })
+                        .ToList(), 
+                    existingEvents.ExistingCount
+                ),
             expectedEpoch
         );
-        if (!success) return false;
-
-        if (existingEvents != null)
-        {
-            var storedEvents = existingEvents.EventsWithIdempotencyKeys
-                .Select(e =>
-                {
-                    var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
-                    return new StoredEvent(json, type, e.IdempotencyKey);
-                })
-                .ToList();
-            
-            await _functionStore.EventStore.Replace(functionId, storedEvents, expectedEpoch: expectedEpoch + 1);
-        }
-
-        return true;
     }
 
     public async Task<bool> Delete(FunctionId functionId, int expectedEpoch)

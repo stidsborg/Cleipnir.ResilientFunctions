@@ -65,14 +65,18 @@ public class PostgreSqlEventStore : IEventStore
     public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await CreateConnection();
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var (eventJson, eventType, idempotencyKey) = storedEvent;
 
         var sql = @$"    
                 INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
-                VALUES
-                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
-        await using var command = new NpgsqlCommand(sql, conn)
+                VALUES (
+                     $1, $2, 
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), 
+                     $3, $4, $5
+                );";
+        await using var command = new NpgsqlCommand(sql, conn, transaction)
         {
             Parameters =
             {
@@ -87,6 +91,7 @@ public class PostgreSqlEventStore : IEventStore
         try
         {
             await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
         }
         catch (PostgresException e) when (e.SqlState == "23505") {}
     }
@@ -97,10 +102,12 @@ public class PostgreSqlEventStore : IEventStore
     public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         await using var conn = await CreateConnection();
-        await AppendEvents(functionId, storedEvents, conn, transaction: null);
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+        await transaction.CommitAsync();
     }
 
-    private async Task AppendEvents(
+    internal async Task AppendEvents(
         FunctionId functionId, 
         IEnumerable<StoredEvent> storedEvents,
         NpgsqlConnection connection, 
@@ -115,11 +122,11 @@ public class PostgreSqlEventStore : IEventStore
                 INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
                 VALUES
-                    ($1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
+                    ($1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
             else
                 sql = @$"
                     INSERT INTO {_tablePrefix}rfunctions_events
-                    SELECT $1, $2, (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5
+                    SELECT $1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5
                     WHERE NOT EXISTS (
                         SELECT 1
                         FROM {_tablePrefix}rfunctions_events
@@ -151,7 +158,7 @@ public class PostgreSqlEventStore : IEventStore
         await Truncate(functionId, conn, transaction: null);
     }
 
-    private async Task Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
+    internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
     {
         var sql = @$"    
                 DELETE FROM {_tablePrefix}rfunctions_events
@@ -164,7 +171,8 @@ public class PostgreSqlEventStore : IEventStore
                 new() {Value = functionId.InstanceId.Value}
             }
         };
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows;
     }
 
     public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)

@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -30,6 +32,7 @@ public record StoredResult(string? ResultJson, string? ResultType)
 };
 public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
+public record ReplaceEvents(IEnumerable<StoredEvent> Events, int ExistingCount);
 
 internal static class StorageTypeExtensions
 {

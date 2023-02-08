@@ -30,7 +30,7 @@ public class SqlServerEventStore : IEventStore
             Position INT NOT NULL,
             EventJson NVARCHAR(MAX) NOT NULL,
             EventType NVARCHAR(255) NOT NULL,   
-            IdempotencyKey VARCHAR(255),          
+            IdempotencyKey NVARCHAR(255),          
             PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
         );
         CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Events
@@ -71,7 +71,7 @@ public class SqlServerEventStore : IEventStore
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @EventJson, @EventType, @IdempotencyKey
             );";
         await using var command = new SqlCommand(sql, conn);
@@ -100,7 +100,7 @@ public class SqlServerEventStore : IEventStore
         await transaction.CommitAsync();
     }
     
-    private async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, SqlConnection connection, SqlTransaction transaction)
+    internal async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, SqlConnection connection, SqlTransaction transaction)
     {
         foreach (var storedEvent in storedEvents)
         {
@@ -112,7 +112,7 @@ public class SqlServerEventStore : IEventStore
                     VALUES ( 
                         @FunctionTypeId, 
                         @FunctionInstanceId, 
-                        (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                         @EventJson, @EventType, @IdempotencyKey
                     );";
             else
@@ -121,7 +121,7 @@ public class SqlServerEventStore : IEventStore
                     SELECT 
                         @FunctionTypeId, 
                         @FunctionInstanceId, 
-                        (SELECT COUNT(*) FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                         @EventJson, @EventType, @IdempotencyKey
                     WHERE NOT EXISTS (
                         SELECT 1
@@ -147,7 +147,7 @@ public class SqlServerEventStore : IEventStore
         await Truncate(functionId, conn, transaction: null);
     }
 
-    private async Task Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
+    internal async Task<int> Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
     {
         var sql = @$"    
             DELETE FROM {_tablePrefix}RFunctions_Events
@@ -160,40 +160,22 @@ public class SqlServerEventStore : IEventStore
         
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        await command.ExecuteNonQueryAsync();
+        return await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount)
     {
         await using var conn = await CreateConnection();
         await using var transaction = conn.BeginTransaction(IsolationLevel.RepeatableRead);
 
-        if (expectedEpoch.HasValue && !await IsFunctionAtEpoch(functionId, conn, transaction, expectedEpoch.Value))
+        var affectedRows = await Truncate(functionId, conn, transaction);
+        if (expectedCount != null && affectedRows != expectedCount)
             return false;
-                
-        await Truncate(functionId, conn, transaction);
-        await AppendEvents(functionId, storedEvents, conn, transaction);
         
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+
         await transaction.CommitAsync();
         return true;
-    }
-
-    private async Task<bool> IsFunctionAtEpoch(FunctionId functionId, SqlConnection connection, SqlTransaction transaction, int expectedEpoch)
-    {
-        var sql = @$"    
-            SELECT COUNT(*)
-            FROM {_tablePrefix}RFunctions
-            WHERE FunctionTypeId = @FunctionTypeId AND 
-                  FunctionInstanceId = @FunctionInstanceId AND
-                  Epoch = @ExpectedEpoch;";
-        
-        await using var command = new SqlCommand(sql, connection, transaction);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-        var count = (int?) await command.ExecuteScalarAsync();
-        return count == 1;
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

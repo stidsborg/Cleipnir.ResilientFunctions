@@ -100,7 +100,7 @@ public abstract class ScheduleReInvocationTests
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
-        await controlPanel.SaveChanges().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges();
         
         await rAction.ControlPanels.For("something").Result!.ScheduleReInvoke();
 

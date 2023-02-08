@@ -97,4 +97,8 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation()
         => ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges()
+        => ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(Sql.AutoCreateAndInitializeStore());
 }

@@ -82,55 +82,91 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public DateTime? PostponedUntil { get; private set; }
     public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
 
-    public Task<bool> Succeed()
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, Scrapbook, postponeUntil: null, exception: null, Epoch
-        );
-    
-    public Task<bool> Postpone(DateTime until) 
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, Scrapbook, until, exception: null, Epoch
-        );
-    public Task<bool> Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
-    
-    public Task<bool> Fail(Exception exception) 
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception, Epoch
+    public async Task Succeed()
+    {
+        var success = await _invocationHelper.SetFunctionState(
+            FunctionId, Status.Succeeded, Param, Scrapbook, postponeUntil: null, exception: null, 
+            existingEvents: _events == null ? null : await _events,
+            Epoch
         );
 
-    public async Task<bool> SaveChanges()
-    {
-        var changedEvents = _events == null ? null : await _events;
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, changedEvents, Epoch);
-        if (success)
-            Epoch += 1;
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
         
-        return success;
+        Epoch++;
+        _changed = false;
+        _events = null;
+    }
+    
+    public async Task Postpone(DateTime until)
+    {
+        var success = await _invocationHelper.SetFunctionState(
+            FunctionId, Status.Postponed, Param, Scrapbook, until, exception: null,
+            existingEvents: _events == null ? null : await _events,
+            Epoch
+        );
+
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
+
+        Epoch++;
+        Status = Status.Postponed;
+        PostponedUntil = until;
+        _changed = false;
+        _events = null;
     }
 
-    public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+    public Task Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
+
+    public async Task Fail(Exception exception)
+    {
+        var success = await _invocationHelper.SetFunctionState(
+            FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception,
+            existingEvents: _events == null ? null : await _events,
+            Epoch
+        );
+
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
+     
+        Epoch++;
+        Status = Status.Failed;
+        PreviouslyThrownException = new PreviouslyThrownException(exception.Message, exception.StackTrace, exception.GetType());
+        _changed = false;
+        _events = null;
+    }
+    
+    public async Task SaveChanges()
+    {
+        var success = await _invocationHelper.SaveControlPanelChanges(
+            FunctionId, Param, Scrapbook,
+            existingEvents: _events == null ? null : await _events,
+            Epoch
+        );
+        
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
+        
+        Epoch++;
+        _changed = false;
+        _events = null;
+    }
+
+    public Task Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
     public async Task ReInvoke()
     {
-        var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveChanges())
-                expectedEpoch++;
-            else
-                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
-            
-        await _reInvoke(FunctionId.InstanceId.Value, expectedEpoch);   
+            await SaveChanges();
+
+        await _reInvoke(FunctionId.InstanceId.Value, Epoch);   
     }
     public async Task ScheduleReInvoke()
     {
-        var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveChanges())
-                expectedEpoch++;
-            else
-                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
+            await SaveChanges();
         
-        await _scheduleReInvoke(FunctionId.InstanceId.Value, expectedEpoch);
+        await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
     }
 
     public async Task Refresh()
@@ -229,59 +265,95 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     }
 
     public TReturn? Result { get; set; }
-    
     public DateTime? PostponedUntil { get; private set; }
     public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
 
-    public Task<bool> Succeed(TReturn result)
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, Scrapbook, result, PostponedUntil, exception: null, Epoch
-        );
-    
-    public Task<bool> Postpone(DateTime until) 
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, Scrapbook, result: default, until, exception: null, Epoch
-        );
-    public Task<bool> Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
-    
-    public Task<bool> Fail(Exception exception) 
-        => _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, Scrapbook, result: default, postponeUntil: null, exception, Epoch
+    public async Task Succeed(TReturn result)
+    {
+        var success = await _invocationHelper.SetFunctionState(
+            FunctionId, Status.Succeeded, Param, Scrapbook, result, PostponedUntil, exception: null, 
+            existingEvents: _events == null ? null : await _events, 
+            Epoch
         );
 
-    public async Task<bool> SaveChanges()
-    {
-        var changedEvents = _events == null ? null : await _events;
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, changedEvents, Epoch);
-        if (success)
-            Epoch += 1;
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
         
-        return success;
+        Epoch++;
+        Status = Status.Succeeded;
+        _changed = false;
+        _events = null;
     }
     
-    public Task<bool> Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+    public async Task Postpone(DateTime until)
+    {
+        var success = await _invocationHelper.SetFunctionState(
+            FunctionId, Status.Postponed, Param, Scrapbook, result: default, until, exception: null, 
+            existingEvents: _events == null ? null : await _events,
+            Epoch
+        );
+
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
+        
+        Epoch++;
+        Status = Status.Postponed;
+        PostponedUntil = until;
+        _changed = false;
+        _events = null;
+    }
+        
+    public Task Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
+
+    public async Task Fail(Exception exception)
+    {
+        var success = await _invocationHelper.SetFunctionState(
+            FunctionId, Status.Failed, Param, Scrapbook, result: default, postponeUntil: null, exception, 
+            existingEvents: _events == null ? null : await _events,
+            Epoch
+        );
+
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
+        
+        Epoch++;
+        Status = Status.Failed;
+        PreviouslyThrownException = new PreviouslyThrownException(exception.Message, exception.StackTrace, exception.GetType());
+        _changed = false;
+        _events = null;
+    }
+
+    public async Task SaveChanges()
+    {
+        var success = await _invocationHelper.SaveControlPanelChanges(
+            FunctionId, Param, Scrapbook,
+            existingEvents: _events == null ? null : await _events,
+            Epoch
+        );
+        
+        if (!success)
+            throw new ConcurrentModificationException(FunctionId);
+        
+        Epoch++;
+        _changed = false;
+        _events = null;
+    }
+    
+    public Task Delete() => _invocationHelper.Delete(FunctionId, Epoch);
 
     public async Task<TReturn> ReInvoke()
     {
-        var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveChanges())
-                expectedEpoch++;
-            else
-                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
-            
-        return await _reInvoke(FunctionId.InstanceId.Value, expectedEpoch);   
+            await SaveChanges();
+
+        return await _reInvoke(FunctionId.InstanceId.Value, Epoch);   
     }
     public async Task ScheduleReInvoke()
     {
-        var expectedEpoch = Epoch;
         if (_changed)
-            if (await SaveChanges())
-                expectedEpoch++;
-            else
-                throw new UnexpectedFunctionState(FunctionId, $"Unable to save changes for function: '{FunctionId}'");
-        
-        await _scheduleReInvoke(FunctionId.InstanceId.Value, expectedEpoch);
+            await SaveChanges();
+
+        await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
     }
     
     public async Task Refresh()

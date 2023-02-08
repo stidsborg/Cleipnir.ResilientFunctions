@@ -34,7 +34,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId, "");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.Delete().ShouldBeTrueAsync();
+        await controlPanel.Delete();
 
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
 
@@ -62,7 +62,7 @@ public abstract class ControlPanelTests
         await rFunc.Invoke(functionInstanceId, "");
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.Delete().ShouldBeTrueAsync();
+        await controlPanel.Delete();
 
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
 
@@ -91,9 +91,9 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await store.IncrementEpoch(functionId).ShouldBeTrueAsync();
-        await controlPanel.SaveChanges(); //bump epoch
+        await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.SaveChanges());
 
-        await controlPanel.Delete().ShouldBeFalseAsync();
+        await controlPanel.Delete();
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -121,7 +121,7 @@ public abstract class ControlPanelTests
 
         await rFunc.ReInvoke(functionInstanceId, expectedEpoch: 0); //bump epoch
 
-        await controlPanel.Delete().ShouldBeFalseAsync();
+        await controlPanel.Delete();
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -149,7 +149,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
-        await controlPanel.Postpone(new DateTime(1_000_000)).ShouldBeTrueAsync();
+        await controlPanel.Postpone(new DateTime(1_000_000));
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Postponed);
@@ -187,7 +187,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
-        await controlPanel.Postpone(new DateTime(1_000_000)).ShouldBeTrueAsync();
+        await controlPanel.Postpone(new DateTime(1_000_000));
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Postponed);
@@ -225,7 +225,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
         
-        await controlPanel.Fail(new InvalidOperationException()).ShouldBeTrueAsync();
+        await controlPanel.Fail(new InvalidOperationException());
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -261,7 +261,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
 
-        await controlPanel.Fail(new InvalidOperationException()).ShouldBeTrueAsync();
+        await controlPanel.Fail(new InvalidOperationException());
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -297,7 +297,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
-        await controlPanel.Succeed().ShouldBeTrueAsync();
+        await controlPanel.Succeed();
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -331,7 +331,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
-        await controlPanel.Succeed("hello world").ShouldBeTrueAsync();
+        await controlPanel.Succeed("hello world");
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -373,7 +373,7 @@ public abstract class ControlPanelTests
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        await controlPanel.SaveChanges().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
@@ -447,7 +447,7 @@ public abstract class ControlPanelTests
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        await controlPanel.SaveChanges().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ScheduleReInvoke();
 
@@ -518,11 +518,11 @@ public abstract class ControlPanelTests
 
         {
             var tempControlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveChanges().ShouldBeTrueAsync(); //increment epoch
+            await tempControlPanel.SaveChanges(); //increment epoch
         }
         
         controlPanel.Param = "second";
-        await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel.ScheduleReInvoke());
+        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleReInvoke());
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -547,11 +547,11 @@ public abstract class ControlPanelTests
 
         {
             var tempControlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveChanges().ShouldBeTrueAsync(); //increment epoch
+            await tempControlPanel.SaveChanges(); //increment epoch
         }
         
         controlPanel.Param = "second";
-        await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel.ScheduleReInvoke());
+        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleReInvoke());
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -640,7 +640,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId, param: "param");
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.SaveChanges().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges();
         await controlPanel.ReInvoke().ShouldBeAsync("param");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -664,7 +664,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.SaveChanges().ShouldBeTrueAsync();
+        await controlPanel.SaveChanges();
         await controlPanel.ReInvoke();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -791,5 +791,35 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    
+    public abstract Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges();
+    protected async Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var existingEvents = await controlPanel.Events;
+        existingEvents.Count().ShouldBe(1);
+
+        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        
+        existingEvents.Clear();
+        existingEvents.Add("hej verden");
+        existingEvents.Add("hej univers");
+
+        await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.SaveChanges());
+    }
 }

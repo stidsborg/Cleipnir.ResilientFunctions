@@ -10,7 +10,12 @@ public class ExistingEvents : IEnumerable<object>
     private readonly List<EventAndIdempotencyKey> _events;
     public List<EventAndIdempotencyKey> EventsWithIdempotencyKeys => _events;
 
-    public ExistingEvents(List<EventAndIdempotencyKey> events) => _events = events;
+    internal int ExistingCount { get; }
+    public ExistingEvents(List<EventAndIdempotencyKey> events)
+    {
+        _events = events;
+        ExistingCount = _events.Count;
+    }
 
     public object this[int index]
     {
@@ -19,7 +24,7 @@ public class ExistingEvents : IEnumerable<object>
     }
 
     public void Clear() => _events.Clear();
-    public void Add(object @event) => _events.Add(new EventAndIdempotencyKey(_events, IdempotencyKey: null));
+    public void Add(object @event) => _events.Add(new EventAndIdempotencyKey(@event, IdempotencyKey: null));
     public void AddRange(IEnumerable<object> events) 
         => _events.AddRange(events.Select(e => new EventAndIdempotencyKey(e)));
 

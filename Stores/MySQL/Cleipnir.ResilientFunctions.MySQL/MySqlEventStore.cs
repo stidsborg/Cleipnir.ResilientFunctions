@@ -53,15 +53,16 @@ public class MySqlEventStore : IEventStore
     public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
         var (eventJson, eventType, idempotencyKey) = storedEvent;
         
         var sql = @$"    
                 INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
-                SELECT ?, ?, COUNT(*), ?, ?, ? 
+                SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
                 FROM {_tablePrefix}rfunctions_events
                 WHERE function_type_id = ? AND function_instance_id = ?";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(sql, conn, transaction)
         {
             Parameters =
             {
@@ -77,9 +78,16 @@ public class MySqlEventStore : IEventStore
         try
         {
             await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
         }
-        catch (MySqlException e) when (e.Number == 1062) { } //ignore duplicate idempotency key
-        catch (MySqlException e) when (e.Number == 1213) { await AppendEvent(functionId, storedEvent); }
+        catch (MySqlException e) when (e.Number == 1062)
+        {
+        } //ignore duplicate idempotency key
+        catch (MySqlException e) when (e.Number == 1213)
+        {
+            await transaction.RollbackAsync();
+            await AppendEvent(functionId, storedEvent);
+        }
     }
 
     public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -89,14 +97,21 @@ public class MySqlEventStore : IEventStore
     {
         var existingCount = await GetNumberOfEvents(functionId);
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var transaction = await conn.BeginTransactionAsync();
+        var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
 
-        await AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
-
-        await transaction.CommitAsync();
+        try
+        {
+            await AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
+            await transaction.CommitAsync();    
+        }
+        catch (MySqlException e) when (e.Number == 1213)
+        {
+            await transaction.RollbackAsync();
+            await AppendEvents(functionId, storedEvents);
+        }
     }
 
-    private async Task AppendEvents(
+    internal async Task AppendEvents(
         FunctionId functionId,
         IEnumerable<StoredEvent> storedEvents,
         long existingCount,
@@ -166,7 +181,7 @@ public class MySqlEventStore : IEventStore
         return idempotencyKeys;
     }
 
-    private async Task<long> GetNumberOfEvents(FunctionId functionId)
+    public async Task<long> GetNumberOfEvents(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         var sql = @$"SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
@@ -187,11 +202,11 @@ public class MySqlEventStore : IEventStore
         await Truncate(functionId, conn, transaction: null);
     }
 
-    private async Task Truncate(FunctionId functionId, MySqlConnection connection, MySqlTransaction? transaction)
+    internal async Task<int> Truncate(FunctionId functionId, MySqlConnection connection, MySqlTransaction? transaction)
     {
         var sql = @$"    
                 DELETE FROM {_tablePrefix}rfunctions_events
-                WHERE function_type_id = ? AND function_instance_id = ?;";
+                WHERE function_type_id = ? AND function_instance_id = ?";
         
         await using var command =
             transaction == null
@@ -201,41 +216,34 @@ public class MySqlEventStore : IEventStore
         command.Parameters.Add(new() { Value = functionId.TypeId.Value });
         command.Parameters.Add(new() { Value = functionId.InstanceId.Value });
         
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows;
     }
 
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
 
-        if (expectedEpoch != null && !await IsFunctionAtEpoch(functionId, expectedEpoch.Value, conn, transaction))
+        var success = await Replace(functionId, storedEvents, expectedCount, conn, transaction);
+        if (success)
+            await transaction.CommitAsync();
+        else
+            await transaction.RollbackAsync();
+
+        return success;
+    }
+    
+    internal async Task<bool> Replace(
+        FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount, 
+        MySqlConnection conn, MySqlTransaction transaction)
+    {
+        var affectedRows = await Truncate(functionId, conn, transaction);
+        if (expectedCount != null && affectedRows != expectedCount)
             return false;
         
-        await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
-        await transaction.CommitAsync();
         return true;
-    }
-
-    private async Task<bool> IsFunctionAtEpoch(FunctionId functionId, int expectedEpoch, MySqlConnection conn, MySqlTransaction transaction)
-    {
-        var sql = @$"    
-            SELECT COUNT(*)
-            FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch >= ?;";
-        await using var command = new MySqlCommand(sql, conn, transaction)
-        {
-            Parameters =
-            {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new () {Value = expectedEpoch}
-            }
-        };
-
-        var count = (long?) await command.ExecuteScalarAsync();
-        return count == 1;
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)

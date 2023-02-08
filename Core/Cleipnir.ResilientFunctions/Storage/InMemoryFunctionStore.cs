@@ -176,7 +176,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             : new Epoch(epoch.Value);
     }
 
-
     public Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
@@ -185,6 +184,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         StoredResult storedResult,
         StoredException? storedException,
         long? postponeUntil,
+        ReplaceEvents? events,
         int expectedEpoch)
     {
         lock (_sync)
@@ -195,6 +195,16 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
+            if (events != null)
+            {
+                var expectedCount = events.ExistingCount;
+                if (expectedCount == 0 && !_events.ContainsKey(functionId) && _events[functionId].Count > 0)
+                    return false.ToTask();
+                if (_events[functionId].Count != expectedCount)
+                    return false.ToTask();
+
+                _events[functionId] = events.Events.ToList();
+            }
 
             state.Status = status;
             state.Param = storedParameter;
@@ -202,6 +212,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Result = storedResult;
             state.Exception = storedException;
             state.PostponeUntil = postponeUntil;
+
             state.Epoch += 1;
 
             return true.ToTask();
@@ -221,7 +232,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, int expectedEpoch)
     {
         lock (_sync)
         {
@@ -229,8 +240,20 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
+            if (events != null)
+            {
+                var expectedCount = events.ExistingCount;
+                if (expectedCount == 0 && !_events.ContainsKey(functionId) && _events[functionId].Count > 0)
+                    return false.ToTask();
+                if (_events[functionId].Count != expectedCount)
+                    return false.ToTask();
+
+                _events[functionId] = events.Events.ToList();
+            }
+            
             state.Param = storedParameter;
             state.Scrapbook = storedScrapbook;
+
             state.Epoch += 1;
 
             return true.ToTask();
