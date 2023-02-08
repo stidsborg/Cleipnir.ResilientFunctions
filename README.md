@@ -492,7 +492,7 @@ public async Task OrderProcessorFailsOnRetryWhenLogisticsWorkHasStartedButNotCom
 Message- or event-driven system are omnipresent in enterprise architectures today. 
 
 They fundamentally differ from RPC-based in that:
-* messages related to the same order are not delivered to the same process 
+* messages related to the same order are not delivered to the same process. 
 
 This has huge implications in how a saga-flow is implemented and as a result a simple sequential flow - as in the case of the order-flow:
 * becomes fragmented and hard to reason about
@@ -525,14 +525,13 @@ public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context
 }
 ```
 There is a bit more going on in the example above compared to the previous RPC-example. 
-However, the flow is actually very similar to RPC-based. It is sequential and robust. The flow may crash at any point, be restarted and continue from the point it got to before the crash.
+However, the flow is actually very similar to RPC-based. It is sequential and robust. If the flow crashes and is restarted it will continue from the point it got to before the crash.
 
-It is noted that the message broker is just a stand-in - thus not a framework concept - for RabbitMQ, Kafka or some other messaging infrastructure client. 
+It is noted that the message broker in the example is just a stand-in - thus not a framework concept - for RabbitMQ, Kafka or some other messaging infrastructure client. 
 
 In a real application the message broker would be replaced with the actual way the application broadcasts a message/event to other services.
 
-
-Furthermore, each resilient function has an associated private **event source**. When events are received outside the application they can be placed into the relevant resilient function's event source - thereby allowing the function to continue its flow. 
+Furthermore, each resilient function has an associated private **event source**. When events are received from the network they can be placed into the relevant resilient function's event source - thereby allowing the function to continue its flow. 
 
 | Did you know? |
 | --- |
