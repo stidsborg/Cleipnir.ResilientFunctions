@@ -101,4 +101,16 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges()
         => ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced()
+        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed()
+        => ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced()
+        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(Utils.CreateInMemoryFunctionStoreTask());
 }

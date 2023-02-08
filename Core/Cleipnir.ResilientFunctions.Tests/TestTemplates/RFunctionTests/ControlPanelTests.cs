@@ -821,5 +821,119 @@ public abstract class ControlPanelTests
         existingEvents.Add("hej univers");
 
         await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.SaveChanges());
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced();
+    protected async Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+
+        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+
+        controlPanel.Param = "PARAM";
+        await controlPanel.SaveChanges();
+        var epoch = controlPanel.Epoch;
+        var param = controlPanel.Param;
+        await controlPanel.Refresh();
+        controlPanel.Epoch.ShouldBe(epoch);
+        controlPanel.Param.ShouldBe(param);
+
+        var events = await controlPanel.Events;
+        events.Count().ShouldBe(2);
+        events[0].ShouldBe("hello world");
+        events[1].ShouldBe("hello universe");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed();
+    protected async Task ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var existingEvents = await controlPanel.Events;
+        existingEvents.Count().ShouldBe(1);
+
+        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        
+        existingEvents.Clear();
+        existingEvents.Add("hej verden");
+        existingEvents.Add("hej univers");
+
+        await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.Succeed());
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced();
+    protected async Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        const string functionInstanceId = "someFunctionId";
+        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced).ToFunctionTypeId();
+        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+        );
+
+        await rAction.Invoke(functionInstanceId, param: "param");
+        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+
+        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+
+        controlPanel.Param = "PARAM";
+        await controlPanel.Succeed();
+        var epoch = controlPanel.Epoch;
+        var param = controlPanel.Param;
+        await controlPanel.Refresh();
+        controlPanel.Epoch.ShouldBe(epoch);
+        controlPanel.Param.ShouldBe(param);
+
+        var events = await controlPanel.Events;
+        events.Count().ShouldBe(2);
+        events[0].ShouldBe("hello world");
+        events[1].ShouldBe("hello universe");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 }
