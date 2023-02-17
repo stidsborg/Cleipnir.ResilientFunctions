@@ -219,7 +219,10 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    public Task<bool> SaveScrapbookForExecutingFunction( FunctionId functionId,
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook,
+        int expectedEpoch)
     {
         lock (_sync)
         {
@@ -227,7 +230,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.Scrapbook = state.Scrapbook with { ScrapbookJson = storedScrapbook.ScrapbookJson };
             return true.ToTask();
         }
     }

@@ -35,10 +35,12 @@ public abstract class ScrapbookTests
         var scrapbook = new Scrapbook();
         scrapbook.Initialize(onSave: async () =>
         {
-            var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
+            var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
-                scrapbookJson,
+                storedParam,
+                storedScrapbook,
                 expectedEpoch: 0
             );
         });
@@ -95,10 +97,12 @@ public abstract class ScrapbookTests
         var scrapbook = new Scrapbook() {Name = "Peter"};
         scrapbook.Initialize(onSave: async () =>
         {
-            var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
+            var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
-                scrapbookJson,
+                storedParam,
+                storedScrapbook,
                 expectedEpoch: 1
             );
         });
@@ -107,10 +111,12 @@ public abstract class ScrapbookTests
         scrapbook = new Scrapbook() {Name = "Ole"};
         scrapbook.Initialize(onSave: async () =>
         {
-            var (scrapbookJson, _) = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+            var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
+            var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
-                scrapbookJson,
+                storedParam,
+                storedScrapbook,
                 expectedEpoch: 0
             );
         });

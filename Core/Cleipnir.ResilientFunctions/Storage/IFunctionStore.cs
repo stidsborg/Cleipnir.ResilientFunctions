@@ -48,7 +48,13 @@ public interface IFunctionStore
         int expectedEpoch
     );
 
-    Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch);
+    Task<bool> SaveScrapbookForExecutingFunction(
+        FunctionId functionId,
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook,
+        int expectedEpoch
+    );
+    
     Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter,

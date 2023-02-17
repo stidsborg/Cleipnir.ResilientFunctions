@@ -152,7 +152,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             }
 
             scrapbook ??= new TScrapbook();
-            _invocationHelper.InitializeScrapbook(functionId, scrapbook, epoch: 0);
+            _invocationHelper.InitializeScrapbook(functionId, param, scrapbook, epoch: 0);
             
             var wrappedInner = _middlewarePipeline.WrapPipelineAroundInner(
                 inner,

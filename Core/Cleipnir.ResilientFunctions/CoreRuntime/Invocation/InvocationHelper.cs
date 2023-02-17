@@ -89,15 +89,18 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    public void InitializeScrapbook(FunctionId functionId, TScrapbook scrapbook, int epoch) 
-        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, scrapbook, epoch));
+    public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
+        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch));
 
-    private async Task SaveScrapbook(FunctionId functionId, TScrapbook scrapbook, int epoch)
+    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch)
     {
-        var (scrapbookJson, _) = Serializer.SerializeScrapbook(scrapbook);
+        var storedParameter = Serializer.SerializeParameter(param);
+        var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
+        
         var success = await _functionStore.SaveScrapbookForExecutingFunction(
             functionId,
-            scrapbookJson,
+            storedParameter,
+            storedScrapbook,
             expectedEpoch: epoch
         );
 
@@ -222,7 +225,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, scrapbook, epoch));
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch));
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
         }

@@ -406,7 +406,11 @@ public class MySqlFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> SaveScrapbookForExecutingFunction(
+        FunctionId functionId,
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook,
+        int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -420,7 +424,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = scrapbookJson},
+                new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},

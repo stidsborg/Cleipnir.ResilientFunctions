@@ -1,5 +1,5 @@
-﻿using System.Security.Cryptography;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -156,7 +156,9 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
-        await store.SaveScrapbookForExecutingFunction(FunctionId, scrapbook.ToJson(), expectedEpoch: 0).ShouldBeTrueAsync();
+        var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+        var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
+        await store.SaveScrapbookForExecutingFunction(FunctionId, storedParam, storedScrapbook, expectedEpoch: 0).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Scrapbook.ShouldNotBeNull();
@@ -178,7 +180,9 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
-        await store.SaveScrapbookForExecutingFunction(FunctionId, scrapbook.ToJson(), expectedEpoch: 1).ShouldBeFalseAsync();
+        var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
+        var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+        await store.SaveScrapbookForExecutingFunction(FunctionId, storedParam, storedScrapbook, expectedEpoch: 1).ShouldBeFalseAsync();
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());

@@ -428,7 +428,11 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SaveScrapbookForExecutingFunction(FunctionId functionId, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> SaveScrapbookForExecutingFunction(
+        FunctionId functionId,
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook,
+        int expectedEpoch)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -439,7 +443,7 @@ public class SqlServerFunctionStore : IFunctionStore
             AND Epoch = @ExpectedEpoch";
         
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
