@@ -45,8 +45,8 @@ public class CrashableFunctionStore : IFunctionStore
                 crashedCheckFrequency
             );
 
-    public Task<bool> IncrementEpoch(FunctionId functionId, int expectedEpoch)
-        => _inner.IncrementEpoch(functionId, expectedEpoch);
+    public Task<bool> IncrementPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
+        => _inner.IncrementPostponedFunctionEpoch(functionId, expectedEpoch);
 
     public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
         => _crashed

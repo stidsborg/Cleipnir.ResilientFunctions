@@ -10,6 +10,6 @@ public static class FunctionStoreExtensions
     {
         var sf = await functionStore.GetFunction(functionId);
         var existingEpoch = sf!.Epoch;
-        return await functionStore.IncrementEpoch(functionId, existingEpoch);
+        return await functionStore.IncrementPostponedFunctionEpoch(functionId, existingEpoch);
     }
 }
