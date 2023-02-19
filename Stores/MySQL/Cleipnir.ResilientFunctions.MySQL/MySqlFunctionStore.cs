@@ -118,7 +118,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> IncrementPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
+    public async Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"

@@ -398,7 +398,7 @@ public abstract class StoreTests
             crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
         ).ShouldBeTrueAsync();
 
-        await store.IncrementPostponedFunctionEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
+        await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -421,7 +421,7 @@ public abstract class StoreTests
             crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
         ).ShouldBeTrueAsync();
 
-        await store.IncrementPostponedFunctionEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
+        await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();

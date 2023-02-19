@@ -21,7 +21,7 @@ public interface IFunctionStore
         long crashedCheckFrequency
     );
     
-    Task<bool> IncrementPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);
+    Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);
     Task<bool> RestartExecution(
         FunctionId functionId,
         Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, 

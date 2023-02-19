@@ -87,7 +87,7 @@ internal class PostponedWatchdog
                 await Task.Yield();
 
             using var _ = _shutdownCoordinator.RegisterRunningRFunc();
-            var success = await _functionStore.IncrementPostponedFunctionEpoch(functionId, expectedEpoch: spf.Epoch); //cheap change-detection before performing re-invocation
+            var success = await _functionStore.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: spf.Epoch); //cheap change-detection before performing re-invocation
             if (!success) return;
             
             await _reInvoke(spf.InstanceId, expectedEpoch: spf.Epoch + 1);

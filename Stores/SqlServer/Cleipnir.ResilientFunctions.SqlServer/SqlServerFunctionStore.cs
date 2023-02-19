@@ -161,7 +161,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> IncrementPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
+    public async Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
     {
         await using var conn = await _connFunc();
         var sql = @$"

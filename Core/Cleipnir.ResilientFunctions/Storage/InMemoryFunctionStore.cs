@@ -55,7 +55,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> IncrementPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
+    public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
     {
         lock (_sync)
         {
