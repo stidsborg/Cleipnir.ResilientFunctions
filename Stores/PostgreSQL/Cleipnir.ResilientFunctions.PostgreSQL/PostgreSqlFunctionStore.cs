@@ -166,62 +166,28 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
     {
-        if (paramAndScrapbook == null)
-        {
-            await using var conn = await CreateConnection();
+        await using var conn = await CreateConnection();
 
-            var sql = @$"
+        var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int) Status.Executing}, crashed_check_frequency = $1
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, crashed_check_frequency = $1
             WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
 
-            await using var command = new NpgsqlCommand(sql, conn)
-            {
-                Parameters =
-                {
-                    new() { Value = crashedCheckFrequency },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                }
-            };
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;
-        }
-        else
+        await using var command = new NpgsqlCommand(sql, conn)
         {
-            await using var conn = await CreateConnection();
-
-            var sql = @$"
-            UPDATE {_tablePrefix}rfunctions
-            SET param_json = $1, param_type = $2,
-                scrapbook_json = $3, scrapbook_type = $4,
-                epoch = epoch + 1, status = {(int) Status.Executing},
-                crashed_check_frequency = $5
-            WHERE function_type_id = $6 AND function_instance_id = $7 AND epoch = $8";
-
-            var (param, scrapbook) = paramAndScrapbook;
-            await using var command = new NpgsqlCommand(sql, conn)
+            Parameters =
             {
-                Parameters =
-                {
-                    new() { Value = param.ParamJson },
-                    new() { Value = param.ParamType },
-                    new() { Value = scrapbook.ScrapbookJson },
-                    new() { Value = scrapbook.ScrapbookType },
-                    new() { Value = crashedCheckFrequency },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                }
-            };
+                new() { Value = crashedCheckFrequency },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;
-        }
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
     public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)

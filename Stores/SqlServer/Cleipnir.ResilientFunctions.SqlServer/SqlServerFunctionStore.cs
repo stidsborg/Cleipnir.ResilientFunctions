@@ -178,53 +178,26 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
     {
-        if (paramAndScrapbook == null)
-        {
-            await using var conn = await _connFunc();
-            var sql = @$"
+        await using var conn = await _connFunc();
+        var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET Epoch = Epoch + 1, 
-                Status = {(int) Status.Executing}, 
+                Status = {(int)Status.Executing}, 
                 CrashedCheckFrequency = @CrashedCheckFrequency
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
-            await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows > 0;
-        }
-        else
-        {
-            await using var conn = await _connFunc();
-            var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET ParamJson = @ParamJson, ParamType = @ParamType, 
-                ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType, 
-                Epoch = Epoch + 1, Status = {(int) Status.Executing}, 
-                CrashedCheckFrequency = @CrashedCheckFrequency
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
-            var (param, scrapbook) = paramAndScrapbook;
-            await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@ParamJson", param.ParamJson);
-            command.Parameters.AddWithValue("@ParamType", param.ParamType);
-            command.Parameters.AddWithValue("@ScrapbookJson", scrapbook.ScrapbookJson);
-            command.Parameters.AddWithValue("@ScrapbookType", scrapbook.ScrapbookType);
-            command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows > 0;
-        }
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
     }
-    
+
     public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {
         await using var conn = await _connFunc();

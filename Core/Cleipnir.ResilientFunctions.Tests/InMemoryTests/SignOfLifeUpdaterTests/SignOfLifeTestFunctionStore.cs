@@ -29,8 +29,8 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
-        => _inner.RestartExecution(functionId, paramAndScrapbook, expectedEpoch, crashedCheckFrequency);
+    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
+        => _inner.RestartExecution(functionId, expectedEpoch, crashedCheckFrequency);
 
     public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
     {

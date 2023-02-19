@@ -71,7 +71,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 
     public Task<bool> RestartExecution(
         FunctionId functionId,
-        Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook,
         int expectedEpoch,
         long crashedCheckFrequency)
     {
@@ -83,13 +82,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
-
-            if (paramAndScrapbook != null)
-            {
-                var (param, scrapbook) = paramAndScrapbook;
-                state.Param = param;
-                state.Scrapbook = scrapbook;
-            }
 
             state.Epoch += 1;
             state.Status = Status.Executing;

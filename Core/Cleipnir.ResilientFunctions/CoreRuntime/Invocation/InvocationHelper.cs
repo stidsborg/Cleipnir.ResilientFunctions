@@ -211,7 +211,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         {
             var success = await _functionStore.RestartExecution(
                 functionId,
-                paramAndScrapbook: null,
                 expectedEpoch: sf.Epoch,
                 _settings.CrashedCheckFrequency.Ticks
             );

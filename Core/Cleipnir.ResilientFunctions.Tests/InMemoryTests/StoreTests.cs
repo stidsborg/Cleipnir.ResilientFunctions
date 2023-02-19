@@ -29,14 +29,6 @@ public class StoreTests : TestTemplates.StoreTests
         => BecomeLeaderFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected()
-        => BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
-
-    [TestMethod]
-    public override Task BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected()
-        => BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
-
-    [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
         => CreatingTheSameFunctionTwiceReturnsFalse(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 

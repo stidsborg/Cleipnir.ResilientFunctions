@@ -89,7 +89,6 @@ public abstract class ScrapbookTests
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
-            paramAndScrapbook: null,
             expectedEpoch: 0, 
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();

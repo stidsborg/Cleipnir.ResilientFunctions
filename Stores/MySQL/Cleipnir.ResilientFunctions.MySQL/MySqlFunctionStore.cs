@@ -140,60 +140,27 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> RestartExecution(FunctionId functionId, Tuple<StoredParameter, StoredScrapbook>? paramAndScrapbook, int expectedEpoch, long crashedCheckFrequency)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
     {
-        if (paramAndScrapbook == null)
-        {
-            await using var conn = await CreateOpenConnection(_connectionString);
-            var sql = @$"
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int) Status.Executing}, crashed_check_frequency = ?
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, crashed_check_frequency = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
-            await using var command = new MySqlCommand(sql, conn)
-            {
-                Parameters =
-                {
-                    new() { Value = crashedCheckFrequency },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                }
-            };
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;
-        }
-        else
+        await using var command = new MySqlCommand(sql, conn)
         {
-            await using var conn = await CreateOpenConnection(_connectionString);
-            var sql = @$"
-            UPDATE {_tablePrefix}rfunctions
-            SET param_json = ?, param_type = ?,
-                scrapbook_json = ?, scrapbook_type = ?,
-                epoch = epoch + 1, status = {(int) Status.Executing}, 
-                crashed_check_frequency = ?
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
-
-            var (param, scrapbook) = paramAndScrapbook;
-            await using var command = new MySqlCommand(sql, conn)
+            Parameters =
             {
-                Parameters =
-                {
-                    new() { Value = param.ParamJson },
-                    new() { Value = param.ParamType },
-                    new() { Value = scrapbook.ScrapbookJson },
-                    new() { Value = scrapbook.ScrapbookType },
-                    new() { Value = crashedCheckFrequency },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                }
-            };
+                new() { Value = crashedCheckFrequency },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;   
-        }
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
     public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)

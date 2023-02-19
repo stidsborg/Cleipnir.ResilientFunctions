@@ -224,7 +224,6 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
-            paramAndScrapbook: null,
             expectedEpoch: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
@@ -346,8 +345,7 @@ public abstract class StoreCrudTests
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
-            FunctionId, 
-            paramAndScrapbook: null,
+            FunctionId,
             expectedEpoch: 0,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();

@@ -134,8 +134,7 @@ public abstract class StoreTests
 
         await store
             .RestartExecution(
-                FunctionId, 
-                paramAndScrapbook: null, 
+                FunctionId,
                 expectedEpoch: 0,
                 crashedCheckFrequency: 100
             ).ShouldBeTrueAsync();
@@ -162,8 +161,7 @@ public abstract class StoreTests
 
         await store
             .RestartExecution(
-                FunctionId, 
-                paramAndScrapbook: null,
+                FunctionId,
                 expectedEpoch: 1,
                 crashedCheckFrequency: 100
             ).ShouldBeFalseAsync();
@@ -173,75 +171,7 @@ public abstract class StoreTests
         storedFunction.Epoch.ShouldBe(0);
         storedFunction.SignOfLife.ShouldBe(0);
     }
-    
-    public abstract Task BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected();
-    protected async Task BecomeLeaderWithParamAndScrapbookSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var paramJson = PARAM.ToJson();
-        var paramType = PARAM.GetType().SimpleQualifiedName();
 
-        await store.CreateFunction(
-            FunctionId,
-            param: new StoredParameter(paramJson, paramType),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
-        ).ShouldBeTrueAsync();
-
-        var storedScrapbook = new StoredScrapbook(
-            new RScrapbook { StateDictionary = { ["Test"] = "true" } }.ToJson(),
-            typeof(RScrapbook).SimpleQualifiedName()
-        );
-        var storedParameter = new StoredParameter("updated_param".ToJson(), typeof(string).SimpleQualifiedName());
-        await store
-            .RestartExecution(
-                FunctionId, 
-                paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook), 
-                expectedEpoch: 0,
-                crashedCheckFrequency: 100
-            ).ShouldBeTrueAsync();
-
-        var storedFunction = await store.GetFunction(FunctionId);
-        storedFunction.ShouldNotBeNull();
-        storedFunction.Epoch.ShouldBe(1);
-        storedFunction.SignOfLife.ShouldBe(0);
-        storedParameter.Deserialize<string>(DefaultSerializer.Instance).ShouldBe("updated_param");
-        storedScrapbook.Deserialize<RScrapbook>(DefaultSerializer.Instance).StateDictionary["Test"].ShouldBe("true");
-    }
-        
-    public abstract Task BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected();
-    protected async Task BecomeLeaderWithParamAndScrapbookFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var paramJson = PARAM.ToJson();
-        var paramType = PARAM.GetType().SimpleQualifiedName();
-
-        await store.CreateFunction(
-            FunctionId,
-            param: new StoredParameter(paramJson, paramType),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
-        ).ShouldBeTrueAsync();
-
-        var storedScrapbook = new StoredScrapbook(
-            new RScrapbook { StateDictionary = { ["Test"] = "true" } }.ToJson(),
-            typeof(RScrapbook).SimpleQualifiedName()
-        );
-        var storedParameter = new StoredParameter("updated_param".ToJson(), typeof(string).SimpleQualifiedName());
-        await store
-            .RestartExecution(
-                FunctionId, 
-                paramAndScrapbook: Tuple.Create(storedParameter, storedScrapbook),
-                expectedEpoch: 1,
-                crashedCheckFrequency: 100
-            ).ShouldBeFalseAsync();
-
-        var storedFunction = await store.GetFunction(FunctionId);
-        storedFunction.ShouldNotBeNull();
-        storedFunction.Epoch.ShouldBe(0);
-        storedFunction.SignOfLife.ShouldBe(0);
-    }
-    
     public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
     protected async Task CreatingTheSameFunctionTwiceReturnsFalse(Task<IFunctionStore> storeTask)
     {
@@ -371,8 +301,7 @@ public abstract class StoreTests
         );
 
         await store.RestartExecution(
-            functionId, 
-            paramAndScrapbook: null,
+            functionId,
             expectedEpoch: 0,
             crashedCheckFrequency
         );
