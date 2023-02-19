@@ -39,9 +39,9 @@ public abstract class ScrapbookTests
             var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
-                storedParam,
-                storedScrapbook,
-                expectedEpoch: 0
+                storedScrapbook.ScrapbookJson,
+                expectedEpoch: 0,
+                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook)
             );
         });
 
@@ -100,9 +100,9 @@ public abstract class ScrapbookTests
             var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
-                storedParam,
-                storedScrapbook,
-                expectedEpoch: 1
+                storedScrapbook.ScrapbookJson,
+                expectedEpoch: 1,
+                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook)
             );
         });
         await scrapbook.Save();
@@ -114,9 +114,9 @@ public abstract class ScrapbookTests
             var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
             await store.SaveScrapbookForExecutingFunction(
                 FunctionId,
-                storedParam,
-                storedScrapbook,
-                expectedEpoch: 0
+                storedScrapbook.ScrapbookJson,
+                expectedEpoch: 0,
+                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook)
             );
         });
         await scrapbook.Save();

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -49,9 +48,9 @@ public interface IFunctionStore
 
     Task<bool> SaveScrapbookForExecutingFunction(
         FunctionId functionId,
-        StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook,
-        int expectedEpoch
+        string scrapbookJson,
+        int expectedEpoch,
+        ComplimentaryState.SaveScrapbookForExecutingFunction complimentaryState
     );
     
     Task<bool> SetParameters(

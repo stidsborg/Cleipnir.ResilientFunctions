@@ -404,11 +404,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SaveScrapbookForExecutingFunction(
+    public async Task<bool> SaveScrapbookForExecutingFunction( 
         FunctionId functionId,
-        StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook,
-        int expectedEpoch)
+        string scrapbookJson,
+        int expectedEpoch,
+        ComplimentaryState.SaveScrapbookForExecutingFunction _)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -422,7 +422,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedScrapbook.ScrapbookJson},
+                new() {Value = scrapbookJson},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},

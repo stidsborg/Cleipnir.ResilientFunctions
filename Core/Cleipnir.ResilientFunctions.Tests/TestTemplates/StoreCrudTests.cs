@@ -158,7 +158,12 @@ public abstract class StoreCrudTests
         var scrapbook = new TestScrapbook { Note = "something is still something" };
         var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
         var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
-        await store.SaveScrapbookForExecutingFunction(FunctionId, storedParam, storedScrapbook, expectedEpoch: 0).ShouldBeTrueAsync();
+        await store.SaveScrapbookForExecutingFunction(
+            FunctionId, 
+            storedScrapbook.ScrapbookJson, 
+            expectedEpoch: 0, 
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook)
+        ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Scrapbook.ShouldNotBeNull();
@@ -182,7 +187,12 @@ public abstract class StoreCrudTests
         var scrapbook = new TestScrapbook { Note = "something is still something" };
         var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
         var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
-        await store.SaveScrapbookForExecutingFunction(FunctionId, storedParam, storedScrapbook, expectedEpoch: 1).ShouldBeFalseAsync();
+        await store.SaveScrapbookForExecutingFunction(
+            FunctionId, 
+            storedScrapbook.ScrapbookJson, 
+            expectedEpoch: 1,
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook)
+        ).ShouldBeFalseAsync();
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
         scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());

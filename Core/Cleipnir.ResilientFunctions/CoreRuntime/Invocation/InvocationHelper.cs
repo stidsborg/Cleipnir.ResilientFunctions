@@ -99,9 +99,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         
         var success = await _functionStore.SaveScrapbookForExecutingFunction(
             functionId,
-            storedParameter,
-            storedScrapbook,
-            expectedEpoch: epoch
+            storedScrapbook.ScrapbookJson,
+            expectedEpoch: epoch,
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook)
         );
 
         if (!success)
