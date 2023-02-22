@@ -47,7 +47,16 @@ public sealed class EventsSubscription : IAsyncDisposable
 
         do
         {
-            _callback(toDeliver);
+            try
+            {
+                _callback(toDeliver);
+            }
+            catch (Exception exception)
+            {
+                _unhandledExceptionHandler?.Invoke(_functionId.TypeId, exception);
+                DisposeAsync().GetAwaiter().GetResult();
+                return;
+            }
 
             lock (_sync)
             {
