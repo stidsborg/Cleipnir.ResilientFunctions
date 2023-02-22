@@ -15,7 +15,7 @@ public abstract class EventSubscriptionTests
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = new FunctionId(nameof(EventsSubscriptionSunshineScenario), "InstanceId");
         var eventStore = await eventStoreTask;
 
         var sync = new object();
