@@ -198,7 +198,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
+    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
     {
         await using var conn = await _connFunc();
         var sql = @$"

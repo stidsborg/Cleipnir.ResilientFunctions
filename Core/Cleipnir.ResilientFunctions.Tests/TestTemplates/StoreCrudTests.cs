@@ -119,7 +119,7 @@ public abstract class StoreCrudTests
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
-        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1).ShouldBeTrueAsync();
+        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife()).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);
@@ -137,7 +137,7 @@ public abstract class StoreCrudTests
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
-        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 1, newSignOfLife: 1).ShouldBeFalseAsync();
+        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 1, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife()).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);

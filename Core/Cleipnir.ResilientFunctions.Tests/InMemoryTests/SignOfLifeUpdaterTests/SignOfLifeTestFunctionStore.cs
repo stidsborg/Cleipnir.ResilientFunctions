@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests
 
 public class SignOfLifeTestFunctionStore : IFunctionStore
 {
-    public delegate bool SignOfLifeCallback(FunctionId functionId, int expectedEpoch, int newSignOfLife);
+    public delegate bool SignOfLifeCallback(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState);
 
     private readonly SignOfLifeCallback _signOfLifeCallback;
     private readonly IFunctionStore _inner = new InMemoryFunctionStore();
@@ -32,9 +32,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
         => _inner.RestartExecution(functionId, expectedEpoch, crashedCheckFrequency);
 
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
+    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
     {
-        var success = _signOfLifeCallback(functionId, expectedEpoch, newSignOfLife);
+        var success = _signOfLifeCallback(functionId, expectedEpoch, newSignOfLife, complementaryState);
         return success.ToTask();
     }
 

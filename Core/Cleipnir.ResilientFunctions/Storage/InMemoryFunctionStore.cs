@@ -90,7 +90,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife)
+    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
     {
         lock (_sync)
         {

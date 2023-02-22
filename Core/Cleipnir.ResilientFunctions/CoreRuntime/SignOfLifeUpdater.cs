@@ -11,8 +11,9 @@ public class SignOfLifeUpdater : IDisposable
     private readonly FunctionId _functionId;
     private readonly int _leader;
 
-    private readonly TimeSpan _updateFrequency; 
-        
+    private readonly TimeSpan _updateFrequency;
+    private readonly ComplimentaryState.UpdateSignOfLife _complementaryState;
+    
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private volatile bool _disposed;
@@ -30,6 +31,7 @@ public class SignOfLifeUpdater : IDisposable
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _updateFrequency = updateFrequency;
+        _complementaryState = new ComplimentaryState.UpdateSignOfLife((_updateFrequency * 2).Ticks);
     }
 
     public static IDisposable CreateAndStart(
@@ -71,8 +73,9 @@ public class SignOfLifeUpdater : IDisposable
 
                     var success = await _functionStore.UpdateSignOfLife(
                         _functionId,
-                        _leader,
-                        heartBeat++
+                        expectedEpoch: _leader,
+                        newSignOfLife: heartBeat++,
+                        _complementaryState
                     );
 
                     _disposed = !success;

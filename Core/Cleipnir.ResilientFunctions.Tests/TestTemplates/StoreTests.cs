@@ -81,7 +81,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store
-            .UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1)
+            .UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife())
             .ShouldBeTrueAsync();
 
         var nonCompletedFunctions = 
@@ -108,7 +108,8 @@ public abstract class StoreTests
         await store.UpdateSignOfLife(
             FunctionId,  
             expectedEpoch: 1,
-            newSignOfLife: 1
+            newSignOfLife: 1,
+            new ComplimentaryState.UpdateSignOfLife()
         ).ShouldBeFalseAsync();
 
         var nonCompletedFunctions = 
