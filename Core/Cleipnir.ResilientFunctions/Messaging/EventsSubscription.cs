@@ -34,71 +34,33 @@ public sealed class EventsSubscription : IAsyncDisposable
 
     public void DeliverNewEvents(IEnumerable<StoredEvent> events)
     {
-        IEnumerable<StoredEvent> toDeliver;
+        List<StoredEvent> toDeliver;
         lock (_sync)
         {
-            if (_disposed) return;
-            
-            if (_delivering)
-            {
-                _toDeliver.Add(events);
-                return;
-            }
-
-            if (_toDeliver.Count > 0)
-            {
-                toDeliver = _toDeliver.Append(events).SelectMany(_ => _).ToList();
-                _toDeliver = new List<IEnumerable<StoredEvent>>(capacity: 2);
-            }
-            else
-                toDeliver = events;
+            _toDeliver.Add(events);
+            if (_delivering || _disposed) return;
             
             _delivering = true;
+            toDeliver = _toDeliver.SelectMany(_ => _).ToList();
+            _toDeliver = new List<IEnumerable<StoredEvent>>();
         }
 
-        try
+        do
         {
             _callback(toDeliver);
-        }
-        catch (Exception exception) //use UnhandledExceptionHandler
-        {
-            _unhandledExceptionHandler?.Invoke(_functionId.TypeId, exception);
-            DisposeAsync();
-            
-            return;
-        }
-        
 
-        while (true)
-        {
             lock (_sync)
             {
-                if (_disposed) return;
-                
-                if (_toDeliver.Count > 0)
-                {
-                    toDeliver = _toDeliver.SelectMany(_ => _).ToList();
-                    _toDeliver = new List<IEnumerable<StoredEvent>>(capacity: 2);
-                }
-                else
+                if (_toDeliver.Count == 0 || _disposed)
                 {
                     _delivering = false;
                     return;
                 }
+                
+                toDeliver = _toDeliver.SelectMany(_ => _).ToList();
+                _toDeliver = new List<IEnumerable<StoredEvent>>();
             }
-            
-            try
-            {
-                _callback(toDeliver);
-            }
-            catch (Exception exception) //use UnhandledExceptionHandler
-            {
-                _unhandledExceptionHandler?.Invoke(_functionId.TypeId, exception);
-                DisposeAsync();
-            
-                return;
-            }
-        }
+        } while (true);
     }
 
     public ValueTask DisposeAsync()

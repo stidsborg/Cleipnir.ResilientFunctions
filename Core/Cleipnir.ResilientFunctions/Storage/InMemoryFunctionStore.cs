@@ -502,18 +502,19 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         Task.Run(async () =>
         {
             var skip = 0;
-            var events = default(List<StoredEvent>);
-            
+
             while (true)
             {
+                List<StoredEvent>? events;
+                
                 lock (_sync)
-                {
-                    if (_events.ContainsKey(functionId) && _events.Count > skip)
+                    if (_events.ContainsKey(functionId) && _events[functionId].Count > skip)
                     {
                         events = _events[functionId].Skip(skip).ToList();
                         skip += events.Count;
                     }
-                }
+                    else
+                        events = null;
 
                 if (events != null)
                     subscription.DeliverNewEvents(events);
