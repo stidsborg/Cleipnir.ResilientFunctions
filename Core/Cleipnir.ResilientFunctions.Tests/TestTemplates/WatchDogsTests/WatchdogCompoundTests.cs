@@ -176,8 +176,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = rFunctions.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
@@ -203,8 +203,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = rFunctions.RegisterFunc(
