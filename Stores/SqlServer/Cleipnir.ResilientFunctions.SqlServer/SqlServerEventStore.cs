@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Microsoft.Data.SqlClient;
 
@@ -12,10 +14,12 @@ public class SqlServerEventStore : IEventStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
+    private readonly UnhandledExceptionHandler? _unhandledExceptionHandler;
 
-    public SqlServerEventStore(string connectionString, string tablePrefix = "")
+    public SqlServerEventStore(string connectionString, string tablePrefix = "", UnhandledExceptionHandler? unhandledExceptionHandler = null)
     {
         _connectionString = connectionString;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
         _tablePrefix = tablePrefix;
     }
 
@@ -176,7 +180,12 @@ public class SqlServerEventStore : IEventStore
         return true;
     }
 
-    public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
+    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
+        => InnerGetEvents(functionId, skip)
+            .SelectAsync(events => (IEnumerable<StoredEvent>) events);
+        
+
+    private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
@@ -201,6 +210,48 @@ public class SqlServerEventStore : IEventStore
         }
 
         return storedEvents;
+    }
+
+    public Task<IAsyncDisposable> SubscribeToEvents(FunctionId functionId, Action<IEnumerable<StoredEvent>> callback, TimeSpan? pullFrequency)
+    {
+        var sync = new object();
+        var disposed = false;
+        pullFrequency ??= TimeSpan.FromMilliseconds(250);
+
+        var subscription = new EventsSubscription(
+            functionId,
+            callback, 
+            dispose: () =>
+            {
+                lock (sync)
+                    disposed = true;
+
+                return ValueTask.CompletedTask;
+            },
+            _unhandledExceptionHandler
+        );
+        
+        Task.Run(async () =>
+        {
+            var skip = 0;
+
+            while (true)
+            {
+                var events = await InnerGetEvents(functionId, skip);
+                skip += events.Count;
+                
+                if (events.Count > 0)
+                    subscription.DeliverNewEvents(events);
+
+                await Task.Delay(pullFrequency.Value);
+
+                lock (sync)
+                    if (disposed)
+                        return;
+            }
+        });
+
+        return Task.FromResult((IAsyncDisposable) subscription);
     }
 
     private async Task<SqlConnection> CreateConnection()

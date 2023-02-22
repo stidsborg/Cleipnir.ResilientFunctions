@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -16,12 +17,19 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 {
     private readonly Dictionary<FunctionId, State> _states = new();
     private readonly Dictionary<FunctionId, List<StoredEvent>> _events = new();
+    private readonly UnhandledExceptionHandler? _unhandledExceptionHandler;
     private readonly object _sync = new();
 
     public IEventStore EventStore => this;
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
 
     public Utilities Utilities { get; } = new(new InMemoryMonitor(), new InMemoryRegister(), new InMemoryArbitrator());
+
+    public InMemoryFunctionStore(UnhandledExceptionHandler? unhandledExceptionHandler = null)
+    {
+        _unhandledExceptionHandler = unhandledExceptionHandler;
+    }
+    
     public Task Initialize() => Task.CompletedTask;
 
     #region FunctionStore
@@ -470,6 +478,55 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 
             return _events[functionId].Skip(skip).ToList().AsEnumerable().ToTask();
         }
+    }
+
+    public Task<IAsyncDisposable> SubscribeToEvents(FunctionId functionId, Action<IEnumerable<StoredEvent>> callback, TimeSpan? pullFrequency)
+    {
+        var sync = new object();
+        var disposed = false;
+        pullFrequency ??= TimeSpan.FromMilliseconds(250);
+        
+        var subscription = new EventsSubscription(
+            functionId,
+            callback,
+            dispose: () =>
+            {
+                lock (sync)
+                    disposed = true;
+                
+                return ValueTask.CompletedTask;
+            },
+            _unhandledExceptionHandler
+        );
+
+        Task.Run(async () =>
+        {
+            var skip = 0;
+            var events = default(List<StoredEvent>);
+            
+            while (true)
+            {
+                lock (_sync)
+                {
+                    if (_events.ContainsKey(functionId) && _events.Count > skip)
+                    {
+                        events = _events[functionId].Skip(skip).ToList();
+                        skip += events.Count;
+                    }
+                }
+
+                if (events != null)
+                    subscription.DeliverNewEvents(events);
+
+                await Task.Delay(pullFrequency.Value);
+
+                lock (sync)
+                    if (disposed)
+                        return;
+            }
+        });
+
+        return Task.FromResult((IAsyncDisposable) subscription);
     }
 
     #endregion
