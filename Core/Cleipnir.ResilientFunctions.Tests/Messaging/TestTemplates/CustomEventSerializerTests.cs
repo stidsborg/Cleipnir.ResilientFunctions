@@ -30,7 +30,8 @@ public abstract class CustomEventSerializerTests
             pullFrequency: null,
             eventSerializer
         );
-
+        await eventSource.Initialize();
+        
         await eventSource.AppendEvent("hello world");
         
         eventSerializer.EventToSerialize.Count.ShouldBe(1);

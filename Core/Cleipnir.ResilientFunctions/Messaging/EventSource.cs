@@ -18,7 +18,6 @@ public class EventSource : IStream<object>, IDisposable
     private readonly ISerializer _eventSerializer;
     
     private readonly HashSet<string> _idempotencyKeys = new();
-    private int _atEventCount;
     private int _deliverOutstandingEventsIteration;
     private EventProcessingException? _thrownException;
     
@@ -30,6 +29,7 @@ public class EventSource : IStream<object>, IDisposable
     public TimeoutProvider TimeoutProvider { get; }
     
     private readonly Source _source;
+    private EventsSubscription? _eventsSubscription;
     public IStream<object> Source => _source;
 
     public EventSource(
@@ -51,7 +51,10 @@ public class EventSource : IStream<object>, IDisposable
 
     public async Task Initialize()
     {
+        _eventsSubscription = await _eventStore.SubscribeToEvents(_functionId);
+        
         await DeliverOutstandingEvents();
+        
         _ = Task.Run(async () =>
         {
             while (!_disposed)
@@ -83,11 +86,9 @@ public class EventSource : IStream<object>, IDisposable
         
         try
         {
-            var storedEvents = await _eventStore.GetEvents(_functionId, skip: _atEventCount);
+            var storedEvents = await _eventsSubscription!.Pull();
             foreach (var storedEvent in storedEvents)
             {
-                _atEventCount++;
-
                 if (storedEvent.IdempotencyKey != null)
                     if (_idempotencyKeys.Contains(storedEvent.IdempotencyKey))
                         continue;
@@ -124,7 +125,12 @@ public class EventSource : IStream<object>, IDisposable
     }
 
     public Task Sync() => DeliverOutstandingEvents();
-    public void Dispose() => _disposed = true;
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _eventsSubscription?.DisposeAsync();
+    }
 
     public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null) 
         => _source.Subscribe(onNext, onCompletion, onError, subscriptionGroupId);

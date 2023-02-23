@@ -29,6 +29,7 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             DefaultSerializer.Instance
         );
+        await eventSource.Initialize();
         
         var task = eventSource.Next();
         
@@ -54,6 +55,7 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             DefaultSerializer.Instance
         );
+        await eventSource.Initialize();
 
         await eventSource.AppendEvent("hello world");
 
@@ -79,6 +81,7 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             DefaultSerializer.Instance
         );
+        await eventSource.Initialize();
         
         var task = eventSource.Take(2).ToList();
         
@@ -111,6 +114,7 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             DefaultSerializer.Instance
         );
+        await eventSource.Initialize();
 
         var task = eventSource.Take(2).ToList();
         
@@ -219,6 +223,7 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             new ExceptionThrowingEventSerializer(typeof(int))
         );
+        await eventSource.Initialize();
         
         await eventSource.AppendEvent("hello world");
         await Should.ThrowAsync<EventProcessingException>(eventSource.AppendEvent(1));
