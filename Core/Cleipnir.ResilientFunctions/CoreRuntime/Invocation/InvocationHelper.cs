@@ -407,7 +407,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     public async Task<List<EventAndIdempotencyKey>> GetEvents(FunctionId functionId)
     {
-        var storedEvents = await _functionStore.EventStore.GetEvents(functionId, skip: 0);
+        var storedEvents = await _functionStore.EventStore.GetEvents(functionId);
         return storedEvents
             .Select(se => new EventAndIdempotencyKey(
                     _settings.Serializer.DeserializeEvent(se.EventJson, se.EventType),

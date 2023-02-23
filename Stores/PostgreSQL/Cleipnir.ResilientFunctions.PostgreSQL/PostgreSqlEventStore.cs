@@ -212,8 +212,8 @@ public class PostgreSqlEventStore : IEventStore
         return count == 1;
     }
 
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
-        => InnerGetEvents(functionId, skip).SelectAsync(events => (IEnumerable<StoredEvent>) events);
+    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
+        => InnerGetEvents(functionId, skip: 0).SelectAsync(events => (IEnumerable<StoredEvent>) events);
     
     private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
     {

@@ -15,6 +15,6 @@ public interface IEventStore
     Task Truncate(FunctionId functionId);
     Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount); 
     
-    Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip);
+    Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionI);
     Task<EventsSubscription> SubscribeToEvents(FunctionId functionId);
 }

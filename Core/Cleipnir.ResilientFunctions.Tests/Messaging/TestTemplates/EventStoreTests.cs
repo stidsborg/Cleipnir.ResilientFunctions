@@ -34,7 +34,7 @@ public abstract class EventStoreTests
             msg2.GetType().SimpleQualifiedName()
         );
 
-        var events = (await eventStore.GetEvents(functionId, 0)).ToList();
+        var events = (await eventStore.GetEvents(functionId)).ToList();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBeNull();
@@ -61,7 +61,7 @@ public abstract class EventStoreTests
         var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
         await eventStore.AppendEvents(functionId, new []{storedEvent3, storedEvent4});
         
-        var events = (await eventStore.GetEvents(functionId, 0)).ToList();
+        var events = (await eventStore.GetEvents(functionId)).ToList();
         events.Count.ShouldBe(4);
         events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBe("1");
@@ -91,7 +91,7 @@ public abstract class EventStoreTests
             }
         );
 
-        var events = (await eventStore.GetEvents(functionId, 1)).ToList();
+        var events = (await eventStore.GetEvents(functionId)).Skip(1).ToList();
         events.Count.ShouldBe(1);
         events[0].DefaultDeserialize().ShouldBe(msg2);
         events[0].IdempotencyKey.ShouldBeNull();
@@ -111,7 +111,7 @@ public abstract class EventStoreTests
         await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
 
         await eventStore.Truncate(functionId);
-        var events = await eventStore.GetEvents(functionId, skip: 0);
+        var events = await eventStore.GetEvents(functionId);
         events.ShouldBeEmpty();
     }
     
@@ -122,7 +122,7 @@ public abstract class EventStoreTests
         var eventStore = await eventStoreTask;
         
         await eventStore.Truncate(functionId);
-        var events = await eventStore.GetEvents(functionId, skip: 0);
+        var events = await eventStore.GetEvents(functionId);
         events.ShouldBeEmpty();
     }
     
@@ -154,7 +154,7 @@ public abstract class EventStoreTests
             expectedCount: null
         );
 
-        var events = (await eventStore.GetEvents(functionId, skip: 0)).ToList();
+        var events = (await eventStore.GetEvents(functionId)).ToList();
         events.Count.ShouldBe(2);
         var event1 = (string) JsonSerializer.Deserialize(events[0].EventJson, Type.GetType(events[0].EventType, throwOnError: true)!)!;
         var event2 = (string) JsonSerializer.Deserialize(events[1].EventJson, Type.GetType(events[1].EventType, throwOnError: true)!)!;
@@ -179,7 +179,7 @@ public abstract class EventStoreTests
             expectedCount: null
         );
 
-        var events = (await eventStore.GetEvents(functionId, skip: 0)).ToList();
+        var events = (await eventStore.GetEvents(functionId)).ToList();
         events.Count.ShouldBe(2);
         var event1 = (string) JsonSerializer.Deserialize(events[0].EventJson, Type.GetType(events[0].EventType, throwOnError: true)!)!;
         var event2 = (string) JsonSerializer.Deserialize(events[1].EventJson, Type.GetType(events[1].EventType, throwOnError: true)!)!;
@@ -208,7 +208,7 @@ public abstract class EventStoreTests
         await eventStore.AppendEvent(functionId, event1);
         await eventStore.AppendEvent(functionId, event2);
 
-        var events = await eventStore.GetEvents(functionId, skip: 0).ToListAsync();
+        var events = await eventStore.GetEvents(functionId).ToListAsync();
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
@@ -233,7 +233,7 @@ public abstract class EventStoreTests
 
         await eventStore.AppendEvents(functionId, new [] {event1, event2});
 
-        var events = await eventStore.GetEvents(functionId, skip: 0).ToListAsync();
+        var events = await eventStore.GetEvents(functionId).ToListAsync();
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");

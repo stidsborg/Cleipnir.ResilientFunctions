@@ -149,7 +149,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .Where(s => s.Status == Status.Suspended)
                 .Where(s =>
                 {
-                    var events = EventStore.GetEvents(s.FunctionId, skip: 0).Result;
+                    var events = EventStore.GetEvents(s.FunctionId).Result;
                     return s.SuspendUntilEventSourceCountAtLeast <= events.Count();
                 })
                 .Select(s => new StoredEligibleSuspendedFunction(s.FunctionId.InstanceId, s.Epoch))
@@ -462,14 +462,14 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
+    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
     {
         lock (_sync)
         {
             if (!_events.ContainsKey(functionId))
                 return Enumerable.Empty<StoredEvent>().ToTask();
 
-            return _events[functionId].Skip(skip).ToList().AsEnumerable().ToTask();
+            return _events[functionId].ToList().AsEnumerable().ToTask();
         }
     }
 

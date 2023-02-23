@@ -177,8 +177,8 @@ public class SqlServerEventStore : IEventStore
         return true;
     }
 
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip)
-        => InnerGetEvents(functionId, skip)
+    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
+        => InnerGetEvents(functionId, skip: 0)
             .SelectAsync(events => (IEnumerable<StoredEvent>) events);
         
 
