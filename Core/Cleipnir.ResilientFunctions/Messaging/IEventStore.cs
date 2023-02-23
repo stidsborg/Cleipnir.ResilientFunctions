@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -17,5 +16,5 @@ public interface IEventStore
     Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount); 
     
     Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId, int skip);
-    Task<IAsyncDisposable> SubscribeToEvents(FunctionId functionId, Action<IEnumerable<StoredEvent>> callback, TimeSpan? pullFrequency);
+    Task<EventsSubscription> SubscribeToEvents(FunctionId functionId);
 }

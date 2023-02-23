@@ -12,14 +12,10 @@ public class MySqlEventStore : IEventStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
     
-    private readonly UnhandledExceptionHandler? _unhandledExceptionHandler;
-
-    public MySqlEventStore(string connectionString, string tablePrefix = "", UnhandledExceptionHandler? unhandledExceptionHandler = null)
+    public MySqlEventStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix.ToLower();
-        
-        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public async Task Initialize()
@@ -286,45 +282,33 @@ public class MySqlEventStore : IEventStore
         return storedEvents;
     }
     
-    public Task<IAsyncDisposable> SubscribeToEvents(FunctionId functionId, Action<IEnumerable<StoredEvent>> callback, TimeSpan? pullFrequency)
+    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
     {
         var sync = new object();
+        var skip = 0;
         var disposed = false;
-        pullFrequency ??= TimeSpan.FromMilliseconds(250);
+
 
         var subscription = new EventsSubscription(
-            functionId,
-            callback, 
+            pullEvents: async () =>
+            {
+                lock (sync)
+                    if (disposed)
+                        return ArraySegment<StoredEvent>.Empty;
+                
+                var events = await InnerGetEvents(functionId, skip);
+                skip += events.Count;
+                return events;
+            },
             dispose: () =>
             {
                 lock (sync)
                     disposed = true;
 
                 return ValueTask.CompletedTask;
-            },
-            _unhandledExceptionHandler
-        );
-        
-        Task.Run(async () =>
-        {
-            var skip = 0;
-
-            while (true)
-            {
-                var events = await InnerGetEvents(functionId, skip);
-                skip += events.Count;
-                
-                if (events.Count > 0)
-                    subscription.DeliverNewEvents(events);
-
-                await Task.Delay(pullFrequency.Value);
-
-                lock (sync)
-                    if (disposed)
-                        return;
             }
-        });
+        );
 
-        return Task.FromResult((IAsyncDisposable) subscription);
+        return Task.FromResult(subscription);
     }
 }

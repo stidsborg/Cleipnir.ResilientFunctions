@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -17,18 +16,12 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 {
     private readonly Dictionary<FunctionId, State> _states = new();
     private readonly Dictionary<FunctionId, List<StoredEvent>> _events = new();
-    private readonly UnhandledExceptionHandler? _unhandledExceptionHandler;
     private readonly object _sync = new();
 
     public IEventStore EventStore => this;
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
 
     public Utilities Utilities { get; } = new(new InMemoryMonitor(), new InMemoryRegister(), new InMemoryArbitrator());
-
-    public InMemoryFunctionStore(UnhandledExceptionHandler? unhandledExceptionHandler = null)
-    {
-        _unhandledExceptionHandler = unhandledExceptionHandler;
-    }
     
     public Task Initialize() => Task.CompletedTask;
 
@@ -480,54 +473,39 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<IAsyncDisposable> SubscribeToEvents(FunctionId functionId, Action<IEnumerable<StoredEvent>> callback, TimeSpan? pullFrequency)
+    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
     {
-        var sync = new object();
         var disposed = false;
-        pullFrequency ??= TimeSpan.FromMilliseconds(250);
-        
+        var skip = 0;
+
         var subscription = new EventsSubscription(
-            functionId,
-            callback,
-            dispose: () =>
-            {
-                lock (sync)
-                    disposed = true;
-                
-                return ValueTask.CompletedTask;
-            },
-            _unhandledExceptionHandler
-        );
-
-        Task.Run(async () =>
-        {
-            var skip = 0;
-
-            while (true)
+            pullEvents: () =>
             {
                 List<StoredEvent>? events;
-                
+
                 lock (_sync)
-                    if (_events.ContainsKey(functionId) && _events[functionId].Count > skip)
+                    if (disposed)
+                        return Task.FromResult((IReadOnlyList<StoredEvent>) Array.Empty<StoredEvent>());
+                    else if (_events.ContainsKey(functionId) && _events[functionId].Count > skip)
                     {
                         events = _events[functionId].Skip(skip).ToList();
                         skip += events.Count;
                     }
                     else
-                        events = null;
+                        events = new List<StoredEvent>();
 
-                if (events != null)
-                    subscription.DeliverNewEvents(events);
-
-                await Task.Delay(pullFrequency.Value);
-
-                lock (sync)
-                    if (disposed)
-                        return;
+                return Task.FromResult((IReadOnlyList<StoredEvent>) events);
+            },
+            dispose: () =>
+            {
+                lock (_sync)
+                    disposed = true;
+                
+                return ValueTask.CompletedTask;
             }
-        });
+        );
 
-        return Task.FromResult((IAsyncDisposable) subscription);
+        return Task.FromResult(subscription);
     }
 
     #endregion

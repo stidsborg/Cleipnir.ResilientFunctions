@@ -1,76 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
 public sealed class EventsSubscription : IAsyncDisposable
 {
-    private readonly FunctionId _functionId;
-    private readonly Action<IEnumerable<StoredEvent>> _callback;
+    private readonly Func<Task<IReadOnlyList<StoredEvent>>> _pullEvents;
     private readonly Func<ValueTask> _dispose;
     private bool _disposed;
-    private readonly UnhandledExceptionHandler? _unhandledExceptionHandler;
 
-    private List<IEnumerable<StoredEvent>> _toDeliver = new(capacity: 2);
-    private bool _delivering;
     private readonly object _sync = new();
 
-    public EventsSubscription(
-        FunctionId functionId,
-        Action<IEnumerable<StoredEvent>> callback, 
-        Func<ValueTask> dispose, 
-        UnhandledExceptionHandler? unhandledExceptionHandler)
+    public EventsSubscription(Func<Task<IReadOnlyList<StoredEvent>>> pullEvents, Func<ValueTask> dispose)
     {
-        _functionId = functionId;
-        
-        _callback = callback;
+        _pullEvents = pullEvents;
         _dispose = dispose;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
-    public void DeliverNewEvents(IEnumerable<StoredEvent> events)
-    {
-        List<StoredEvent> toDeliver;
-        lock (_sync)
-        {
-            _toDeliver.Add(events);
-            if (_delivering || _disposed) return;
-            
-            _delivering = true;
-            toDeliver = _toDeliver.SelectMany(_ => _).ToList();
-            _toDeliver = new List<IEnumerable<StoredEvent>>();
-        }
-
-        do
-        {
-            try
-            {
-                _callback(toDeliver);
-            }
-            catch (Exception exception)
-            {
-                _unhandledExceptionHandler?.Invoke(_functionId.TypeId, exception);
-                DisposeAsync().GetAwaiter().GetResult();
-                return;
-            }
-
-            lock (_sync)
-            {
-                if (_toDeliver.Count == 0 || _disposed)
-                {
-                    _delivering = false;
-                    return;
-                }
-                
-                toDeliver = _toDeliver.SelectMany(_ => _).ToList();
-                _toDeliver = new List<IEnumerable<StoredEvent>>();
-            }
-        } while (true);
-    }
+    public Task<IReadOnlyList<StoredEvent>> Pull() => _pullEvents();
 
     public ValueTask DisposeAsync()
     {

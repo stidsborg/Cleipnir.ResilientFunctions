@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -18,31 +16,26 @@ public abstract class EventSubscriptionTests
         var functionId = new FunctionId(nameof(EventsSubscriptionSunshineScenario), "InstanceId");
         var eventStore = await eventStoreTask;
 
-        var sync = new object();
-        var events = new List<StoredEvent>();
+        var subscription = await eventStore.SubscribeToEvents(functionId);
 
-        var subscription = await eventStore.SubscribeToEvents(
-            functionId,
-            callback: newEvents =>
-            {
-                lock (sync)
-                    events.AddRange(newEvents);
-            },
-            pullFrequency: null
-        );
-
-
+        var events = await subscription.Pull();
+        events.ShouldBeEmpty();
+        
         await eventStore.AppendEvent(
             functionId,
             eventJson: "hello world".ToJson(),
             eventType: typeof(string).SimpleQualifiedName()
         );
+
+        events = await subscription.Pull();
+        events.Count.ShouldBe(1);
+        DefaultSerializer
+            .Instance
+            .DeserializeEvent(events[0].EventJson, events[0].EventType)
+            .ShouldBe("hello world");
         
-        await BusyWait.UntilAsync(() =>
-        {
-            lock (sync)
-                return events.Count == 1;
-        });
+        events = await subscription.Pull();
+        events.ShouldBeEmpty();
         
         await eventStore.AppendEvent(
             functionId,
@@ -50,11 +43,13 @@ public abstract class EventSubscriptionTests
             eventType: typeof(string).SimpleQualifiedName()
         );
 
-        await BusyWait.UntilAsync(() =>
-        {
-            lock (sync)
-                return events.Count == 2;
-        });
+        events = await subscription.Pull();
+        events.Count.ShouldBe(1);
+        
+        DefaultSerializer
+            .Instance
+            .DeserializeEvent(events[0].EventJson, events[0].EventType)
+            .ShouldBe("hello universe");
 
         await subscription.DisposeAsync();
         
@@ -64,16 +59,7 @@ public abstract class EventSubscriptionTests
             eventType: typeof(string).SimpleQualifiedName()
         );
 
-        await Task.Delay(100);
-        
-        lock (sync)
-            events.Count.ShouldBe(2);
-
-        var deserialized = events
-            .Select(e => (string) DefaultSerializer.Instance.DeserializeEvent(e.EventJson, e.EventType))
-            .ToList();
-        
-        deserialized[0].ShouldBe("hello world");
-        deserialized[1].ShouldBe("hello universe");
+        events = await subscription.Pull();
+        events.ShouldBeEmpty();
     }
 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -14,12 +13,10 @@ public class SqlServerEventStore : IEventStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
-    private readonly UnhandledExceptionHandler? _unhandledExceptionHandler;
 
-    public SqlServerEventStore(string connectionString, string tablePrefix = "", UnhandledExceptionHandler? unhandledExceptionHandler = null)
+    public SqlServerEventStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
         _tablePrefix = tablePrefix;
     }
 
@@ -212,46 +209,34 @@ public class SqlServerEventStore : IEventStore
         return storedEvents;
     }
 
-    public Task<IAsyncDisposable> SubscribeToEvents(FunctionId functionId, Action<IEnumerable<StoredEvent>> callback, TimeSpan? pullFrequency)
+    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
     {
         var sync = new object();
         var disposed = false;
-        pullFrequency ??= TimeSpan.FromMilliseconds(250);
+        var skip = 0;
 
         var subscription = new EventsSubscription(
-            functionId,
-            callback, 
+            pullEvents: async () =>
+            {
+                lock (sync)
+                    if (disposed)
+                        return ArraySegment<StoredEvent>.Empty;
+                
+                var events = await InnerGetEvents(functionId, skip);
+                skip += events.Count;
+
+                return events;
+            },
             dispose: () =>
             {
                 lock (sync)
                     disposed = true;
 
                 return ValueTask.CompletedTask;
-            },
-            _unhandledExceptionHandler
+            }
         );
         
-        Task.Run(async () =>
-        {
-            var skip = 0;
-
-            while (true)
-            {
-                var events = await InnerGetEvents(functionId, skip);
-                skip += events.Count;
-                
-                if (events.Count > 0)
-                    subscription.DeliverNewEvents(events);
-
-                await Task.Delay(pullFrequency.Value);
-
-                lock (sync)
-                    if (disposed)
-                        return;
-            }
-        });
-
-        return Task.FromResult((IAsyncDisposable) subscription);
+        return Task.FromResult(subscription);
     }
 
     private async Task<SqlConnection> CreateConnection()
