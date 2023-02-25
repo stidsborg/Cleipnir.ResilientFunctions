@@ -484,7 +484,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateConnection();
         var sql = $@"

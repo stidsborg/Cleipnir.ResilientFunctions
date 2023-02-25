@@ -108,10 +108,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(functionId, storedParameter, storedScrapbook, events, expectedEpoch);
 
-    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
+    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch);
+            : _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch, complementaryState);
 
     public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
     {

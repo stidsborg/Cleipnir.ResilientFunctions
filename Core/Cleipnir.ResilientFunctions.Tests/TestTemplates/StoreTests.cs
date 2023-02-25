@@ -21,11 +21,13 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
-
+        var storedParameter = new StoredParameter(paramJson, paramType);
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
+        
         await store.CreateFunction(
             FunctionId,
-            param: new StoredParameter(paramJson, paramType),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -57,7 +59,8 @@ public abstract class StoreTests
             FunctionId,
             result: new StoredResult(resultJson, resultType),
             scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult()
         ).ShouldBeTrueAsync();
             
         storedFunction = await store.GetFunction(FunctionId);

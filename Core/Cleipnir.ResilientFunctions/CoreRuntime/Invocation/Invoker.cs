@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
@@ -59,7 +58,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         }
         catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, scrapbook);
+        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook);
         return result.SucceedWithValue!;
     }
 
@@ -81,7 +80,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -102,7 +101,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         }
         catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch);
+        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch);
         return result.SucceedWithValue!;
     }
 
@@ -123,7 +122,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 }
                 catch (Exception exception) { await PersistFailure(functionId, exception, scrapbook, epoch); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, scrapbook, epoch, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -227,9 +226,9 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     private async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch = 0)
         => await _invocationHelper.PersistFailure(functionId, exception, scrapbook, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        await _invocationHelper.PersistResult(functionId, result, scrapbook, expectedEpoch);
+        await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch);
         if (result.Outcome == Outcome.Postpone)
             _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
         InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);

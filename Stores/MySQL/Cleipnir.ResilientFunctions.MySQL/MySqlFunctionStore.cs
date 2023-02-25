@@ -450,7 +450,7 @@ public class MySqlFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch)
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -473,10 +473,8 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = expectedEpoch},
             }
         };
-
-        await using var _ = command;
-        var affectedRows = await command.ExecuteNonQueryAsync();
         
+        var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 

@@ -124,19 +124,25 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public async Task PersistResult(
-        FunctionId functionId, 
-        Result<TReturn> result, 
+        FunctionId functionId,
+        Result<TReturn> result,
+        TParam param,
         TScrapbook scrapbook,
         int expectedEpoch)
     {
+        var complementaryState = new ComplimentaryState.SetResult(
+            Serializer.SerializeParameter(param),
+            Serializer.SerializeScrapbook(scrapbook)
+        );
         switch (result.Outcome)
         {
             case Outcome.Succeed:
                 var success = await _functionStore.SucceedFunction(
                     functionId,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
-                    scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-                    expectedEpoch
+                    scrapbookJson: complementaryState.StoredScrapbook.ScrapbookJson,
+                    expectedEpoch,
+                    complementaryState
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
