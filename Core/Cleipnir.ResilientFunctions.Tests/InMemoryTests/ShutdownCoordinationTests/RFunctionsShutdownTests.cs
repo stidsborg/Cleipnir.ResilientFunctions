@@ -139,18 +139,22 @@ public class RFunctionsShutdownTests
         var store = new InMemoryFunctionStore();
         var functionId = new FunctionId("someFunctionType", "someFunctionInstanceId");
 
+        var storedParameter = new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
+        
         await store.CreateFunction(
             functionId,
-            new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
-            scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            scrapbookJson: storedScrapbook.ScrapbookJson,
+            expectedEpoch: 0,
+             new ComplimentaryState.SetResult()
         ).ShouldBeTrueAsync();
 
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

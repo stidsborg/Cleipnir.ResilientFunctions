@@ -274,7 +274,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -291,7 +291,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
     
-    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch)
+    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -308,7 +308,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {

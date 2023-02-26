@@ -113,25 +113,25 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch, complementaryState);
 
-    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch)
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
     {
         if (_crashed)
             return Task.FromException<bool>(new TimeoutException());
                 
-        var success = _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch);
+        var success = _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch, complementaryState);
         _afterPostponeFunctionSubject.OnNext(postponeUntil);
         return success;
     }
 
-    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch)
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch);
+            : _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch, complementaryState);
 
-    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch)
+    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(functionId, suspendUntilEventSourceCountAtLeast, scrapbookJson, expectedEpoch);
+            : _inner.SuspendFunction(functionId, suspendUntilEventSourceCountAtLeast, scrapbookJson, expectedEpoch, complementaryState);
 
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _crashed

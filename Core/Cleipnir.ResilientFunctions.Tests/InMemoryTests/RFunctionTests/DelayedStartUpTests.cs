@@ -80,7 +80,8 @@ public class DelayedStartUpTests
             functionId,
             postponeUntil: 0,
             scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            expectedEpoch: 0,
+            default
         ).ShouldBeTrueAsync();
 
         var stopWatch = new Stopwatch();
@@ -114,7 +115,8 @@ public class DelayedStartUpTests
             functionId,
             postponeUntil: 0,
             scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            expectedEpoch: 0,
+            default
         );
 
         var stopWatch = new Stopwatch();

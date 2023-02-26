@@ -205,19 +205,23 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
         var nowTicks = DateTime.UtcNow.Ticks;
+
+        var storedParameter = new StoredParameter(paramJson, paramType);
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
         
         await store.CreateFunction(
             FunctionId,
-            param: new StoredParameter(paramJson, paramType),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
             FunctionId,
             postponeUntil: nowTicks,
-            scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            scrapbookJson: storedScrapbook.ScrapbookJson,
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         ).ShouldBeTrueAsync();
 
         var postponedFunctions = await store.GetPostponedFunctions(
@@ -234,11 +238,14 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
         var nowTicks = DateTime.UtcNow.Ticks;
+
+        var storedParameter = new StoredParameter(paramJson, paramType);
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
         
         await store.CreateFunction(
             FunctionId,
-            param: new StoredParameter(paramJson, paramType),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
@@ -246,7 +253,8 @@ public abstract class StoreTests
             FunctionId,
             postponeUntil: nowTicks,
             scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         ).ShouldBeTrueAsync();
 
         var postponedFunctions = await store.GetPostponedFunctions(

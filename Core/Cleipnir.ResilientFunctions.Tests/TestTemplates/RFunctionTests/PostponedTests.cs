@@ -677,10 +677,13 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
 
+        var storedParameter = new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
+        
         await store.CreateFunction(
             functionId,
-            new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             crashedCheckFrequency: 0
         ).ShouldBeTrueAsync();
 
@@ -688,7 +691,8 @@ public abstract class PostponedTests
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             scrapbookJson: new RScrapbook().ToJson(),
-            expectedEpoch: 0
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         ).ShouldBeTrueAsync();
 
         using var rFunctions = new RFunctions(

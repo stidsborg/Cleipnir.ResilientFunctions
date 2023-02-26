@@ -111,13 +111,19 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             );
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, TScrapbook scrapbook, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, int expectedEpoch)
     {
+        var serializer = _settings.Serializer;
+        var storedParameter = serializer.SerializeParameter(param);
+        var storedScrapbook = serializer.SerializeScrapbook(scrapbook);
+        var storedException = serializer.SerializeException(exception);
+        
         var success = await _functionStore.FailFunction(
             functionId,
-            storedException: Serializer.SerializeException(exception),
-            scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-            expectedEpoch
+            storedException,
+            storedScrapbook.ScrapbookJson,
+            expectedEpoch,
+            complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         );
         if (!success) 
             throw new ConcurrentModificationException(functionId);
@@ -151,7 +157,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-                    expectedEpoch
+                    expectedEpoch,
+                    complementaryState
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
@@ -160,7 +167,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     storedException: Serializer.SerializeException(result.Fail!),
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-                    expectedEpoch
+                    expectedEpoch,
+                    complementaryState
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
@@ -169,7 +177,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     result.Suspend!.UntilEventSourceCount,
                     Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
-                    expectedEpoch
+                    expectedEpoch,
+                    complementaryState
                 );
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
@@ -241,7 +250,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedException: Serializer.SerializeException(e),
                 scrapbookJson: sf.Scrapbook.ScrapbookJson,
-                expectedEpoch: epoch
+                expectedEpoch: epoch,
+                complementaryState: new ComplimentaryState.SetResult(sf.Parameter, sf.Scrapbook)
             );
             throw;
         }

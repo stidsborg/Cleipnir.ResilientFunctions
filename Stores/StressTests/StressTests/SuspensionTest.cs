@@ -23,18 +23,28 @@ public class SuspensionTest
         Console.WriteLine("SUSPENSION_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
+            var storedParameter = new StoredParameter(
+                ParamJson: JsonSerializer.Serialize("hello world"),
+                ParamType: typeof(string).SimpleQualifiedName()
+            );
+            var storedScrapbook = new StoredScrapbook(
+                ScrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
+                ScrapbookType: typeof(RScrapbook).SimpleQualifiedName()
+            );
+                
             var functionId = new FunctionId("SuspensionTest", i.ToString()); 
             await store.CreateFunction(
                 functionId,
-                new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
+                storedParameter,
+                storedScrapbook,
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
             );
             await store.SuspendFunction(
                 functionId,
                 suspendUntilEventSourceCountAtLeast: 1,
                 scrapbookJson: new RScrapbook().ToJson(),
-                expectedEpoch: 0
+                expectedEpoch: 0,
+                complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
             );
 
             await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());

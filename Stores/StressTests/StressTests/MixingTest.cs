@@ -24,11 +24,20 @@ public static class MixingTest
         Console.WriteLine("MIXING_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
+            var storedParameter = new StoredParameter(
+                ParamJson: JsonSerializer.Serialize("hello world"),
+                ParamType: typeof(string).SimpleQualifiedName()
+            );
+            var storedScrapbook = new StoredScrapbook(
+                ScrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
+                ScrapbookType: typeof(RScrapbook).SimpleQualifiedName()
+            );
+            
             var functionId = new FunctionId("MixingTest", i.ToString());
             await store.CreateFunction(
                 functionId,
-                new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
+                storedParameter,
+                storedScrapbook,
                 crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
             );
             if (i % 2 == 0)
@@ -36,7 +45,8 @@ public static class MixingTest
                     functionId,
                     postponeUntil: start.Ticks,
                     scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
-                    expectedEpoch: 0
+                    expectedEpoch: 0,
+                    complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
                 );
         }
         
