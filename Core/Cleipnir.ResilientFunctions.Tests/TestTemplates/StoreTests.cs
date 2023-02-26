@@ -12,12 +12,16 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
 public abstract class StoreTests
 {
-    private FunctionId FunctionId { get; } = new FunctionId("functionId", "instanceId");
     private const string PARAM = "param";
 
     public abstract Task SunshineScenarioTest();
     protected async Task SunshineScenarioTest(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(SunshineScenarioTest) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+        
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
@@ -25,25 +29,30 @@ public abstract class StoreTests
         var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
         
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             storedParameter,
             storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
+        await BusyWait.Until(() => 
+            store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
+        );
+        
         var nonCompletes = await store
-            .GetExecutingFunctions(FunctionId.TypeId)
+            .GetExecutingFunctions(functionId.TypeId)
             .ToTaskAsync();
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
-        nonCompleted.InstanceId.ShouldBe(FunctionId.InstanceId);
+        nonCompleted.InstanceId.ShouldBe(functionId.InstanceId);
         nonCompleted.Epoch.ShouldBe(0);
         nonCompleted.SignOfLife.ShouldBe(0);
+        nonCompleted.CrashedCheckFrequency.ShouldBe(100);
 
-        var storedFunction = await store.GetFunction(FunctionId);
+        var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.FunctionId.ShouldBe(FunctionId);
+        storedFunction.FunctionId.ShouldBe(functionId);
         storedFunction.Parameter.ParamJson.ShouldBe(paramJson);
         storedFunction.Parameter.ParamType.ShouldBe(paramType);
         storedFunction.Scrapbook.ShouldNotBeNull();
@@ -56,14 +65,14 @@ public abstract class StoreTests
         var resultJson = result.ToJson();
         var resultType = result.GetType().SimpleQualifiedName();
         await store.SucceedFunction(
-            FunctionId,
+            functionId,
             result: new StoredResult(resultJson, resultType),
             scrapbookJson: new RScrapbook().ToJson(),
             expectedEpoch: 0,
-            complementaryState: new ComplimentaryState.SetResult()
+            complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         ).ShouldBeTrueAsync();
             
-        storedFunction = await store.GetFunction(FunctionId);
+        storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Result.ShouldNotBeNull();
         storedFunction.Result.Deserialize<object>(DefaultSerializer.Instance).ShouldBe(result);
@@ -72,23 +81,32 @@ public abstract class StoreTests
     public abstract Task SignOfLifeIsUpdatedWhenAsExpected();
     protected async Task SignOfLifeIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(SignOfLifeIsUpdatedWhenAsExpected) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+        
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store
-            .UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife())
+            .UpdateSignOfLife(functionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife())
             .ShouldBeTrueAsync();
 
+        await BusyWait.Until(() =>
+            store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
+        );
+        
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(FunctionId.TypeId);
+            await store.GetExecutingFunctions(functionId.TypeId);
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(1);
@@ -97,26 +115,36 @@ public abstract class StoreTests
     public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
     protected async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(SignOfLifeIsNotUpdatedWhenNotAsExpected) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+        
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.UpdateSignOfLife(
-            FunctionId,  
+            functionId,  
             expectedEpoch: 1,
             newSignOfLife: 1,
             new ComplimentaryState.UpdateSignOfLife()
         ).ShouldBeFalseAsync();
 
+        await BusyWait.Until(() =>
+            store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
+        );
+        
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(FunctionId.TypeId);
+            await store.GetExecutingFunctions(functionId.TypeId);
+        
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
         nonCompletedFunction.SignOfLife.ShouldBe(0);
@@ -125,12 +153,17 @@ public abstract class StoreTests
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
     protected async Task BecomeLeaderSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(BecomeLeaderSucceedsWhenEpochIsAsExpected) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+        
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100
@@ -138,12 +171,12 @@ public abstract class StoreTests
 
         await store
             .RestartExecution(
-                FunctionId,
+                functionId,
                 expectedEpoch: 0,
                 crashedCheckFrequency: 100
             ).ShouldBeTrueAsync();
 
-        var storedFunction = await store.GetFunction(FunctionId);
+        var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Epoch.ShouldBe(1);
         storedFunction.SignOfLife.ShouldBe(0);
@@ -152,12 +185,17 @@ public abstract class StoreTests
     public abstract Task BecomeLeaderFailsWhenEpochIsNotAsExpected();
     protected async Task BecomeLeaderFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(BecomeLeaderFailsWhenEpochIsNotAsExpected) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+        
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100
@@ -165,12 +203,12 @@ public abstract class StoreTests
 
         await store
             .RestartExecution(
-                FunctionId,
+                functionId,
                 expectedEpoch: 1,
                 crashedCheckFrequency: 100
             ).ShouldBeFalseAsync();
 
-        var storedFunction = await store.GetFunction(FunctionId);
+        var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Epoch.ShouldBe(0);
         storedFunction.SignOfLife.ShouldBe(0);
@@ -179,19 +217,24 @@ public abstract class StoreTests
     public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
     protected async Task CreatingTheSameFunctionTwiceReturnsFalse(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(CreatingTheSameFunctionTwiceReturnsFalse) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+        
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             crashedCheckFrequency: 100
@@ -201,6 +244,11 @@ public abstract class StoreTests
     public abstract Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut();
     protected async Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
@@ -210,22 +258,27 @@ public abstract class StoreTests
         var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
         
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             storedParameter,
             storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
-            FunctionId,
+            functionId,
             postponeUntil: nowTicks,
-            scrapbookJson: storedScrapbook.ScrapbookJson,
+            storedScrapbook.ScrapbookJson,
             expectedEpoch: 0,
             complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         ).ShouldBeTrueAsync();
 
+        await BusyWait.Until(() => store
+            .GetPostponedFunctions(functionId.TypeId, expiresBefore: nowTicks + 100)
+            .SelectAsync(pfs => pfs.Any())
+        );
+        
         var postponedFunctions = await store.GetPostponedFunctions(
-            FunctionId.TypeId,
+            functionId.TypeId,
             expiresBefore: nowTicks - 100
         );
         postponedFunctions.ShouldBeEmpty();
@@ -234,31 +287,41 @@ public abstract class StoreTests
     public abstract Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut();
     protected async Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Task<IFunctionStore> storeTask)
     {
+        var functionId = new FunctionId(
+            functionTypeId: nameof(FunctionPostponedUntilBeforeExpiresIsNotFilteredOut) + Random.Shared.Next(0, 5000),
+            functionInstanceId: Guid.NewGuid().ToString("N")
+        );
+
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
         var nowTicks = DateTime.UtcNow.Ticks;
-
+        
         var storedParameter = new StoredParameter(paramJson, paramType);
         var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
         
         await store.CreateFunction(
-            FunctionId,
+            functionId,
             storedParameter,
             storedScrapbook,
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
-            FunctionId,
+            functionId,
             postponeUntil: nowTicks,
-            scrapbookJson: new RScrapbook().ToJson(),
+            storedScrapbook.ScrapbookJson,
             expectedEpoch: 0,
             complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         ).ShouldBeTrueAsync();
 
+        await BusyWait.Until(() => store
+            .GetPostponedFunctions(functionId.TypeId, nowTicks + 100)
+            .SelectAsync(pfs => pfs.Any())
+        );
+        
         var postponedFunctions = await store.GetPostponedFunctions(
-            FunctionId.TypeId,
+            functionId.TypeId,
             expiresBefore: nowTicks + 100
         );
         postponedFunctions.Count().ShouldBe(1);
@@ -277,7 +340,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var functionId = new FunctionId(
-            nameof(StoreTests),
+            nameof(StoreTests) + Random.Shared.Next(0, 5000),
             nameof(CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency)
         );
         var crashedCheckFrequency = TimeSpan.FromSeconds(10).Ticks;
@@ -300,7 +363,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var functionId = new FunctionId(
-            nameof(StoreTests),
+            nameof(StoreTests) + Random.Shared.Next(0, 5000),
             nameof(CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency)
         );
         var crashedCheckFrequency = TimeSpan.FromSeconds(10).Ticks;
@@ -328,7 +391,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var functionId = new FunctionId(
-            nameof(StoreTests),
+            nameof(StoreTests) + Random.Shared.Next(0, 5000),
             nameof(IncrementEpochSucceedsWhenEpochIsAsExpected)
         );
 
@@ -351,7 +414,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var functionId = new FunctionId(
-            nameof(StoreTests),
+            nameof(StoreTests) + Random.Shared.Next(0, 5000),
             nameof(IncrementEpochFailsWhenEpochIsNotAsExpected)
         );
 
