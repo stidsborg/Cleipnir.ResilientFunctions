@@ -615,33 +615,6 @@ public class SqlServerFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId)
-    {
-        await using var conn = await _connFunc();
-        var sql = @$"
-            SELECT Status, Epoch
-            FROM {_tablePrefix}RFunctions
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        while (reader.HasRows)
-        {
-            while (reader.Read())
-            {
-                var status = (Status) reader.GetInt32(0);
-                var epoch = reader.GetInt32(1);
-
-                return new StoredFunctionStatus(functionId, status, epoch);
-            }
-        }
-
-        return null;
-    }
-
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         await using var conn = await _connFunc();

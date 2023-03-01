@@ -18,7 +18,7 @@ public static class SimpleDictionaryMarshaller
         return builder.ToString();
     }
 
-    public static Dictionary<string, string> Deserialize(string s, int? expectedCount = null)
+    public static Dictionary<string, string?> Deserialize(string s, int? expectedCount = null)
     {
         expectedCount ??= 10;
         var dictionary = new Dictionary<string, string?>(expectedCount.Value);

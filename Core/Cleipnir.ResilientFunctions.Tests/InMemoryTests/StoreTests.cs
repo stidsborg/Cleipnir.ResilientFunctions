@@ -45,6 +45,12 @@ public class StoreTests : TestTemplates.StoreTests
         );
 
     [TestMethod]
+    public override Task PostponeFunctionFailsWhenEpochIsNotAsExpected()
+        => PostponeFunctionFailsWhenEpochIsNotAsExpected(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
+    [TestMethod]
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
         => InitializeCanBeInvokedMultipleTimesSuccessfully(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
@@ -69,4 +75,28 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task IncrementEpochFailsWhenEpochIsNotAsExpected()
         => IncrementEpochFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
+        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
+        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task DeletingExistingFunctionSucceeds()
+        => DeletingExistingFunctionSucceeds(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected()
+        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task FailFunctionSucceedsWhenEpochIsAsExpected()
+        => FailFunctionSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task SetFunctionStateSucceedsWhenEpochIsAsExpected()
+        => SetFunctionStateSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

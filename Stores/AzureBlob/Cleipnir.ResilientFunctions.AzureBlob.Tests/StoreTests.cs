@@ -56,28 +56,55 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
     public override Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut()
         => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
+    [TestMethod]
+    public override Task PostponeFunctionFailsWhenEpochIsNotAsExpected()
+        => PostponeFunctionFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
-    {
-        throw new System.NotImplementedException();
-    }
+        => InitializeCanBeInvokedMultipleTimesSuccessfully(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
+    [TestMethod]
     public override Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency()
-    {
-        throw new System.NotImplementedException();
-    }
+        => CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(
+            FunctionStore.CastTo<IFunctionStore>().ToTask()
+        );
 
+    [TestMethod]
     public override Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency()
-    {
-        throw new System.NotImplementedException();
-    }
+        => LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(
+            FunctionStore.CastTo<IFunctionStore>().ToTask()
+        );
 
+    [TestMethod]
     public override Task IncrementEpochSucceedsWhenEpochIsAsExpected()
-    {
-        throw new System.NotImplementedException();
-    }
+        => IncrementEpochSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
+    [TestMethod]
     public override Task IncrementEpochFailsWhenEpochIsNotAsExpected()
-    {
-        throw new System.NotImplementedException();
-    }
+        => IncrementEpochFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    
+    [TestMethod]
+    public override Task SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
+        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    
+    [TestMethod]
+    public override Task SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
+        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    
+    [TestMethod]
+    public override Task DeletingExistingFunctionSucceeds()
+        => DeletingExistingFunctionSucceeds(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    
+    [TestMethod]
+    public override Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected()
+        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    
+    [TestMethod]
+    public override Task FailFunctionSucceedsWhenEpochIsAsExpected()
+        => FailFunctionSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task SetFunctionStateSucceedsWhenEpochIsAsExpected()
+        => SetFunctionStateSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
 }
