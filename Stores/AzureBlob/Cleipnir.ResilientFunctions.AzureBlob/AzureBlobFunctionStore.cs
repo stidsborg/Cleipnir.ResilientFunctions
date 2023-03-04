@@ -13,19 +13,18 @@ public class AzureBlobFunctionStore : IFunctionStore
     public IEventStore EventStore { get; }
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
-
-    private readonly string _connectionString;
+    
     public string ContainerName { get; }
     private readonly BlobServiceClient _blobServiceClient;
     private readonly BlobContainerClient _blobContainerClient;
 
     public AzureBlobFunctionStore(string connectionString, string prefix = "")
     {
-        _connectionString = connectionString;
         ContainerName = $"{prefix}rfunctions";
         
         _blobServiceClient = new BlobServiceClient(connectionString);
         _blobContainerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+        EventStore = new AzureBlobEventStore(_blobContainerClient);
     }
     
     public async Task Initialize()

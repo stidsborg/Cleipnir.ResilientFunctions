@@ -1,8 +1,10 @@
 ﻿using System.Text;
 using Azure;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
@@ -50,13 +52,74 @@ public class AzureBlobEventStore : IEventStore
     }
 
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
+        => InnerGetEvents(functionId, offset: 0)
+            .SelectAsync(fetchedEvents => (IEnumerable<StoredEvent>) fetchedEvents.Events);
+    
+    private async Task<FetchedEvents> InnerGetEvents(FunctionId functionId, int offset)
     {
-        throw new NotImplementedException();
+        var blobName = $"{functionId}_events";
+        var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
+
+        Response<BlobDownloadResult> response;
+        try
+        {
+            response = await appendBlobClient.DownloadContentAsync(
+                new BlobDownloadOptions { Range = new HttpRange(offset) }
+            );
+        }
+        catch (RequestFailedException e)
+        {
+            if (e is { ErrorCode: "InvalidRange", Status: 416 })
+                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset);
+            if (e is { ErrorCode: "BlobNotFound", Status: 404 })
+                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset);
+            
+            throw;
+        }
+        
+        var content = response.Value.Content.ToString();
+        var events = SimpleMarshaller.Deserialize(content);
+
+        var storedEvents = new List<StoredEvent>(events.Count / 3);
+        for (var i = 0; i < events.Count; i += 3)
+        {
+            var json = events[i];
+            var type = events[i + 1];
+            var idempotencyKey = events[i + 2];
+            var storedEvent = new StoredEvent(json!, type!, idempotencyKey);
+            storedEvents.Add(storedEvent);
+        }
+
+        return new FetchedEvents(storedEvents, NewOffset: offset + response.GetRawResponse().Headers.ContentLength!.Value);
     }
 
     public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
     {
-        throw new NotImplementedException();
+        var sync = new object();
+        var offset = 0;
+        var disposed = false;
+        
+        var subscription = new EventsSubscription(
+            pullEvents: async () =>
+            {
+                lock (sync)
+                    if (disposed)
+                        return ArraySegment<StoredEvent>.Empty;
+                
+                var (events, newOffset) = await InnerGetEvents(functionId, offset);
+                offset = newOffset;
+                return events;
+            },
+            dispose: () =>
+            {
+                lock (sync)
+                    disposed = true;
+
+                return ValueTask.CompletedTask;
+            }
+        );
+
+        return Task.FromResult(subscription);
     }
 
     private async Task AppendOrCreate(FunctionId functionId, string marshalledString)
@@ -76,4 +139,6 @@ public class AzureBlobEventStore : IEventStore
             await AppendOrCreate(functionId, marshalledString);
         }
     }
+
+    private readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset);
 }

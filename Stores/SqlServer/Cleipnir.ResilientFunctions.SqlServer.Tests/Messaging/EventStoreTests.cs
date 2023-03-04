@@ -41,4 +41,12 @@ public class EventStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Test
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
         => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task FetchNonExistingEventsSucceeds()
+        => FetchNonExistingEventsSucceeds(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventSubscriptionPublishesAppendedEvents()
+        => EventSubscriptionPublishesAppendedEvents(Sql.CreateAndInitializeEventStore());
 }

@@ -40,4 +40,12 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
         => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task FetchNonExistingEventsSucceeds()
+        => FetchNonExistingEventsSucceeds(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventSubscriptionPublishesAppendedEvents()
+        => EventSubscriptionPublishesAppendedEvents(Sql.CreateAndInitializeEventStore());
 }
