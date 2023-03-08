@@ -221,20 +221,6 @@ public class MySqlEventStore : IEventStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows;
     }
-
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount)
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
-
-        var success = await Replace(functionId, storedEvents, expectedCount, conn, transaction);
-        if (success)
-            await transaction.CommitAsync();
-        else
-            await transaction.RollbackAsync();
-
-        return success;
-    }
     
     internal async Task<bool> Replace(
         FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount, 

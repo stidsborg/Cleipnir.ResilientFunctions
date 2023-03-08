@@ -269,6 +269,83 @@ public class AzureBlobTests
             blobs[1].Tags.Count.ShouldBe(1);
             blobs[1].Tags["TestKey"].ShouldBe("TestValue");
         }
+    }
+    
+    [TestMethod]
+    public async Task UpdatedTagsCanBeFetchedImmediatelyAfterSuccessfully()
+    {
+        if (!ShouldRun) return;
         
+        var blobName = Guid.NewGuid().ToString("N");
+        var blobClient = BlobContainerClient.GetBlobClient(blobName);
+        var response = await blobClient.UploadAsync(
+            new BinaryData("Hello world"),
+            new BlobUploadOptions { Tags = new Dictionary<string, string> { { "Status", "Executing" }, { "Epoch", "0" } } }
+        );
+        response.GetRawResponse().IsError.ShouldBeFalse();
+
+        await blobClient.SetTagsAsync(
+            new Dictionary<string, string> { { "Status", "Suspended" } },
+            conditions: new BlobRequestConditions {TagConditions = "Status = 'Executing'"}
+        );
+        var tagsResponse = await blobClient.GetTagsAsync();
+        var tags = tagsResponse.Value.Tags;
+        tags["Status"].ShouldBe("Suspended");
+    }
+    
+    [TestMethod]
+    public async Task UpdatingTagsFailsWhenTagIsNotAsExpected()
+    {
+        if (!ShouldRun) return;
+        
+        var blobName = Guid.NewGuid().ToString("N");
+        var blobClient = BlobContainerClient.GetBlobClient(blobName);
+        var response = await blobClient.UploadAsync(
+            new BinaryData("Hello world"),
+            new BlobUploadOptions { Tags = new Dictionary<string, string> { { "Status", "Executing" }, { "Epoch", "0" } } }
+        );
+        response.GetRawResponse().IsError.ShouldBeFalse();
+
+        try
+        {
+            await blobClient.SetTagsAsync(
+                new Dictionary<string, string> { { "Status", "Suspended" } },
+                conditions: new BlobRequestConditions {TagConditions = "Status = 'Suspended'"}
+            );
+            throw new Exception("Expected SetTagsAsync-method invocation to fail");
+        }
+        catch (RequestFailedException exception)
+        {
+            if (exception.ErrorCode != "ConditionNotMet")
+                throw;
+        }
+        
+        var tagsResponse = await blobClient.GetTagsAsync();
+        var tags = tagsResponse.Value.Tags;
+        tags["Status"].ShouldBe("Executing");
+    }
+    
+    [TestMethod]
+    public async Task ETagReturnedAfterAppendIsAlsoETagWhenGettingAppendBlobAfterwards()
+    {
+        if (!ShouldRun) return;
+        
+        var blobName = Guid.NewGuid().ToString("N");
+        var blobClient = BlobContainerClient.GetAppendBlobClient(blobName);
+        await blobClient.CreateAsync();
+        {
+            var response = await blobClient.AppendBlockAsync("hello first".ConvertToStream());
+            var eTag = response.GetRawResponse().Headers.ETag;
+            var downloadResponse = await blobClient.DownloadContentAsync();
+            var downloadEtag = downloadResponse.GetRawResponse().Headers.ETag;
+            downloadEtag.ShouldBe(eTag);            
+        }
+        {
+            var response = await blobClient.AppendBlockAsync("hello second".ConvertToStream());
+            var eTag = response.GetRawResponse().Headers.ETag;
+            var downloadResponse = await blobClient.DownloadContentAsync();
+            var downloadEtag = downloadResponse.GetRawResponse().Headers.ETag;
+            downloadEtag.ShouldBe(eTag);
+        }
     }
 }

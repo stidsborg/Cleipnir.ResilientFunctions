@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
@@ -13,7 +14,7 @@ public abstract class EventSubscriptionTests
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId(nameof(EventsSubscriptionSunshineScenario), "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);
@@ -23,7 +24,7 @@ public abstract class EventSubscriptionTests
         
         await eventStore.AppendEvent(
             functionId,
-            eventJson: "hello world".ToJson(),
+            eventJson: JsonExtensions.ToJson("hello world"),
             eventType: typeof(string).SimpleQualifiedName()
         );
 
@@ -39,7 +40,7 @@ public abstract class EventSubscriptionTests
         
         await eventStore.AppendEvent(
             functionId,
-            eventJson: "hello universe".ToJson(),
+            eventJson: JsonExtensions.ToJson("hello universe"),
             eventType: typeof(string).SimpleQualifiedName()
         );
 
@@ -55,7 +56,7 @@ public abstract class EventSubscriptionTests
         
         await eventStore.AppendEvent(
             functionId,
-            eventJson: "should not be received".ToJson(),
+            eventJson: JsonExtensions.ToJson("should not be received"),
             eventType: typeof(string).SimpleQualifiedName()
         );
 

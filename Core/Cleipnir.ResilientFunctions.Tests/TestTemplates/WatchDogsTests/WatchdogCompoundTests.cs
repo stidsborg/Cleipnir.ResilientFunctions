@@ -17,9 +17,8 @@ public abstract class WatchdogCompoundTests
     public async Task FunctionCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(FunctionCompoundTest).ToFunctionTypeId();
-        const string functionInstanceId = "SomeId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         {
@@ -131,9 +130,8 @@ public abstract class WatchdogCompoundTests
     public async Task FunctionWithScrapbookCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(FunctionWithScrapbookCompoundTest).ToFunctionTypeId();
-        const string functionInstanceId = "SomeId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         {
@@ -261,9 +259,8 @@ public abstract class WatchdogCompoundTests
     public async Task ActionCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ActionCompoundTest).ToFunctionTypeId();
-        const string functionInstanceId = "SomeId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         //first invocation crashes
@@ -382,9 +379,8 @@ public abstract class WatchdogCompoundTests
     public async Task ActionWithScrapbookCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ActionWithScrapbookCompoundTest).ToFunctionTypeId();
-        const string functionInstanceId = "SomeId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         {

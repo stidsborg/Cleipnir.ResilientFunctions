@@ -38,34 +38,63 @@ public class AzureBlobEventStore : IEventStore
 
     public async Task Truncate(FunctionId functionId)
     {
-        functionId.Validate();
-        var blobName = functionId.ToString();
+        var blobName = functionId.GetEventsBlobName();
         
         await _blobContainerClient
             .GetAppendBlobClient(blobName)
             .DeleteIfExistsAsync();
     }
 
-    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount)
+    internal async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, string leaseId)
     {
-        throw new NotImplementedException();
+        var blobName = functionId.GetEventsBlobName();
+        var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
+        await blobClient
+            .CreateAsync(new AppendBlobCreateOptions
+            {
+                Conditions = new AppendBlobRequestConditions {LeaseId = leaseId}
+            });
+        
+        var marshalledString = SimpleMarshaller.Serialize(storedEvents
+            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+            .ToArray()
+        );
+        
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
+        await blobClient.AppendBlockAsync(
+            ms, 
+            new AppendBlobAppendBlockOptions
+            {
+                Conditions = new AppendBlobRequestConditions {LeaseId = leaseId}
+            });
     }
 
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
         => InnerGetEvents(functionId, offset: 0)
             .SelectAsync(fetchedEvents => (IEnumerable<StoredEvent>) fetchedEvents.Events);
-    
-    private async Task<FetchedEvents> InnerGetEvents(FunctionId functionId, int offset)
-    {
-        var blobName = $"{functionId}_events";
-        var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
 
+    internal async Task<FetchedEvents> InnerGetEvents(
+        FunctionId functionId, 
+        int offset, 
+        HashSet<string>? idempotencyKeys = null,
+        string? leaseId = null
+    )
+    {
+        var blobName = functionId.GetEventsBlobName();
+        var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
+        idempotencyKeys ??= new HashSet<string>();
+        
         Response<BlobDownloadResult> response;
         try
         {
-            response = await appendBlobClient.DownloadContentAsync(
-                new BlobDownloadOptions { Range = new HttpRange(offset) }
-            );
+            var blobDownloadOptions = new BlobDownloadOptions { Range = new HttpRange(offset) };
+            if (leaseId != null)
+                blobDownloadOptions.Conditions = new BlobRequestConditions
+                {
+                    LeaseId = leaseId
+                };
+                    
+            response = await appendBlobClient.DownloadContentAsync(blobDownloadOptions);
         }
         catch (RequestFailedException e)
         {
@@ -87,6 +116,12 @@ public class AzureBlobEventStore : IEventStore
             var type = events[i + 1];
             var idempotencyKey = events[i + 2];
             var storedEvent = new StoredEvent(json!, type!, idempotencyKey);
+            
+            if (idempotencyKey != null && idempotencyKeys.Contains(idempotencyKey))
+                continue;
+            if (idempotencyKey != null)
+                idempotencyKeys.Add(idempotencyKey);
+            
             storedEvents.Add(storedEvent);
         }
 
@@ -98,6 +133,7 @@ public class AzureBlobEventStore : IEventStore
         var sync = new object();
         var offset = 0;
         var disposed = false;
+        var idempotencyKeys = new HashSet<string>();
         
         var subscription = new EventsSubscription(
             pullEvents: async () =>
@@ -106,7 +142,7 @@ public class AzureBlobEventStore : IEventStore
                     if (disposed)
                         return ArraySegment<StoredEvent>.Empty;
                 
-                var (events, newOffset) = await InnerGetEvents(functionId, offset);
+                var (events, newOffset) = await InnerGetEvents(functionId, offset, idempotencyKeys);
                 offset = newOffset;
                 return events;
             },
@@ -124,8 +160,7 @@ public class AzureBlobEventStore : IEventStore
 
     private async Task AppendOrCreate(FunctionId functionId, string marshalledString)
     {
-        functionId.Validate();
-        var blobName = $"{functionId}_events";
+        var blobName = functionId.GetEventsBlobName();
         var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
         try
@@ -140,5 +175,5 @@ public class AzureBlobEventStore : IEventStore
         }
     }
 
-    private readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset);
+    internal readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset);
 }

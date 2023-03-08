@@ -162,21 +162,6 @@ public class SqlServerEventStore : IEventStore
         return await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount)
-    {
-        await using var conn = await CreateConnection();
-        await using var transaction = conn.BeginTransaction(IsolationLevel.RepeatableRead);
-
-        var affectedRows = await Truncate(functionId, conn, transaction);
-        if (expectedCount != null && affectedRows != expectedCount)
-            return false;
-        
-        await AppendEvents(functionId, storedEvents, conn, transaction);
-
-        await transaction.CommitAsync();
-        return true;
-    }
-
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
         => InnerGetEvents(functionId, skip: 0)
             .SelectAsync(events => (IEnumerable<StoredEvent>) events);

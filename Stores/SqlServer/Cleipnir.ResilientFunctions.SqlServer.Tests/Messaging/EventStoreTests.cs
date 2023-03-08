@@ -49,4 +49,8 @@ public class EventStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Test
     [TestMethod]
     public override Task EventSubscriptionPublishesAppendedEvents()
         => EventSubscriptionPublishesAppendedEvents(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys()
+        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Sql.CreateAndInitializeEventStore());
 }

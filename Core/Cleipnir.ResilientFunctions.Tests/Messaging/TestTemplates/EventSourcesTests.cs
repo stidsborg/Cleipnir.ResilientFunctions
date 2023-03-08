@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
@@ -18,7 +19,7 @@ public abstract class EventSourcesTests
     public abstract Task EventSourcesSunshineScenario();
     protected async Task EventSourcesSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -44,7 +45,7 @@ public abstract class EventSourcesTests
     public abstract Task ExistingEventsShouldBeSameAsAllAfterEmit();
     protected async Task ExistingEventsShouldBeSameAsAllAfterEmit(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -70,7 +71,7 @@ public abstract class EventSourcesTests
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnored();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnored(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -103,7 +104,7 @@ public abstract class EventSourcesTests
     public abstract Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully();
     protected async Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -138,7 +139,7 @@ public abstract class EventSourcesTests
     public abstract Task EventSourcesSunshineScenarioUsingEventStore();
     protected async Task EventSourcesSunshineScenarioUsingEventStore(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -158,7 +159,7 @@ public abstract class EventSourcesTests
 
         await functionStore.EventStore.AppendEvent(
             functionId,
-            new StoredEvent("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredEvent(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName())
         );
 
         (await task).ShouldBe("hello world");
@@ -167,7 +168,7 @@ public abstract class EventSourcesTests
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -187,15 +188,15 @@ public abstract class EventSourcesTests
         var eventStore = functionStore.EventStore;
         await eventStore.AppendEvent(
             functionId,
-            new StoredEvent("hello world".ToJson(), typeof(string).SimpleQualifiedName(), "1")
+            new StoredEvent(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName(), "1")
         );
         await eventStore.AppendEvent(
             functionId,
-            new StoredEvent("hello world".ToJson(), typeof(string).SimpleQualifiedName(), "1")
+            new StoredEvent(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName(), "1")
         );
         await eventStore.AppendEvent(
             functionId,
-            new StoredEvent("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredEvent(JsonExtensions.ToJson("hello universe"), typeof(string).SimpleQualifiedName())
         );
 
         await task;
@@ -208,7 +209,7 @@ public abstract class EventSourcesTests
     public abstract Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
     protected async Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(

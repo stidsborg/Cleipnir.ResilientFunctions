@@ -21,17 +21,15 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingActionCanBeDeletedFromControlPanel).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
-        
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
             (string _) => { }
         );
         
-        await rAction.Invoke(functionInstanceId, "");
+        await rAction.Invoke(functionInstanceId.Value, "");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.Delete();
@@ -49,9 +47,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingFunctionCanBeDeletedFromControlPanel).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = rFunctions.RegisterFunc(
@@ -59,7 +56,7 @@ public abstract class ControlPanelTests
             string(string _) => "hello"
         );
         
-        await rFunc.Invoke(functionInstanceId, "");
+        await rFunc.Invoke(functionInstanceId.Value, "");
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.Delete();
@@ -77,9 +74,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(DeletingExistingActionWithHigherEpochReturnsFalse).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
@@ -87,7 +83,7 @@ public abstract class ControlPanelTests
             (string _) => { }
         );
         
-        await rAction.Invoke(functionInstanceId, "");
+        await rAction.Invoke(functionInstanceId.Value, "");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await store.IncrementEpoch(functionId).ShouldBeTrueAsync();
@@ -105,9 +101,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(DeletingExistingFuncWithHigherEpochReturnsFalse).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = rFunctions.RegisterFunc(
@@ -115,11 +110,11 @@ public abstract class ControlPanelTests
             string (string _) => "hello"
         );
         
-        await rFunc.Invoke(functionInstanceId, "");
+        await rFunc.Invoke(functionInstanceId.Value, "");
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
 
-        await rFunc.ReInvoke(functionInstanceId, expectedEpoch: 0); //bump epoch
+        await rFunc.ReInvoke(functionInstanceId.Value, expectedEpoch: 0); //bump epoch
 
         await controlPanel.Delete();
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
@@ -133,9 +128,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(PostponingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
@@ -143,7 +137,7 @@ public abstract class ControlPanelTests
             void (string _) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, ""));
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -171,9 +165,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(PostponingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = rFunctions.RegisterFunc<string, string>(
@@ -181,7 +174,7 @@ public abstract class ControlPanelTests
             string (_) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -209,9 +202,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(FailingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
@@ -219,7 +211,7 @@ public abstract class ControlPanelTests
             void (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, ""));
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
@@ -245,9 +237,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(FailingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = rFunctions.RegisterFunc<string, string>(
@@ -255,7 +246,7 @@ public abstract class ControlPanelTests
             string (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
@@ -281,9 +272,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(SucceedingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
@@ -291,7 +281,7 @@ public abstract class ControlPanelTests
             void (string _) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, ""));
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -315,9 +305,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(SucceedingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = rFunctions.RegisterFunc<string, string>(
@@ -325,7 +314,7 @@ public abstract class ControlPanelTests
             string (_) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -352,9 +341,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ReInvokingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
@@ -365,7 +353,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId, param: "first");
+        await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -393,16 +381,15 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ReInvokingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
 
-        await rAction.Invoke(functionInstanceId, param: "first");
+        await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -426,9 +413,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ScheduleReInvokingExistingActionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
@@ -439,7 +425,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId, param: "first");
+        await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -469,16 +455,15 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ScheduleReInvokingExistingFunctionFromControlPanelSucceeds).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
 
-        await rAction.Invoke(functionInstanceId, param: "first");
+        await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -504,15 +489,15 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
             void (string _) => {}
         );
 
-        await rAction.Invoke(functionInstanceId, param: "first");
+        await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
 
@@ -533,15 +518,15 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
 
-        await rFunc.Invoke(functionInstanceId, param: "first");
+        await rFunc.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
 
@@ -562,8 +547,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(WaitingForExistingFunctionFromControlPanelToCompleteSucceeds).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
         var rFunc = rFunctions.RegisterFunc(
@@ -574,7 +559,7 @@ public abstract class ControlPanelTests
                 return param;
             });
 
-        await rFunc.Schedule(functionInstanceId, param: "param");
+        await rFunc.Schedule(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
@@ -598,8 +583,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(WaitingForExistingActionFromControlPanelToCompleteSucceeds).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
         var rAction = rFunctions.RegisterAction(
@@ -607,7 +592,7 @@ public abstract class ControlPanelTests
             Task(string param) => flag.WaitForRaised()
         );
 
-        await rAction.Schedule(functionInstanceId, param: "param");
+        await rAction.Schedule(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
@@ -628,8 +613,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = rFunctions.RegisterFunc(
@@ -637,7 +622,7 @@ public abstract class ControlPanelTests
             string (string param) => param
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
@@ -652,8 +637,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = rFunctions.RegisterAction(
@@ -661,7 +646,7 @@ public abstract class ControlPanelTests
             void(string _) => { }
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
@@ -676,8 +661,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ControlPanelsExistingEventsContainsPreviouslyAddedEvents).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = rFunctions.RegisterAction(
@@ -689,7 +674,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         var existingEvents = await controlPanel.Events;
@@ -706,8 +691,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingEventsCanBeReplacedUsingControlPanel).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
@@ -731,7 +716,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         var existingEvents = await controlPanel.Events;
@@ -755,8 +740,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
@@ -774,7 +759,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param = "test";
@@ -797,9 +782,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = rFunctions.RegisterAction(
@@ -807,7 +791,7 @@ public abstract class ControlPanelTests
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
         await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
@@ -831,9 +815,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = rFunctions.RegisterAction(
@@ -841,7 +824,7 @@ public abstract class ControlPanelTests
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
         await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
@@ -870,9 +853,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = rFunctions.RegisterAction(
@@ -880,7 +862,7 @@ public abstract class ControlPanelTests
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
         await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
@@ -904,9 +886,8 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        const string functionInstanceId = "someFunctionId";
-        var functionTypeId = nameof(ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced).ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId.Value, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = rFunctions.RegisterAction(
@@ -914,7 +895,7 @@ public abstract class ControlPanelTests
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId, param: "param");
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
         await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();

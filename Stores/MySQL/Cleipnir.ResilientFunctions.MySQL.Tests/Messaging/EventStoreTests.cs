@@ -48,4 +48,8 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
     [TestMethod]
     public override Task EventSubscriptionPublishesAppendedEvents()
         => EventSubscriptionPublishesAppendedEvents(Sql.CreateAndInitializeEventStore());
+
+    [TestMethod]
+    public override Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys()
+        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Sql.CreateAndInitializeEventStore());
 }

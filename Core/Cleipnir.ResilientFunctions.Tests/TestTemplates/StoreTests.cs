@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -632,5 +634,71 @@ public abstract class StoreTests
         sf.Epoch.ShouldBe(1);
         sf.Status.ShouldBe(Status.Succeeded);
         sf.Exception.ShouldBeNull();
+    }
+    
+    public abstract Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected();
+    public async Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var eventStore = store.EventStore;
+        var functionId = TestFunctionId.Create();
+
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new Scrapbook { State = "initial" }.ToJson(), typeof(Scrapbook).SimpleQualifiedName());
+        await store.CreateFunction(
+            functionId,
+            storedParameter,
+            storedScrapbook,
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+        ).ShouldBeTrueAsync();
+
+        var event1 = new StoredEvent(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_1"
+        );
+        var event2 = new StoredEvent(
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_2"
+        );
+        await eventStore.AppendEvents(
+            functionId,
+            new[] { event1, event2 }
+        );
+        
+        await store.SetFunctionState(
+            functionId,
+            Status.Succeeded,
+            storedParameter,
+            storedScrapbook,
+            new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
+            storedException: null,
+            postponeUntil: null,
+            events: new ReplaceEvents(
+                Events: new[] {
+                    new StoredEvent(
+                        "hello everyone".ToJson(),
+                        EventType: typeof(string).SimpleQualifiedName(),
+                        IdempotencyKey: "idempotency_key_1"
+                    ),
+                }, 
+                ExistingCount: 2
+            ),
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+
+        await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Epoch.ShouldBe(1);
+        sf.Status.ShouldBe(Status.Succeeded);
+        sf.Exception.ShouldBeNull();
+
+        var events = await store.EventStore.GetEvents(functionId).ToListAsync();
+        events.Count.ShouldBe(1);
+        var deserializedEvent = (string) DefaultSerializer.Instance.DeserializeEvent(events[0].EventJson, events[0].EventType);
+        deserializedEvent.ShouldBe("hello everyone");
     }
 }

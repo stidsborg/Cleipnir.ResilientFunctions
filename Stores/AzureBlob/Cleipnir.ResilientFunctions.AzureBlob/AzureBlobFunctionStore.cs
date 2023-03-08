@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -8,9 +9,10 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
-public class AzureBlobFunctionStore : IFunctionStore 
+public class AzureBlobFunctionStore : IFunctionStore
 {
-    public IEventStore EventStore { get; }
+    private readonly AzureBlobEventStore _eventStore;
+    public IEventStore EventStore => _eventStore;
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
     
@@ -24,7 +26,8 @@ public class AzureBlobFunctionStore : IFunctionStore
         
         _blobServiceClient = new BlobServiceClient(connectionString);
         _blobContainerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
-        EventStore = new AzureBlobEventStore(_blobContainerClient);
+        _eventStore = new AzureBlobEventStore(_blobContainerClient);
+        TimeoutStore = new AzureBlobTimeoutStore(_blobContainerClient);
     }
     
     public async Task Initialize()
@@ -34,7 +37,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook scrapbook, long crashedCheckFrequency)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
         var content = SimpleDictionaryMarshaller.Serialize(
@@ -70,7 +73,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
         var rfTags = await blobClient.GetRfTags();
@@ -97,7 +100,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         int expectedEpoch, 
         long crashedCheckFrequency)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
         try
@@ -120,7 +123,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         try
@@ -212,15 +215,125 @@ public class AzureBlobFunctionStore : IFunctionStore
         ReplaceEvents? events, 
         int expectedEpoch)
     {
-        if (events == null)
+        if (events != null)
+            return await SetFunctionStateWithEvents(
+                functionId,
+                status,
+                storedParameter,
+                storedScrapbook,
+                storedResult,
+                storedException,
+                postponeUntil,
+                events,
+                expectedEpoch
+            );
+        
+        var blobName = functionId.GetStateBlobName();
+        var blobClient = _blobContainerClient.GetBlobClient(blobName);
+
+        var (paramJson, paramType) = storedParameter;
+        var (scrapbookJson, scrapbookType) = storedScrapbook;
+        var (resultJson, resultType) = storedResult;
+
+        var stateDictionary =
+            new Dictionary<string, string?>
+            {
+                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", paramType },
+                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+                { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultJson)}", resultJson },
+                { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultType)}", resultType },
+            };
+
+        if (storedException != null)
         {
-            var blobName = GetBlobName(functionId);
-            var blobClient = _blobContainerClient.GetBlobClient(blobName);
+            var (exceptionMessage, exceptionStackTrace, exceptionType) = storedException;
+            stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}"] = exceptionMessage;
+            stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}"] = exceptionStackTrace;
+            stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
+        }
+
+        var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
+
+        try
+        {
+            await blobClient.UploadAsync(
+                new BinaryData(content),
+                new BlobUploadOptions
+                {
+                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'" },
+                    Tags = new RfTags(
+                        functionId.TypeId.Value,
+                        status,
+                        Epoch: expectedEpoch + 1,
+                        SignOfLife: Random.Shared.Next(0, int.MaxValue),
+                        CrashedCheckFrequency: 0,
+                        PostponedUntil: postponeUntil
+                    ).ToDictionary()
+                }
+            );
+
+            return true;
+        }
+        catch (RequestFailedException exception)
+        {
+            var tagNotAsExpected =
+                exception.ErrorCode!.Equals("ConditionNotMet", StringComparison.OrdinalIgnoreCase) &&
+                exception.Status == 412;
+            if (tagNotAsExpected)
+                return false;
+
+            throw;
+        }
+    }
+
+    private async Task<bool> SetFunctionStateWithEvents( 
+        FunctionId functionId, 
+        Status status, 
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook, 
+        StoredResult storedResult, 
+        StoredException? storedException, 
+        long? postponeUntil,
+        ReplaceEvents replaceEvents, 
+        int expectedEpoch)
+    {
+        BlobLeaseClient? stateLeaseClient = null;
+        BlobLeaseClient? eventsLeaseClient = null;
+
+        try
+        {
+            var stateBlobName = functionId.GetStateBlobName();
+            var stateBlobClient = _blobContainerClient.GetBlobClient(stateBlobName);
+            stateLeaseClient = stateBlobClient.GetBlobLeaseClient();
+            var stateLeaseResponse = await stateLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite state lease
+            var stateLeaseId = stateLeaseResponse.Value.LeaseId;
+            
+            var eventsBlobName = functionId.GetEventsBlobName();
+            var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+            await eventsBlobClient.CreateIfNotExistsAsync();
+            
+            eventsLeaseClient = eventsBlobClient.GetBlobLeaseClient();
+            var eventsLeaseResponse = await eventsLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite events lease
+            var eventsLeaseId = eventsLeaseResponse.Value.LeaseId;
+            
+            var tags = await stateBlobClient
+                .GetTagsAsync(conditions: new BlobRequestConditions { LeaseId = stateLeaseId }); 
+            var rfTags = RfTags.ConvertFrom(tags.Value.Tags);
+            if (rfTags.Epoch != expectedEpoch)
+                return false;
+
+            var (existingEvents, _) = await _eventStore.InnerGetEvents(functionId, offset: 0, leaseId: eventsLeaseId);
+            if (replaceEvents.ExistingCount != existingEvents.Count)
+                return false;
+
+            await _eventStore.Replace(functionId, replaceEvents.Events, eventsLeaseId);
 
             var (paramJson, paramType) = storedParameter;
             var (scrapbookJson, scrapbookType) = storedScrapbook;
             var (resultJson, resultType) = storedResult;
-            
+
             var stateDictionary =
                 new Dictionary<string, string?>
                 {
@@ -235,46 +348,39 @@ public class AzureBlobFunctionStore : IFunctionStore
             if (storedException != null)
             {
                 var (exceptionMessage, exceptionStackTrace, exceptionType) = storedException;
-                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}"] = exceptionMessage;
-                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}"] = exceptionStackTrace;
+                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}"] =
+                    exceptionMessage;
+                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}"] =
+                    exceptionStackTrace;
                 stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
             }
-            
+
             var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
-
-            try
-            {
-                await blobClient.UploadAsync(
-                    new BinaryData(content),
-                    new BlobUploadOptions
-                    {
-                        Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'" },
-                        Tags = new RfTags(
-                            functionId.TypeId.Value, 
-                            status, 
-                            Epoch: expectedEpoch + 1, 
-                            SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                            CrashedCheckFrequency: 0,
-                            PostponedUntil: null
-                        ).ToDictionary()
-                    }
-                );
-            
-                return true;
-            }
-            catch (RequestFailedException exception)
-            {
-                var tagNotAsExpected =
-                    exception.ErrorCode!.Equals("ConditionNotMet", StringComparison.OrdinalIgnoreCase) &&
-                    exception.Status == 412;
-                if (tagNotAsExpected) 
-                    return false;
-
-                throw;
-            }
+            await stateBlobClient.UploadAsync(
+                new BinaryData(content),
+                new BlobUploadOptions
+                {
+                    Conditions = new BlobRequestConditions { LeaseId = stateLeaseId },
+                    Tags = new RfTags(
+                        functionId.TypeId.Value,
+                        status,
+                        Epoch: expectedEpoch + 1,
+                        SignOfLife: Random.Shared.Next(0, int.MaxValue),
+                        CrashedCheckFrequency: 0,
+                        PostponedUntil: postponeUntil
+                    ).ToDictionary()
+                }
+            );
         }
-        else
-            throw new NotImplementedException();
+        finally
+        {
+            if (stateLeaseClient != null)
+                await stateLeaseClient.ReleaseAsync();
+            if (eventsLeaseClient != null)
+                await eventsLeaseClient.ReleaseAsync();
+        }
+
+        return true;
     }
 
     public async Task<bool> SaveScrapbookForExecutingFunction(
@@ -283,7 +389,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         int expectedEpoch,
         ComplimentaryState.SaveScrapbookForExecutingFunction complementaryState)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         var ((paramJson, paramType), (scrapbookJson, scrapbookType), crashedCheckFrequency) = complementaryState;
@@ -330,14 +436,33 @@ public class AzureBlobFunctionStore : IFunctionStore
         }
     }
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, int expectedEpoch)
+    public async Task<bool> SetParameters(
+        FunctionId functionId, 
+        StoredParameter storedParameter, 
+        StoredScrapbook storedScrapbook, 
+        ReplaceEvents? events, 
+        int expectedEpoch)
     {
-        throw new NotImplementedException();
+        var storedFunction = await GetFunction(functionId);
+        if (storedFunction == null || storedFunction.Epoch != expectedEpoch)
+            return false;
+
+        return await SetFunctionState(
+            functionId,
+            storedFunction.Status,
+            storedParameter,
+            storedScrapbook,
+            storedFunction.Result,
+            storedFunction.Exception,
+            storedFunction.PostponedUntil,
+            events,
+            expectedEpoch
+        );
     }
 
     public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string _, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         var (resultJson, resultType) = result;
@@ -361,7 +486,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Succeeded, Epoch: 0, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Succeeded, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -378,7 +503,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string _, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
         var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
@@ -399,7 +524,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Postponed, Epoch: 0, SignOfLife: 0, CrashedCheckFrequency: 0, postponeUntil).ToDictionary(),
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Postponed, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, postponeUntil).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -416,7 +541,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string _, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
         var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
@@ -440,7 +565,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Failed, Epoch: 0, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Failed, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -462,7 +587,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         RfTags rfTags;
@@ -490,6 +615,11 @@ public class AzureBlobFunctionStore : IFunctionStore
         catch (RequestFailedException exception)
         {
             if (exception.Status == 404) return null;
+            if (exception.ErrorCode == "ConditionNotMet")
+            {
+                await Task.Delay(250);
+                return await GetFunction(functionId);
+            }
             throw;
         }
         
@@ -546,7 +676,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
-        var blobName = GetBlobName(functionId);
+        var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         try
@@ -567,11 +697,5 @@ public class AzureBlobFunctionStore : IFunctionStore
 
             throw;
         }
-    }
-
-    private static string GetBlobName(FunctionId functionId)
-    {
-        functionId.Validate();
-        return $"{functionId}_state";
     }
 }

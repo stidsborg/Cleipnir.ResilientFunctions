@@ -13,8 +13,7 @@ public interface IEventStore
     Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);
     
     Task Truncate(FunctionId functionId);
-    Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount); 
-    
-    Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionI);
+
+    Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId);
     Task<EventsSubscription> SubscribeToEvents(FunctionId functionId);
 }

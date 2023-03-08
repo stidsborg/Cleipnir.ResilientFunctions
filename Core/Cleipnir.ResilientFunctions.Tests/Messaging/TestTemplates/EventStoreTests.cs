@@ -144,14 +144,14 @@ public abstract class EventStoreTests
             typeof(string).SimpleQualifiedName()
         );
 
-        await eventStore.Replace(
+        await eventStore.Truncate(functionId);
+        await eventStore.AppendEvents(
             functionId,
             new StoredEvent[]
             {
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
-            },
-            expectedCount: null
+            }
         );
 
         var events = (await eventStore.GetEvents(functionId)).ToList();
@@ -169,14 +169,14 @@ public abstract class EventStoreTests
         var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
-        await eventStore.Replace(
+        await eventStore.Truncate(functionId);
+        await eventStore.AppendEvents(
             functionId,
             new StoredEvent[]
             {
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
-            },
-            expectedCount: null
+            }
         );
 
         var events = (await eventStore.GetEvents(functionId)).ToList();
@@ -285,5 +285,41 @@ public abstract class EventStoreTests
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
 
         await subscription.Pull().SelectAsync(l => l.Count).ShouldBeAsync(0);
+    }
+    
+    public abstract Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys();
+    protected async Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var eventStore = await eventStoreTask;
+
+        var subscription = await eventStore.SubscribeToEvents(functionId);
+        
+        var event1 = new StoredEvent(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_1"
+        );
+        await eventStore.AppendEvent(functionId, event1);
+
+        var newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(1);
+        var storedEvent = newEvents[0];
+        var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        @event.ShouldBe("hello world");
+        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
+        
+        var event2 = new StoredEvent(
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_1"
+        );
+        await eventStore.AppendEvent(functionId, event2);
+        
+        newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(0);
+        
+        newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(0);
     }
 }
