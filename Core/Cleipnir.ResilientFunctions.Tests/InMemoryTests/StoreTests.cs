@@ -103,4 +103,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected()
         => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
+        => ExecutingFunctionCanBeSuspendedSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

@@ -93,4 +93,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected()
         => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
+        => ExecutingFunctionCanBeSuspendedSuccessfully(Sql.AutoCreateAndInitializeStore());
 }

@@ -43,7 +43,7 @@ public abstract class WatchdogCompoundTests
                 }
             ).Invoke;
 
-            _ = rFunc(param.Id, param);
+            _ = rFunc(functionId.InstanceId.Value, param);
 
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
@@ -157,7 +157,7 @@ public abstract class WatchdogCompoundTests
                 }
             ).Invoke;
 
-            _ = rFunc(param.Id, param);
+            _ = rFunc(functionId.InstanceId.Value, param);
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
 
@@ -226,8 +226,8 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
             _ = rFunctions.RegisterFunc(
@@ -241,7 +241,8 @@ public abstract class WatchdogCompoundTests
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded,
+                maxWait: TimeSpan.FromSeconds(5)
             );
 
             var storedFunction = await store.GetFunction(functionId);
@@ -285,7 +286,7 @@ public abstract class WatchdogCompoundTests
                     })
                 .Invoke;
             
-            _ = rAction(param.Id, param);
+            _ = rAction(functionId.InstanceId.Value, param);
             var actualParam = await tcs.Task;
             actualParam.ShouldBe(param);
 
@@ -354,8 +355,8 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
             _ = rFunctions
@@ -363,6 +364,9 @@ public abstract class WatchdogCompoundTests
                     functionTypeId,
                 (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
                 );
+
+            var x = await store.GetFunction(functionId);
+            Console.WriteLine(x);
             
             await BusyWait.Until(async () =>
                 await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded
@@ -406,7 +410,7 @@ public abstract class WatchdogCompoundTests
                 }
             ).Invoke;
 
-            _ = rFunc(param.Id, param);
+            _ = rFunc(functionId.InstanceId.Value, param);
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
 
@@ -479,8 +483,8 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
             _ = rFunctions.RegisterAction(

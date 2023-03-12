@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Immutable;
+using System.Text;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -6,6 +7,7 @@ using Azure.Storage.Blobs.Specialized;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
@@ -99,10 +101,13 @@ public class AzureBlobEventStore : IEventStore
         catch (RequestFailedException e)
         {
             if (e is { ErrorCode: "InvalidRange", Status: 416 })
-                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset);
+                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset, ETag: null);
             if (e is { ErrorCode: "BlobNotFound", Status: 404 })
-                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset);
-            
+            {
+                await appendBlobClient.CreateIfNotExistsAsync();
+                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset, ETag: null);                
+            }
+
             throw;
         }
         
@@ -125,7 +130,11 @@ public class AzureBlobEventStore : IEventStore
             storedEvents.Add(storedEvent);
         }
 
-        return new FetchedEvents(storedEvents, NewOffset: offset + response.GetRawResponse().Headers.ContentLength!.Value);
+        return new FetchedEvents(
+            storedEvents, 
+            NewOffset: offset + response.GetRawResponse().Headers.ContentLength!.Value,
+            ETag: response.GetRawResponse().Headers.ETag
+        );
     }
 
     public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
@@ -142,7 +151,7 @@ public class AzureBlobEventStore : IEventStore
                     if (disposed)
                         return ArraySegment<StoredEvent>.Empty;
                 
-                var (events, newOffset) = await InnerGetEvents(functionId, offset, idempotencyKeys);
+                var (events, newOffset, _) = await InnerGetEvents(functionId, offset, idempotencyKeys);
                 offset = newOffset;
                 return events;
             },
@@ -162,6 +171,20 @@ public class AzureBlobEventStore : IEventStore
     {
         var blobName = functionId.GetEventsBlobName();
         var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
+
+        var setTagsTask = Task.Run(
+            () =>
+            {
+                try
+                {
+                    appendBlobClient.SetTagsAsync(ImmutableDictionary<string, string>.Empty);
+                }
+                catch (RequestFailedException e)
+                {
+                    if (e.ErrorCode != "BlobNotFound") throw;
+                }
+            });
+        
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
         try
         {
@@ -173,7 +196,74 @@ public class AzureBlobEventStore : IEventStore
             await appendBlobClient.CreateIfNotExistsAsync();
             await AppendOrCreate(functionId, marshalledString);
         }
+
+        await setTagsTask;
     }
 
-    internal readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset);
+    internal async Task<bool> SuspendFunction(
+        FunctionId functionId, 
+        int suspendUntilEventSourceCountAtLeast, 
+        string _, 
+        int expectedEpoch, 
+        ComplimentaryState.SetResult complimentaryState)
+    {
+        var (events, _, eTag) = await InnerGetEvents(functionId, offset: 0);
+
+        var stateBlobName = functionId.GetStateBlobName();
+        var blobClient = _blobContainerClient.GetBlobClient(stateBlobName);
+        
+        var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
+        
+        var content = SimpleDictionaryMarshaller.Serialize(
+            new Dictionary<string, string?>
+            {
+                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", paramType },
+                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+            }
+        );
+
+        try
+        {
+            await blobClient.UploadAsync( 
+                new BinaryData(content),
+                new BlobUploadOptions
+                {
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Suspended, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
+                }
+            );    
+        } catch (RequestFailedException e)
+        {
+            if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
+                throw;
+
+            return false;
+        }
+        
+        if (suspendUntilEventSourceCountAtLeast > events.Count)
+        {
+            var eventsBlobName = functionId.GetEventsBlobName();
+            try
+            {
+                await _blobContainerClient
+                    .GetAppendBlobClient(eventsBlobName)
+                    .SetTagsAsync(
+                        new Dictionary<string, string> { { "Suspended", "1" }, { "FunctionType", functionId.TypeId.Value } },
+                        conditions: new AppendBlobRequestConditions { IfMatch = eTag }
+                    );
+            }
+            catch (RequestFailedException e)
+            {
+                if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
+                    throw;
+            }
+        }
+        
+        return true;
+    }
+
+
+    internal readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset, ETag? ETag);
 }

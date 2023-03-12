@@ -20,11 +20,11 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            crashedCheckFrequency: 10
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
+        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(100)));
         _ = rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => flag.Raise()
@@ -50,7 +50,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
+        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(100)));
         _ = rFunctions.RegisterAction<string, Scrapbook>(
             functionId.TypeId,
             void(string param, Scrapbook scrapbook) => flag.Raise()
@@ -79,7 +79,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
+        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(100)));
         _ = rFunctions.RegisterFunc(
             functionId.TypeId,
             string (string param) =>
@@ -111,7 +111,7 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(5)));
+        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(100)));
         _ = rFunctions.RegisterFunc(
             functionId.TypeId,
             string (string param, Scrapbook scrapbook) =>

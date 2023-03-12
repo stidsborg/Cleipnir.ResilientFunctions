@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using TaskExtensions = Cleipnir.ResilientFunctions.Helpers.TaskExtensions;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
@@ -38,9 +39,7 @@ public abstract class StoreTests
             store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
         );
         
-        var nonCompletes = await store
-            .GetExecutingFunctions(functionId.TypeId)
-            .ToTaskAsync();
+        var nonCompletes = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
@@ -398,7 +397,7 @@ public abstract class StoreTests
         
         await BusyWait.Until(() => store.GetExecutingFunctions(functionId.TypeId).Any());
         
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+        var storedFunctions = await TaskLinq.ToListAsync(store.GetExecutingFunctions(functionId.TypeId));
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.CrashedCheckFrequency.ShouldBe(crashedCheckFrequency);
@@ -696,9 +695,68 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Succeeded);
         sf.Exception.ShouldBeNull();
 
-        var events = await store.EventStore.GetEvents(functionId).ToListAsync();
+        var events = await TaskLinq.ToListAsync(store.EventStore.GetEvents(functionId));
         events.Count.ShouldBe(1);
         var deserializedEvent = (string) DefaultSerializer.Instance.DeserializeEvent(events[0].EventJson, events[0].EventType);
         deserializedEvent.ShouldBe("hello everyone");
+    }
+    
+    public abstract Task ExecutingFunctionCanBeSuspendedSuccessfully();
+    public async Task ExecutingFunctionCanBeSuspendedSuccessfully(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new Scrapbook { State = "initial" }.ToJson(), typeof(Scrapbook).SimpleQualifiedName());
+        await store.CreateFunction(
+            functionId,
+            storedParameter,
+            storedScrapbook,
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.SuspendFunction(
+            functionId,
+            suspendUntilEventSourceCountAtLeast: 1,
+            storedScrapbook.ScrapbookJson,
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
+        ).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Epoch.ShouldBe(0);
+        sf.Status.ShouldBe(Status.Suspended);
+        sf.Scrapbook.ScrapbookType.ShouldBe(storedScrapbook.ScrapbookType);
+        sf.Scrapbook.ScrapbookJson.ShouldBe(storedScrapbook.ScrapbookJson);
+        sf.Parameter.ParamType.ShouldBe(storedParameter.ParamType);
+        sf.Parameter.ParamJson.ShouldBe(storedParameter.ParamJson);
+
+        var events = await store.EventStore.GetEvents(functionId);
+        events.ShouldBeEmpty();
+
+        await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId).ShouldBeNullAsync();
+
+        await Task.Delay(500);
+        
+        await store.GetEligibleSuspendedFunctions(functionId.TypeId)
+            .SelectAsync(sfs => sfs.Any())
+            .ShouldBeFalseAsync();
+
+        await store.EventStore.AppendEvents(
+            functionId,
+            storedEvents: new[] { new StoredEvent("hello world".ToJson(), EventType: typeof(string).SimpleQualifiedName()) }
+        );
+
+        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
+        epoch.ShouldNotBeNull();
+        epoch.Value.ShouldBe(0);
+
+        await BusyWait.Until(() => store.GetEligibleSuspendedFunctions(functionId.TypeId).Any());
+        
+        var eligibleFunctions = await store.GetEligibleSuspendedFunctions(functionId.TypeId).ToListAsync();
+        eligibleFunctions.Count.ShouldBe(1);
+        eligibleFunctions[0].InstanceId.ShouldBe(functionId.InstanceId);
     }
 }

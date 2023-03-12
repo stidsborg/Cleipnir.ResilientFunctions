@@ -34,4 +34,18 @@ public static class Utils
         functionId.Validate();
         return $"{functionId}_events";
     }
+
+    internal static FunctionId ConvertFromStateBlobNameToFunctionId(this string blobName)
+    {
+        var functionIdString = blobName[..^("_state".Length)];
+        var split = functionIdString.Split("@");
+        return new FunctionId(split[1], split[0]);
+    }
+    
+    internal static FunctionId ConvertFromEventsBlobNameToFunctionId(this string blobName)
+    {
+        var functionIdString = blobName[..^("_events".Length)];
+        var split = functionIdString.Split("@");
+        return new FunctionId(split[1], split[0]);
+    }
 }

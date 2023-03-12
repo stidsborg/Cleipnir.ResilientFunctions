@@ -208,7 +208,7 @@ public abstract class EventStoreTests
         await eventStore.AppendEvent(functionId, event1);
         await eventStore.AppendEvent(functionId, event2);
 
-        var events = await eventStore.GetEvents(functionId).ToListAsync();
+        var events = await TaskLinq.ToListAsync(eventStore.GetEvents(functionId));
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
@@ -233,7 +233,7 @@ public abstract class EventStoreTests
 
         await eventStore.AppendEvents(functionId, new [] {event1, event2});
 
-        var events = await eventStore.GetEvents(functionId).ToListAsync();
+        var events = await TaskLinq.ToListAsync(eventStore.GetEvents(functionId));
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");

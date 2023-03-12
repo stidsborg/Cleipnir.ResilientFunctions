@@ -109,9 +109,8 @@ public abstract class SuspensionTests
         
         await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello multiverse", reInvokeImmediatelyIfSuspended: false);
         
-        var eligibleFunctions = await store
-            .GetEligibleSuspendedFunctions(functionTypeId)
-            .ToListAsync();
+        var eligibleFunctions = await TaskLinq.ToListAsync(store
+                .GetEligibleSuspendedFunctions(functionTypeId));
         
         eligibleFunctions.Count.ShouldBe(1);
         eligibleFunctions[0].InstanceId.ShouldBe(functionInstanceId);
