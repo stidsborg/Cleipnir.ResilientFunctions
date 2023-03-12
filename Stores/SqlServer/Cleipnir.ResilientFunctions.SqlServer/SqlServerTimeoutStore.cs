@@ -50,15 +50,23 @@ public class SqlServerTimeoutStore : ITimeoutStore
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
 
-        var sql = @$"    
-            INSERT INTO {_tablePrefix}RFunctions_Timeouts
-                (FunctionTypeId, FunctionInstanceId, TimeoutId, Expires)
-            VALUES ( 
-                @FunctionTypeId, 
-                @FunctionInstanceId, 
-                @TimeoutId, 
-                @Expiry
-            );";
+        var sql = @$"
+            IF EXISTS (
+                SELECT * FROM {_tablePrefix}RFunctions_Timeouts 
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId=@TimeoutId
+            )           
+            BEGIN
+                UPDATE {_tablePrefix}RFunctions_Timeouts
+                SET Expires = @Expiry
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId = @TimeoutId
+            END
+            ELSE
+            BEGIN                
+                INSERT INTO {_tablePrefix}RFunctions_Timeouts
+                    (FunctionTypeId, FunctionInstanceId, TimeoutId, Expires)
+                VALUES 
+                    (@FunctionTypeId, @FunctionInstanceId, @TimeoutId, @Expiry);
+            END";
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
