@@ -8,10 +8,11 @@ internal static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        var failed = true;
-        for (var i = 0; i < 20; i++)
+        var retry = 1;
+        while (true)
         {
             await Task.Delay(1_000);
+            Console.WriteLine($"Trying {retry + 1}/20");
             
             try
             {
@@ -19,7 +20,12 @@ internal static class Program
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Unable to connect to MySQL. Exception: {e}");
+                if (retry == 20)
+                {
+                    Console.WriteLine($"Unable to connect to MySQL. Exception: {e}");
+                    return -1;
+                }
+                retry++;
                 continue;
             }
             
@@ -29,7 +35,12 @@ internal static class Program
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Unable to connect to PostgresSQL. Exception: {e}");
+                if (retry == 20)
+                {
+                    Console.WriteLine($"Unable to connect to Postgres. Exception: {e}");
+                    return -1;
+                }
+                retry++;
                 continue;
             }
             
@@ -39,20 +50,18 @@ internal static class Program
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Unable to connect to PostgresSQL. Exception: {e}");
+                if (retry == 20)
+                {
+                    Console.WriteLine($"Unable to connect to SQL Server. Exception: {e}");
+                    return -1;
+                }
+                retry++;
                 continue;
             }
-
-            failed = false;
+            
             break;
         }
-
-        if (failed)
-        {
-            Console.WriteLine("Unable to connect to all databases");
-            return -1;
-        } 
-            
+        
         Console.WriteLine("All connections were established successfully");
         return 0;
     }
