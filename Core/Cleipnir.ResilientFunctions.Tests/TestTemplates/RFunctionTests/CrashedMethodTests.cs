@@ -16,7 +16,8 @@ public abstract class CrashedMethodTests
     protected async Task NonCompletedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedFuncIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -36,7 +37,7 @@ public abstract class CrashedMethodTests
                     entity => _ => NeverCompletingTask.OfType<string>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             var constructedEntity = new Entity();
@@ -45,7 +46,7 @@ public abstract class CrashedMethodTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
                     dependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
@@ -59,13 +60,12 @@ public abstract class CrashedMethodTests
                         inputParameterEntity.Value = entity;
                         return s.ToUpper().ToTask();
                     }).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(
                 () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
             );
             
-            await rFunc(param, param).ShouldBeAsync("TEST");
+            await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
             inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
@@ -77,7 +77,8 @@ public abstract class CrashedMethodTests
     protected async Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -97,7 +98,7 @@ public abstract class CrashedMethodTests
                     entity => (_, _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             var constructedEntity = new Entity();
@@ -107,7 +108,7 @@ public abstract class CrashedMethodTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
                     dependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
@@ -124,8 +125,7 @@ public abstract class CrashedMethodTests
                         return s.ToUpper();
                     }
                 ).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
@@ -137,7 +137,7 @@ public abstract class CrashedMethodTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
-            await rFunc(param, param).ShouldBeAsync("TEST");
+            await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
             inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
@@ -149,7 +149,8 @@ public abstract class CrashedMethodTests
     protected async Task NonCompletedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedActionIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -170,7 +171,7 @@ public abstract class CrashedMethodTests
                 )
                 .Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             var constructedEntity = new Entity();
@@ -180,7 +181,7 @@ public abstract class CrashedMethodTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
                     dependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
@@ -195,15 +196,14 @@ public abstract class CrashedMethodTests
                         return Task.CompletedTask;
                     })
                 .Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(
                 () => store
                     .GetFunction(functionId)
                     .Map(sf => sf?.Status == Status.Succeeded)
             );
             
-            await rAction(param, param);
+            await rAction(functionInstanceId.Value, param);
             inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 
@@ -215,7 +215,8 @@ public abstract class CrashedMethodTests
     protected async Task NonCompletedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedFuncIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -235,7 +236,7 @@ public abstract class CrashedMethodTests
                     entity => (_, _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             var constructedEntity = new Entity();
@@ -245,7 +246,7 @@ public abstract class CrashedMethodTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2),
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
                     dependencyResolver: new FuncDependencyResolver(_ => constructedEntity)
                 )
             );
@@ -261,8 +262,7 @@ public abstract class CrashedMethodTests
                         await scrapbook.Save();
                     }
                 ).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(
                 () => store.GetFunction(functionId).Map(f => f?.Status == Status.Succeeded)
             );
@@ -272,7 +272,7 @@ public abstract class CrashedMethodTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
-            await rAction(param, param);
+            await rAction(functionInstanceId.Value, param);
             inputParameterEntity.Value.ShouldBe(constructedEntity);
         }
 

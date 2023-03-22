@@ -16,7 +16,7 @@ public abstract class ScheduleReInvocationTests
     protected async Task ActionReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        const string functionType = "someFunctionType";
+        var functionType = TestFunctionId.Create().TypeId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
@@ -67,7 +67,8 @@ public abstract class ScheduleReInvocationTests
     protected async Task ActionWithScrapbookReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        const string functionType = "someFunctionType";
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
@@ -80,7 +81,7 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rAction = rFunctions.RegisterAction<string, ListScrapbook<string>>(
-            functionType,
+            functionTypeId,
             async (param, scrapbook) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
@@ -94,17 +95,16 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke("something", "something"));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, "something"));
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
         
-        await rAction.ControlPanels.For("something").Result!.ScheduleReInvoke();
-
-        var functionId = new FunctionId(functionType, "something");
+        await rAction.ControlPanels.For(functionInstanceId).Result!.ScheduleReInvoke();
+        
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
@@ -122,7 +122,8 @@ public abstract class ScheduleReInvocationTests
     protected async Task FuncReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        const string functionType = "someFunctionType";
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
@@ -135,7 +136,7 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rFunc = rFunctions.RegisterFunc<string, string>(
-            functionType,
+            functionTypeId,
             async s =>
             {
                 await Task.CompletedTask;
@@ -148,11 +149,10 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
-        await rFunc.ScheduleReInvoke(functionInstanceId: "something", expectedEpoch: 0);
-
-        var functionId = new FunctionId(functionType, "something");
+        await rFunc.ScheduleReInvoke(functionInstanceId.Value, expectedEpoch: 0);
+        
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
@@ -169,7 +169,8 @@ public abstract class ScheduleReInvocationTests
     protected async Task FuncWithScrapbookReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        const string functionType = "someFunctionType";
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(
@@ -182,7 +183,7 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>(
-            functionType,
+            functionTypeId,
             async (param, scrapbook) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
@@ -197,18 +198,17 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
         var scrapbookList = new Synced<List<string>>();
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something").ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         scrapbookList.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
 
-        controlPanel = await rFunc.ControlPanel.For(functionInstanceId: "something");
-        await rFunc.ScheduleReInvoke(functionInstanceId: "something", controlPanel!.Epoch);
-
-        var functionId = new FunctionId(functionType, "something");
+        controlPanel = await rFunc.ControlPanel.For(functionInstanceId);
+        await rFunc.ScheduleReInvoke(functionInstanceId.Value, controlPanel!.Epoch);
+        
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );

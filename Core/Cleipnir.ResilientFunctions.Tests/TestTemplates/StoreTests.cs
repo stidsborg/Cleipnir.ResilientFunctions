@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -9,7 +8,6 @@ using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
-using TaskExtensions = Cleipnir.ResilientFunctions.Helpers.TaskExtensions;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
@@ -758,5 +756,24 @@ public abstract class StoreTests
         var eligibleFunctions = await store.GetEligibleSuspendedFunctions(functionId.TypeId).ToListAsync();
         eligibleFunctions.Count.ShouldBe(1);
         eligibleFunctions[0].InstanceId.ShouldBe(functionId.InstanceId);
+    }
+    
+    public abstract Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch();
+    public async Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new Scrapbook { State = "initial" }.ToJson(), typeof(Scrapbook).SimpleQualifiedName());
+        await store.CreateFunction(
+            functionId,
+            storedParameter,
+            storedScrapbook,
+            crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.RestartExecution(functionId, expectedEpoch: 0, crashedCheckFrequency: 1_000).ShouldBeTrueAsync();
+        await store.RestartExecution(functionId, expectedEpoch: 0, crashedCheckFrequency: 1_000).ShouldBeFalseAsync();
     }
 }

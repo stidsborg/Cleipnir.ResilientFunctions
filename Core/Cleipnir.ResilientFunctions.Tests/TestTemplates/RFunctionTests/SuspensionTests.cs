@@ -17,9 +17,8 @@ public abstract class SuspensionTests
     protected async Task ActionCanBeSuspended(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ActionCanBeSuspended).ToFunctionTypeId();
-        var functionInstanceId = "functionInstanceId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions
         (
@@ -33,7 +32,7 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            () => rAction.Invoke(functionInstanceId, "hello world")
+            () => rAction.Invoke(functionInstanceId.Value, "hello world")
         );
 
         var sf = await store.GetFunction(functionId);
@@ -81,10 +80,9 @@ public abstract class SuspensionTests
     protected async Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded).ToFunctionTypeId();
-        var functionInstanceId = "functionInstanceId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
-        
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions
         (
@@ -94,23 +92,24 @@ public abstract class SuspensionTests
 
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
-            Result<string>(string _) => Suspend.Until(2)
+            Result<string>(string _) => Suspend.Until(1)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            () => rFunc.Invoke(functionInstanceId, "hello world")
+            () => rFunc.Invoke(functionInstanceId.Value, "hello world")
         );
 
-        (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
-
-        await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello universe");
+        await Task.Delay(250);
 
         (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
-        
+
         await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello multiverse", reInvokeImmediatelyIfSuspended: false);
+
+        await BusyWait.Until(() => store.GetEligibleSuspendedFunctions(functionTypeId).Any());
         
-        var eligibleFunctions = await TaskLinq.ToListAsync(store
-                .GetEligibleSuspendedFunctions(functionTypeId));
+        var eligibleFunctions = await store
+            .GetEligibleSuspendedFunctions(functionTypeId)
+            .ToListAsync();
         
         eligibleFunctions.Count.ShouldBe(1);
         eligibleFunctions[0].InstanceId.ShouldBe(functionInstanceId);
@@ -204,7 +203,8 @@ public abstract class SuspensionTests
     protected async Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionInstanceId = "functionInstanceId";
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions
@@ -214,7 +214,7 @@ public abstract class SuspensionTests
         );
 
         var registration = rFunctions.RegisterFunc(
-            nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
+            functionTypeId,
             async Task<string> (string param, Context context) =>
             {
                 var eventSource = await context.EventSource;
@@ -224,7 +224,7 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            registration.Invoke(functionInstanceId, "hello world")
+            registration.Invoke(functionInstanceId.Value, "hello world")
         );
 
         var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);

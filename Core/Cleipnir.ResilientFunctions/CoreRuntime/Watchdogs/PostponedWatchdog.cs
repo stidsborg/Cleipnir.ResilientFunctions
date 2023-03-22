@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -60,6 +61,7 @@ internal class PostponedWatchdog
         }
         catch (Exception innerException)
         {
+            Console.WriteLine(innerException);
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
@@ -90,7 +92,7 @@ internal class PostponedWatchdog
             var success = await _functionStore.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: spf.Epoch); //cheap change-detection before performing re-invocation
             if (!success) return;
             
-            await _reInvoke(spf.InstanceId, expectedEpoch: spf.Epoch + 1);
+            await _reInvoke(spf.InstanceId, expectedEpoch: spf.Epoch + 1, expectedStatus: Status.Postponed);
         }
         catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it

@@ -115,4 +115,8 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
     [TestMethod]
     public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
         => ExecutingFunctionCanBeSuspendedSuccessfully(FunctionStore.CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
+        => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStore.CastTo<IFunctionStore>().ToTask());
 }

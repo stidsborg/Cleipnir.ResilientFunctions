@@ -171,7 +171,7 @@ public class AzureBlobFunctionStore : IFunctionStore
     public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
     {
         var postponedBlobs = _blobContainerClient.FindBlobsByTagsAsync(
-            tagFilterSqlExpression: $"FunctionType = '{functionTypeId.Value}' AND Status = '{(int) Status.Postponed}' AND PostponedUntil < '{expiresBefore}' AND Epoch >= '0'"
+            tagFilterSqlExpression: $"FunctionType = '{functionTypeId.Value}' AND Status = '{(int) Status.Postponed}' AND PostponedUntil <= '{expiresBefore}' AND Epoch >= '0'"
         );
 
         var postponedFunctions = new List<StoredPostponedFunction>();
@@ -702,6 +702,11 @@ public class AzureBlobFunctionStore : IFunctionStore
             );
         }
 
+        var suspendedUntilEventSourceCount =
+            dictionary.ContainsKey(nameof(StoredFunction.SuspendedUntilEventSourceCount))
+                ? int.Parse(dictionary[nameof(StoredFunction.SuspendedUntilEventSourceCount)]!)
+                : default(int?);
+
         return new StoredFunction(
             functionId,
             storedParameter,
@@ -710,7 +715,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             storedResult,
             Exception: storedException,
             PostponedUntil: rfTags.PostponedUntil,  
-            SuspendedUntilEventSourceCount: default, //todo
+            SuspendedUntilEventSourceCount: suspendedUntilEventSourceCount,
             Epoch: rfTags.Epoch,
             SignOfLife: rfTags.SignOfLife,
             CrashedCheckFrequency: rfTags.CrashedCheckFrequency

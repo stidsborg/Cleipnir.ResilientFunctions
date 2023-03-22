@@ -110,10 +110,9 @@ internal class CrashedWatchdog
         using var @lock = await _asyncSemaphore.Take();
         
         if (_shutdownCoordinator.ShutdownInitiated) return;
-        
         try
         {
-            await _reInvoke(sef.InstanceId, expectedEpoch: sef.Epoch);
+            await _reInvoke(sef.InstanceId, expectedEpoch: sef.Epoch, expectedStatus: Status.Executing);
         }
         catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it

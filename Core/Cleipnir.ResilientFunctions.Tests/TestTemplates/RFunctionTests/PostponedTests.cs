@@ -130,7 +130,8 @@ public abstract class PostponedTests
     protected async Task PostponedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(PostponedFuncIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
@@ -148,7 +149,7 @@ public abstract class PostponedTests
                 (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
             ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(param, param));
+            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(functionInstanceId.Value, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
@@ -157,7 +158,7 @@ public abstract class PostponedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     crashedCheckFrequency: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
 
@@ -166,10 +167,9 @@ public abstract class PostponedTests
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
                 ).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
-            await rFunc(param, param);
+            await rFunc(functionInstanceId.Value, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
@@ -178,7 +178,8 @@ public abstract class PostponedTests
     protected async Task PostponedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
@@ -197,7 +198,7 @@ public abstract class PostponedTests
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
-                rAction(param, param)
+                rAction(functionInstanceId.Value, param)
             );
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
@@ -210,24 +211,17 @@ public abstract class PostponedTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
                 )
             );
-
-            var counter = 0;
+            
             var rFunc = rFunctions
                 .RegisterAction(
                     functionTypeId,
                     async (string _, Scrapbook scrapbook) =>
                     {
-                        counter++;
-                        if (counter == 2)
-                            Console.WriteLine("OH NO");
-                        Console.WriteLine("OK");
-                        Console.WriteLine(new StackTrace());
                         scrapbook.Value = 1;
                         await scrapbook.Save();
                     }
                 ).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
@@ -235,7 +229,7 @@ public abstract class PostponedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
 
-            await rFunc(param, param);
+            await rFunc(functionInstanceId.Value, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
     }
@@ -282,10 +276,7 @@ public abstract class PostponedTests
     protected async Task PostponedActionIsCompletedByWatchDogAfterCrash(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog),
-            functionInstanceId: "test"
-        );
+        var functionId = TestFunctionId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var crashableStore = new CrashableFunctionStore(store);
@@ -499,7 +490,7 @@ public abstract class PostponedTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedAction);
+        var functionTypeId = TestFunctionId.Create().TypeId;
         using var rFunctions = new RFunctions(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
@@ -586,7 +577,7 @@ public abstract class PostponedTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedActionWithScrapbook);
+        var functionTypeId = TestFunctionId.Create().TypeId;
         using var rFunctions = new RFunctions(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
@@ -670,9 +661,8 @@ public abstract class PostponedTests
     public abstract Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp();
     protected async Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(Task<IFunctionStore> storeTask)
     {
-        var functionTypeId = nameof(ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp);
-        const string functionInstanceId = "id";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, _) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
@@ -699,7 +689,7 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch,
-                postponedCheckFrequency: TimeSpan.FromSeconds(100)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -713,7 +703,11 @@ public abstract class PostponedTests
                 invokedFlag.Raise();
             });
 
-        await invokedFlag.WaitForRaised(maxWaitMs: 250);
+        await BusyWait.UntilAsync(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
+        //await Task.Delay(5_000);
+
+        //var pfs = await store.GetPostponedFunctions(functionTypeId.Value, expiresBefore: DateTime.Now.Add(TimeSpan.FromHours(1)).Ticks).ToListAsync();
+        //await invokedFlag.WaitForRaised(maxWaitMs: 1_000_000);
         syncedParam.Value.ShouldBe("hello");
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

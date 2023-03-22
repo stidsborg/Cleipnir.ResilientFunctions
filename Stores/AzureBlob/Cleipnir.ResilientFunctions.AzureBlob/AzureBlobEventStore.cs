@@ -221,6 +221,7 @@ public class AzureBlobEventStore : IEventStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+                { $"{nameof(StoredFunction.SuspendedUntilEventSourceCount)}", suspendUntilEventSourceCountAtLeast.ToString() }
             }
         );
 

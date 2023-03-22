@@ -104,11 +104,53 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
         await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch);
         return result.SucceedWithValue!;
     }
+    
+    public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch, Status expectedStatus)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
+        using var _ = disposables;
+
+        Result<TReturn> result;
+        try
+        {
+            // *** USER FUNCTION INVOCATION *** 
+            result = await inner(param, scrapbook, context);
+        }
+        catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
+
+        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch);
+        return result.SucceedWithValue!;
+    }
 
     public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                Result<TReturn> result;
+                try
+                {
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await inner(param, scrapbook, context);
+                }
+                catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
+
+                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch, allowPostponedOrSuspended: true);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            finally{ disposables.Dispose(); }
+        });
+    }
+    
+    public async Task ScheduleReInvoke(string instanceId, int expectedEpoch, Status expectedStatus)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
 
         _ = Task.Run(async () =>
         {
@@ -164,11 +206,15 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch: 0));
             
             success = persisted;
+            var eventSourceFactory = _invocationHelper.CreateAndInitializeEventSource(
+                functionId,
+                ScheduleReInvoke
+            );
             return new PreparedInvocation(
                 persisted,
                 wrappedInner,
                 scrapbook,
-                new Context(functionId, InvocationMode.Direct, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke), _utilities),
+                new Context(functionId, InvocationMode.Direct, eventSourceFactory, _utilities),
                 Disposable.Combine(disposables)
             );
         }
@@ -179,7 +225,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
     }
     private record PreparedInvocation(bool Persisted, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TScrapbook Scrapbook, Context Context, IDisposable Disposables);
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch, Status? expectedStatus = null)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         try
@@ -202,7 +248,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
             );
 
             var (param, epoch, scrapbook, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
+                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
 

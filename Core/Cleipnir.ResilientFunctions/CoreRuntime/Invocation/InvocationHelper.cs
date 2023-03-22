@@ -211,7 +211,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, int expectedEpoch
+        FunctionId functionId, int expectedEpoch, Status? expectedStatus
     ) 
     {
         var sf = await _functionStore.GetFunction(functionId);
@@ -219,6 +219,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
         if (sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
+        if (expectedStatus != null && sf.Status != expectedStatus.Value)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{expectedStatus}' was '{sf.Status}'");
 
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var epoch = sf.Epoch + 1;

@@ -21,7 +21,7 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -47,7 +47,7 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -73,7 +73,7 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -106,7 +106,7 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -141,7 +141,7 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -170,7 +170,7 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -211,14 +211,14 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
             new EventSourceWriter(
                 functionId, functionStore, 
                 new ExceptionThrowingEventSerializer(typeof(int)), 
-                scheduleReInvocation: (_, _) => Task.CompletedTask
+                scheduleReInvocation: (_, _, _) => Task.CompletedTask
             ),
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
