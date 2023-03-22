@@ -170,7 +170,8 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        FunctionTypeId functionTypeId = "SomeFunctionType";
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions.RegisterFunc(
@@ -182,11 +183,11 @@ public abstract class SunshineTests
             }
         ).Invoke;
 
-        var result = await rFunc("hello world", "hello world");
+        var result = await rFunc(functionInstanceId.Value, "hello world");
         result.ShouldBeNull();
 
         var storedFunction = await store
-            .GetFunction(new FunctionId(functionTypeId, "hello world"))
+            .GetFunction(functionId)
             .ShouldNotBeNullAsync();
 
         var scrapbook = storedFunction.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();

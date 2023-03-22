@@ -44,4 +44,16 @@ public class EventStoreTests :  TestTemplates.EventStoreTests
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
         => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task FetchNonExistingEventsSucceeds()
+        => FetchNonExistingEventsSucceeds(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task EventSubscriptionPublishesAppendedEvents()
+        => EventSubscriptionPublishesAppendedEvents(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
+
+    [TestMethod]
+    public override Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys()
+        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(new InMemoryFunctionStore().CastTo<IEventStore>().ToTask());
 }

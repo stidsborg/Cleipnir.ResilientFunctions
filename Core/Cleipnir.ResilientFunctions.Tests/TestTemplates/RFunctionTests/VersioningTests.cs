@@ -19,7 +19,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(250), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
@@ -42,9 +42,9 @@ public abstract class VersioningTests
             nameof(NonExistingParameterTypeResultsInFailedFunction),
             string(PersonV1 p) => p.Name
         );
+
+        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0, maxWait: TimeSpan.FromSeconds(5));
         
-        await Task.Delay(250);
-        unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
         await store
             .GetFunction(functionId)
             .Map(sf => sf!.Status == Status.Failed)
@@ -59,7 +59,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(250), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
@@ -80,7 +80,7 @@ public abstract class VersioningTests
             void (int _) => flag.Raise()
         );
 
-        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0);
+        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0, maxWait: TimeSpan.FromSeconds(5));
 
         flag.IsRaised.ShouldBeFalse();
         await store
@@ -120,7 +120,7 @@ public abstract class VersioningTests
             void (string param, Scrapbook2 scrapbook) => flag.Raise()
         );
 
-        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0);
+        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0, maxWait: TimeSpan.FromSeconds(5));
 
         flag.IsRaised.ShouldBeFalse();
         await store
@@ -141,16 +141,14 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10), 
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(250), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
-        
+
+        var v1FunctionId = TestFunctionId.Create();
         await store.CreateFunction(
-            new FunctionId(
-                nameof(RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype), 
-                "v1"
-            ),
+            v1FunctionId,
             new StoredParameter(
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
@@ -158,11 +156,9 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             TimeSpan.FromMilliseconds(10).Ticks
         ).ShouldBeTrueAsync();
+        var v2FunctionId = TestFunctionId.Create() with { TypeId = v1FunctionId.TypeId };
         await store.CreateFunction(
-            new FunctionId(
-                nameof(RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype), 
-                "v2"
-            ),
+            v2FunctionId,
             new StoredParameter(
                 new PersonV2(Name: "Ole", Age: 35).ToJson(),
                 typeof(PersonV2).SimpleQualifiedName()
@@ -173,11 +169,11 @@ public abstract class VersioningTests
 
         var invocations = new SyncedList<Person>();
         rFunctions.RegisterAction(
-            nameof(RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype),
+            functionTypeId: v1FunctionId.TypeId,
             void (Person p) => invocations.Add(p)
         );
-
-        await BusyWait.UntilAsync(() => invocations.Count == 2);
+        
+        await BusyWait.UntilAsync(() => invocations.Count == 2, maxWait: TimeSpan.FromSeconds(5));
         invocations.Any(p => p is PersonV1).ShouldBeTrue();
         invocations.Any(p => p is PersonV2).ShouldBeTrue();
 

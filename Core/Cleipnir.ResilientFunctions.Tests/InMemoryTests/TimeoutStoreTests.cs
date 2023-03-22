@@ -13,6 +13,10 @@ public class TimeoutStoreTests : TestTemplates.TimeoutStoreTests
         => TimeoutCanBeCreatedFetchedAndRemoveSuccessfully(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 
     [TestMethod]
+    public override Task ExistingTimeoutCanUpdatedSuccessfully()
+        => ExistingTimeoutCanUpdatedSuccessfully(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+
+    [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
         => TimeoutStoreCanBeInitializedMultipleTimes(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 }

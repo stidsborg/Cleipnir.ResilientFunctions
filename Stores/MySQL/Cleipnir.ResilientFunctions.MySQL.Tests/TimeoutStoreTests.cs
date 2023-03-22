@@ -9,7 +9,12 @@ public class TimeoutStoreTests : ResilientFunctions.Tests.TestTemplates.TimeoutS
     [TestMethod]
     public override Task TimeoutCanBeCreatedFetchedAndRemoveSuccessfully()
         => TimeoutCanBeCreatedFetchedAndRemoveSuccessfully(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
-    
+
+    [TestMethod]
+    public override Task ExistingTimeoutCanUpdatedSuccessfully()
+        => ExistingTimeoutCanUpdatedSuccessfully(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+
+
     [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
         => TimeoutStoreCanBeInitializedMultipleTimes(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));

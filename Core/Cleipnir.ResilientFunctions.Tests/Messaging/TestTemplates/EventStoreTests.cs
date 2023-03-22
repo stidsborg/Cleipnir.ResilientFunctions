@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
@@ -16,7 +16,7 @@ public abstract class EventStoreTests
     public abstract Task AppendedMessagesCanBeFetchedAgain();
     protected async Task AppendedMessagesCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         const string msg1 = "hello world";
@@ -45,7 +45,7 @@ public abstract class EventStoreTests
     public abstract Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain();
     protected async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         const string msg1 = "hello here";
@@ -76,7 +76,7 @@ public abstract class EventStoreTests
     public abstract Task SkippedMessagesAreNotFetched();
     protected async Task SkippedMessagesAreNotFetched(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         const string msg1 = "hello world";
@@ -100,7 +100,7 @@ public abstract class EventStoreTests
     public abstract Task TruncatedEventSourceContainsNoEvents();
     protected async Task TruncatedEventSourceContainsNoEvents(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         const string msg1 = "hello here";
@@ -118,7 +118,7 @@ public abstract class EventStoreTests
     public abstract Task NoExistingEventSourceCanBeTruncated();
     protected async Task NoExistingEventSourceCanBeTruncated(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
         
         await eventStore.Truncate(functionId);
@@ -129,7 +129,7 @@ public abstract class EventStoreTests
     public abstract Task ExistingEventSourceCanBeReplacedWithProvidedEvents();
     protected async Task ExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         await eventStore.AppendEvent(
@@ -144,14 +144,14 @@ public abstract class EventStoreTests
             typeof(string).SimpleQualifiedName()
         );
 
-        await eventStore.Replace(
+        await eventStore.Truncate(functionId);
+        await eventStore.AppendEvents(
             functionId,
             new StoredEvent[]
             {
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
-            },
-            expectedCount: null
+            }
         );
 
         var events = (await eventStore.GetEvents(functionId)).ToList();
@@ -166,17 +166,17 @@ public abstract class EventStoreTests
     public abstract Task NonExistingEventSourceCanBeReplacedWithProvidedEvents();
     protected async Task NonExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IEventStore> eventStoreTask)
     {
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
-        await eventStore.Replace(
+        await eventStore.Truncate(functionId);
+        await eventStore.AppendEvents(
             functionId,
             new StoredEvent[]
             {
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
-            },
-            expectedCount: null
+            }
         );
 
         var events = (await eventStore.GetEvents(functionId)).ToList();
@@ -202,13 +202,13 @@ public abstract class EventStoreTests
             IdempotencyKey: "idempotency_key"
         );
         
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         await eventStore.AppendEvent(functionId, event1);
         await eventStore.AppendEvent(functionId, event2);
 
-        var events = await eventStore.GetEvents(functionId).ToListAsync();
+        var events = await TaskLinq.ToListAsync(eventStore.GetEvents(functionId));
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
@@ -228,14 +228,98 @@ public abstract class EventStoreTests
             IdempotencyKey: "idempotency_key"
         );
         
-        var functionId = new FunctionId("TypeId", "InstanceId");
+        var functionId = TestFunctionId.Create();
         var eventStore = await eventStoreTask;
 
         await eventStore.AppendEvents(functionId, new [] {event1, event2});
 
-        var events = await eventStore.GetEvents(functionId).ToListAsync();
+        var events = await TaskLinq.ToListAsync(eventStore.GetEvents(functionId));
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
+    }
+
+    public abstract Task FetchNonExistingEventsSucceeds();
+    protected async Task FetchNonExistingEventsSucceeds(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var eventStore = await eventStoreTask;
+        var events = await eventStore.GetEvents(functionId);
+        events.ShouldBeEmpty();
+    }
+    
+    public abstract Task EventSubscriptionPublishesAppendedEvents();
+    protected async Task EventSubscriptionPublishesAppendedEvents(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var eventStore = await eventStoreTask;
+
+        var subscription = await eventStore.SubscribeToEvents(functionId);
+        
+        var event1 = new StoredEvent(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_1"
+        );
+        await eventStore.AppendEvent(functionId, event1);
+
+        var newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(1);
+        var storedEvent = newEvents[0];
+        var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        @event.ShouldBe("hello world");
+        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
+        
+        var event2 = new StoredEvent(
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_2"
+        );
+        await eventStore.AppendEvent(functionId, event2);
+        
+        newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(1);
+        storedEvent = newEvents[0];
+        @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        @event.ShouldBe("hello universe");
+        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
+
+        await subscription.Pull().SelectAsync(l => l.Count).ShouldBeAsync(0);
+    }
+    
+    public abstract Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys();
+    protected async Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Task<IEventStore> eventStoreTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var eventStore = await eventStoreTask;
+
+        var subscription = await eventStore.SubscribeToEvents(functionId);
+        
+        var event1 = new StoredEvent(
+            "hello world".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_1"
+        );
+        await eventStore.AppendEvent(functionId, event1);
+
+        var newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(1);
+        var storedEvent = newEvents[0];
+        var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        @event.ShouldBe("hello world");
+        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
+        
+        var event2 = new StoredEvent(
+            "hello universe".ToJson(),
+            typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "idempotency_key_1"
+        );
+        await eventStore.AppendEvent(functionId, event2);
+        
+        newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(0);
+        
+        newEvents = await subscription.Pull();
+        newEvents.Count.ShouldBe(0);
     }
 }

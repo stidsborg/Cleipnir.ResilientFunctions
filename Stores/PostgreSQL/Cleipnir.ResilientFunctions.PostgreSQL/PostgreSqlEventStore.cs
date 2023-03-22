@@ -177,21 +177,6 @@ public class PostgreSqlEventStore : IEventStore
         return affectedRows;
     }
 
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
-    {
-        await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
-
-        if (expectedEpoch != null && !await IsFunctionAtEpoch(functionId, expectedEpoch.Value, conn, transaction))
-            return false;
-        
-        await Truncate(functionId, conn, transaction);
-        await AppendEvents(functionId, storedEvents, conn, transaction);
-        await transaction.CommitAsync();
-        
-        return true;
-    }
-
     private async Task<bool> IsFunctionAtEpoch(FunctionId functionId, int expectedEpoch, NpgsqlConnection conn, NpgsqlTransaction transaction)
     {
         var sql = @$"    

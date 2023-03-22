@@ -90,9 +90,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
-        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch));
+        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.CrashedCheckFrequency.Ticks));
 
-    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch)
+    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long crashedCheckFrequency)
     {
         var storedParameter = Serializer.SerializeParameter(param);
         var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
@@ -101,7 +101,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, crashedCheckFrequency)
         );
 
         if (!success)
@@ -211,7 +211,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, int expectedEpoch
+        FunctionId functionId, int expectedEpoch, Status? expectedStatus
     ) 
     {
         var sf = await _functionStore.GetFunction(functionId);
@@ -219,6 +219,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
         if (sf.Epoch != expectedEpoch)
             throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
+        if (expectedStatus != null && sf.Status != expectedStatus.Value)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{expectedStatus}' was '{sf.Status}'");
 
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         var epoch = sf.Epoch + 1;
@@ -239,7 +241,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch));
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.CrashedCheckFrequency.Ticks));
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
         }

@@ -645,37 +645,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         return null;
     }
-
-    public async Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId)
-    {
-        await using var conn = await CreateConnection();
-        var sql = $@"
-            SELECT status, epoch 
-            FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters = { 
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
-            }
-        };
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        
-        while (await reader.ReadAsync())
-        {
-            return new StoredFunctionStatus(
-                functionId,
-                (Status)reader.GetInt32(1),
-                Epoch: reader.GetInt32(2)
-            );
-            
-        }
-
-        return null;
-    }
-
+    
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         await using var conn = await CreateConnection();

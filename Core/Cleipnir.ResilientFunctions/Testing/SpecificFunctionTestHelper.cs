@@ -78,7 +78,7 @@ public class SpecificFunctionTestHelper : IDisposable
                 FunctionId,
                 FunctionStore,
                 DefaultSerializer.Instance,
-                scheduleReInvocation: (id, epoch) => Task.CompletedTask
+                scheduleReInvocation: (id, epoch, status) => Task.CompletedTask
             );
         }
     }

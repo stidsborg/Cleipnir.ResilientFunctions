@@ -351,21 +351,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .ToTask();
         }
     }
-
-    public Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId))
-                return default(StoredFunctionStatus).ToTask();
-
-            var state = _states[functionId];
-            return new StoredFunctionStatus(functionId, state.Status, state.Epoch)
-                .CastTo<StoredFunctionStatus?>()
-                .ToTask();
-        }
-    }
-
+    
     public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         lock (_sync)
@@ -438,28 +424,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             _events[functionId] = new List<StoredEvent>();
 
         return Task.CompletedTask;
-    }
-
-    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEpoch)
-    {
-        lock (_sync)
-        {
-            if (expectedEpoch == null)
-            {
-                _events[functionId] = storedEvents.ToList();
-                return true.ToTask();    
-            }
-            
-            if (!_states.ContainsKey(functionId))
-                return false.ToTask();
-
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch)
-                return false.ToTask();
-            
-            _events[functionId] = storedEvents.ToList();
-            return true.ToTask();
-        }
     }
 
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)

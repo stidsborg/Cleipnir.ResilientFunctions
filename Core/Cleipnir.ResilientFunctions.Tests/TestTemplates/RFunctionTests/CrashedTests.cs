@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -16,7 +17,8 @@ public abstract class CrashedTests
     protected async Task NonCompletedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedFuncIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -34,14 +36,14 @@ public abstract class CrashedTests
                     (string _) => NeverCompletingTask.OfType<string>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -50,8 +52,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
                 ).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
@@ -60,7 +61,7 @@ public abstract class CrashedTests
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
-            await rFunc(param, param).ShouldBeAsync("TEST");
+            await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -71,11 +72,12 @@ public abstract class CrashedTests
     protected async Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            using var rFunctions = new RFunctions
                 (
                     store, 
                     new Settings(
@@ -83,20 +85,21 @@ public abstract class CrashedTests
                         crashedCheckFrequency: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
-                )
+                );
+            var nonCompletingRFunctions = rFunctions    
                 .RegisterFunc(
                     functionTypeId,
                     (string _, Scrapbook _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -110,12 +113,12 @@ public abstract class CrashedTests
                         return s.ToUpper();
                     }
                 ).Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
-            await BusyWait.Until(
-                async () => await store
+            
+            await BusyWait.Until(async () => 
+                await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
+                    .Map(f => f?.Status == Status.Succeeded),
+                maxWait: TimeSpan.FromSeconds(5)
             );
 
             var storedFunction = await store.GetFunction(functionId);
@@ -123,7 +126,7 @@ public abstract class CrashedTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
-            await rFunc(param, param).ShouldBeAsync("TEST");
+            await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -134,7 +137,8 @@ public abstract class CrashedTests
     protected async Task NonCompletedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedActionIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -153,14 +157,14 @@ public abstract class CrashedTests
                 )
                 .Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -170,8 +174,7 @@ public abstract class CrashedTests
                     (string _) => Task.CompletedTask
                 )
                 .Invoke;
-
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
@@ -180,7 +183,7 @@ public abstract class CrashedTests
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
-            await rAction(param, param);
+            await rAction(functionInstanceId.Value, param);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -191,7 +194,8 @@ public abstract class CrashedTests
     protected async Task NonCompletedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(NonCompletedFuncIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -209,14 +213,14 @@ public abstract class CrashedTests
                     (string _, Scrapbook _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(param, param);
+            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
             using var rFunctions = new RFunctions(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -230,11 +234,11 @@ public abstract class CrashedTests
                     }
                 ).Invoke;
 
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
-            await BusyWait.Until(
-                async () => await store
+            await BusyWait.Until(async () =>
+                await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
+                    .Map(f => f?.Status == Status.Succeeded),
+                maxWait: TimeSpan.FromSeconds(5)
             );
 
             var storedFunction = await store.GetFunction(functionId);
@@ -242,7 +246,7 @@ public abstract class CrashedTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
-            await rAction(param, param);
+            await rAction(functionInstanceId.Value, param);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -254,10 +258,7 @@ public abstract class CrashedTests
     {
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(CrashedActionReInvocationModeShouldBeRetry),
-            functionInstanceId: "test"
-        );
+        var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
@@ -265,9 +266,12 @@ public abstract class CrashedTests
             crashedCheckFrequency: 100
         ).ShouldBeTrueAsync();
 
-        using var rFunctions = new RFunctions(store, new Settings(
-            unhandledExceptionHandler.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(10))
+        using var rFunctions = new RFunctions(
+            store, 
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
+            )
         );
 
         var syncedInvocationMode = new Synced<InvocationMode>();

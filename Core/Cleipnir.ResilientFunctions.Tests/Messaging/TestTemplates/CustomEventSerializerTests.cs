@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
@@ -15,13 +15,10 @@ public abstract class CustomEventSerializerTests
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
     protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = new FunctionId(
-            functionTypeId: nameof(CustomEventSerializerTests),
-            functionInstanceId: nameof(CustomEventSerializerIsUsedWhenSpecified)
-        );
+        var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
         var eventSerializer = new EventSerializer();
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -45,8 +42,8 @@ public abstract class CustomEventSerializerTests
 
     private class EventSerializer : ISerializer
     {
-        public SyncedList<object> EventToSerialize { get; } = new();
-        public SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
+        public Utils.SyncedList<object> EventToSerialize { get; } = new();
+        public Utils.SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
 
         public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull 
             => DefaultSerializer.Instance.SerializeParameter(parameter);

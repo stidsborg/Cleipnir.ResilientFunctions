@@ -48,7 +48,7 @@ public abstract class MessagingTests
     {
         var store = await functionStore;
 
-        var functionId = new FunctionId(nameof(FunctionCompletesAfterAwaitedMessageIsReceived),"instanceId");
+        var functionId = TestFunctionId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
 

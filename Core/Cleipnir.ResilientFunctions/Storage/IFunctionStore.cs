@@ -67,7 +67,6 @@ public interface IFunctionStore
     Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState);
 
     Task<StoredFunction?> GetFunction(FunctionId functionId);
-    Task<StoredFunctionStatus?> GetFunctionStatus(FunctionId functionId);
 
     Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null);
 }

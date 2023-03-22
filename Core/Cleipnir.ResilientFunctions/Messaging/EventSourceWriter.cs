@@ -42,7 +42,7 @@ public class EventSourceWriter
         if (epoch != null)
             try
             {
-                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch);    
+                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch, expectedStatus: Status.Suspended);    
             } catch (UnexpectedFunctionState) {}
             
     }
@@ -65,7 +65,7 @@ public class EventSourceWriter
         if (epoch != null)
             try
             {
-                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch);    
+                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch, expectedStatus: Status.Suspended);    
             } catch (UnexpectedFunctionState) {}
     } 
 
