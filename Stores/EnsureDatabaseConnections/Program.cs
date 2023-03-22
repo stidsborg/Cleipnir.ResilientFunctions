@@ -9,7 +9,7 @@ internal static class Program
     public static async Task<int> Main(string[] args)
     {
         var failed = true;
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 20; i++)
         {
             await Task.Delay(1_000);
             
