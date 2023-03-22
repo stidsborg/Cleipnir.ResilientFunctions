@@ -38,11 +38,11 @@ jobs:
         run: sleep 5s
         shell: bash
 
-      - run: dotnet test .\Stores\MySQL\Cleipnir.ResilientFunctions.MySQL.Tests
+      - run: dotnet test ./Stores/MySQL/Cleipnir.ResilientFunctions.MySQL.Tests
       
-      - run: dotnet test .\Stores\PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.Tests
+      - run: dotnet test ./Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests
       
-      - run: dotnet test .\Stores\SqlServer\Cleipnir.ResilientFunctions.SqlServer.Tests
+      - run: dotnet test ./Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests
 
       - name: Stop containers
         run: docker-compose -f "docker-compose.yml" down
