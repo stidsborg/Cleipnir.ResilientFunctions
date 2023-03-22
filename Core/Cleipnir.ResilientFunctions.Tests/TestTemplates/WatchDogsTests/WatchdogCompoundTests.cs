@@ -365,9 +365,6 @@ public abstract class WatchdogCompoundTests
                 (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
                 );
 
-            var x = await store.GetFunction(functionId);
-            Console.WriteLine(x);
-            
             await BusyWait.Until(async () =>
                 await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded
             );
