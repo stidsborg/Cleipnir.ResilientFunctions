@@ -12,7 +12,7 @@ internal static class Program
         while (true)
         {
             await Task.Delay(1_000);
-            Console.WriteLine($"Trying {retry + 1}/20");
+            Console.WriteLine($"Trying {retry}/20");
             
             try
             {
