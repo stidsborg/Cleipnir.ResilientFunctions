@@ -33,11 +33,6 @@ jobs:
       - name: Start containers
         run: docker-compose -f "docker-compose.yml" up -d --build
 
-      # Runs a single command using the runners shell
-      - name: Sleeping 5 secs
-        run: sleep 5s
-        shell: bash
-
       - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj
 
       - run: dotnet test ./Stores/MySQL/Cleipnir.ResilientFunctions.MySQL.Tests --logger "console;verbosity=detailed"
