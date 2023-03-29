@@ -91,18 +91,21 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store
-            .UpdateSignOfLife(functionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife())
+            .UpdateSignOfLife(functionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife(CrashedCheckFrequency: 10_000))
             .ShouldBeTrueAsync();
 
         await BusyWait.Until(() =>
             store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
         );
-        
-        var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(functionId.TypeId);
-        var nonCompletedFunction = nonCompletedFunctions.Single();
-        nonCompletedFunction.Epoch.ShouldBe(0);
-        nonCompletedFunction.SignOfLife.ShouldBe(1);
+
+        await BusyWait.Until(async () =>
+        {
+            var nonCompletedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+            if (!nonCompletedFunctions.Any()) return false;
+            
+            var nonCompletedFunction = nonCompletedFunctions.Single();
+            return nonCompletedFunction is { Epoch: 0, SignOfLife: 1 };
+        });
     }
 
     public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
