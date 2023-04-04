@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Awaiter;
 using Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -398,5 +399,27 @@ public static class Linq
         await subscription.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
         throw new SuspendInvocationException(delivered);
     }
+
+    public static async Task SuspendUntil(this EventSource s, DateTime resumeAt, string timeoutId)
+    {
+        var subscription = s
+            .OfType<Timeout>()
+            .Where(t => t.TimeoutId == timeoutId)
+            .Subscribe(
+                onNext: _ => {},
+                onCompletion: () => {},
+                onError: _ => {}
+            );
+        var delivered = subscription.DeliverExisting();
+        if (delivered > 0)
+            return;
+
+        await subscription.TimeoutProvider.RegisterTimeout(timeoutId, resumeAt);
+        throw new SuspendInvocationException(delivered);
+    }
+
+    public static Task SuspendFor(this EventSource s, TimeSpan resumeAt, string timeoutId)
+        => s.SuspendUntil(DateTime.UtcNow.Add(resumeAt), timeoutId);
+
     #endregion
 }
