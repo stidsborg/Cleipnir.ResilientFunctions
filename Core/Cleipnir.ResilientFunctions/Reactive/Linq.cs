@@ -418,8 +418,8 @@ public static class Linq
         throw new SuspendInvocationException(delivered);
     }
 
-    public static Task SuspendFor(this EventSource s, TimeSpan resumeAt, string timeoutId)
-        => s.SuspendUntil(DateTime.UtcNow.Add(resumeAt), timeoutId);
+    public static Task SuspendFor(this EventSource s, TimeSpan resumeAfter, string timeoutId)
+        => s.SuspendUntil(DateTime.UtcNow.Add(resumeAfter), timeoutId);
 
     #endregion
 }
