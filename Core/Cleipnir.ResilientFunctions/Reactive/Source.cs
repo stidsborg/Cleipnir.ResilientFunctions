@@ -23,6 +23,24 @@ public class Source : ISource
     private readonly EmittedEvents _emittedEvents = new();
     private readonly object _sync = new();
 
+    public IEnumerable<object> Existing
+    {
+        get
+        {
+            var emittedSoFar = _emittedEvents.GetEvents(0);
+            var toReturn = new List<object>();
+            foreach (var emittedEvent in emittedSoFar)
+            {
+                if (emittedEvent.Event != null)
+                    toReturn.Add(emittedEvent.Event);
+            }
+
+            return toReturn;
+        }
+    }
+
+
+
     public Source(ITimeoutProvider timeoutProvider) => _timeoutProvider = timeoutProvider;
 
     public ISubscription Subscribe(

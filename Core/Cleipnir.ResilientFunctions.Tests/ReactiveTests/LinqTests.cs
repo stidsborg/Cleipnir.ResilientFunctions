@@ -425,4 +425,21 @@ public class LinqTests
         emitted.Count.ShouldBe(1);
         emitted[0].ShouldBe("hello");
     }
+    
+    [TestMethod]
+    public void ExistingPropertyContainsPreviouslyEmittedEvents()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        var existing = source.Existing.ToList();
+        existing.Count.ShouldBe(1);
+        existing[0].ShouldBe("hello");
+
+        source.SignalNext("world"); 
+        
+        existing = source.Existing.ToList();
+        existing.Count.ShouldBe(2);
+        existing[0].ShouldBe("hello");
+        existing[1].ShouldBe("world");
+    }
 }
