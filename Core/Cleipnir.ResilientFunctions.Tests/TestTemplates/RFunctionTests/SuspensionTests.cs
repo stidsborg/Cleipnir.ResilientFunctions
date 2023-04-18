@@ -28,7 +28,7 @@ public abstract class SuspensionTests
 
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            Result(string _) => Suspend.Until(1)
+            Result(string _) => Suspend.UntilAfter(0)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -39,9 +39,6 @@ public abstract class SuspensionTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         sf.SuspendedUntilEventSourceCount.ShouldBe(1);
-
-        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
-        epoch.ShouldBeNull();
     }
     
     public abstract Task FunctionCanBeSuspended();
@@ -60,7 +57,7 @@ public abstract class SuspensionTests
 
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
-            Result<string>(string _) => Suspend.Until(1)
+            Result<string>(string _) => Suspend.UntilAfter(0)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -71,9 +68,6 @@ public abstract class SuspensionTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         sf.SuspendedUntilEventSourceCount.ShouldBe(1);
-        
-        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
-        epoch.ShouldBeNull();
     }
     
     public abstract Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded();
@@ -90,10 +84,20 @@ public abstract class SuspensionTests
             new Settings(unhandledExceptionHandler.Catch)
         );
 
+        var invocations = 0;
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
-            Result<string>(string _) => Suspend.Until(1)
-        );
+            Result<string>(string _) =>
+            {
+                if (invocations == 0)
+                {
+                    invocations++;
+                    return Suspend.UntilAfter(0);
+                }
+
+                invocations++;
+                return Result.SucceedWithValue("completed");
+            });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
             () => rFunc.Invoke(functionInstanceId.Value, "hello world")
@@ -101,23 +105,10 @@ public abstract class SuspensionTests
 
         await Task.Delay(250);
 
-        (await store.GetEligibleSuspendedFunctions(functionTypeId)).ShouldBeEmpty();
+        var eventSourceWriter = rFunc.EventSourceWriters.For(functionInstanceId); 
+        await eventSourceWriter.AppendEvent("hello multiverse");
 
-        await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello multiverse", reInvokeImmediatelyIfSuspended: false);
-
-        await BusyWait.Until(() => store.GetEligibleSuspendedFunctions(functionTypeId).Any());
-        
-        var eligibleFunctions = await store
-            .GetEligibleSuspendedFunctions(functionTypeId)
-            .ToListAsync();
-        
-        eligibleFunctions.Count.ShouldBe(1);
-        eligibleFunctions[0].InstanceId.ShouldBe(functionInstanceId);
-        eligibleFunctions[0].Epoch.ShouldBe(0);
-        
-        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
-        epoch.ShouldNotBeNull();
-        epoch.Value.ShouldBe(0);
+        await BusyWait.UntilAsync(() => invocations == 2);
     }
     
     public abstract Task EligibleSuspendedFunctionIsPickedUpByWatchdog();
@@ -142,7 +133,7 @@ public abstract class SuspensionTests
             {
                 if (flag.IsRaised) return "success";
                 flag.Raise();
-                return Suspend.Until(1);
+                return Suspend.UntilAfter(0);
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -228,7 +219,7 @@ public abstract class SuspensionTests
         );
 
         var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
-        await eventSourceWriter.AppendEvent("hello universe", reInvokeImmediatelyIfSuspended: false);
+        await eventSourceWriter.AppendEvent("hello universe");
 
         var controlPanel = await registration.ControlPanel.For(functionInstanceId);
         controlPanel.ShouldNotBeNull();

@@ -17,6 +17,7 @@ public abstract class EventStoreTests
     protected async Task AppendedMessagesCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
     {
         var functionId = TestFunctionId.Create();
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
         var eventStore = await eventStoreTask;
 
         const string msg1 = "hello world";

@@ -719,11 +719,11 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            suspendUntilEventSourceCountAtLeast: 1,
+            expectedEventCount: 0,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 0,
             complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
-        ).ShouldBeTrueAsync();
+        ).ShouldBeAsync(SuspensionResult.Success);
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -737,28 +737,13 @@ public abstract class StoreTests
         var events = await store.EventStore.GetEvents(functionId);
         events.ShouldBeEmpty();
 
-        await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId).ShouldBeNullAsync();
-
         await Task.Delay(500);
-        
-        await store.GetEligibleSuspendedFunctions(functionId.TypeId)
-            .SelectAsync(sfs => sfs.Any())
-            .ShouldBeFalseAsync();
 
-        await store.EventStore.AppendEvents(
+        var suspensionStatus = await store.EventStore.AppendEvents(
             functionId,
             storedEvents: new[] { new StoredEvent("hello world".ToJson(), EventType: typeof(string).SimpleQualifiedName()) }
         );
-
-        var epoch = await store.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
-        epoch.ShouldNotBeNull();
-        epoch.Value.ShouldBe(0);
-
-        await BusyWait.Until(() => store.GetEligibleSuspendedFunctions(functionId.TypeId).Any());
-        
-        var eligibleFunctions = await store.GetEligibleSuspendedFunctions(functionId.TypeId).ToListAsync();
-        eligibleFunctions.Count.ShouldBe(1);
-        eligibleFunctions[0].InstanceId.ShouldBe(functionId.InstanceId);
+        suspensionStatus.Suspended.ShouldBeTrue();
     }
     
     public abstract Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch();

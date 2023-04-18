@@ -57,8 +57,7 @@ public class TimeoutProvider : ITimeoutProvider
 
         await _eventSourceWriter.AppendEvent(
             new Timeout(timeoutId, expiresAt),
-            idempotencyKey: $"Timeout¤{timeoutId}",
-            reInvokeImmediatelyIfSuspended: true
+            idempotencyKey: $"Timeout¤{timeoutId}"
         );
 
         await CancelTimeout(timeoutId);

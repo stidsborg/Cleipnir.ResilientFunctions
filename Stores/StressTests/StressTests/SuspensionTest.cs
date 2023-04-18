@@ -41,7 +41,7 @@ public class SuspensionTest
             );
             await store.SuspendFunction(
                 functionId,
-                suspendUntilEventSourceCountAtLeast: 1,
+                expectedEventCount: 1,
                 scrapbookJson: new RScrapbook().ToJson(),
                 expectedEpoch: 0,
                 complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)

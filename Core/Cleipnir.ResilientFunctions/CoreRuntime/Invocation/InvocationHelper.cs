@@ -173,14 +173,19 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 if (!success) throw new ConcurrentModificationException(functionId);
                 return;
             case Outcome.Suspend:
-                success = await _functionStore.SuspendFunction(
+                var suspensionResult = await _functionStore.SuspendFunction(
                     functionId,
-                    result.Suspend!.UntilEventSourceCount,
+                    result.Suspend!.ExpectedEventCount,
                     Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     expectedEpoch,
                     complementaryState
                 );
-                if (!success) throw new ConcurrentModificationException(functionId);
+                if (suspensionResult == SuspensionResult.Success)
+                    return;
+                if (suspensionResult == SuspensionResult.EventCountMismatch)
+                    throw new NotImplementedException();
+                if (suspensionResult == SuspensionResult.ConcurrentStateModification) 
+                    throw new ConcurrentModificationException(functionId);
                 return;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -405,7 +410,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     {
         async Task<EventSource> CreateNewEventSource()
         {
-            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
+            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore.EventStore, Serializer, scheduleReInvocation);
             var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutCheckFrequency); 
             var eventSource = new EventSource(
                 functionId,

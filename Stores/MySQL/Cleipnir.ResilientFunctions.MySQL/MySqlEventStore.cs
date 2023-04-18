@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using MySqlConnector;
@@ -52,10 +53,10 @@ public class MySqlEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public async Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var (eventJson, eventType, idempotencyKey) = storedEvent;
         
         var sql = @$"    
@@ -77,6 +78,7 @@ public class MySqlEventStore : IEventStore
                 new() {Value = functionId.InstanceId.Value}
             }
         };
+        var suspensionStatus = await GetSuspensionStatus(functionId, conn);
         try
         {
             await command.ExecuteNonQueryAsync();
@@ -84,32 +86,37 @@ public class MySqlEventStore : IEventStore
         }
         catch (MySqlException e) when (e.Number == 1062)
         {
-        } //ignore duplicate idempotency key
-        catch (MySqlException e) when (e.Number == 1213)
+            //ignore duplicate idempotency key
+        } 
+        catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
         {
             await transaction.RollbackAsync();
-            await AppendEvent(functionId, storedEvent);
+            return await AppendEvent(functionId, storedEvent);
         }
+
+        return suspensionStatus;
     }
 
-    public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
     
-    public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         var existingCount = await GetNumberOfEvents(functionId);
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var transaction = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
+        var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
 
         try
         {
             await AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
-            await transaction.CommitAsync();    
+            var suspensionStatus = await GetSuspensionStatus(functionId, conn);
+            await transaction.CommitAsync();
+            return suspensionStatus;
         }
         catch (MySqlException e) when (e.Number == 1213)
         {
             await transaction.RollbackAsync();
-            await AppendEvents(functionId, storedEvents);
+            return await AppendEvents(functionId, storedEvents);
         }
     }
 
@@ -296,5 +303,30 @@ public class MySqlEventStore : IEventStore
         );
 
         return Task.FromResult(subscription);
+    }
+    
+    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId, MySqlConnection connection)
+    {
+        var sql = @$"    
+            SELECT epoch, status
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = $1 AND function_instance_id = $2;";
+        await using var command = new MySqlCommand(sql, connection)
+        {
+            Parameters = { 
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var epoch = reader.GetInt32(0);
+            var status = (Status) reader.GetInt32(1);
+            return new SuspensionStatus(Suspended: status == Status.Suspended, Epoch: epoch);
+        }
+        
+        throw new ConcurrentModificationException(functionId);
     }
 }

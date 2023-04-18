@@ -87,12 +87,12 @@ public class Postpone
 
 public class Suspend
 {
-    public int UntilEventSourceCount { get; }
+    public int ExpectedEventCount { get; }
     
-    private Suspend(int untilEventSourceCount) => UntilEventSourceCount = untilEventSourceCount;
+    private Suspend(int expectedEventCount) => ExpectedEventCount = expectedEventCount;
 
-    public static Suspend Until(int eventSourceCountAtLeast) => new Suspend(eventSourceCountAtLeast);
-    public static void Throw(int untilEventSourceCountAtLeast) => throw new SuspendInvocationException(untilEventSourceCountAtLeast);
+    public static Suspend UntilAfter(int expectedEventCount) => new Suspend(expectedEventCount);
+    public static void Throw(int expectedEventCount) => throw new SuspendInvocationException(expectedEventCount);
 
     public Result<T> ToResult<T>() => new Result<T>(this);
 }

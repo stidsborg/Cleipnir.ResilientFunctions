@@ -280,41 +280,7 @@ public class MySqlFunctionStore : IFunctionStore
 
         return functions;
     }
-
-    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = @$"
-            SELECT rf.epoch
-            FROM {_tablePrefix}rfunctions AS rf
-            INNER JOIN (
-                SELECT MAX(Position) + 1 AS events_count
-                FROM {_tablePrefix}rfunctions_events AS events
-                WHERE events.function_type_id = ? AND
-                      events.function_instance_id = ?
-            ) AS events ON 1 = 1
-            WHERE rf.function_type_id = ? AND 
-                  rf.function_instance_id = ? AND
-                  rf.status = {(int) Status.Suspended} AND
-                  rf.suspend_until_eventsource_count <= events.events_count";
-        await using var command = new MySqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-            }
-        };
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-            return new Epoch(reader.GetInt32(0));
-
-        return null;
-    }
-
+    
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
@@ -505,31 +471,44 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = {(int) Status.Suspended}, suspend_until_eventsource_count = ?, scrapbook_json = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
-                epoch = ?";
+                epoch = ? AND
+                (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?) = ?";
         
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = suspendUntilEventSourceCountAtLeast},
+                new() {Value = expectedEventCount},
                 new() {Value = scrapbookJson},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEventCount},
             }
         };
         
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        await transaction.CommitAsync();
+        
+        if (affectedRows == 1)
+            return SuspensionResult.Success;
+
+        var sf = await GetFunction(functionId);
+        return sf?.Epoch != expectedEpoch
+            ? SuspensionResult.ConcurrentStateModification
+            : SuspensionResult.EventCountMismatch;
     }
 
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)

@@ -231,22 +231,6 @@ public class AzureBlobFunctionStore : IFunctionStore
         return eligibleFunctions;
     }
 
-    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
-    {
-        var eventsBlobName = functionId.GetEventsBlobName();
-        var eventsTagsResponse = await _blobContainerClient.GetAppendBlobClient(eventsBlobName).GetTagsAsync();
-        var eventsTags = eventsTagsResponse.Value.Tags;
-        if (eventsTags.ContainsKey("Suspended")) return null;
-        
-        var stateBlobName = functionId.GetStateBlobName();
-        var stateTagsResponse = await _blobContainerClient.GetBlobClient(stateBlobName).GetTagsAsync();
-        var stateTags = stateTagsResponse.Value.Tags;
-        var rfTags = RfTags.ConvertFrom(stateTags);
-        return rfTags.Status == Status.Suspended 
-            ? new Epoch(rfTags.Epoch) 
-            : null;
-    }
-
     public async Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 
@@ -623,9 +607,10 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
-        return await _eventStore.SuspendFunction(functionId, suspendUntilEventSourceCountAtLeast, scrapbookJson, expectedEpoch, complimentaryState);
+        //return await _eventStore.SuspendFunction(functionId, expectedEventCount, scrapbookJson, expectedEpoch, complimentaryState);
+        throw new NotImplementedException();
     }
 
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)

@@ -38,7 +38,7 @@ internal static class WatchDogsFactory
 
         var eventSourceWriters = new EventSourceWriters(
             functionTypeId,
-            functionStore,
+            functionStore.EventStore,
             settings.Serializer,
             scheduleReInvocation: (id, epoch, status) => reInvoke(id, epoch, status)
         );
@@ -52,20 +52,8 @@ internal static class WatchDogsFactory
             shutdownCoordinator
         );
 
-        var suspensionWatchdog = new SuspensionWatchdog(
-            functionTypeId,
-            functionStore,
-            reInvoke,
-            asyncSemaphore,
-            settings.SuspensionCheckFrequency,
-            settings.DelayStartup,
-            settings.UnhandledExceptionHandler,
-            shutdownCoordinator
-        );
-        
         _ = crashedWatchdog.Start();
         _ = postponedWatchdog.Start();
         _ = timeoutWatchdog.Start();
-        _ = suspensionWatchdog.Start();
     }
 }
