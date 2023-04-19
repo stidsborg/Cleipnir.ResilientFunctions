@@ -187,7 +187,7 @@ public static class Linq
         return tcs.Task;
     }
 
-    public static List<T> ExistingToList<T>(this IStream<T> stream)
+    public static List<T> PullExisting<T>(this IStream<T> stream)
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();
