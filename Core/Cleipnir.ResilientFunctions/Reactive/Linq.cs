@@ -134,6 +134,8 @@ public static class Linq
     public static IStream<List<T>> Buffer<T>(this IStream<T> s, int bufferSize) 
         => new BufferOperator<T>(s, bufferSize);
 
+    public static IStream<List<T>> Chunk<T>(this IStream<T> s, int size) => Buffer(s, size);
+
     public static IStream<T> Merge<T>(this IStream<T> stream1, IStream<T> stream2)
         => new MergeOperator<T>(stream1, stream2);
 
