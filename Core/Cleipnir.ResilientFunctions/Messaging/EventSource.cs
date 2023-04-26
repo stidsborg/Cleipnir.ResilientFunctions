@@ -31,6 +31,7 @@ public class EventSource : IStream<object>, IDisposable
     private readonly Source _source;
     private EventsSubscription? _eventsSubscription;
     public IStream<object> Source => _source;
+    public IEnumerable<object> Existing => _source.Existing;
 
     public EventSource(
         FunctionId functionId, 
