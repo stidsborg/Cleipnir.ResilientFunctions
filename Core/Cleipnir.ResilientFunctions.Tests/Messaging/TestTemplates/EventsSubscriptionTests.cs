@@ -3,6 +3,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -12,10 +13,12 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 public abstract class EventSubscriptionTests
 {
     public abstract Task EventsSubscriptionSunshineScenario();
-    protected async Task EventsSubscriptionSunshineScenario(Task<IEventStore> eventStoreTask)
+    protected async Task EventsSubscriptionSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);
 

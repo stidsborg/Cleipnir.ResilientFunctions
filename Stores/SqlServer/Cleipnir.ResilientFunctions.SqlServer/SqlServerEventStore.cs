@@ -65,7 +65,7 @@ public class SqlServerEventStore : IEventStore
     public async Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+        await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = @$"    
             INSERT INTO {_tablePrefix}RFunctions_Events
                 (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
@@ -76,7 +76,7 @@ public class SqlServerEventStore : IEventStore
                 @EventJson, @EventType, @IdempotencyKey
             );";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(sql, conn, transaction);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
@@ -85,16 +85,11 @@ public class SqlServerEventStore : IEventStore
         try
         {
             await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
         }
-        catch (SqlException exception) when (exception.Number == 2601)
-        {
-            return new SuspensionStatus(Suspended: false, Epoch: null);
-        }
+        catch (SqlException exception) when (exception.Number == 2601) { }
         
-        var suspensionStatus = await GetSuspensionStatus(functionId, conn);
-        await transaction.CommitAsync();
-        
-        return suspensionStatus;
+        return await GetSuspensionStatus(functionId);
     }
 
     public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -106,7 +101,7 @@ public class SqlServerEventStore : IEventStore
         await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
 
         await AppendEvents(functionId, storedEvents, conn, transaction);
-        var suspensionStatus = await GetSuspensionStatus(functionId, conn);
+        var suspensionStatus = await GetSuspensionStatus(functionId);
         await transaction.CommitAsync();
         return suspensionStatus;
     }
@@ -243,20 +238,21 @@ public class SqlServerEventStore : IEventStore
         return conn;
     }
     
-    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId, SqlConnection connection)
+    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId)
     {
+        await using var conn = await CreateConnection();
         var sql = @$"    
-            SELECT Epoch, Status
+            SELECT SuspendedAtEpoch, Status
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        await using var command = new SqlCommand(sql, connection);
+        await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var epoch = reader.GetInt32(0);
+            var epoch = reader.IsDBNull(0) ? default(int?) : reader.GetInt32(0);
             var status = (Status) reader.GetInt32(1);
             return new SuspensionStatus(Suspended: status == Status.Suspended, Epoch: epoch);
         }

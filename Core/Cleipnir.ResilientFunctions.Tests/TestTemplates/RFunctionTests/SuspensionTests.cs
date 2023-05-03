@@ -38,7 +38,7 @@ public abstract class SuspensionTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
-        sf.SuspendedUntilEventSourceCount.ShouldBe(1);
+        sf.SuspendedAtEpoch.ShouldBe(0);
     }
     
     public abstract Task FunctionCanBeSuspended();
@@ -67,7 +67,7 @@ public abstract class SuspensionTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
-        sf.SuspendedUntilEventSourceCount.ShouldBe(1);
+        sf.SuspendedAtEpoch.ShouldBe(0);
     }
     
     public abstract Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded();

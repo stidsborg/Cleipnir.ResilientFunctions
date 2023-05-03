@@ -688,8 +688,8 @@ public class AzureBlobFunctionStore : IFunctionStore
         }
 
         var suspendedUntilEventSourceCount =
-            dictionary.ContainsKey(nameof(StoredFunction.SuspendedUntilEventSourceCount))
-                ? int.Parse(dictionary[nameof(StoredFunction.SuspendedUntilEventSourceCount)]!)
+            dictionary.ContainsKey(nameof(StoredFunction.SuspendedAtEpoch))
+                ? int.Parse(dictionary[nameof(StoredFunction.SuspendedAtEpoch)]!)
                 : default(int?);
 
         return new StoredFunction(
@@ -700,7 +700,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             storedResult,
             Exception: storedException,
             PostponedUntil: rfTags.PostponedUntil,  
-            SuspendedUntilEventSourceCount: suspendedUntilEventSourceCount,
+            SuspendedAtEpoch: suspendedUntilEventSourceCount,
             Epoch: rfTags.Epoch,
             SignOfLife: rfTags.SignOfLife,
             CrashedCheckFrequency: rfTags.CrashedCheckFrequency

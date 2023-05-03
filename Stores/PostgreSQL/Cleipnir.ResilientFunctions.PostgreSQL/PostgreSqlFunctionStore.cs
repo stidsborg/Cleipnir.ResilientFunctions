@@ -66,7 +66,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type VARCHAR(255) NULL,
                 exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
-                suspend_until_eventsource_count INT NULL,
+                suspended_at_epoch INT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 sign_of_life INT NOT NULL DEFAULT 0,
                 crashed_check_frequency BIGINT NOT NULL,
@@ -271,42 +271,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return functions;
     }
 
-    public async Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            SELECT rf.function_instance_id, rf.epoch
-            FROM {_tablePrefix}rfunctions AS rf
-            INNER JOIN (
-                SELECT events.function_instance_id, MAX(Position) + 1 AS events_count
-                FROM {_tablePrefix}rfunctions_events AS events
-                WHERE events.function_type_id = $1
-                GROUP BY events.function_instance_id
-            ) AS events 
-                ON rf.function_instance_id = events.function_instance_id
-            WHERE rf.function_type_id = $1 AND 
-                  rf.status = {(int) Status.Suspended} AND
-                  rf.suspend_until_eventsource_count <= events.events_count";
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = functionTypeId.Value},
-            }
-        };
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<StoredEligibleSuspendedFunction>();
-        while (await reader.ReadAsync())
-        {
-            var functionInstanceId = reader.GetString(0);
-            var epoch = reader.GetInt32(1);
-            functions.Add(new StoredEligibleSuspendedFunction(functionInstanceId, epoch));
-        }
-
-        return functions;
-    }
-    
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
@@ -512,12 +476,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, suspend_until_eventsource_count = $1, scrapbook_json = $2
+            SET status = {(int) Status.Suspended}, suspended_at_epoch = $1, scrapbook_json = $2
             WHERE             
                 function_type_id = $3 AND 
                 function_instance_id = $4 AND 
                 epoch = $5 AND
-                (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $6 AND function_instance_id = $7) = $8";
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $6 AND function_instance_id = $7) = $8";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
@@ -587,7 +551,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type,
                 exception_json,
                 postponed_until,
-                suspend_until_eventsource_count,
+                suspended_at_epoch,
                 epoch, 
                 sign_of_life,
                 crashed_check_frequency
@@ -608,7 +572,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasException = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
-            var suspendedUntil = !await reader.IsDBNullAsync(9);
+            var suspendedAtEpoch = !await reader.IsDBNullAsync(9);
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
@@ -620,7 +584,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ),
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(7)),
                 postponedUntil ? reader.GetInt64(8) : null,
-                suspendedUntil ? reader.GetInt32(9) : null,
+                suspendedAtEpoch ? reader.GetInt32(9) : null,
                 Epoch: reader.GetInt32(10),
                 SignOfLife: reader.GetInt32(11),
                 CrashedCheckFrequency: reader.GetInt64(12)

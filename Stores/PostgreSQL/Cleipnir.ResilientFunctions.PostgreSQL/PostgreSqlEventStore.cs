@@ -70,7 +70,7 @@ public class PostgreSqlEventStore : IEventStore
         await using var conn = await CreateConnection();
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var (eventJson, eventType, idempotencyKey) = storedEvent;
-
+        
         var sql = @$"    
                 INSERT INTO {_tablePrefix}rfunctions_events
                     (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
@@ -91,16 +91,14 @@ public class PostgreSqlEventStore : IEventStore
             }
         };
 
-        var suspensionStatus = await GetSuspensionStatus(functionId, conn);
-        
         try
         {
             await command.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
         }
-        catch (PostgresException e) when (e.SqlState == "23505") {}
-
-        return suspensionStatus;
+        catch (PostgresException e) when (e.SqlState == "23505") {} //ignore entry already exist error
+        
+        return await GetSuspensionStatus(functionId);
     }
 
     public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -111,10 +109,9 @@ public class PostgreSqlEventStore : IEventStore
         await using var conn = await CreateConnection();
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         await AppendEvents(functionId, storedEvents, conn, transaction);
-        var suspensionStatus = await GetSuspensionStatus(functionId, conn);
         await transaction.CommitAsync();
         
-        return suspensionStatus;
+        return await GetSuspensionStatus(functionId);
     }
 
     internal async Task AppendEvents(
@@ -269,13 +266,14 @@ public class PostgreSqlEventStore : IEventStore
         return Task.FromResult(subscription);
     }
     
-    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId, NpgsqlConnection connection)
+    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId)
     {
+        await using var conn = await CreateConnection();
         var sql = @$"    
-            SELECT epoch, status
+            SELECT suspended_at_epoch, status
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
-        await using var command = new NpgsqlCommand(sql, connection)
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters = { 
                 new() {Value = functionId.TypeId.Value},
@@ -286,11 +284,11 @@ public class PostgreSqlEventStore : IEventStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var epoch = reader.GetInt32(0);
+            var epoch = reader.IsDBNull(0) ? default(int?) : reader.GetInt32(0);
             var status = (Status) reader.GetInt32(1);
             return new SuspensionStatus(Suspended: status == Status.Suspended, Epoch: epoch);
         }
         
-        throw new ConcurrentModificationException(functionId);
+        throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
     }
 }

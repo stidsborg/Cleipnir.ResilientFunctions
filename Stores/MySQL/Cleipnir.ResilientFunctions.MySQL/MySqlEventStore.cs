@@ -78,7 +78,6 @@ public class MySqlEventStore : IEventStore
                 new() {Value = functionId.InstanceId.Value}
             }
         };
-        var suspensionStatus = await GetSuspensionStatus(functionId, conn);
         try
         {
             await command.ExecuteNonQueryAsync();
@@ -94,7 +93,7 @@ public class MySqlEventStore : IEventStore
             return await AppendEvent(functionId, storedEvent);
         }
 
-        return suspensionStatus;
+        return await GetSuspensionStatus(functionId);
     }
 
     public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
@@ -109,7 +108,7 @@ public class MySqlEventStore : IEventStore
         try
         {
             await AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
-            var suspensionStatus = await GetSuspensionStatus(functionId, conn);
+            var suspensionStatus = await GetSuspensionStatus(functionId);
             await transaction.CommitAsync();
             return suspensionStatus;
         }
@@ -229,24 +228,12 @@ public class MySqlEventStore : IEventStore
         return affectedRows;
     }
     
-    internal async Task<bool> Replace(
-        FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedCount, 
-        MySqlConnection conn, MySqlTransaction transaction)
-    {
-        var affectedRows = await Truncate(functionId, conn, transaction);
-        if (expectedCount != null && affectedRows != expectedCount)
-            return false;
-        
-        await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
-        return true;
-    }
-
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
         => InnerGetEvents(functionId, skip: 0).SelectAsync(events => (IEnumerable<StoredEvent>)events);
     
     private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"    
             SELECT event_json, event_type, idempotency_key
             FROM {_tablePrefix}rfunctions_events
@@ -305,13 +292,14 @@ public class MySqlEventStore : IEventStore
         return Task.FromResult(subscription);
     }
     
-    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId, MySqlConnection connection)
+    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId)
     {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString); 
         var sql = @$"    
-            SELECT epoch, status
+            SELECT suspended_at_epoch, status
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
-        await using var command = new MySqlCommand(sql, connection)
+            WHERE function_type_id = ? AND function_instance_id = ?;";
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters = { 
                 new() {Value = functionId.TypeId.Value},
@@ -322,7 +310,7 @@ public class MySqlEventStore : IEventStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var epoch = reader.GetInt32(0);
+            var epoch = reader.IsDBNull(0) ? default(int?) : reader.GetInt32(0);
             var status = (Status) reader.GetInt32(1);
             return new SuspensionStatus(Suspended: status == Status.Suspended, Epoch: epoch);
         }

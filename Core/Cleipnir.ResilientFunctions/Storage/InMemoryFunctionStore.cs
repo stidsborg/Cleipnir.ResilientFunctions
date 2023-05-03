@@ -52,6 +52,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 CrashedCheckFrequency = crashedCheckFrequency
             };
 
+            _events[functionId] = new List<StoredEvent>();
+
             return true.ToTask();
         }
     }

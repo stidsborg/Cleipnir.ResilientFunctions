@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
@@ -274,10 +275,19 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
 
     private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch);
-        if (result.Outcome == Outcome.Postpone)
-            _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
-        InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+        switch (await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch))
+        {
+            case PersistResultReturn.Success:
+                if (result.Outcome == Outcome.Postpone)
+                    _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
+                InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+                return;
+            case PersistResultReturn.ScheduleReInvocation:
+                _ = ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
+                return;
+            case PersistResultReturn.ConcurrentModification:
+                throw new ConcurrentModificationException(functionId);
+        }
     }
     
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
