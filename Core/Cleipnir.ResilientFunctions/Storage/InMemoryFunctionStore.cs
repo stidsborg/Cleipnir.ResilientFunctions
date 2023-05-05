@@ -52,6 +52,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 CrashedCheckFrequency = crashedCheckFrequency
             };
 
+            _events[functionId] = new List<StoredEvent>();
+
             return true.ToTask();
         }
     }
@@ -156,17 +158,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .ToList()
                 .AsEnumerable()
                 .ToTask();
-    }
-
-    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
-    {
-        var eligibleFunctions = await GetEligibleSuspendedFunctions(functionId.TypeId);
-        var epoch = eligibleFunctions
-            .SingleOrDefault(f => f.InstanceId == functionId.InstanceId)
-            ?.Epoch;
-        return epoch == null
-            ? null
-            : new Epoch(epoch.Value);
     }
 
     public Task<bool> SetFunctionState(
@@ -291,20 +282,25 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
     
-    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(functionId)) return false.ToTask();
+            if (!_states.ContainsKey(functionId)) 
+                return SuspensionResult.ConcurrentStateModification.ToTask();
 
             var state = _states[functionId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
+            if (state.Epoch != expectedEpoch) 
+                return SuspensionResult.ConcurrentStateModification.ToTask();
 
+            if (_events[functionId].Count > expectedEventCount)
+                return SuspensionResult.EventCountMismatch.ToTask();
+                
             state.Status = Status.Suspended;
-            state.SuspendUntilEventSourceCountAtLeast = suspendUntilEventSourceCountAtLeast;
+            state.SuspendUntilEventSourceCountAtLeast = expectedEventCount;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
-
-            return true.ToTask();
+            
+            return SuspensionResult.Success.ToTask();
         }
     }
 
@@ -395,13 +391,13 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     #endregion
     #region EventStore
 
-    public Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
         => AppendEvents(functionId, new[] { storedEvent });
 
-    public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         lock (_sync)
         {
@@ -413,9 +409,11 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 if (storedEvent.IdempotencyKey == null ||
                     events.All(e => e.IdempotencyKey != storedEvent.IdempotencyKey))
                     events.Add(storedEvent);
-        }
 
-        return Task.CompletedTask;
+            return _states[functionId].Status == Status.Suspended
+                ? Task.FromResult(new SuspensionStatus(Suspended: true, Epoch: _states[functionId].Epoch))
+                : Task.FromResult(new SuspensionStatus(Suspended: false, Epoch: null));
+        }
     }
 
     public Task Truncate(FunctionId functionId)

@@ -10,5 +10,5 @@ public class EventsSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messagi
 {
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()
-        => EventsSubscriptionSunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().EventStore.ToTask());
+        => EventsSubscriptionSunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

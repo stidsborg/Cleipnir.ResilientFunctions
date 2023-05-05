@@ -45,6 +45,15 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             }
         });
     }
+
+    public async Task X(RAction<string> registration)
+    {
+        var email = "test";
+        var welcomeEmailSent = new WelcomeEmailSent();
+
+        var eventSourceWriter = registration.EventSourceWriters.For(email);
+        await eventSourceWriter.AppendEvent(welcomeEmailSent);
+    }
     
     public Task ProcessOrder(Order order) => RAction.Invoke(order.OrderId, order);
 
@@ -71,9 +80,21 @@ public class OrderProcessor : IRegisterRFuncOnInstantiation
             await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId));
             await eventSource.OfType<OrderConfirmationEmailSent>().SuspendUntilNext(TimeSpan.FromSeconds(60));
 
+            await SignUserUpToNewsLetter("test", context);
+            
             Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
-        }        
+        }
+
+        public async Task SignUserUpToNewsLetter(string email, Context context)
+        {
+            using var eventSource = await context.EventSource;
+            await _messageBroker.Send(new SendWelcomeEmail(email));
+            await eventSource.NextOfType<WelcomeEmailSent>();
+        }
     }
+
+    private record SendWelcomeEmail(string Address) : EventsAndCommands;
+    private record WelcomeEmailSent() : EventsAndCommands;
 
     public class Scrapbook : RScrapbook
     {

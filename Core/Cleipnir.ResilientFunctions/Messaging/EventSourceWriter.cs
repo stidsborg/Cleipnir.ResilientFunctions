@@ -12,44 +12,39 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 public class EventSourceWriter
 {
     private readonly FunctionId _functionId;
-    private readonly IFunctionStore _functionStore;
     private readonly IEventStore _eventStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
 
-    public EventSourceWriter(FunctionId functionId, IFunctionStore functionStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
+    public EventSourceWriter(FunctionId functionId, IEventStore eventStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
     {
         _functionId = functionId;
-        _functionStore = functionStore;
-        _eventStore = functionStore.EventStore;
+        _eventStore = eventStore;
         _serializer = eventSerializer;
         _scheduleReInvocation = scheduleReInvocation;
     }
 
-    public async Task AppendEvent<TEvent>(TEvent @event, string? idempotencyKey = null, bool reInvokeImmediatelyIfSuspended = true) where TEvent : notnull
+    public async Task AppendEvent<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
     {
         var (eventJson, eventType) = _serializer.SerializeEvent(@event);
-        await _eventStore.AppendEvent(
+        var (suspended, epoch) = await _eventStore.AppendEvent(
             _functionId,
             eventJson,
             eventType,
             idempotencyKey
         );
 
-        if (!reInvokeImmediatelyIfSuspended) return;
-
-        var epoch = await _functionStore.IsFunctionSuspendedAndEligibleForReInvocation(_functionId);
-        if (epoch != null)
-            try
-            {
-                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch, expectedStatus: Status.Suspended);    
-            } catch (UnexpectedFunctionState) {}
-            
+        if (suspended)
+            await _scheduleReInvocation(
+                _functionId.InstanceId.Value,
+                expectedEpoch: epoch!.Value,
+                expectedStatus: Status.Suspended
+            );
     }
 
-    public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events, bool reInvokeImmediatelyIfSuspended = true)
+    public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
     {
-        await _eventStore.AppendEvents(
+        var (suspended, epoch) = await _eventStore.AppendEvents(
             _functionId,
             storedEvents: events.Select(eventAndIdempotencyKey =>
             {
@@ -57,16 +52,14 @@ public class EventSourceWriter
                 var (json, type) = _serializer.SerializeEvent(@event);
                 return new StoredEvent(json, type, idempotencyKey);
             })
-        );  
-        
-        if (!reInvokeImmediatelyIfSuspended) return;
+        );
 
-        var epoch = await _functionStore.IsFunctionSuspendedAndEligibleForReInvocation(_functionId);
-        if (epoch != null)
-            try
-            {
-                await _scheduleReInvocation(_functionId.InstanceId.Value, epoch, expectedStatus: Status.Suspended);    
-            } catch (UnexpectedFunctionState) {}
+        if (suspended)
+            await _scheduleReInvocation(
+                _functionId.InstanceId.Value,
+                expectedEpoch: epoch!.Value,
+                expectedStatus: Status.Suspended
+            );
     } 
 
     public Task Truncate() => _eventStore.Truncate(_functionId);

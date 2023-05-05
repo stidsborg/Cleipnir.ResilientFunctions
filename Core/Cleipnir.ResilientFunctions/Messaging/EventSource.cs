@@ -115,13 +115,13 @@ public class EventSource : IStream<object>, IDisposable
 
     public async Task AppendEvent(object @event, string? idempotencyKey = null)
     {
-        await _eventWriter.AppendEvent(@event, idempotencyKey, reInvokeImmediatelyIfSuspended: false);
+        await _eventWriter.AppendEvent(@event, idempotencyKey);
         await Sync();
     }
 
     public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
     {
-        await _eventWriter.AppendEvents(events, reInvokeImmediatelyIfSuspended: false);
+        await _eventWriter.AppendEvents(events);
         await Sync();
     }
 

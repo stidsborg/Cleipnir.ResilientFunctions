@@ -8,49 +8,49 @@ public class EventStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Test
 {
     [TestMethod]
     public override Task AppendedMessagesCanBeFetchedAgain()
-        => AppendedMessagesCanBeFetchedAgain(Sql.CreateAndInitializeEventStore());
+        => AppendedMessagesCanBeFetchedAgain(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain()
-        => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Sql.CreateAndInitializeEventStore());
+        => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
-        => SkippedMessagesAreNotFetched(Sql.CreateAndInitializeEventStore());
+        => SkippedMessagesAreNotFetched(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task TruncatedEventSourceContainsNoEvents()
-        => TruncatedEventSourceContainsNoEvents(Sql.CreateAndInitializeEventStore());
+        => TruncatedEventSourceContainsNoEvents(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task NoExistingEventSourceCanBeTruncated()
-        => NoExistingEventSourceCanBeTruncated(Sql.CreateAndInitializeEventStore());
+        => NoExistingEventSourceCanBeTruncated(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task ExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => ExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.CreateAndInitializeEventStore());
+        => ExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.CreateAndInitializeEventStore());
+        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Sql.CreateAndInitializeEventStore());
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Sql.CreateAndInitializeEventStore());
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task FetchNonExistingEventsSucceeds()
-        => FetchNonExistingEventsSucceeds(Sql.CreateAndInitializeEventStore());
+        => FetchNonExistingEventsSucceeds(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task EventSubscriptionPublishesAppendedEvents()
-        => EventSubscriptionPublishesAppendedEvents(Sql.CreateAndInitializeEventStore());
+        => EventSubscriptionPublishesAppendedEvents(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys()
-        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Sql.CreateAndInitializeEventStore());
+        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Sql.AutoCreateAndInitializeStore());
 }

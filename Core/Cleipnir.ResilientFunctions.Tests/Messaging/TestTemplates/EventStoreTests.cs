@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -14,10 +15,12 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 public abstract class EventStoreTests
 {
     public abstract Task AppendedMessagesCanBeFetchedAgain();
-    protected async Task AppendedMessagesCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
+    protected async Task AppendedMessagesCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
@@ -43,10 +46,12 @@ public abstract class EventStoreTests
     }
 
     public abstract Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain();
-    protected async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Task<IEventStore> eventStoreTask)
+    protected async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
@@ -74,10 +79,12 @@ public abstract class EventStoreTests
     }
     
     public abstract Task SkippedMessagesAreNotFetched();
-    protected async Task SkippedMessagesAreNotFetched(Task<IEventStore> eventStoreTask)
+    protected async Task SkippedMessagesAreNotFetched(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
@@ -98,10 +105,12 @@ public abstract class EventStoreTests
     }
     
     public abstract Task TruncatedEventSourceContainsNoEvents();
-    protected async Task TruncatedEventSourceContainsNoEvents(Task<IEventStore> eventStoreTask)
+    protected async Task TruncatedEventSourceContainsNoEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
@@ -116,10 +125,12 @@ public abstract class EventStoreTests
     }
     
     public abstract Task NoExistingEventSourceCanBeTruncated();
-    protected async Task NoExistingEventSourceCanBeTruncated(Task<IEventStore> eventStoreTask)
+    protected async Task NoExistingEventSourceCanBeTruncated(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
         
         await eventStore.Truncate(functionId);
         var events = await eventStore.GetEvents(functionId);
@@ -127,10 +138,12 @@ public abstract class EventStoreTests
     }
     
     public abstract Task ExistingEventSourceCanBeReplacedWithProvidedEvents();
-    protected async Task ExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IEventStore> eventStoreTask)
+    protected async Task ExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvent(
             functionId,
@@ -164,10 +177,12 @@ public abstract class EventStoreTests
     }
     
     public abstract Task NonExistingEventSourceCanBeReplacedWithProvidedEvents();
-    protected async Task NonExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IEventStore> eventStoreTask)
+    protected async Task NonExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         await eventStore.Truncate(functionId);
         await eventStore.AppendEvents(
@@ -189,7 +204,7 @@ public abstract class EventStoreTests
     }
     
     public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource();
-    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Task<IEventStore> eventStoreTask)
+    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Task<IFunctionStore> functionStoreTask)
     {
         var event1 = new StoredEvent(
             JsonExtensions.ToJson("hello world"),
@@ -203,7 +218,9 @@ public abstract class EventStoreTests
         );
         
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvent(functionId, event1);
         await eventStore.AppendEvent(functionId, event2);
@@ -215,7 +232,7 @@ public abstract class EventStoreTests
     }
     
     public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion();
-    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Task<IEventStore> eventStoreTask)
+    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Task<IFunctionStore> functionStoreTask)
     {
         var event1 = new StoredEvent(
             "hello world".ToJson(),
@@ -229,7 +246,9 @@ public abstract class EventStoreTests
         );
         
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvents(functionId, new [] {event1, event2});
 
@@ -240,19 +259,23 @@ public abstract class EventStoreTests
     }
 
     public abstract Task FetchNonExistingEventsSucceeds();
-    protected async Task FetchNonExistingEventsSucceeds(Task<IEventStore> eventStoreTask)
+    protected async Task FetchNonExistingEventsSucceeds(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
         var events = await eventStore.GetEvents(functionId);
         events.ShouldBeEmpty();
     }
     
     public abstract Task EventSubscriptionPublishesAppendedEvents();
-    protected async Task EventSubscriptionPublishesAppendedEvents(Task<IEventStore> eventStoreTask)
+    protected async Task EventSubscriptionPublishesAppendedEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);
         
@@ -288,10 +311,12 @@ public abstract class EventStoreTests
     }
     
     public abstract Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys();
-    protected async Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Task<IEventStore> eventStoreTask)
+    protected async Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
-        var eventStore = await eventStoreTask;
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        var eventStore = functionStore.EventStore;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);
         

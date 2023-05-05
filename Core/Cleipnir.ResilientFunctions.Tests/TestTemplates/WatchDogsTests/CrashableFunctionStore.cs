@@ -68,16 +68,6 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
             : _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
 
-    public Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
-        => _crashed
-            ? Task.FromException<IEnumerable<StoredEligibleSuspendedFunction>>(new TimeoutException())
-            : _inner.GetEligibleSuspendedFunctions(functionTypeId);
-
-    public Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
-        => _crashed
-            ? Task.FromException<Epoch?>(new TimeoutException())
-            : _inner.IsFunctionSuspendedAndEligibleForReInvocation(functionId);
-
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, StoredParameter storedParameter,
         StoredScrapbook storedScrapbook, StoredResult storedResult, StoredException? storedException, 
@@ -128,10 +118,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch, complementaryState);
 
-    public Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(functionId, suspendUntilEventSourceCountAtLeast, scrapbookJson, expectedEpoch, complementaryState);
+            ? Task.FromException<SuspensionResult>(new TimeoutException())
+            : _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, expectedEpoch, complementaryState);
 
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _crashed

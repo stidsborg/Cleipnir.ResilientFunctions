@@ -13,7 +13,7 @@ public record StoredFunction(
     StoredResult Result,
     StoredException? Exception,
     long? PostponedUntil,
-    int? SuspendedUntilEventSourceCount,
+    int? SuspendedAtEpoch,
     int Epoch,
     int SignOfLife,
     long CrashedCheckFrequency

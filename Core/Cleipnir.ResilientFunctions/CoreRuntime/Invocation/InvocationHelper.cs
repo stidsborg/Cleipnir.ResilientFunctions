@@ -129,7 +129,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new ConcurrentModificationException(functionId);
     }
 
-    public async Task PersistResult(
+    public async Task<PersistResultReturn> PersistResult(
         FunctionId functionId,
         Result<TReturn> result,
         TParam param,
@@ -150,8 +150,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
+                return !success 
+                    ? PersistResultReturn.ConcurrentModification 
+                    : PersistResultReturn.Success;
             case Outcome.Postpone:
                 success = await _functionStore.PostponeFunction(
                     functionId,
@@ -160,8 +161,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
+                return !success 
+                    ? PersistResultReturn.ConcurrentModification 
+                    : PersistResultReturn.Success;
             case Outcome.Fail:
                 success = await _functionStore.FailFunction(
                     functionId,
@@ -170,18 +172,24 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
+                return !success 
+                    ? PersistResultReturn.ConcurrentModification 
+                    : PersistResultReturn.Success;
             case Outcome.Suspend:
-                success = await _functionStore.SuspendFunction(
+                var suspensionResult = await _functionStore.SuspendFunction(
                     functionId,
-                    result.Suspend!.UntilEventSourceCount,
+                    result.Suspend!.ExpectedEventCount,
                     Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     expectedEpoch,
                     complementaryState
                 );
-                if (!success) throw new ConcurrentModificationException(functionId);
-                return;
+                if (suspensionResult == SuspensionResult.Success)
+                    return PersistResultReturn.Success;
+                if (suspensionResult == SuspensionResult.EventCountMismatch)
+                    return PersistResultReturn.ScheduleReInvocation;
+                if (suspensionResult == SuspensionResult.ConcurrentStateModification)
+                    return PersistResultReturn.ConcurrentModification;
+                return PersistResultReturn.Success;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -405,7 +413,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     {
         async Task<EventSource> CreateNewEventSource()
         {
-            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
+            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore.EventStore, Serializer, scheduleReInvocation);
             var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutCheckFrequency); 
             var eventSource = new EventSource(
                 functionId,

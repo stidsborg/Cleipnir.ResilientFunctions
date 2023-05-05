@@ -28,10 +28,8 @@ public class ReactiveIntegrationTests
                 var es = await context.EventSource;
                 await es.SuspendFor(TimeSpan.FromSeconds(1), "timeout");
             });
-
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            rAction.Invoke(functionInstanceId.Value, "param")
-        );
+        
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(rAction.Invoke(functionInstanceId.Value, "param"));
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)

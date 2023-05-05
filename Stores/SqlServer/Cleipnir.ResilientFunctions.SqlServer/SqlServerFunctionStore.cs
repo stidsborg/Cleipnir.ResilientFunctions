@@ -68,11 +68,11 @@ public class SqlServerFunctionStore : IFunctionStore
                 ResultJson NVARCHAR(MAX) NULL,
                 ResultType NVARCHAR(255) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,
-                PostponedUntil BIGINT NULL,
-                SuspendUntilEventSourceCount INT NULL,
+                PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
                 SignOfLife INT NOT NULL,
                 CrashedCheckFrequency BIGINT NOT NULL,
+                SuspendedAtEpoch INT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
             CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
@@ -153,9 +153,9 @@ public class SqlServerFunctionStore : IFunctionStore
 
             await command.ExecuteNonQueryAsync();
         }
-        catch (SqlException sqlException)
+        catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
         {
-            if (sqlException.Number == SqlError.UNIQUENESS_VIOLATION) return false;
+            return false;
         }
 
         return true;
@@ -276,73 +276,6 @@ public class SqlServerFunctionStore : IFunctionStore
         }
 
         return rows;
-    }
-
-    public async Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
-    {
-        await using var conn = await _connFunc();
-        var sql = @$"
-            SELECT rf.FunctionInstanceId, rf.Epoch
-            FROM {_tablePrefix}RFunctions AS rf
-            INNER JOIN (
-                SELECT events.FunctionInstanceId, MAX(Position) + 1 AS EventsCount
-                FROM {_tablePrefix}RFunctions_Events AS events
-                WHERE events.FunctionTypeId = @FunctionTypeId
-                GROUP BY events.FunctionInstanceId
-            ) AS events
-            ON rf.FunctionInstanceId = events.FunctionInstanceId AND 
-               rf.SuspendUntilEventSourceCount <= events.EventsCount
-            WHERE rf.FunctionTypeId = @FunctionTypeId AND 
-                  rf.status = {(int) Status.Suspended}";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var rows = new List<StoredEligibleSuspendedFunction>(); 
-        while (reader.HasRows)
-        {
-            while (reader.Read())
-            {
-                var functionInstanceId = reader.GetString(0);
-                var epoch = reader.GetInt32(1);
-                rows.Add(new StoredEligibleSuspendedFunction(functionInstanceId, epoch));    
-            }
-
-            reader.NextResult();
-        }
-
-        return rows;
-    }
-
-    public async Task<Epoch?> IsFunctionSuspendedAndEligibleForReInvocation(FunctionId functionId)
-    {
-        await using var conn = await _connFunc();
-        var sql = @$"
-            SELECT rf.Epoch
-            FROM {_tablePrefix}RFunctions AS rf
-            INNER JOIN (
-                SELECT MAX(Position) + 1 AS EventsCount
-                FROM {_tablePrefix}RFunctions_Events AS events
-                WHERE events.FunctionTypeId = @FunctionTypeId AND 
-                      events.FunctionInstanceId = @FunctionInstanceId
-            ) AS events
-            ON 1 = 1 
-            WHERE rf.FunctionTypeId = @FunctionTypeId AND
-                  rf.FunctionInstanceId = @FunctionInstanceId AND
-                  rf.status = {(int) Status.Suspended} AND 
-                  rf.SuspendUntilEventSourceCount <= events.EventsCount";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (reader.HasRows)
-            while (reader.Read())
-                return new Epoch(reader.GetInt32(0));
-
-        return default;
     }
 
     public async Task<bool> SetFunctionState(
@@ -509,26 +442,50 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> SuspendFunction(FunctionId functionId, int suspendUntilEventSourceCountAtLeast, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
-        await using var conn = await _connFunc();
-        
-        var sql = @$"
+        {
+            await using var conn = await _connFunc();
+            await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+            
+            var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Suspended}, SuspendUntilEventSourceCount = @SuspendUntilEventSourceCount, ScrapbookJson = @ScrapbookJson
-            WHERE FunctionTypeId = @FunctionTypeId
+            SET Status = {(int) Status.Suspended}, SuspendedAtEpoch = @SuspendedAtEpoch, ScrapbookJson = @ScrapbookJson
+            WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
+            AND FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
 
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@SuspendUntilEventSourceCount", suspendUntilEventSourceCountAtLeast);
-        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+            await using var command = new SqlCommand(sql, conn, transaction);
+            command.Parameters.AddWithValue("@SuspendedAtEpoch", expectedEpoch);
+            command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+            command.Parameters.AddWithValue("@ExpectedCount", expectedEventCount);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
+            if (affectedRows > 0)
+                return SuspensionResult.Success;
+        }
+        {
+            await using var conn = await _connFunc();
+            var sql = @$"
+                SELECT COALESCE(MAX(position), -1) + 1 
+                FROM {_tablePrefix}RFunctions_Events 
+                WHERE FunctionTypeId = @FunctionTypeId 
+                  AND FunctionInstanceId = @FunctionInstanceId";
+
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+
+            var numberOfEvents = (int?) await command.ExecuteScalarAsync();
+            return numberOfEvents > expectedEventCount 
+                ? SuspensionResult.EventCountMismatch 
+                : SuspensionResult.ConcurrentStateModification;
+        }
     }
 
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
@@ -563,7 +520,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultJson, ResultType,
                     ExceptionJson,
                     PostponedUntil,
-                    SuspendUntilEventSourceCount,
+                    SuspendedAtEpoch,
                     Epoch, SignOfLife, 
                     CrashedCheckFrequency
             FROM {_tablePrefix}RFunctions
@@ -591,7 +548,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
-                var suspendedUntil = reader.IsDBNull(9) ? default(int?) : reader.GetInt32(9);
+                var suspendedAtEpoch = reader.IsDBNull(9) ? default(int?) : reader.GetInt32(9);
                 var epoch = reader.GetInt32(10);
                 var signOfLife = reader.GetInt32(11);
                 var crashedCheckFrequency = reader.GetInt64(12);
@@ -604,7 +561,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     new StoredResult(resultJson, resultType),
                     storedException,
                     postponedUntil,
-                    suspendedUntil,
+                    suspendedAtEpoch,
                     epoch,
                     signOfLife,
                     crashedCheckFrequency

@@ -22,20 +22,20 @@ public class AzureBlobEventStore : IEventStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
         => AppendEvents(functionId, storedEvents: new[] { storedEvent });
 
-    public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         var marshalledString = SimpleMarshaller.Serialize(storedEvents
             .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
             .ToArray()
         );
         
-        await AppendOrCreate(functionId, marshalledString);
+        return await AppendOrCreate(functionId, marshalledString);
     }
 
     public async Task Truncate(FunctionId functionId)
@@ -167,8 +167,10 @@ public class AzureBlobEventStore : IEventStore
         return Task.FromResult(subscription);
     }
 
-    private async Task AppendOrCreate(FunctionId functionId, string marshalledString)
+    private async Task<SuspensionStatus> AppendOrCreate(FunctionId functionId, string marshalledString)
     {
+        throw new NotImplementedException();
+        /*
         var blobName = functionId.GetEventsBlobName();
         var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
 
@@ -197,16 +199,17 @@ public class AzureBlobEventStore : IEventStore
             await AppendOrCreate(functionId, marshalledString);
         }
 
-        await setTagsTask;
+        await setTagsTask;*/
     }
 
-    internal async Task<bool> SuspendFunction(
+    internal async Task<SuspensionStatus> SuspendFunction(
         FunctionId functionId, 
-        int suspendUntilEventSourceCountAtLeast, 
+        int expectedEventCount, 
         string _, 
         int expectedEpoch, 
         ComplimentaryState.SetResult complimentaryState)
     {
+        /*
         var (events, _, eTag) = await InnerGetEvents(functionId, offset: 0);
 
         var stateBlobName = functionId.GetStateBlobName();
@@ -221,29 +224,11 @@ public class AzureBlobEventStore : IEventStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
-                { $"{nameof(StoredFunction.SuspendedUntilEventSourceCount)}", suspendUntilEventSourceCountAtLeast.ToString() }
+                { $"{nameof(StoredFunction.SuspendedUntilEventSourceCount)}", expectedEventCount.ToString() }
             }
         );
 
-        try
-        {
-            await blobClient.UploadAsync( 
-                new BinaryData(content),
-                new BlobUploadOptions
-                {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Suspended, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
-                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
-                }
-            );    
-        } catch (RequestFailedException e)
-        {
-            if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
-                throw;
-
-            return false;
-        }
-        
-        if (suspendUntilEventSourceCountAtLeast > events.Count)
+        if (expectedEventCount > events.Count)
         {
             var eventsBlobName = functionId.GetEventsBlobName();
             try
@@ -262,7 +247,27 @@ public class AzureBlobEventStore : IEventStore
             }
         }
         
+        try
+        {
+            await blobClient.UploadAsync( 
+                new BinaryData(content),
+                new BlobUploadOptions
+                {
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Suspended, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
+                }
+            );    
+        } catch (RequestFailedException e)
+        {
+            if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
+                throw;
+
+            return false;
+        }
+
         return true;
+        */
+        throw new NotImplementedException();
     }
 
 

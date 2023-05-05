@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
@@ -60,10 +62,10 @@ public class SqlServerEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public async Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await CreateConnection();
-
+        await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = @$"    
             INSERT INTO {_tablePrefix}RFunctions_Events
                 (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
@@ -73,30 +75,35 @@ public class SqlServerEventStore : IEventStore
                 (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @EventJson, @EventType, @IdempotencyKey
             );";
-        await using var command = new SqlCommand(sql, conn);
+        
+        await using var command = new SqlCommand(sql, conn, transaction);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
         command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
-        command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object)DBNull.Value);
         try
         {
             await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
         }
-        catch (SqlException exception) when (exception.Number == 2601) {}
+        catch (SqlException exception) when (exception.Number == 2601) { }
+        
+        return await GetSuspensionStatus(functionId);
     }
 
-    public Task AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
 
         await AppendEvents(functionId, storedEvents, conn, transaction);
-        
+        var suspensionStatus = await GetSuspensionStatus(functionId);
         await transaction.CommitAsync();
+        return suspensionStatus;
     }
     
     internal async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, SqlConnection connection, SqlTransaction transaction)
@@ -229,5 +236,27 @@ public class SqlServerEventStore : IEventStore
         var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
         return conn;
+    }
+    
+    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"    
+            SELECT SuspendedAtEpoch, Status
+            FROM {_tablePrefix}RFunctions
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var epoch = reader.IsDBNull(0) ? default(int?) : reader.GetInt32(0);
+            var status = (Status) reader.GetInt32(1);
+            return new SuspensionStatus(Suspended: status == Status.Suspended, Epoch: epoch);
+        }
+        
+        throw new ConcurrentModificationException(functionId);
     }
 }
