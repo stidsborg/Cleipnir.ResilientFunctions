@@ -284,7 +284,7 @@ public class Invoker<TEntity, TParam, TScrapbook, TReturn>
                 return;
             case PersistResultReturn.ScheduleReInvocation:
                 _ = ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
-                return;
+                throw new FunctionInvocationSuspendedException(functionId);
             case PersistResultReturn.ConcurrentModification:
                 throw new ConcurrentModificationException(functionId);
         }
