@@ -212,8 +212,8 @@ public class AzureBlobEventStore : IEventStore
             return SuspensionResult.EventCountMismatch;
         
         var tagsResponse = await GetTags(functionId);
-      
-        var tags = tagsResponse.Value.Tags;
+        
+        var tags = tagsResponse!.Value.Tags;
         var suspendedAtEpoch = tags.ContainsKey("suspended_at_epoch")
             ? int.Parse(tags["suspended_at_epoch"])
             : default(int?);
