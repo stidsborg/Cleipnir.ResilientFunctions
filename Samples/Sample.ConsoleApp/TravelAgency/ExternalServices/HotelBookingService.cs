@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace ConsoleApp.TravelAgency.MessagingApproach.ExternalServices;
+namespace ConsoleApp.TravelAgency.ExternalServices;
 
 public static class HotelBookingService
 {

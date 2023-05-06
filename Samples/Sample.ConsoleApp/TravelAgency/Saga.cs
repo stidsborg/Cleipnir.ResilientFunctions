@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive;
 
-namespace ConsoleApp.TravelAgency.MessagingApproach;
+namespace ConsoleApp.TravelAgency;
 
 public static class Saga
 {
@@ -21,31 +22,28 @@ public static class Saga
                 await MessageBroker.Send(new BookFlight(bookingId, customerId, details));
                 await MessageBroker.Send(new BookHotel(bookingId, customerId, details));
                 await MessageBroker.Send(new RentCar(bookingId, customerId, details));
+                await eventSource.TimeoutProvider.RegisterTimeout("timeout", expiresIn: TimeSpan.FromMinutes(1));
             }
         );
-        
-        var success = await eventSource
-            .OfTypes<FlightBooked, HotelBooked, CarRented>()
-            .Chunk(3)
-            .Select(_ => true)
-            .Merge(eventSource.OfType<Timeout>().Select(_ => false))
-            .SuspendUntilNext();
 
-        if (!success)
+        
+        var first3 = await eventSource.Chunk(3).Next();
+        if (first3.OfType<Timeout>().Any())
         {
             await MessageBroker.Send(new BookingFailed(bookingRequest.BookingId));
-            throw new TimeoutException("All responses were not received within threshold");   
+            throw new TimeoutException("All responses were not received within threshold");
         }
         
-        var flightBookingTask = await eventSource.NextOfType<FlightBooked>(); 
-        var hotelBookingTask = await eventSource.NextOfType<HotelBooked>();
-        var carBookingTask = await eventSource.NextOfType<CarRented>();
+        var flightBooking = first3.OfType<FlightBooked>().Single(); 
+        var hotelBooking = first3.OfType<HotelBooked>().Single();
+        var carBooking = first3.OfType<CarRented>().Single();
 
-        await MessageBroker.Send(new BookingCompletedSuccessfully(
+        await MessageBroker.Send(
+            new BookingCompletedSuccessfully(
                 bookingRequest.BookingId,
-                flightBookingTask,
-                hotelBookingTask,
-                carBookingTask
+                flightBooking,
+                hotelBooking,
+                carBooking
             )
         );
     }

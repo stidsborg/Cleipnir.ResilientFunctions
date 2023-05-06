@@ -1,19 +1,19 @@
 ﻿using System.Threading.Tasks;
 
-namespace ConsoleApp.TravelAgency.MessagingApproach.ExternalServices;
+namespace ConsoleApp.TravelAgency.ExternalServices;
 
-public static class CarRentalService
+public static class AirlineService
 {
     public static void Start()
     {
         MessageBroker.Subscribe(msg =>
         {
-            if (msg is RentCar booking)
+            if (msg is BookFlight booking)
             {
                 Task.Run(async () =>
                 {
                     await Task.Delay(250);
-                    await MessageBroker.Send(new CarRented(booking.BookingId));
+                    await MessageBroker.Send(new FlightBooked(booking.BookingId));
                 });
             }
 

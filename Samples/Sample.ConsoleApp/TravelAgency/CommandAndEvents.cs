@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ConsoleApp.TravelAgency.MessagingApproach;
+namespace ConsoleApp.TravelAgency;
 
 public record CommandAndEvents;
 public record BookFlight(Guid BookingId, Guid CustomerId, string Details) : CommandAndEvents;

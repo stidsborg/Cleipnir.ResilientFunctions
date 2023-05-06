@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -423,5 +424,19 @@ public static class Linq
     public static Task SuspendFor(this EventSource s, TimeSpan resumeAfter, string timeoutId)
         => s.SuspendUntil(DateTime.UtcNow.Add(resumeAfter), timeoutId);
 
+    public static Task Completion<T>(this IStream<T> s)
+    {
+        var tcs = new TaskCompletionSource();
+        var subscription = s.Subscribe(
+            onNext: _ => { },
+            onCompletion: () => tcs.TrySetResult(),
+            onError: e => tcs.TrySetException(e)
+        );
+        
+        subscription.DeliverExistingAndFuture();
+        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
+        return tcs.Task;
+    }
+    
     #endregion
 }
