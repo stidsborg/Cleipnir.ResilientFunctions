@@ -18,7 +18,7 @@ public class Saga
         var agents = request.CustomerSupportAgents.Length;
         while (true)
         {
-            if (!TimeoutOrResponseForTryReceived(eventSource, scrapbook.Try))
+            if (!TimeoutOrResponseForTryReceived(eventSource, scrapbook.Try)) //then send email requesting support ticket to be taken
             {
                 var customerSupportAgentEmail = request.CustomerSupportAgents[scrapbook.Try % agents];
                 await MessageBroker.Send(new TakeSupportTicket(request.SupportTicketId, customerSupportAgentEmail, RequestId: scrapbook.Try.ToString()));
