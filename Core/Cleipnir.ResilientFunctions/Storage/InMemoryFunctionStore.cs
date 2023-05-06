@@ -141,25 +141,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .AsEnumerable()
                 .ToTask();
     }
-
-    public Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
-    {
-        lock (_sync)
-            return _states
-                .Values
-                .Where(s => s.FunctionId.TypeId == functionTypeId)
-                .Where(s => s.Status == Status.Suspended)
-                .Where(s =>
-                {
-                    var events = EventStore.GetEvents(s.FunctionId).Result;
-                    return s.SuspendUntilEventSourceCountAtLeast <= events.Count();
-                })
-                .Select(s => new StoredEligibleSuspendedFunction(s.FunctionId.InstanceId, s.Epoch))
-                .ToList()
-                .AsEnumerable()
-                .ToTask();
-    }
-
+    
     public Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
@@ -198,6 +180,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.PostponeUntil = postponeUntil;
 
             state.Epoch += 1;
+            state.SuspendedAtEpoch = status == Status.Suspended ? state.Epoch : default(int?);
 
             return true.ToTask();
         }
@@ -220,7 +203,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, bool suspended, int expectedEpoch)
     {
         lock (_sync)
         {
@@ -241,8 +224,9 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             
             state.Param = storedParameter;
             state.Scrapbook = storedScrapbook;
-
+            
             state.Epoch += 1;
+            state.SuspendedAtEpoch = suspended ? state.Epoch : default(int?);
 
             return true.ToTask();
         }
@@ -297,7 +281,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 return SuspensionResult.EventCountMismatch.ToTask();
                 
             state.Status = Status.Suspended;
-            state.SuspendUntilEventSourceCountAtLeast = expectedEventCount;
+            state.SuspendedAtEpoch = expectedEpoch;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             
             return SuspensionResult.Success.ToTask();
@@ -338,7 +322,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                     state.Result,
                     state.Exception,
                     state.PostponeUntil,
-                    state.SuspendUntilEventSourceCountAtLeast,
+                    state.SuspendedAtEpoch,
                     state.Epoch,
                     state.SignOfLife,
                     state.CrashedCheckFrequency
@@ -386,7 +370,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         public int Epoch { get; set; }
         public int SignOfLife { get; set; }
         public long CrashedCheckFrequency { get; set; }
-        public int SuspendUntilEventSourceCountAtLeast { get; set; }
+        public int? SuspendedAtEpoch { get; set; }
     }
     #endregion
     #region EventStore

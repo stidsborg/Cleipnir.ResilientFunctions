@@ -264,6 +264,7 @@ public class MySqlFunctionStore : IFunctionStore
                 scrapbook_json = ?, scrapbook_type = ?, 
                 result_json = ?, result_type = ?, 
                 exception_json = ?, postponed_until = ?,
+                suspended_at_epoch = ?,
                 epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
@@ -282,6 +283,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
                 new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
+                new() {Value = status == Status.Suspended ? expectedEpoch + 1 : DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -335,6 +337,7 @@ public class MySqlFunctionStore : IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
         ReplaceEvents? events,
+        bool suspended,
         int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -344,7 +347,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, epoch = epoch + 1
+            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, suspended_at_epoch = ?, epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -358,6 +361,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = storedParameter.ParamType },
                 new() { Value = storedScrapbook.ScrapbookJson },
                 new() { Value = storedScrapbook.ScrapbookType },
+                new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },

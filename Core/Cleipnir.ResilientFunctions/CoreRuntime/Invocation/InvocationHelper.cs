@@ -356,7 +356,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId, 
         TParam param, 
         TScrapbook scrapbook, 
-        ExistingEvents? existingEvents, 
+        ExistingEvents? existingEvents,
+        bool suspended,
         int expectedEpoch)
     {
         var serializer = _settings.Serializer;
@@ -377,6 +378,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                         .ToList(), 
                     existingEvents.ExistingCount
                 ),
+            suspended,
             expectedEpoch
         );
     }

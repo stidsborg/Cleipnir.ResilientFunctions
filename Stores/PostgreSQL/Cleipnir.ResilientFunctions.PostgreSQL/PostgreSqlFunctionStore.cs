@@ -292,11 +292,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 scrapbook_json = $4, scrapbook_type = $5, 
                 result_json = $6, result_type = $7, 
                 exception_json = $8, postponed_until = $9,
+                suspended_at_epoch = $10,
                 epoch = epoch + 1
             WHERE 
-                function_type_id = $10 AND 
-                function_instance_id = $11 AND 
-                epoch = $12";
+                function_type_id = $11 AND 
+                function_instance_id = $12 AND 
+                epoch = $13";
         await using var command = new NpgsqlCommand(sql, conn, transaction)
         {
             Parameters =
@@ -310,6 +311,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
+                new() {Value = status == Status.Suspended ? expectedEpoch + 1 : DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -369,6 +371,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
         ReplaceEvents? events,
+        bool suspended,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
@@ -378,8 +381,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, epoch = epoch + 1
-            WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
+            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, suspended_at_epoch = $5, epoch = epoch + 1
+            WHERE function_type_id = $6 AND function_instance_id = $7 AND epoch = $8";
         
         var command = new NpgsqlCommand(sql, conn, transaction)
         {
@@ -389,6 +392,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = storedParameter.ParamType },
                 new() { Value = storedScrapbook.ScrapbookJson },
                 new() { Value = storedScrapbook.ScrapbookType },
+                new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },

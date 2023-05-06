@@ -194,43 +194,6 @@ public class AzureBlobFunctionStore : IFunctionStore
         return postponedFunctions;
     }
 
-    public async Task<IEnumerable<StoredEligibleSuspendedFunction>> GetEligibleSuspendedFunctions(FunctionTypeId functionTypeId)
-    {
-        var suspendedEventSourcesTask = Task.Run(async () =>
-        {
-            var functionIds = new HashSet<FunctionId>();
-            var suspendedEventSources = _blobContainerClient
-                .FindBlobsByTagsAsync($"FunctionType = '{functionTypeId.Value}' AND Suspended = '1'");  
-            await foreach (var suspendedEventSource in suspendedEventSources)
-            {
-                var functionId = suspendedEventSource.BlobName.ConvertFromEventsBlobNameToFunctionId();
-                functionIds.Add(functionId);
-            }
-
-            return functionIds;
-        });
-
-        var suspendedFunctionList = new List<Tuple<FunctionId, Epoch>>();
-        var suspendedFunctions = _blobContainerClient.FindBlobsByTagsAsync($"FunctionType = '{functionTypeId.Value}' AND Status = '{(int) Status.Suspended}' AND Epoch >= '0'");
-        await foreach (var suspendedFunction in suspendedFunctions)
-        {
-            var epoch = int.Parse(suspendedFunction.Tags["Epoch"]);
-            var suspendedFunctionId = suspendedFunction.BlobName.ConvertFromStateBlobNameToFunctionId();
-            suspendedFunctionList.Add(Tuple.Create(suspendedFunctionId, new Epoch(epoch)));
-        }
-
-        var suspendedEventSources = await suspendedEventSourcesTask;
-        var eligibleFunctions = new List<StoredEligibleSuspendedFunction>();       
-        foreach (var suspendedFunction in suspendedFunctionList)
-        {
-            var (suspendedFunctionId, epoch) = suspendedFunction;
-            if (!suspendedEventSources.Contains(suspendedFunctionId))
-                eligibleFunctions.Add(new StoredEligibleSuspendedFunction(suspendedFunctionId.InstanceId, epoch));
-        }
-
-        return eligibleFunctions;
-    }
-
     public async Task<bool> SetFunctionState(
         FunctionId functionId, 
         Status status, 
@@ -239,7 +202,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents? events, 
+        ReplaceEvents? events,
         int expectedEpoch)
     {
         if (events != null)
@@ -254,7 +217,34 @@ public class AzureBlobFunctionStore : IFunctionStore
                 events,
                 expectedEpoch
             );
-        
+        else
+            return await SetFunctionStateWithoutEvents(
+                functionId,
+                status,
+                storedParameter,
+                storedScrapbook,
+                storedResult,
+                storedException,
+                postponeUntil,
+                expectedEpoch,
+                incrementEpoch: true,
+                forceSetSuspendedTagIfSuspended: true
+            );
+    }
+
+    private async Task<bool> SetFunctionStateWithoutEvents(
+        FunctionId functionId, 
+        Status status, 
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook, 
+        StoredResult storedResult, 
+        StoredException? storedException, 
+        long? postponeUntil,
+        int expectedEpoch,
+        bool incrementEpoch,
+        bool forceSetSuspendedTagIfSuspended
+    )
+    {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
@@ -281,6 +271,18 @@ public class AzureBlobFunctionStore : IFunctionStore
             stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
         }
 
+        if (status == Status.Suspended)
+        {
+            var epoch = incrementEpoch ? expectedEpoch + 1 : expectedEpoch;
+            if (incrementEpoch)
+                stateDictionary["SuspendedAtEpoch"] = epoch.ToString();
+            else
+                stateDictionary["SuspendedAtEpoch"] = expectedEpoch.ToString();
+            
+            if (forceSetSuspendedTagIfSuspended)
+                await _eventStore.ForceSetSuspendedAtEpochTag(functionId, epoch, leaseId: null);
+        }
+
         var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
 
         try
@@ -293,7 +295,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value,
                         status,
-                        Epoch: expectedEpoch + 1,
+                        Epoch: incrementEpoch ? expectedEpoch + 1 : expectedEpoch,
                         SignOfLife: Random.Shared.Next(0, int.MaxValue),
                         CrashedCheckFrequency: 0,
                         PostponedUntil: postponeUntil
@@ -313,7 +315,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 
             throw;
         }
-    }
+    } 
 
     private async Task<bool> SetFunctionStateWithEvents( 
         FunctionId functionId, 
@@ -323,7 +325,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents replaceEvents, 
+        ReplaceEvents replaceEvents,
         int expectedEpoch)
     {
         BlobLeaseClient? stateLeaseClient = null;
@@ -380,6 +382,12 @@ public class AzureBlobFunctionStore : IFunctionStore
                 stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}"] =
                     exceptionStackTrace;
                 stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
+            }
+
+            if (status == Status.Suspended)
+            {
+                stateDictionary[nameof(StoredFunction.SuspendedAtEpoch)] = (expectedEpoch + 1).ToString();
+                await _eventStore.ForceSetSuspendedAtEpochTag(functionId, epoch: expectedEpoch + 1, leaseId: eventsLeaseId);
             }
 
             var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
@@ -462,12 +470,13 @@ public class AzureBlobFunctionStore : IFunctionStore
             throw;
         }
     }
-
+    
     public async Task<bool> SetParameters(
         FunctionId functionId, 
         StoredParameter storedParameter, 
         StoredScrapbook storedScrapbook, 
         ReplaceEvents? events, 
+        bool suspended,
         int expectedEpoch)
     {
         var storedFunction = await GetFunction(functionId);
@@ -607,10 +616,29 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
-        //return await _eventStore.SuspendFunction(functionId, expectedEventCount, scrapbookJson, expectedEpoch, complimentaryState);
-        throw new NotImplementedException();
+        var suspensionResult = await _eventStore.SetSuspendedAtEpochTag(functionId, expectedEpoch, expectedEventCount);
+        if (suspensionResult is SuspensionResult.ConcurrentStateModification or SuspensionResult.EventCountMismatch)
+            return suspensionResult;
+
+        var success = await SetFunctionStateWithoutEvents(
+            functionId,
+            Status.Suspended,
+            complimentaryState.StoredParameter,
+            complimentaryState.StoredScrapbook,
+            storedResult: new StoredResult(ResultJson: default, ResultType: default),
+            storedException: null,
+            postponeUntil: null,
+            expectedEpoch: expectedEpoch,
+            incrementEpoch: false,
+            forceSetSuspendedTagIfSuspended: false
+        );
+
+        if (!success)
+            return SuspensionResult.ConcurrentStateModification;
+        
+        return SuspensionResult.Success;
     }
 
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
@@ -687,7 +715,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             );
         }
 
-        var suspendedUntilEventSourceCount =
+        var suspendedAtEpoch =
             dictionary.ContainsKey(nameof(StoredFunction.SuspendedAtEpoch))
                 ? int.Parse(dictionary[nameof(StoredFunction.SuspendedAtEpoch)]!)
                 : default(int?);
@@ -700,7 +728,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             storedResult,
             Exception: storedException,
             PostponedUntil: rfTags.PostponedUntil,  
-            SuspendedAtEpoch: suspendedUntilEventSourceCount,
+            SuspendedAtEpoch: suspendedAtEpoch,
             Epoch: rfTags.Epoch,
             SignOfLife: rfTags.SignOfLife,
             CrashedCheckFrequency: rfTags.CrashedCheckFrequency

@@ -5,6 +5,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -169,105 +170,102 @@ public class AzureBlobEventStore : IEventStore
 
     private async Task<SuspensionStatus> AppendOrCreate(FunctionId functionId, string marshalledString)
     {
-        throw new NotImplementedException();
-        /*
-        var blobName = functionId.GetEventsBlobName();
-        var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
+        var eventsBlobName = functionId.GetEventsBlobName();
+        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
 
-        var setTagsTask = Task.Run(
-            () =>
-            {
-                try
-                {
-                    appendBlobClient.SetTagsAsync(ImmutableDictionary<string, string>.Empty);
-                }
-                catch (RequestFailedException e)
-                {
-                    if (e.ErrorCode != "BlobNotFound") throw;
-                }
-            });
-        
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
         try
         {
-            await appendBlobClient.AppendBlockAsync(ms);
+            await eventsBlobClient.AppendBlockAsync(ms);
         }
         catch (RequestFailedException e)
         {
             if (e.ErrorCode != "BlobNotFound") throw;
-            await appendBlobClient.CreateIfNotExistsAsync();
+            await eventsBlobClient.CreateIfNotExistsAsync();
             await AppendOrCreate(functionId, marshalledString);
-        }
-
-        await setTagsTask;*/
-    }
-
-    internal async Task<SuspensionStatus> SuspendFunction(
-        FunctionId functionId, 
-        int expectedEventCount, 
-        string _, 
-        int expectedEpoch, 
-        ComplimentaryState.SetResult complimentaryState)
-    {
-        /*
-        var (events, _, eTag) = await InnerGetEvents(functionId, offset: 0);
-
-        var stateBlobName = functionId.GetStateBlobName();
-        var blobClient = _blobContainerClient.GetBlobClient(stateBlobName);
-        
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
-        
-        var content = SimpleDictionaryMarshaller.Serialize(
-            new Dictionary<string, string?>
-            {
-                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", paramType },
-                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
-                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
-                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
-                { $"{nameof(StoredFunction.SuspendedUntilEventSourceCount)}", expectedEventCount.ToString() }
-            }
-        );
-
-        if (expectedEventCount > events.Count)
-        {
-            var eventsBlobName = functionId.GetEventsBlobName();
-            try
-            {
-                await _blobContainerClient
-                    .GetAppendBlobClient(eventsBlobName)
-                    .SetTagsAsync(
-                        new Dictionary<string, string> { { "Suspended", "1" }, { "FunctionType", functionId.TypeId.Value } },
-                        conditions: new AppendBlobRequestConditions { IfMatch = eTag }
-                    );
-            }
-            catch (RequestFailedException e)
-            {
-                if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
-                    throw;
-            }
         }
         
         try
         {
-            await blobClient.UploadAsync( 
-                new BinaryData(content),
-                new BlobUploadOptions
-                {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Suspended, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
-                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
-                }
-            );    
-        } catch (RequestFailedException e)
-        {
-            if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
-                throw;
+            var tags = await eventsBlobClient.GetTagsAsync().SelectAsync(r => r.Value.Tags);
+            var success = tags.TryGetValue("suspended_at_epoch", out var epochStr);
+            if (!success)
+                return new SuspensionStatus(Suspended: false, Epoch: default);
 
-            return false;
+            var suspendedAtEpoch = int.Parse(epochStr!);
+            return new SuspensionStatus(Suspended: true, suspendedAtEpoch);
         }
+        catch (RequestFailedException e)
+        {
+            if (e.ErrorCode != "BlobNotFound") throw;
+            throw new ConcurrentModificationException(functionId);
+        }
+    }
 
-        return true;
-        */
-        throw new NotImplementedException();
+    internal async Task<SuspensionResult> SetSuspendedAtEpochTag(FunctionId functionId, int expectedEpoch, int expectedEventCount)
+    {
+        var eventsBlobName = functionId.GetEventsBlobName();
+        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+        
+        var eventCount = await GetEvents(functionId).SelectAsync(e => e.Count());
+        if (expectedEventCount != eventCount)
+            return SuspensionResult.EventCountMismatch;
+        
+        var tagsResponse = await GetTags(functionId);
+      
+        var tags = tagsResponse.Value.Tags;
+        var suspendedAtEpoch = tags.ContainsKey("suspended_at_epoch")
+            ? int.Parse(tags["suspended_at_epoch"])
+            : default(int?);
+        
+        if (suspendedAtEpoch.HasValue && suspendedAtEpoch.Value > expectedEpoch) 
+            return SuspensionResult.ConcurrentStateModification;
+        
+        try
+        {
+            await eventsBlobClient.SetTagsAsync(
+                new Dictionary<string, string> { { "suspended_at_epoch", expectedEpoch.ToString() } },
+                new BlobRequestConditions { IfMatch = tagsResponse.GetRawResponse().Headers.ETag }
+            );
+            return SuspensionResult.Success;
+        }
+        catch (RequestFailedException e)
+        {
+            if (e.ErrorCode != "BlobNotFound") 
+                return SuspensionResult.ConcurrentStateModification;
+            
+            await eventsBlobClient.CreateIfNotExistsAsync();
+            return await SetSuspendedAtEpochTag(functionId, expectedEpoch, expectedEventCount);
+        }
+    }
+
+    internal async Task ForceSetSuspendedAtEpochTag(FunctionId functionId, int epoch, string? leaseId)
+    {
+        var eventsBlobName = functionId.GetEventsBlobName();
+        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+        try
+        {
+            await eventsBlobClient.SetTagsAsync(
+                new Dictionary<string, string> { { "suspended_at_epoch", epoch.ToString() } },
+                leaseId == null ? new BlobRequestConditions() : new BlobRequestConditions { LeaseId = leaseId }
+            );
+        }
+        catch (RequestFailedException e)
+        {
+            if (e.ErrorCode != "BlobNotFound")
+                throw;
+            
+            await eventsBlobClient.CreateIfNotExistsAsync();
+            await ForceSetSuspendedAtEpochTag(functionId, epoch, leaseId);
+        }
+    }
+
+    private async Task<Response<GetBlobTagResult>?> GetTags(FunctionId functionId)
+    {
+        var eventsBlobName = functionId.GetEventsBlobName();
+        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+        
+        return await eventsBlobClient.GetTagsAsync();
     }
 
 

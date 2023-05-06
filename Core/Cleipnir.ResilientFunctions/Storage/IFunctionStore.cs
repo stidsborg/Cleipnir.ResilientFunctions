@@ -56,6 +56,7 @@ public interface IFunctionStore
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
         ReplaceEvents? events,
+        bool suspended,
         int expectedEpoch
     );
 
