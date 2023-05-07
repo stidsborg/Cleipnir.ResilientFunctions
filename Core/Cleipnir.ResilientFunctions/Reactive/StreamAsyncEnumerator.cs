@@ -27,9 +27,9 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
             }
         }
 
-        public StreamAsyncEnumerator(IStream<T> stream, CancellationToken cancellationToken)
+        public StreamAsyncEnumerator(IReactiveChain<T> reactiveChain, CancellationToken cancellationToken)
         {
-            _subscription = stream.Subscribe(
+            _subscription = reactiveChain.Subscribe(
                 onNext: next => AddEventToDictionary(new Event(completed: false, exception: null, next)),
                 onCompletion: () => AddEventToDictionary(new Event(completed: true, exception: null, next: default!)),
                 onError: exception => AddEventToDictionary(new Event(completed: false, exception, next: default!))

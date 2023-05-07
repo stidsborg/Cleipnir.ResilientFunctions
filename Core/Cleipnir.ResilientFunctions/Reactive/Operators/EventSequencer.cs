@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
-public class StreamEventSequencer<T>
+public class EventSequencer<T>
 {
     private readonly Queue<StreamEvent<T>> _eventQueue = new();
     private bool _processing;
@@ -13,7 +13,7 @@ public class StreamEventSequencer<T>
     private readonly Action _onCompletion;
     private readonly Action<Exception> _onError;
 
-    public StreamEventSequencer(Action<T> onNext, Action onCompletion, Action<Exception> onError)
+    public EventSequencer(Action<T> onNext, Action onCompletion, Action<Exception> onError)
     {
         _onNext = onNext;
         _onCompletion = onCompletion;

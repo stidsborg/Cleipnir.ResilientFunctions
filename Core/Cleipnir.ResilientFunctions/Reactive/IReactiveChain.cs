@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
-public interface IStream<out T>
+public interface IReactiveChain<out T>
 {
     ISubscription Subscribe(
         Action<T> onNext, 
@@ -14,5 +14,5 @@ public interface IStream<out T>
     );
 
     IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-        => new StreamAsyncEnumerator<T>(stream: this, cancellationToken);
+        => new StreamAsyncEnumerator<T>(reactiveChain: this, cancellationToken);
 }

@@ -4,14 +4,14 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
-public class BufferOperator<T> : IStream<List<T>>
+public class BufferOperator<T> : IReactiveChain<List<T>>
 {
-    private readonly IStream<T> _innerStream;
+    private readonly IReactiveChain<T> _innerReactiveChain;
     private readonly int _bufferSize;
 
-    public BufferOperator(IStream<T> innerStream, int bufferSize)
+    public BufferOperator(IReactiveChain<T> innerReactiveChain, int bufferSize)
     {
-        _innerStream = innerStream;
+        _innerReactiveChain = innerReactiveChain;
         _bufferSize = bufferSize;
 
         if (bufferSize < 0)
@@ -19,7 +19,7 @@ public class BufferOperator<T> : IStream<List<T>>
     }
 
     public ISubscription Subscribe(Action<List<T>> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null) 
-        => new Subscription(_innerStream, _bufferSize, onNext, onCompletion, onError, subscriptionGroupId);
+        => new Subscription(_innerReactiveChain, _bufferSize, onNext, onCompletion, onError, subscriptionGroupId);
 
     private class Subscription : ISubscription
     {
@@ -34,7 +34,7 @@ public class BufferOperator<T> : IStream<List<T>>
         private bool _completed;
 
         public Subscription(
-            IStream<T> inner,
+            IReactiveChain<T> inner,
             int bufferSize,
             Action<List<T>> signalNext, Action signalCompletion, Action<Exception> signalError,
             int? subscriptionGroupId)
@@ -49,7 +49,7 @@ public class BufferOperator<T> : IStream<List<T>>
             _subscription = inner.Subscribe(OnNext, OnCompletion, OnError, subscriptionGroupId);
         }
 
-        public IStream<object> Source => _subscription.Source;
+        public IReactiveChain<object> Source => _subscription.Source;
         public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;
         public int SubscriptionGroupId => _subscription.SubscriptionGroupId;
         public void DeliverExistingAndFuture() => _subscription.DeliverExistingAndFuture();

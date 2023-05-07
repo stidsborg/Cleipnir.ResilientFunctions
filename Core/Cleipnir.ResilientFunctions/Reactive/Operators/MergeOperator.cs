@@ -3,19 +3,19 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
-public class MergeOperator<T> : IStream<T>
+public class MergeOperator<T> : IReactiveChain<T>
 {
-    private readonly IStream<T> _stream1;
-    private readonly IStream<T> _stream2;
+    private readonly IReactiveChain<T> _chain1;
+    private readonly IReactiveChain<T> _chain2;
 
-    public MergeOperator(IStream<T> stream1, IStream<T> stream2)
+    public MergeOperator(IReactiveChain<T> chain1, IReactiveChain<T> chain2)
     {
-        _stream1 = stream1;
-        _stream2 = stream2;
+        _chain1 = chain1;
+        _chain2 = chain2;
     }
 
     public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
-        => new Subscription(_stream1, _stream2, onNext, onCompletion, onError, subscriptionGroupId);
+        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, subscriptionGroupId);
 
     private class Subscription : ISubscription
     {
@@ -27,16 +27,16 @@ public class MergeOperator<T> : IStream<T>
         private bool _subscription1Completed;
         private readonly ISubscription _subscription2;
         private bool _subscription2Completed;
-        private readonly StreamEventSequencer<Either> _streamEventSequencer;
+        private readonly EventSequencer<Either> _eventSequencer;
 
         private readonly object _sync = new();
         private bool _completed;
 
-        public IStream<object> Source { get; }
+        public IReactiveChain<object> Source { get; }
 
         public Subscription(
-            IStream<T> inner1,
-            IStream<T> inner2,
+            IReactiveChain<T> inner1,
+            IReactiveChain<T> inner2,
             Action<T> onNext, Action onCompletion, Action<Exception> onError,
             int? subscriptionGroupId)
         {
@@ -44,28 +44,28 @@ public class MergeOperator<T> : IStream<T>
             _onCompletion = onCompletion;
             _onError = onError;
 
-            _streamEventSequencer = new StreamEventSequencer<Either>(HandleEither, onCompletion: () => {}, onError: _ => {});
+            _eventSequencer = new EventSequencer<Either>(HandleEither, onCompletion: () => {}, onError: _ => {});
 
             _subscription1 = inner1.Subscribe(
-                onNext: next => _streamEventSequencer.HandleNext(
+                onNext: next => _eventSequencer.HandleNext(
                     new Either(fromStream1: true, StreamEvent<T>.CreateFromNext(next))
                 ),
-                onCompletion: () => _streamEventSequencer.HandleNext(
+                onCompletion: () => _eventSequencer.HandleNext(
                     new Either(fromStream1: true, StreamEvent<T>.CreateFromCompletion())
                 ),
-                onError: e => _streamEventSequencer.HandleNext(
+                onError: e => _eventSequencer.HandleNext(
                     new Either(fromStream1: true, StreamEvent<T>.CreateFromException(e))
                 ), 
                 subscriptionGroupId
             );
             _subscription2 = inner2.Subscribe(
-                onNext: next => _streamEventSequencer.HandleNext(
+                onNext: next => _eventSequencer.HandleNext(
                     new Either(fromStream1: false, StreamEvent<T>.CreateFromNext(next))
                 ),
-                onCompletion: () => _streamEventSequencer.HandleNext(
+                onCompletion: () => _eventSequencer.HandleNext(
                     new Either(fromStream1: false, StreamEvent<T>.CreateFromCompletion())
                 ),
-                onError: e => _streamEventSequencer.HandleNext(
+                onError: e => _eventSequencer.HandleNext(
                     new Either(fromStream1: false, StreamEvent<T>.CreateFromException(e))
                 ), 
                 _subscription1.SubscriptionGroupId

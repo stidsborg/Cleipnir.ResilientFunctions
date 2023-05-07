@@ -14,10 +14,10 @@ public static class Linq
 {
     #region Non leaf operators
 
-    public static IStream<TOut> Select<TIn, TOut>(this IStream<TIn> s, Func<TIn, TOut> mapper) 
+    public static IReactiveChain<TOut> Select<TIn, TOut>(this IReactiveChain<TIn> s, Func<TIn, TOut> mapper) 
         => s.WithOperator<TIn, TOut>((next, notify, _, _) => notify(mapper(next)));
 
-    public static IStream<TFolded> Scan<T, TFolded>(this IStream<T> s, TFolded seed, Func<TFolded, T, TFolded> folder)
+    public static IReactiveChain<TFolded> Scan<T, TFolded>(this IReactiveChain<T> s, TFolded seed, Func<TFolded, T, TFolded> folder)
         => s.WithOperator<T, TFolded>(
             () =>
             {
@@ -29,21 +29,21 @@ public static class Linq
                 };
             });
 
-    public static IStream<T> Where<T>(this IStream<T> s, Func<T, bool> filter) =>
+    public static IReactiveChain<T> Where<T>(this IReactiveChain<T> s, Func<T, bool> filter) =>
         s.WithOperator<T, T>((next, notify, _, _) =>
         {
             if (filter(next))
                 notify(next);
         });
 
-    public static IStream<T> OfType<T>(this IStream<object> s) =>
+    public static IReactiveChain<T> OfType<T>(this IReactiveChain<object> s) =>
         s.WithOperator<object, T>((next, notify, _, _) =>
         {
             if (next is T t)
                 notify(t);
         });
 
-    public static IStream<Either<T1, T2>> OfTypes<T1, T2>(this IStream<object> s)
+    public static IReactiveChain<Either<T1, T2>> OfTypes<T1, T2>(this IReactiveChain<object> s)
         => s.WithOperator<object, Either<T1, T2>>(
             () => (next, notify, completion, exception) =>
             {
@@ -54,7 +54,7 @@ public static class Linq
             }
         );
     
-    public static IStream<Either<T1, T2, T3>> OfTypes<T1, T2, T3>(this IStream<object> s)
+    public static IReactiveChain<Either<T1, T2, T3>> OfTypes<T1, T2, T3>(this IReactiveChain<object> s)
         => s.WithOperator<object, Either<T1, T2, T3>>(
             () => (next, notify, completion, exception) =>
             {
@@ -67,13 +67,13 @@ public static class Linq
             }
         );
 
-    private static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
+    private static IReactiveChain<TOut> WithOperator<TIn, TOut>(this IReactiveChain<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
         => new CustomOperator<TIn, TOut>(inner, operatorFunc);
 
-    private static IStream<TOut> WithOperator<TIn, TOut>(this IStream<TIn> inner, Operator<TIn, TOut> @operator)
+    private static IReactiveChain<TOut> WithOperator<TIn, TOut>(this IReactiveChain<TIn> inner, Operator<TIn, TOut> @operator)
         => new CustomOperator<TIn, TOut>(inner, () => @operator);
 
-    public static IStream<T> Take<T>(this IStream<T> s, int toTake)
+    public static IReactiveChain<T> Take<T>(this IReactiveChain<T> s, int toTake)
     {
         if (toTake < 1)
             throw new ArgumentException("Must take a positive number of elements", nameof(toTake));
@@ -92,7 +92,7 @@ public static class Linq
             });
     }
     
-    public static IStream<T> TakeUntil<T>(this IStream<T> s, Func<T, bool> predicate)
+    public static IReactiveChain<T> TakeUntil<T>(this IReactiveChain<T> s, Func<T, bool> predicate)
     {
         return s.WithOperator<T, T>(
             () =>
@@ -113,7 +113,7 @@ public static class Linq
             });
     }
 
-    public static IStream<T> Skip<T>(this IStream<T> s, int toSkip)
+    public static IReactiveChain<T> Skip<T>(this IReactiveChain<T> s, int toSkip)
     {
         if (toSkip < 0)
             throw new ArgumentException("Must take a non-negative number of elements", nameof(toSkip));
@@ -132,19 +132,19 @@ public static class Linq
             });
     }
     
-    public static IStream<List<T>> Buffer<T>(this IStream<T> s, int bufferSize) 
+    public static IReactiveChain<List<T>> Buffer<T>(this IReactiveChain<T> s, int bufferSize) 
         => new BufferOperator<T>(s, bufferSize);
 
-    public static IStream<List<T>> Chunk<T>(this IStream<T> s, int size) => Buffer(s, size);
+    public static IReactiveChain<List<T>> Chunk<T>(this IReactiveChain<T> s, int size) => Buffer(s, size);
 
-    public static IStream<T> Merge<T>(this IStream<T> stream1, IStream<T> stream2)
+    public static IReactiveChain<T> Merge<T>(this IReactiveChain<T> stream1, IReactiveChain<T> stream2)
         => new MergeOperator<T>(stream1, stream2);
 
     #endregion
 
     #region Leaf operators
 
-    public static Task<T> Last<T>(this IStream<T> s)
+    public static Task<T> Last<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource<T>();
         var eventEmitted = false;
@@ -176,11 +176,11 @@ public static class Linq
         return tcs.Task;
     }
 
-    public static Task<List<T>> ToList<T>(this IStream<T> stream)
+    public static Task<List<T>> ToList<T>(this IReactiveChain<T> reactiveChain)
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();
-        var subscription = stream.Subscribe(
+        var subscription = reactiveChain.Subscribe(
             onNext: t => list.Add(t),
             onCompletion: () => tcs.TrySetResult(list),
             onError: e => tcs.TrySetException(e)
@@ -190,11 +190,11 @@ public static class Linq
         return tcs.Task;
     }
 
-    public static List<T> PullExisting<T>(this IStream<T> stream)
+    public static List<T> PullExisting<T>(this IReactiveChain<T> reactiveChain)
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();
-        var subscription = stream.Subscribe(
+        var subscription = reactiveChain.Subscribe(
             onNext: t => list.Add(t),
             onCompletion: () => tcs.TrySetResult(list),
             onError: e => tcs.TrySetException(e)
@@ -206,10 +206,10 @@ public static class Linq
     }
 
     // ** NEXT RELATED OPERATORS ** //
-    public static async Task<T> Next<T>(this IStream<T> s) => await s.Take(1).Last();
-    public static Task<T> Next<T>(this IStream<T> s, int maxWaitMs)
+    public static async Task<T> Next<T>(this IReactiveChain<T> s) => await s.Take(1).Last();
+    public static Task<T> Next<T>(this IReactiveChain<T> s, int maxWaitMs)
         => s.Next(TimeSpan.FromMilliseconds(maxWaitMs));
-    public static Task<T> Next<T>(this IStream<T> s, TimeSpan maxWait)
+    public static Task<T> Next<T>(this IReactiveChain<T> s, TimeSpan maxWait)
     {
         var tcs = new TaskCompletionSource<T>();
         _ = s.Take(1).Last().ContinueWith(t => tcs.TrySetResult(t.Result));
@@ -218,9 +218,9 @@ public static class Linq
         return tcs.Task;
     }
 
-    public static bool TryNext<T>(this IStream<T> s, out T? next)
+    public static bool TryNext<T>(this IReactiveChain<T> s, out T? next)
         => TryNext(s, out next, out _);
-    public static bool TryNext<T>(this IStream<T> s, out T? next, out int totalEventSourceCount)
+    public static bool TryNext<T>(this IReactiveChain<T> s, out T? next, out int totalEventSourceCount)
     {
         var success = false;
         var t = default(T);
@@ -242,16 +242,16 @@ public static class Linq
         return success;
     }
 
-    public static Task<T> NextOfType<T>(this IStream<object> s)
+    public static Task<T> NextOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().Next();
-    public static Task<T> NextOfType<T>(this IStream<object> s, TimeSpan maxWait)
+    public static Task<T> NextOfType<T>(this IReactiveChain<object> s, TimeSpan maxWait)
         => s.OfType<T>().Next(maxWait);
-    public static bool TryNextOfType<T>(this IStream<object> s, out T? next)
+    public static bool TryNextOfType<T>(this IReactiveChain<object> s, out T? next)
         => s.TryNextOfType(out next, out _);
-    public static bool TryNextOfType<T>(this IStream<object> s, out T? next, out int totalEventSourceCount)
+    public static bool TryNextOfType<T>(this IReactiveChain<object> s, out T? next, out int totalEventSourceCount)
         => s.OfType<T>().TryNext(out next, out totalEventSourceCount);
     
-    public static Task<T> SuspendUntilNext<T>(this IStream<T> s, TimeSpan waitBeforeSuspension)
+    public static Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, TimeSpan waitBeforeSuspension)
     {
         var tcs = new TaskCompletionSource<T>();
         var sync = new object();
@@ -314,7 +314,7 @@ public static class Linq
         _ = tcs.Task.ContinueWith(_ => subscription.Dispose());
         return tcs.Task;
     }
-    public static async Task<T> SuspendUntilNext<T>(this IStream<T> s)
+    public static async Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource<T>();
         var eventEmitted = false;
@@ -346,17 +346,17 @@ public static class Linq
         
         return await tcs.Task;
     }
-    public static Task<T> SuspendUntilNextOfType<T>(this IStream<object> s)
+    public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().SuspendUntilNext();
-    public static Task<T> SuspendUntilNextOfType<T>(this IStream<object> s, TimeSpan waitBeforeSuspension)
+    public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s, TimeSpan waitBeforeSuspension)
         => s.OfType<T>().SuspendUntilNext(waitBeforeSuspension);
-    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IStream<object> s, string timeoutId, TimeSpan expiresIn)
+    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IReactiveChain<object> s, string timeoutId, TimeSpan expiresIn)
         => s.OfType<T>().SuspendUntilNextOrTimeoutEventFired(timeoutId, expiresIn);
-    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IStream<object> s, string timeoutId, DateTime expiresAt)
+    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt)
         => s.OfType<T>().SuspendUntilNextOrTimeoutEventFired(timeoutId, expiresAt);
-    public static Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, TimeSpan expiresIn)
+    public static Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IReactiveChain<T> s, string timeoutId, TimeSpan expiresIn)
         => SuspendUntilNextOrTimeoutEventFired(s, timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
-    public static async Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IStream<T> s, string timeoutId, DateTime expiresAt)
+    public static async Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IReactiveChain<T> s, string timeoutId, DateTime expiresAt)
     {
         var tcs = new TaskCompletionSource<T>();
         
@@ -424,7 +424,7 @@ public static class Linq
     public static Task SuspendFor(this EventSource s, TimeSpan resumeAfter, string timeoutId)
         => s.SuspendUntil(DateTime.UtcNow.Add(resumeAfter), timeoutId);
 
-    public static Task Completion<T>(this IStream<T> s)
+    public static Task Completion<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource();
         var subscription = s.Subscribe(

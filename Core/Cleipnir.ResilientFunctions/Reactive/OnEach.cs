@@ -6,7 +6,7 @@ internal class OnEach<T> : IDisposable
 {
     private readonly ISubscription _subscription;
 
-    public OnEach(IStream<T> s, Action<T> onNext, Action onCompletion, Action<Exception> onError) 
+    public OnEach(IReactiveChain<T> s, Action<T> onNext, Action onCompletion, Action<Exception> onError) 
         => _subscription = s.Subscribe(onNext, onCompletion, onError);
 
     public void Start() => _subscription.DeliverExistingAndFuture();
@@ -16,7 +16,7 @@ internal class OnEach<T> : IDisposable
 public static class OnEachExtension
 {
     public static IDisposable OnEach<T>(
-        this IStream<T> s,
+        this IReactiveChain<T> s,
         Action<T> onNext,
         Action? onCompletion = null,
         Action<Exception>? onError = null

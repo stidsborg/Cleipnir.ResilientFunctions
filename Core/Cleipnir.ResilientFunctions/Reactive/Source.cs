@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
-public interface ISource : IStream<object>
+public interface ISource : IReactiveChain<object>
 {
     void SignalNext(object toEmit);
     void SignalError(Exception exception);
@@ -361,7 +361,7 @@ public class Source : ISource
             public Action OnCompletion { get; }
             public Action<Exception> OnError { get; }
             
-            public IStream<object> Source { get; }
+            public IReactiveChain<object> Source { get; }
             
             private readonly SubscriptionGroup _subscriptionGroup;
             
@@ -369,7 +369,7 @@ public class Source : ISource
                 Action<object> onNext, Action onCompletion, Action<Exception> onError,
                 SubscriptionGroup subscriptionGroup,
                 ITimeoutProvider timeoutProvider,
-                IStream<object> source)
+                IReactiveChain<object> source)
             {
                 OnNext = onNext;
                 OnCompletion = onCompletion;

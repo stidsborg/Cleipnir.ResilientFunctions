@@ -10,12 +10,12 @@ public delegate void Operator<in TIn, out TOut>(
     Action<Exception> signalException
 );
 
-public class CustomOperator<TIn, TOut> : IStream<TOut>
+public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 {
-    private readonly IStream<TIn> _inner;
+    private readonly IReactiveChain<TIn> _inner;
     private readonly Func<Operator<TIn, TOut>> _operatorFactory;
 
-    public CustomOperator(IStream<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
+    public CustomOperator(IReactiveChain<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
     {
         _inner = inner;
         _operatorFactory = operatorFactory;
@@ -35,10 +35,10 @@ public class CustomOperator<TIn, TOut> : IStream<TOut>
         
         private Operator<TIn, TOut> Operator { get; }
 
-        public IStream<object> Source => _innerSubscription.Source;
+        public IReactiveChain<object> Source => _innerSubscription.Source;
 
         public Subscription(
-            IStream<TIn> inner,
+            IReactiveChain<TIn> inner,
             Func<Operator<TIn, TOut>> operatorFactory,
             Action<TOut> onNext, Action onCompletion, Action<Exception> onError,
             int? subscriptionGroupId)

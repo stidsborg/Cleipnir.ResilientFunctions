@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Reactive;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class EventSource : IStream<object>, IDisposable
+public class EventSource : IReactiveChain<object>, IDisposable
 {
     private readonly FunctionId _functionId;
     private readonly IEventStore _eventStore;
@@ -30,7 +30,7 @@ public class EventSource : IStream<object>, IDisposable
     
     private readonly Source _source;
     private EventsSubscription? _eventsSubscription;
-    public IStream<object> Source => _source;
+    public IReactiveChain<object> Source => _source;
     public IEnumerable<object> Existing => _source.Existing;
 
     public EventSource(

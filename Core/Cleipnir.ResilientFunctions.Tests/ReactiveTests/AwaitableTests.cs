@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
 
-            static async Task<int> Do(IStream<int> s) => await s.Last();
+            static async Task<int> Do(IReactiveChain<int> s) => await s.Last();
 
             var t = Do(source.OfType<int>());
             
@@ -36,7 +36,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             var source = new Source(NoOpTimeoutProvider.Instance);
             var taken1 = source.Take(1);
 
-            static async Task<int> Do(IStream<int> s) => await s.Last();
+            static async Task<int> Do(IReactiveChain<int> s) => await s.Last();
 
             var t = Do(source.OfType<int>());
 
@@ -60,7 +60,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
 
-            static async Task<int> Do(IStream<int> s) => await s.Last();
+            static async Task<int> Do(IReactiveChain<int> s) => await s.Last();
 
             var t = Do(source.OfType<int>());
 
