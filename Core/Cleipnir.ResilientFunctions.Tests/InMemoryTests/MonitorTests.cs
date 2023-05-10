@@ -2,7 +2,9 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
+using Cleipnir.ResilientFunctions.Utils.Register;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
@@ -10,7 +12,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 [TestClass]
 public class MonitorTests : TestTemplates.UtilsTests.MonitorTests
 {
-    private readonly Dictionary<string, InMemoryMonitor> _monitors = new();
+    private readonly Dictionary<string, Monitor> _monitors = new();
     private readonly object _sync = new();
 
     [TestMethod]
@@ -43,16 +45,10 @@ public class MonitorTests : TestTemplates.UtilsTests.MonitorTests
 
     private Task<IMonitor> CreateInMemoryMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new InMemoryMonitor();
+        var monitor = new Monitor(new UnderlyingInMemoryRegister());
         lock (_sync)
             _monitors[memberName] = monitor;
 
         return monitor.CastTo<IMonitor>().ToTask();
-    }
-    
-    protected override Task<int> LockCount(string memberName = "")
-    {
-        lock (_sync)
-            return _monitors[memberName].LockCount.ToTask();
     }
 }

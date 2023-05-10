@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.SqlServer.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -39,24 +38,12 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     public override Task WhenALockIsReleasedActiveAcquireShouldGetTheLock()
         => WhenALockIsReleasedActiveAcquireShouldGetTheLock(CreateAndInitializeMonitor());
 
-    [TestMethod]
-    public async Task InvokingInitializeTwiceSucceeds()
-    {
-        var monitor = (Monitor) await CreateAndInitializeMonitor();
-        await monitor.Initialize();
-    }
-    
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new Monitor(Sql.ConnectionString, tablePrefix: memberName);
-        await monitor.Initialize();
+        var underlyingRegister = new SqlServerUnderlyingRegister(Sql.ConnectionString, tablePrefix: memberName);
+        var monitor = new Monitor(underlyingRegister);
+        await underlyingRegister.Initialize();
+        await underlyingRegister.Initialize();
         return monitor;
-    }
-
-    protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
-    {
-        await using var conn = new SqlConnection(Sql.ConnectionString);
-        await conn.OpenAsync();
-        return await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {memberName}RFunctions_Monitor");
     }
 }

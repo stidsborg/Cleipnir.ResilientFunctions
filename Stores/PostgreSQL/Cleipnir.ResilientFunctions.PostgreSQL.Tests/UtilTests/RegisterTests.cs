@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.PostgreSQL.Utils;
 using Cleipnir.ResilientFunctions.Utils.Register;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -59,9 +58,9 @@ public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Uti
 
     private async Task<IRegister> CreateAndInitializeRegister([CallerMemberName] string memberName = "")
     {
-        var monitor = new Register(Sql.ConnectionString, tablePrefix: memberName);
-        await monitor.DropUnderlyingTable();
-        await monitor.Initialize();
-        return monitor;
+        var underlyingRegister = new PostgresSqlUnderlyingRegister(Sql.ConnectionString, tablePrefix: memberName);
+        await underlyingRegister.DropUnderlyingTable();
+        await underlyingRegister.Initialize();
+        return new Register(underlyingRegister);
     }
 }

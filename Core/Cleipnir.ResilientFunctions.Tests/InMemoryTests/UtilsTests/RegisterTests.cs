@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Register;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -56,5 +57,5 @@ public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Uti
     public override Task DeleteFailsWhenNonExpectedValueForExistingRegister()
         => DeleteFailsWhenNonExpectedValueForExistingRegister(CreateInMemoryRegister());
 
-    private Task<IRegister> CreateInMemoryRegister() => new InMemoryRegister().CastTo<IRegister>().ToTask();
+    private Task<IRegister> CreateInMemoryRegister() => new Register(new UnderlyingInMemoryRegister()).CastTo<IRegister>().ToTask();
 }

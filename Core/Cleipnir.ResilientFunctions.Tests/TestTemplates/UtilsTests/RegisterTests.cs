@@ -144,12 +144,12 @@ public abstract class RegisterTests
     protected async Task DeleteFailsWhenNonExpectedValueForExistingRegister(Task<IRegister> registerTask)
     {
         var register = await registerTask;
-        var (group, key) = GetGroupAndKey();
+        var (group, name) = GetGroupAndKey();
 
-        await register.SetIfEmpty(group, key, value: "hello world").ShouldBeTrueAsync();
-        await register.Delete(group, key, "hello universe").ShouldBeFalseAsync();
+        await register.SetIfEmpty(group, name, value: "hello world").ShouldBeTrueAsync();
+        await register.Delete(group, name, "hello universe").ShouldBeFalseAsync();
 
-        await register.Exists(group, key).ShouldBeTrueAsync();
+        await register.Exists(group, name).ShouldBeTrueAsync();
     }
     
     private record GroupAndKey(string Group, string Key);

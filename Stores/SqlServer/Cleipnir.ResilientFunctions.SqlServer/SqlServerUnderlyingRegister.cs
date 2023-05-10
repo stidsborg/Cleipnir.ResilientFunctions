@@ -1,15 +1,15 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Utils.Register;
+using Cleipnir.ResilientFunctions.Utils;
 using Microsoft.Data.SqlClient;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Utils;
+namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class Register : IRegister
+public class SqlServerUnderlyingRegister : IUnderlyingRegister
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Register(string connectionString, string tablePrefix = "")
+    public SqlServerUnderlyingRegister(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
@@ -23,10 +23,11 @@ public class Register : IRegister
         {
             var sql = @$"            
                 CREATE TABLE {_tablePrefix}RFunctions_Register (
-                    GroupName VARCHAR(255) NOT NULL,
-                    KeyId VARCHAR(255) NOT NULL,
+                    RegisterType INT NOT NULL,
+                    [Group] VARCHAR(255) NOT NULL,
+                    Name VARCHAR(255) NOT NULL,
                     Value VARCHAR(255) NOT NULL,
-                    PRIMARY KEY (GroupName, KeyId)
+                    PRIMARY KEY (RegisterType, [Group], Name)
                 );";
             await using var command = new SqlCommand(sql, conn);
             await command.ExecuteNonQueryAsync();
@@ -48,31 +49,39 @@ public class Register : IRegister
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> SetIfEmpty(string group, string key, string value)
+    public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var sql = @$" 
-            INSERT INTO {_tablePrefix}RFunctions_Register (GroupName, KeyId, Value)            
-            SELECT * FROM (VALUES (@Group, @Key, @Value)) AS s(GroupName, KeyId, Value)
-            WHERE NOT EXISTS (SELECT * FROM {_tablePrefix}RFunctions_Register WITH (UPDLOCK) WHERE GroupName = @Group AND KeyId = @Key)";
+            INSERT INTO {_tablePrefix}RFunctions_Register 
+                (RegisterType, [Group], Name, Value)
+            VALUES 
+                (@RegisterType, @Group, @Name, @Value)";
         
         await using var command = new SqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { ParameterName = "@RegisterType", Value = (int) registerType },
                 new() { ParameterName = "@Group", Value = group },
-                new() { ParameterName = "@Key", Value = key }, 
+                new() { ParameterName = "@Name", Value = name }, 
                 new() { ParameterName = "@Value", Value = value }
             }
         };
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+            return true;
+        } catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
+        {
+            return false;
+        }
     }
 
-    public async Task<bool> CompareAndSwap(string group, string key, string newValue, string expectedValue, bool setIfEmpty = true)
+    public async Task<bool> CompareAndSwap(RegisterType registerType, string group, string name, string newValue, string expectedValue, bool setIfEmpty = true)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
@@ -83,16 +92,17 @@ public class Register : IRegister
             var sql = @$" 
                 UPDATE {_tablePrefix}RFunctions_Register
                 SET Value = @NewValue
-                WHERE GroupName = @Group AND KeyId = @Key AND Value = @ExpectedValue";
+                WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue";
         
             await using var command = new SqlCommand(sql, conn)
             {
                 Parameters =
                 {
-                    new() { ParameterName = "@NewValue", Value = newValue },
+                    new() { ParameterName = "@RegisterType", Value =  (int) registerType },
                     new() { ParameterName = "@Group", Value = group },
-                    new() { ParameterName = "@Key", Value = key }, 
-                    new() { ParameterName = "@ExpectedValue", Value = expectedValue },
+                    new() { ParameterName = "@Name", Value = name }, 
+                    new() { ParameterName = "@NewValue", Value = newValue },
+                    new() { ParameterName = "@ExpectedValue", Value = expectedValue }
                 }
             };
 
@@ -103,29 +113,35 @@ public class Register : IRegister
             //setIfEmpty is true
             var sql = @$"               
                 BEGIN TRANSACTION;
-                DELETE FROM {_tablePrefix}RFunctions_Register WHERE GroupName = @Group AND KeyId = @Key AND Value = @ExpectedValue;
-                INSERT INTO {_tablePrefix}RFunctions_Register (GroupName, KeyId, Value)            
-                SELECT * FROM (VALUES (@Group, @Key, @NewValue)) AS s(GroupName, KeyId, Value)
-                WHERE NOT EXISTS (SELECT * FROM {_tablePrefix}RFunctions_Register WITH (UPDLOCK) WHERE GroupName = @Group AND KeyId = @Key);
+                DELETE FROM {_tablePrefix}RFunctions_Register WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue;
+                INSERT INTO {_tablePrefix}RFunctions_Register (RegisterType, [Group], Name, Value)
+                VALUES (@RegisterType, @Group, @Name, @NewValue);
                 COMMIT TRANSACTION;";
 
             await using var command = new SqlCommand(sql, conn)
             {
                 Parameters =
                 {
+                    new() { ParameterName = "@RegisterType", Value = (int) registerType },
                     new() { ParameterName = "@Group", Value = group },
-                    new() { ParameterName = "@Key", Value = key },
+                    new() { ParameterName = "@Name", Value = name },
                     new() { ParameterName = "@ExpectedValue", Value = expectedValue },
                     new() { ParameterName = "@NewValue", Value = newValue },
                 }
             };
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows > 0;
+            try
+            {
+                var affectedRows = await command.ExecuteNonQueryAsync();
+                return affectedRows > 0;
+            } catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
+            {
+                return false;
+            }
         }
     }
 
-    public async Task<string?> Get(string group, string key)
+    public async Task<string?> Get(RegisterType registerType, string group, string name)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
@@ -133,13 +149,14 @@ public class Register : IRegister
         var sql = @$"    
             SELECT Value
             FROM {_tablePrefix}RFunctions_Register
-            WHERE GroupName = @Group AND KeyId = @Key";
+            WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
         await using var command = new SqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { ParameterName = "@RegisterType", Value = (int) registerType },
                 new() { ParameterName = "@Group", Value = group },
-                new() { ParameterName = "@Key", Value = key }
+                new() { ParameterName = "@Name", Value = name }
             }
         };
         
@@ -150,21 +167,22 @@ public class Register : IRegister
         return default;
     }
 
-    public async Task<bool> Delete(string group, string key, string expectedValue)
+    public async Task<bool> Delete(RegisterType registerType, string group, string name, string expectedValue)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var sql = @$" 
             DELETE FROM {_tablePrefix}RFunctions_Register
-            WHERE GroupName = @Group AND KeyId = @Key AND value = @Value";
+            WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @Value";
 
         await using var command = new SqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { ParameterName = "@RegisterType", Value = (int) registerType },
                 new() { ParameterName = "@Group", Value = group },
-                new() { ParameterName = "@Key", Value = key },
+                new() { ParameterName = "@Name", Value = name },
                 new() { ParameterName = "@Value", Value = expectedValue },
             }
         };
@@ -173,28 +191,29 @@ public class Register : IRegister
         return affectedRows > 0;
     }
 
-    public async Task Delete(string group, string key)
+    public async Task Delete(RegisterType registerType, string group, string name)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var sql = @$" 
             DELETE FROM {_tablePrefix}RFunctions_Register
-            WHERE GroupName = @Group AND KeyId = @Key";
+            WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
 
         await using var command = new SqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { ParameterName = "@RegisterType", Value = (int) registerType },
                 new() { ParameterName = "@Group", Value = group },
-                new() { ParameterName = "@Key", Value = key },
+                new() { ParameterName = "@Name", Value = name }
             }
         };
 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> Exists(string group, string key)
+    public async Task<bool> Exists(RegisterType registerType, string group, string name)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
@@ -202,13 +221,14 @@ public class Register : IRegister
         var sql = @$"    
             SELECT COUNT(*)
             FROM {_tablePrefix}RFunctions_Register
-            WHERE GroupName = @Group AND KeyId = @Key";
+            WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
         await using var command = new SqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { ParameterName = "@RegisterType", Value = (int) registerType },
                 new() { ParameterName = "@Group", Value = group },
-                new() { ParameterName = "@Key", Value = key },
+                new() { ParameterName = "@Name", Value = name }
             }
         };
 

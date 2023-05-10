@@ -1,14 +1,14 @@
-﻿using Cleipnir.ResilientFunctions.Utils.Register;
+﻿using Cleipnir.ResilientFunctions.Utils;
 using MySqlConnector;
 
-namespace Cleipnir.ResilientFunctions.MySQL.Utils;
+namespace Cleipnir.ResilientFunctions.MySQL;
 
-public class Register : IRegister
+public class MySqlUnderlyingRegister : IUnderlyingRegister
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Register(string connectionString, string tablePrefix = "")
+    public MySqlUnderlyingRegister(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
@@ -19,31 +19,33 @@ public class Register : IRegister
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_register (
-                groupname VARCHAR(255) NOT NULL,                
-                keyid VARCHAR(255) NOT NULL,
+                registertype INT NOT NULL,
+                `group` VARCHAR(255) NOT NULL,                
+                name VARCHAR(255) NOT NULL,
                 value VARCHAR(1024) NOT NULL,
-                PRIMARY KEY (groupname, keyid)
+                PRIMARY KEY (registertype, `group`, name)
             );";
 
         await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> SetIfEmpty(string group, string key, string value)
+    public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions_register
-                (groupname, keyid, value)   
+                (registertype, `group`, name, value)   
             VALUES
-                (?, ?, ?);";
+                (?, ?, ?, ?);";
         
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType },
                 new() {Value = group},
-                new() {Value = key},
+                new() {Value = name},
                 new() {Value = value}
             }
         };
@@ -51,7 +53,7 @@ public class Register : IRegister
         return affectedRows > 0;
     }
 
-    public async Task<bool> CompareAndSwap(string group, string key, string newValue, string expectedValue, bool setIfEmpty = true)
+    public async Task<bool> CompareAndSwap(RegisterType registerType, string group, string name, string newValue, string expectedValue, bool setIfEmpty = true)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         
@@ -60,15 +62,16 @@ public class Register : IRegister
             var sql = @$"
             UPDATE {_tablePrefix}rfunctions_register
             SET value = ?
-            WHERE groupname = ? AND keyid = ? AND value = ?;";
+            WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;";
             
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
                     new() {Value = newValue},
+                    new() {Value = (int) registerType},
                     new() {Value = group},
-                    new() {Value = key},
+                    new() {Value = name},
                     new() {Value = expectedValue},
                 }
             };
@@ -80,22 +83,24 @@ public class Register : IRegister
         {
             var sql = @$"
             START TRANSACTION;
-            DELETE FROM {_tablePrefix}rfunctions_register WHERE groupname = ? AND keyid = ? AND value = ?;
+            DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;
             INSERT IGNORE INTO {_tablePrefix}rfunctions_register
-                (groupname, keyid, value)   
+                (registertype, `group`, name, value)   
             VALUES
-                (?, ?, ?);
+                (?, ?, ?, ?);
             COMMIT;";
 
             await using var command = new MySqlCommand(sql, conn)
             {
                 Parameters =
                 {
+                    new() { Value = (int) registerType},
                     new() { Value = group },
-                    new() { Value = key },
+                    new() { Value = name },
                     new() { Value = expectedValue },
+                    new() { Value = (int) registerType},
                     new() { Value = group },
-                    new() { Value = key },
+                    new() { Value = name },
                     new() { Value = newValue }
                 }
             };
@@ -105,20 +110,21 @@ public class Register : IRegister
         }
     }
 
-    public async Task<string?> Get(string group, string key)
+    public async Task<string?> Get(RegisterType registerType, string group, string name)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         var sql = @$"    
             SELECT value 
             FROM {_tablePrefix}rfunctions_register  
-            WHERE groupname = ? AND keyid = ?;";
+            WHERE registertype = ? AND `group` = ? AND name = ?;";
        
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = group},
-                new() {Value = key}
+                new() { Value = (int) registerType },
+                new() { Value = group },
+                new() { Value = name }
             }
         };
         
@@ -129,18 +135,19 @@ public class Register : IRegister
         return default;
     }
 
-    public async Task<bool> Delete(string group, string key, string expectedValue)
+    public async Task<bool> Delete(RegisterType registerType, string group, string name, string expectedValue)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
-        var sql = @$"DELETE FROM {_tablePrefix}rfunctions_register WHERE groupname = ? AND keyid = ? AND value = ?;";
+        var sql = @$"DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;";
 
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType},
                 new() {Value = group},
-                new() {Value = key},
+                new() {Value = name},
                 new() {Value = expectedValue},
             }
         };
@@ -149,37 +156,39 @@ public class Register : IRegister
         return affectedRows > 0;
     }
 
-    public async Task Delete(string group, string key)
+    public async Task Delete(RegisterType registerType, string group, string name)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
-        var sql = @$"DELETE FROM {_tablePrefix}rfunctions_register WHERE groupname = ? AND keyid = ?;";
+        var sql = @$"DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = ? AND `group` = ? AND name = ?;";
 
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType},
                 new() {Value = group},
-                new() {Value = key}
+                new() {Value = name}
             }
         };
         await command.ExecuteScalarAsync();
     }
 
-    public async Task<bool> Exists(string group, string key)
+    public async Task<bool> Exists(RegisterType registerType, string group, string name)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         var sql = @$"    
             SELECT COUNT(*)
             FROM {_tablePrefix}rfunctions_register  
-            WHERE groupname = ? AND keyid = ?;";
+            WHERE registertype = ? AND `group` = ? AND name = ?;";
        
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType},
                 new() {Value = group},
-                new() {Value = key}
+                new() {Value = name}
             }
         };
         

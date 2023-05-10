@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using Cleipnir.ResilientFunctions.MySQL.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -10,24 +9,12 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests.UtilTests;
 public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.UtilsTests.ArbitratorTests
 {
     [TestMethod]
-    public override Task ProposalForNonDecidedGroupOnlyKeySucceeds()
-        => ProposalForNonDecidedGroupOnlyKeySucceeds(CreateArbitrator());
-
-    [TestMethod]
     public override Task ProposalForNonDecidedKeySucceeds() 
         => ProposalForNonDecidedKeySucceeds(CreateArbitrator());
 
     [TestMethod]
-    public override Task DifferentProposalForDecidedGroupOnlyKeyFails() 
-        => DifferentProposalForDecidedGroupOnlyKeyFails(CreateArbitrator());
-
-    [TestMethod]
     public override Task DifferentProposalForDecidedKeyFails() 
         => DifferentProposalForDecidedKeyFails(CreateArbitrator());
-
-    [TestMethod]
-    public override Task SameProposalAsDecidedGroupOnlyKeySucceeds() 
-        => SameProposalAsDecidedGroupOnlyKeySucceeds(CreateArbitrator());
 
     [TestMethod]
     public override Task SameProposalAsDecidedSucceeds() 
@@ -36,19 +23,15 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
     [TestMethod]
     public override Task DifferentProposalCanBeDecidedAfterDeletion()
         => DifferentProposalCanBeDecidedAfterDeletion(CreateArbitrator());
-
-    [TestMethod]
-    public async Task InvokingInitializeTwiceSucceeds()
-    {
-        var arbitrator = (Arbitrator) await CreateArbitrator();
-        await arbitrator.Initialize();
-    }
+    
     
     private async Task<IArbitrator> CreateArbitrator([CallerMemberName] string memberName = "")
     {
-        var arbitrator = new Arbitrator(Sql.ConnectionString);
-        await arbitrator.DropUnderlyingTable();
-        await arbitrator.Initialize();
+        var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString);
+        var arbitrator = new Arbitrator(underlyingRegister);
+        await underlyingRegister.DropUnderlyingTable();
+        await underlyingRegister.Initialize();
+        await underlyingRegister.Initialize();
         return arbitrator;
     }
 }

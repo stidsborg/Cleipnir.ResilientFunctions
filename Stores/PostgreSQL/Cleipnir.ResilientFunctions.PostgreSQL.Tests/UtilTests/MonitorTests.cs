@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.PostgreSQL.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npgsql;
@@ -38,27 +37,12 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     public override Task WhenALockIsReleasedActiveAcquireShouldGetTheLock()
         => WhenALockIsReleasedActiveAcquireShouldGetTheLock(CreateAndInitializeMonitor());
 
-    [TestMethod]
-    public async Task InvokingInitializeTwiceSucceeds()
-    {
-        var monitor = (Monitor) await CreateAndInitializeMonitor();
-        await monitor.Initialize();
-    }
-    
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new Monitor(Sql.ConnectionString);
-        await monitor.Initialize();
+        var underlyingRegister = new PostgresSqlUnderlyingRegister(Sql.ConnectionString);
+        var monitor = new Monitor(underlyingRegister);
+        await underlyingRegister.Initialize();
+        await underlyingRegister.Initialize();
         return monitor;
-    }
-
-    protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
-    {
-        var conn = new NpgsqlConnection(Sql.ConnectionString);
-        await conn.OpenAsync();
-        var sql = $"SELECT COUNT(*) FROM rfunctions_monitor";
-        await using var command = new NpgsqlCommand(sql, conn);
-        var count = (int) (long) (await command.ExecuteScalarAsync() ?? 0);
-        return count;
     }
 }

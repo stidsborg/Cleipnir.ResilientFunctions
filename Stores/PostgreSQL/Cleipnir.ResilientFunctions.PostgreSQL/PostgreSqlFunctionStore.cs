@@ -22,9 +22,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly PostgreSqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     public Utilities Utilities { get; }
-    private readonly Utils.Monitor _monitor;
-    private readonly Utils.Arbitrator _arbitrator;
-    private readonly Utils.Register _register;
+    private readonly PostgresSqlUnderlyingRegister _postgresSqlUnderlyingRegister;
 
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
     {
@@ -32,10 +30,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _tablePrefix = tablePrefix;
         _eventStore = new PostgreSqlEventStore(connectionString, tablePrefix);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, tablePrefix);
-        _monitor = new(connectionString, _tablePrefix);
-        _arbitrator = new(connectionString, _tablePrefix);
-        _register = new(connectionString, _tablePrefix);
-        Utilities = new Utilities(_monitor, _register, _arbitrator);
+        _postgresSqlUnderlyingRegister = new(connectionString, _tablePrefix);
+        Utilities = new Utilities(_postgresSqlUnderlyingRegister);
     } 
 
     private async Task<NpgsqlConnection> CreateConnection()
@@ -47,9 +43,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task Initialize()
     {
-        await _monitor.Initialize();
-        await _register.Initialize();
-        await _arbitrator.Initialize();
+        await _postgresSqlUnderlyingRegister.Initialize();
         await _eventStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await CreateConnection();
@@ -94,9 +88,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task DropIfExists()
     {
-        await _monitor.DropUnderlyingTable();
-        await _register.DropUnderlyingTable();
-        await _arbitrator.DropUnderlyingTable();
+        await _postgresSqlUnderlyingRegister.DropUnderlyingTable();
         await _eventStore.DropUnderlyingTable();
         
         await using var conn = await CreateConnection();

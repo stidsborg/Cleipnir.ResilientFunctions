@@ -25,9 +25,7 @@ public static class RFunctionsModule
             options,
             gracefulShutdown,
             rootAssembly,
-            initializeDatabase: false,
-            arbitrator: new InMemoryArbitrator(),
-            monitor: new InMemoryMonitor()
+            initializeDatabase: false
         );   
     }
 
@@ -37,9 +35,7 @@ public static class RFunctionsModule
         Func<IServiceProvider, Options>? options = null,
         bool gracefulShutdown = false,
         Assembly? rootAssembly = null,
-        bool initializeDatabase = true,
-        IArbitrator? arbitrator = null,
-        IMonitor? monitor = null
+        bool initializeDatabase = true
     )
     {
         if (initializeDatabase)
@@ -47,10 +43,6 @@ public static class RFunctionsModule
 
         if (options != null)
             services.AddSingleton(options);
-        if (arbitrator != null)
-            services.AddSingleton(arbitrator);
-        if (monitor != null)
-            services.AddSingleton(monitor);
         services.AddSingleton<ServiceProviderDependencyResolver>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton(functionStore);

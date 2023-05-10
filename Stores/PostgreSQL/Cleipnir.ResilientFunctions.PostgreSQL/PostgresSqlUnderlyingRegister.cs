@@ -1,15 +1,15 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Utils.Register;
+using Cleipnir.ResilientFunctions.Utils;
 using Npgsql;
 
-namespace Cleipnir.ResilientFunctions.PostgreSQL.Utils;
+namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class Register : IRegister
+public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public Register(string connectionString, string tablePrefix = "")
+    public PostgresSqlUnderlyingRegister(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
@@ -21,10 +21,11 @@ public class Register : IRegister
         await conn.OpenAsync();
         var sql = @$"            
                 CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_register (
-                    groupName VARCHAR(255) NOT NULL,
-                    keyId VARCHAR(255) NOT NULL,
+                    registertype INT NOT NULL,
+                    groupname VARCHAR(255) NOT NULL,
+                    name VARCHAR(255) NOT NULL,
                     value VARCHAR(255) NOT NULL,
-                    PRIMARY KEY (groupName, keyId)
+                    PRIMARY KEY (registertype, groupname, name)
                 );";
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -40,24 +41,25 @@ public class Register : IRegister
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> SetIfEmpty(string group, string key, string value)
+    public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var sql = @$" 
             INSERT INTO {_tablePrefix}rfunctions_register
-                (groupName, keyId, value)
+                (registertype, groupname, name, value)
             VALUES
-                ($1, $2, $3)
+                ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
         
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType },
                 new() {Value = group},
-                new() {Value = key}, 
+                new() {Value = name}, 
                 new() {Value = value}
             }
         };
@@ -66,7 +68,7 @@ public class Register : IRegister
         return affectedRows > 0;
     }
 
-    public async Task<bool> CompareAndSwap(string group, string key, string newValue, string expectedValue, bool setIfEmpty = true)
+    public async Task<bool> CompareAndSwap(RegisterType registerType, string group, string name, string newValue, string expectedValue, bool setIfEmpty = true)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
@@ -77,15 +79,16 @@ public class Register : IRegister
             var sql = @$" 
                 UPDATE {_tablePrefix}rfunctions_register
                 SET value = $1
-                WHERE groupName = $2 AND keyId = $3 AND value = $4";
+                WHERE registertype = $2 AND groupname = $3 AND name = $4 AND value = $5";
         
             await using var command = new NpgsqlCommand(sql, conn)
             {
                 Parameters =
                 {
                     new() {Value = newValue},
+                    new() {Value = (int) registerType},
                     new() {Value = group},
-                    new() {Value = key}, 
+                    new() {Value = name}, 
                     new() {Value = expectedValue},
                 }
             };
@@ -99,12 +102,13 @@ public class Register : IRegister
             await using var batch = new NpgsqlBatch(conn);
             {
                 var command = 
-                    new NpgsqlBatchCommand($"DELETE FROM {_tablePrefix}rfunctions_register WHERE groupName = $1 AND keyId = $2 AND value = $3")
+                    new NpgsqlBatchCommand($"DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4")
                     {
                         Parameters =
                         {
+                            new() { Value = (int) registerType },
                             new() { Value = group },
-                            new() { Value = key },
+                            new() { Value = name },
                             new() { Value = expectedValue },
                         }
                     };
@@ -113,17 +117,18 @@ public class Register : IRegister
             {
                 var sql = @$" 
                     INSERT INTO {_tablePrefix}rfunctions_register
-                        (groupName, keyId, value)
+                        (registertype, groupname, name, value)
                     VALUES
-                        ($1, $2, $3)
+                        ($1, $2, $3, $4)
                     ON CONFLICT DO NOTHING";
 
                 var command = new NpgsqlBatchCommand(sql)
                 {
                     Parameters =
                     {
+                        new() { Value = (int) registerType },
                         new() { Value = group },
-                        new() { Value = key },
+                        new() { Value = name },
                         new() { Value = newValue }
                     }
                 };
@@ -136,7 +141,7 @@ public class Register : IRegister
         }
     }
 
-    public async Task<string?> Get(string group, string key)
+    public async Task<string?> Get(RegisterType registerType, string group, string key)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
@@ -144,11 +149,12 @@ public class Register : IRegister
         var sql = @$"    
             SELECT value
             FROM {_tablePrefix}rfunctions_register
-            WHERE groupName = $1 AND keyId = $2";
+            WHERE registertype = $1 AND groupname = $2 AND name = $3";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType},
                 new() {Value = group},
                 new() {Value = key}
             }
@@ -161,21 +167,22 @@ public class Register : IRegister
         return default;
     }
 
-    public async Task<bool> Delete(string group, string key, string expectedValue)
+    public async Task<bool> Delete(RegisterType registerType, string group, string name, string expectedValue)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var sql = @$" 
             DELETE FROM {_tablePrefix}rfunctions_register
-            WHERE groupName = $1 AND keyId = $2 AND value = $3";
+            WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { Value = (int) registerType},
                 new() { Value = group },
-                new() { Value = key },
+                new() { Value = name },
                 new() { Value = expectedValue },
             }
         };
@@ -184,28 +191,29 @@ public class Register : IRegister
         return affectedRows > 0;
     }
 
-    public async Task Delete(string group, string key)
+    public async Task Delete(RegisterType registerType, string group, string name)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
         var sql = @$" 
             DELETE FROM {_tablePrefix}rfunctions_register
-            WHERE groupName = $1 AND keyId = $2";
+            WHERE registertype = $1 AND groupname = $2 AND name = $3";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { Value = (int) registerType },
                 new() { Value = group },
-                new() { Value = key },
+                new() { Value = name },
             }
         };
 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> Exists(string group, string key)
+    public async Task<bool> Exists(RegisterType registerType, string group, string name)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
@@ -213,13 +221,14 @@ public class Register : IRegister
         var sql = @$"    
             SELECT COUNT(*)
             FROM {_tablePrefix}rfunctions_register
-            WHERE groupName = $1 AND keyId = $2";
+            WHERE registertype = $1 AND groupname = $2 AND name = $3";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = (int) registerType},
                 new() {Value = group},
-                new() {Value = key}
+                new() {Value = name}
             }
         };
         

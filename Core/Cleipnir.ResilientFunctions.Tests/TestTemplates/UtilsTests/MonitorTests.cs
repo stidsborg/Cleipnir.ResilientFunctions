@@ -13,119 +13,128 @@ public abstract class MonitorTests
     protected async Task LockCanBeAcquiredAndReleasedSuccessfully(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lockId = "123";
-        const string keyId = "321";
+        const string instance = "123";
+        const string lockId = "321";
         
-        var @lock = await monitor.Acquire(lockId, keyId);
+        var @lock = await monitor.Acquire(group: nameof(LockCanBeAcquiredAndReleasedSuccessfully),instance, lockId);
         @lock.ShouldNotBeNull();
-        await LockCount().ShouldBeAsync(1);
+        
+        var lock2 = await monitor.Acquire(group: nameof(LockCanBeAcquiredAndReleasedSuccessfully),instance, lockId: "");
+        lock2.ShouldBeNull();
         
         await @lock.DisposeAsync();
-
-        await LockCount().ShouldBeAsync(0);
+        
+        lock2 = await monitor.Acquire(group: nameof(LockCanBeAcquiredAndReleasedSuccessfully),instance, lockId: "");
+        lock2.ShouldNotBeNull();
     }
 
     public abstract Task TwoDifferentLocksCanBeAcquired();
     protected async Task TwoDifferentLocksCanBeAcquired(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lock1Id = "123";
-        const string key1Id = "321";
-        const string lock2Id = "1234";
-        const string key2Id = "3210";
+        const string instance1 = "123";
+        const string lockId1 = "321";
+        const string instance2 = "1234";
+        const string lockId2 = "3210";
         
-        var lock1 = await monitor.Acquire(lock1Id, key1Id);
+        var lock1 = await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance1, lockId1);
         lock1.ShouldNotBeNull();
-        var lock2 = await monitor.Acquire(lock2Id, key2Id);
+        var lock2 = await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance2, lockId2);
         lock2.ShouldNotBeNull();
+
+        await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance1, lockId: "").ShouldBeNullAsync();
+        await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance2, lockId: "").ShouldBeNullAsync();
         
-        await LockCount().ShouldBeAsync(2);
         await lock1.DisposeAsync();
-        await LockCount().ShouldBeAsync(1);
+        await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance2, lockId: "").ShouldBeNullAsync();
         await lock2.DisposeAsync();
-        await LockCount().ShouldBeAsync(0);
+        
+        await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance1, lockId: "").ShouldNotBeNullAsync();
+        await monitor.Acquire(nameof(TwoDifferentLocksCanBeAcquired), instance2, lockId: "").ShouldNotBeNullAsync();
     }
 
     public abstract Task TakingATakenLockFails();
     protected async Task TakingATakenLockFails(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lockId = "123";
-        const string key1Id = "321";
-        const string key2Id = "3210";
+        const string instance = "123";
+        const string lockId1 = "321";
+        const string lockId2 = "3210";
         
-        var @lock = await monitor.Acquire(lockId, key1Id);
+        var @lock = await monitor.Acquire(nameof(TakingATakenLockFails), instance, lockId1);
         @lock.ShouldNotBeNull();
         
-        await monitor.Acquire(lockId, key2Id).ShouldBeNullAsync();
+        await monitor.Acquire(nameof(TakingATakenLockFails), instance, lockId2).ShouldBeNullAsync();
 
         await @lock.DisposeAsync();
-        await LockCount().ShouldBeAsync(0);
+        await monitor.Acquire(nameof(TakingATakenLockFails), instance, lockId2).ShouldNotBeNullAsync();
     }
 
     public abstract Task ReTakingATakenLockWithSameKeyIdSucceeds();
     protected async Task ReTakingATakenLockWithSameKeyIdSucceeds(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lockId = "123";
-        const string keyId = "321";
+        var group = Guid.NewGuid().ToString();
+        const string lockName = "123";
+        const string key = "321";
         
-        var @lock = await monitor.Acquire(lockId, keyId);
+        var @lock = await monitor.Acquire(group, lockName, key);
         @lock.ShouldNotBeNull();
         
-        var lock2 = await monitor.Acquire(lockId, keyId);
+        var lock2 = await monitor.Acquire(group, lockName, key);
         lock2.ShouldNotBeNull();
 
         await @lock.DisposeAsync();
-        await LockCount().ShouldBeAsync(0);
+        
+        var lock3 = await monitor.Acquire(group, lockName, key);
+        lock3.ShouldNotBeNull();
     }
 
     public abstract Task AReleasedLockCanBeTakenAgain();
     protected async Task AReleasedLockCanBeTakenAgain(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lockId = "123";
+        var group = Guid.NewGuid().ToString();
+        const string lockName = "123";
         const string keyId = "321";
         
-        var lock1 = await monitor.Acquire(lockId, keyId);
+        var lock1 = await monitor.Acquire(group, lockName, keyId);
         lock1.ShouldNotBeNull();
         await lock1.DisposeAsync();
         
-        var lock2 = await monitor.Acquire(lockId, keyId);
+        var lock2 = await monitor.Acquire(group, lockName, keyId);
         lock2.ShouldNotBeNull();
-        
-        await LockCount().ShouldBeAsync(1);
     }
 
     public abstract Task WaitingAboveThresholdForATakenLockReturnsNull();
     protected async Task WaitingAboveThresholdForATakenLockReturnsNull(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lockId = "123";
+        var group = Guid.NewGuid().ToString();
+        const string lockName = "123";
         const string key1Id = "321";
         const string key2Id = "3210";
         
-        await monitor.Acquire(lockId, key1Id);
-        await monitor.Acquire(lockId, key2Id, 250).ShouldBeNullAsync();
+        await monitor.Acquire(group, lockName, key1Id);
+        await monitor.Acquire(group, lockName, key2Id, 250).ShouldBeNullAsync();
     }
 
     public abstract Task WhenALockIsReleasedActiveAcquireShouldGetTheLock();
     protected async Task WhenALockIsReleasedActiveAcquireShouldGetTheLock(Task<IMonitor> monitorTask)
     {
         var monitor = await monitorTask;
-        const string lockId = "123";
+        var group = Guid.NewGuid().ToString();
+        const string lockName = "123";
         const string key1Id = "321";
         const string key2Id = "3210";
         
-        var @lock = await monitor.Acquire(lockId, key1Id);
+        var @lock = await monitor.Acquire(group, lockName, key1Id);
         @lock.ShouldNotBeNull();
-        var acquireTask = monitor.Acquire(lockId, key2Id, TimeSpan.FromSeconds(5));
+        var acquireTask = monitor.Acquire(group, lockName, key2Id, TimeSpan.FromSeconds(5));
         await Task.Delay(150);
         await @lock.DisposeAsync();
 
         var lock2 = await acquireTask;
         lock2.ShouldNotBeNull();
     }
-
-    protected abstract Task<int> LockCount([CallerMemberName] string memberName = "");
 }

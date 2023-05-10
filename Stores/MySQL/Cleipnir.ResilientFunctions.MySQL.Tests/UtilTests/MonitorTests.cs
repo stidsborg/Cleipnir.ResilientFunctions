@@ -2,6 +2,7 @@
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MySqlConnector;
+using Monitor = Cleipnir.ResilientFunctions.Utils.Monitor.Monitor;
 
 namespace Cleipnir.ResilientFunctions.MySQL.Tests.UtilTests;
 
@@ -36,27 +37,13 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     public override Task WhenALockIsReleasedActiveAcquireShouldGetTheLock()
         => WhenALockIsReleasedActiveAcquireShouldGetTheLock(CreateAndInitializeMonitor());
 
-    [TestMethod]
-    public async Task InvokingInitializeTwiceSucceeds()
-    {
-        var monitor = (Cleipnir.ResilientFunctions.MySQL.Utils.Monitor) await CreateAndInitializeMonitor();
-        await monitor.Initialize();
-    }
-    
     private async Task<IMonitor> CreateAndInitializeMonitor([CallerMemberName] string memberName = "")
     {
-        var monitor = new Cleipnir.ResilientFunctions.MySQL.Utils.Monitor(Sql.ConnectionString);
-        await monitor.DropUnderlyingTable();
-        await monitor.Initialize();
+        var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString);
+        var monitor = new Monitor(underlyingRegister);
+        await underlyingRegister.DropUnderlyingTable();
+        await underlyingRegister.Initialize();
+        await underlyingRegister.Initialize();
         return monitor;
-    }
-
-    protected override async Task<int> LockCount([CallerMemberName] string memberName = "")
-    {
-        await using var conn = await Sql.ConnFunc();
-        var sql = $"SELECT COUNT(*) FROM rfunctions_monitor";
-        await using var command = new MySqlCommand(sql, conn);
-        var count = (int) (long) (await command.ExecuteScalarAsync() ?? 0);
-        return count;
     }
 }

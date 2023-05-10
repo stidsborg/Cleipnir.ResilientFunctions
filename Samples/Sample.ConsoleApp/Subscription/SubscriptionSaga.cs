@@ -9,13 +9,15 @@ namespace ConsoleApp.Subscription;
 
 public class SubscriptionSaga
 {
-    private readonly RAction<Inner.SubscriptionChange> _rAction;
+    private readonly RAction<Inner.SubscriptionChange, Inner.Scrapbook> _rAction;
     
     public SubscriptionSaga(RFunctions rFunctions)
     {
-        _rAction = rFunctions.RegisterMethod<Inner>().RegisterAction<Inner.SubscriptionChange>(
-            nameof(SubscriptionSaga),
-            inner => inner.UpdateSubscription
+        _rAction = rFunctions
+            .RegisterMethod<Inner>()
+            .RegisterAction<Inner.SubscriptionChange, Inner.Scrapbook>(
+                nameof(SubscriptionSaga),
+                inner => inner.UpdateSubscription
         );
     }
 
@@ -31,10 +33,14 @@ public class SubscriptionSaga
             Monitor = monitor;
         }
 
-        public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, Context context)
+        public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, Scrapbook scrapbook, Context context)
         {
             var (subscriptionId, startSubscription) = subscriptionChange;
-            await using var @lock = await Monitor.Acquire(group: nameof(UpdateSubscription), key: subscriptionId);
+            await using var @lock = await Monitor.Acquire(
+                group: nameof(UpdateSubscription),
+                name: subscriptionChange.SubscriptionId,
+                lockId: scrapbook.LockId
+            );
             if (@lock == null)
                 return Postpone.For(10_000);
 
@@ -68,6 +74,11 @@ public class SubscriptionSaga
             return Task.CompletedTask;
         }
 
-        public record SubscriptionChange(string SubscriptionId, bool StartSubscription);   
+        public record SubscriptionChange(string SubscriptionId, bool StartSubscription);
+
+        public class Scrapbook : RScrapbook
+        {
+            public string LockId { get; set; } = Guid.NewGuid().ToString();
+        }
     }
 }

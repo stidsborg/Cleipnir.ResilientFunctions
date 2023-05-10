@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Cleipnir.ResilientFunctions.Utils.Register;
@@ -20,11 +21,20 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 
     public IEventStore EventStore => this;
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
-
-    public Utilities Utilities { get; } = new(new InMemoryMonitor(), new InMemoryRegister(), new InMemoryArbitrator());
+    public Utilities Utilities { get; }
     
     public Task Initialize() => Task.CompletedTask;
 
+    public InMemoryFunctionStore()
+    {
+        var underlyingRegister = new UnderlyingInMemoryRegister();
+        Utilities = new Utilities(
+            new Monitor(underlyingRegister),
+            new Register(underlyingRegister),
+            new Arbitrator(underlyingRegister)
+        );
+    }
+    
     #region FunctionStore
 
     public Task<bool> CreateFunction(
@@ -373,6 +383,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         public int? SuspendedAtEpoch { get; set; }
     }
     #endregion
+    
     #region EventStore
 
     public Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)

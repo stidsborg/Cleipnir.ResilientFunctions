@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.SqlServer.Utils;
 using Cleipnir.ResilientFunctions.Utils.Register;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -59,8 +58,8 @@ public class RegistrerTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Ut
     
     private async Task<IRegister> CreateAndInitializeRegister([CallerMemberName] string memberName = "")
     {
-        var register = new Register(Sql.ConnectionString, tablePrefix: memberName);
-        await register.Initialize();
-        return register;
+        var underlyingRegister = new SqlServerUnderlyingRegister(Sql.ConnectionString, tablePrefix: memberName);
+        await underlyingRegister.Initialize();
+        return new Register(underlyingRegister);
     }
 }

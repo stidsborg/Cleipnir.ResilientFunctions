@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -8,10 +9,10 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.UtilsTests;
 [TestClass]
 public class MonitorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.UtilsTests.MonitorTests
 {
-    private InMemoryMonitor _monitor = new();
+    private Monitor _monitor = new(new UnderlyingInMemoryRegister());
 
     [TestInitialize]
-    public void Initialize() => _monitor = new InMemoryMonitor();
+    public void Initialize() => _monitor = new Monitor(new UnderlyingInMemoryRegister());
 
     [TestMethod]
     public override Task LockCanBeAcquiredAndReleasedSuccessfully()
@@ -40,6 +41,4 @@ public class MonitorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Util
     [TestMethod]
     public override Task WhenALockIsReleasedActiveAcquireShouldGetTheLock()
         => WhenALockIsReleasedActiveAcquireShouldGetTheLock(_monitor.CastTo<IMonitor>().ToTask());
-
-    protected override Task<int> LockCount(string memberName = "") => _monitor.LockCount.ToTask();
 }
