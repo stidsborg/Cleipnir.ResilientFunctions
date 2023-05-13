@@ -20,7 +20,7 @@ public class AzureBlobTimeoutStore : ITimeoutStore
     public async Task UpsertTimeout(StoredTimeout storedTimeout)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
-        var blobName = GetTimeoutBlobName(functionId, timeoutId);
+        var blobName = functionId.GetTimeoutBlobName(timeoutId);
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         await blobClient.UploadAsync(
@@ -38,7 +38,7 @@ public class AzureBlobTimeoutStore : ITimeoutStore
 
     public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
     {
-        var blobName = GetTimeoutBlobName(functionId, timeoutId);
+        var blobName = functionId.GetTimeoutBlobName(timeoutId);
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         await blobClient.DeleteIfExistsAsync();
@@ -67,8 +67,9 @@ public class AzureBlobTimeoutStore : ITimeoutStore
 
     private async Task<StoredTimeout?> FetchExpiryAndConvertToStoredTimeout(string blobName)
     {
-        var (functionId, timeoutId) = GetFunctionAndTimeoutIdFromBlobName(blobName);
-
+        var (_, type, instance, timeoutId) = Utils.SplitIntoParts(blobName);
+        var functionId = new FunctionId(type, instance);
+        
         try
         {
             var content = await _blobContainerClient
@@ -77,7 +78,7 @@ public class AzureBlobTimeoutStore : ITimeoutStore
 
             var storedTimeout = new StoredTimeout(
                 functionId,
-                timeoutId,
+                timeoutId!,
                 Expiry: long.Parse(content.Value.Content.ToString())
             );
             return storedTimeout;
@@ -89,19 +90,4 @@ public class AzureBlobTimeoutStore : ITimeoutStore
             throw;
         }
     }
-
-    private static string GetTimeoutBlobName(FunctionId functionId, string timeoutId)
-    {
-        functionId.Validate();
-        var (functionTypeId, functionInstanceId) = functionId;
-        return $"timeout¤{functionTypeId}¤{functionInstanceId}¤{timeoutId}";
-    }
-
-    private static FunctionAndTimeoutId GetFunctionAndTimeoutIdFromBlobName(string blobName)
-    {
-        var split = blobName.Split("¤");
-        return new FunctionAndTimeoutId(new FunctionId(split[1], split[2]), split[3]);
-    }
-
-    private record FunctionAndTimeoutId(FunctionId FunctionId, string TimeoutId);
 }

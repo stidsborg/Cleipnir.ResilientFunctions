@@ -28,6 +28,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         _blobContainerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
         _eventStore = new AzureBlobEventStore(_blobContainerClient);
         TimeoutStore = new AzureBlobTimeoutStore(_blobContainerClient);
+        Utilities = new Utilities(new AzureBlobUnderlyingRegister(_blobContainerClient));
     }
     
     public async Task Initialize()
@@ -145,7 +146,6 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
-        //todo validate functiontypeId
         var executingBlobs = _blobContainerClient.FindBlobsByTagsAsync(
             tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND SignOfLife >= '0' AND CrashedCheckFrequency >= '0'"
         );
@@ -153,7 +153,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var executingFunctions = new List<StoredExecutingFunction>();
         await foreach (var executingBlob in executingBlobs)
         {
-            var instanceName = executingBlob.BlobName.Split("@")[0];
+            var (_, _, instanceName, _) = Utils.SplitIntoParts(executingBlob.BlobName);
             var rfTags = RfTags.ConvertFrom(executingBlob.Tags);
             var storedExecutingFunction = new StoredExecutingFunction(
                 instanceName,
@@ -178,7 +178,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         
         await foreach (var postponedBlob in postponedBlobs)
         {
-            var instanceName = postponedBlob.BlobName.Split("@")[0];
+            var (_, _, instanceName, _) = Utils.SplitIntoParts(postponedBlob.BlobName);
             var epoch = int.Parse(postponedBlob.Tags["Epoch"]);
             var postponedUntil = long.Parse(postponedBlob.Tags["PostponedUntil"]);
             

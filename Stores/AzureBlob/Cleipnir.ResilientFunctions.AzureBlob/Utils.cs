@@ -6,12 +6,6 @@ namespace Cleipnir.ResilientFunctions.AzureBlob;
 
 public static class Utils
 {
-    public static void Validate(this FunctionId functionId)
-    {
-        if (functionId.TypeId.Value.Contains("@") || functionId.InstanceId.Value.Contains("@"))
-            throw new ArgumentException("'@'-sign not allowed in function id");
-    }
-
     public static Task<string> ConvertToString(this Stream stream)
     {
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -25,47 +19,23 @@ public static class Utils
         => Encoding.UTF8.GetString(binaryData.ToMemory().Span);
 
     internal static string GetStateBlobName(this FunctionId functionId)
-    {
-        functionId.Validate();
-        return $"{functionId}_state";
-    }
+        => GetBlobName(type: "state", functionId.TypeId.Value, functionId.InstanceId.Value);
 
     internal static string GetEventsBlobName(this FunctionId functionId)
-    {
-        functionId.Validate();
-        return $"{functionId}_events";
-    }
+        => GetBlobName(type: "events", functionId.TypeId.Value, functionId.InstanceId.Value);
 
-    internal static string GetUnderlyingRegisterName(RegisterType registerType, string group, string name)
-    {
-        return $"{(int) registerType}{group.Length:000}_{group}_{name}";
-    }
-
-    public record RegisterName(RegisterType RegisterType, string Group, string Name);
-    internal static RegisterName ConvertToRegisterName(string blobName)
-    {
-        var registerType = (RegisterType) int.Parse(blobName[0].ToString());
-        var rest = blobName[1..]; //skip register type
-        var groupLength = int.Parse(rest[..3]); 
-        rest = rest[4..]; //skip group length and _
-        var group = rest[..groupLength];
-        rest = rest[(groupLength + 1)..]; //skip group name and trailing _
-        var name = rest;
-
-        return new RegisterName(registerType, group, name);
-    }
-
-    internal static FunctionId ConvertFromStateBlobNameToFunctionId(this string blobName)
-    {
-        var functionIdString = blobName[..^("_state".Length)];
-        var split = functionIdString.Split("@");
-        return new FunctionId(split[1], split[0]);
-    }
+    internal static string GetTimeoutBlobName(this FunctionId functionId, string timeoutId)
+        => GetBlobName(type: "timeout", functionId.TypeId.Value, functionId.InstanceId.Value, timeoutId);
     
-    internal static FunctionId ConvertFromEventsBlobNameToFunctionId(this string blobName)
+    internal static string GetUnderlyingRegisterName(RegisterType registerType, string group, string name)
+        => GetBlobName(registerType.ToString(), group, name);
+
+    private static string GetBlobName(string type, string group, string instance, string? id = null)
+        => SimpleMarshaller.Serialize(type, group, instance, id ?? "");
+    public record FileNameParts(string Type, string Group, string Instance, string? Id);
+    internal static FileNameParts SplitIntoParts(string blobName)
     {
-        var functionIdString = blobName[..^("_events".Length)];
-        var split = functionIdString.Split("@");
-        return new FunctionId(split[1], split[0]);
+        var parts = SimpleMarshaller.Deserialize(blobName, expectedCount: 4);
+        return new FileNameParts(parts[0]!, parts[1]!, parts[2]!, parts[3]! == "" ? null : parts[3]);
     }
 }
