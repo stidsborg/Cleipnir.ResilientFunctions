@@ -441,7 +441,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ? AND
-                (SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?) = ?";
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?) = ?";
         
         await using var command = new MySqlCommand(sql, conn, transaction)
         {

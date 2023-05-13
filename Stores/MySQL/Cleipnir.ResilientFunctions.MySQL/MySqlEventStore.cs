@@ -192,7 +192,7 @@ public class MySqlEventStore : IEventStore
     public async Task<long> GetNumberOfEvents(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"SELECT COUNT(*) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
+        var sql = @$"SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
