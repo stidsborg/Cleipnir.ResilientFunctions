@@ -1,6 +1,6 @@
 ﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Sample.Holion.Ordering;
-using Sample.Holion.Ordering.Clients;
+using Sample.Holion.A.Ordering;
+using Sample.Holion.A.Ordering.Clients;
 
 namespace Sample.Holion.Utils;
 

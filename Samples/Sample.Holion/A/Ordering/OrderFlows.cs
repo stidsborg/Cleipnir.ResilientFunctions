@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 
-namespace Sample.Holion.Ordering;
+namespace Sample.Holion.A.Ordering;
 
 public class OrderFlows
 {
@@ -35,6 +35,6 @@ public class OrderFlows
         typeof(OrderFlow).GetProperty(nameof(OrderFlow.EventSource))!.SetValue(flow, eventSource);
         typeof(OrderFlow).GetProperty(nameof(OrderFlow.Utilities))!.SetValue(flow, context.Utilities);
 
-        await flow.Invoke(order);
+        await flow.Run(order);
     }
 }

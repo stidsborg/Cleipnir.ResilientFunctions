@@ -1,8 +1,8 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
-using Sample.Holion.Ordering.Clients;
+using Sample.Holion.A.Ordering.Clients;
 using Serilog;
 
-namespace Sample.Holion.Ordering;
+namespace Sample.Holion.A.Ordering;
 
 public class OrderFlow : Flow<Order, Scrapbook>
 {
@@ -17,7 +17,7 @@ public class OrderFlow : Flow<Order, Scrapbook>
         _logisticsClient = logisticsClient;
     }
 
-    public override async Task Invoke(Order order)
+    public override async Task Run(Order order)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
         

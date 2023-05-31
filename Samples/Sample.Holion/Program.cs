@@ -1,6 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.PostgreSQL;
-using Sample.Holion.Ordering;
 using Sample.Holion.Utils;
 using Serilog;
 
@@ -23,10 +22,7 @@ internal class Program
             )
         );
 
-        var order = new Order("MK-54321", CustomerId: Guid.NewGuid(), ProductIds: new[] { Guid.NewGuid()}, 100M);
-        await flows.OrderFlows.Run(order.OrderId, order);
-
+        await A.Ordering.Example.Perform(flows);
         Console.ReadLine();
-
     }
 }

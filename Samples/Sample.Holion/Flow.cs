@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Sample.Holion;
 
+public abstract class Flow<TParam> : Flow<TParam, RScrapbook> {}
 public abstract class Flow<TParam, TScrapbook> where TScrapbook : RScrapbook
 {
     public Context Context { get; init; } = null!;
@@ -13,7 +14,7 @@ public abstract class Flow<TParam, TScrapbook> where TScrapbook : RScrapbook
     public EventSource EventSource { get; init; } = null!;
     public TScrapbook Scrapbook { get; init; } = default!;
 
-    public abstract Task Invoke(TParam param);
+    public abstract Task Run(TParam param);
     
     public void Suspend(int whileEventCount) => throw new SuspendInvocationException(whileEventCount);
     public void Postpone(TimeSpan delay) => throw new PostponeInvocationException(delay);

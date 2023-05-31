@@ -1,6 +1,6 @@
 ﻿using Serilog;
 
-namespace Sample.Holion.Ordering.Clients;
+namespace Sample.Holion.A.Ordering.Clients;
 
 public interface IPaymentProviderClient
 {
