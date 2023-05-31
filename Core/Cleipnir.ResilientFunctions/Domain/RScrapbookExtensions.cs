@@ -226,7 +226,7 @@ public static class RScrapbookExtensions
         if (flushCompletedStatusImmediately) await scrapbook.Save();
     }
     
-    public static async Task DoAtLeastOnce<TScrapbook, TResult>(
+    public static async Task<TResult> DoAtLeastOnce<TScrapbook, TResult>(
         this TScrapbook scrapbook, 
         Expression<Func<TScrapbook, WorkStatusAndResult<TResult>>> workStatus, 
         Func<Task<TResult>> work,
@@ -239,7 +239,8 @@ public static class RScrapbookExtensions
         {
             using var _ = await scrapbook.Lock();
             var workStatusValue = getter(scrapbook);
-            if (workStatusValue.Status == WorkStatus.Completed) return;
+            if (workStatusValue.Status == WorkStatus.Completed) 
+                return workStatusValue.Result;
 
             setter(scrapbook, new WorkStatusAndResult<TResult> { Status = WorkStatus.Started });    
         }
@@ -249,6 +250,8 @@ public static class RScrapbookExtensions
         using var __ = await scrapbook.Lock();
         setter(scrapbook, new WorkStatusAndResult<TResult> { Status = WorkStatus.Completed, Result = result });
         if (flushCompletedStatusImmediately) await scrapbook.Save();
+
+        return result;
     }
 
     private static GetterAndSetter GetOrCreateGetterAndSetter<TScrapbook>(Expression<Func<TScrapbook, WorkStatus>> property)
