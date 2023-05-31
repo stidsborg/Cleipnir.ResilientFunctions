@@ -11,10 +11,10 @@ using Shouldly;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class AtLeastOnceTests
+public class AtMostOnceWorkStatusTests
 {
     [TestMethod]
-    public async Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted()
+    public async Task AtMostOnceWorkIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
@@ -25,30 +25,28 @@ public class AtLeastOnceTests
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
-                    .DoAtLeastOnce(
+                    .DoAtMostOnce(
                         workStatus: s => s.WorkStatus,
                         work: () =>
                         {
                             counter.Increment();
-                            if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
-                            return Task.CompletedTask;
+                            throw new PostponeInvocationException(1);
                         }
                     );
-            });
+            }).Invoke;
 
         _ = rAction.Invoke("", "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(new FunctionId("", ""))
-                .SelectAsync(sf => sf?.Status == Status.Succeeded)
+                .SelectAsync(sf => sf?.Status == Status.Failed)
         );
-
-        counter.Current.ShouldBe(2);
+        
+        counter.Current.ShouldBe(1);
     }
     
     [TestMethod]
-    public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted()
+    public async Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
@@ -59,30 +57,28 @@ public class AtLeastOnceTests
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
-                    .DoAtLeastOnce(
+                    .DoAtMostOnce(
                         workId: "someId",
                         work: () =>
                         {
                             counter.Increment();
-                            if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
-                            return Task.CompletedTask;
+                            throw new PostponeInvocationException(1);
                         }
                     );
-            });
+            }).Invoke;
 
         _ = rAction.Invoke("", "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(new FunctionId("", ""))
-                .SelectAsync(sf => sf?.Status == Status.Succeeded)
+                .SelectAsync(sf => sf?.Status == Status.Failed)
         );
-
-        counter.Current.ShouldBe(2);
+        
+        counter.Current.ShouldBe(1);
     }
     
     [TestMethod]
-    public async Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes()
+    public async Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
@@ -93,7 +89,7 @@ public class AtLeastOnceTests
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
-                    .DoAtLeastOnce(
+                    .DoAtMostOnce(
                         workStatus: s => s.WorkStatus,
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
@@ -105,7 +101,7 @@ public class AtLeastOnceTests
     }
     
     [TestMethod]
-    public async Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes()
+    public async Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new RFunctions(store);
@@ -116,7 +112,7 @@ public class AtLeastOnceTests
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
-                    .DoAtLeastOnce(
+                    .DoAtMostOnce(
                         workId: "someId",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
@@ -126,7 +122,7 @@ public class AtLeastOnceTests
 
         counter.Current.ShouldBe(1);
     }
-
+    
     [TestMethod]
     public async Task ReferencingGetOnlyPropertyThrowsException()
     {
