@@ -1,8 +1,8 @@
 ﻿using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Sample.Holion.A.Ordering;
 
 namespace Sample.Holion.B.BankTransfer;
 
@@ -30,11 +30,11 @@ public class TransferFlows
 
     private async Task PrepareAndExecute(TransferFlow flow, Transfer order, RScrapbook scrapbook, Context context)
     {
-        typeof(TransferFlow).GetProperty(nameof(TransferFlow.Context))!.SetValue(flow, context);
-        typeof(TransferFlow).GetProperty(nameof(TransferFlow.Scrapbook))!.SetValue(flow, scrapbook);
+        typeof(TransferFlow).GetProperty(nameof(Flow<Unit>.Context))!.SetValue(flow, context);
+        typeof(TransferFlow).GetProperty(nameof(Flow<Unit>.Scrapbook))!.SetValue(flow, scrapbook);
         var eventSource = await context.EventSource;
-        typeof(TransferFlow).GetProperty(nameof(TransferFlow.EventSource))!.SetValue(flow, eventSource);
-        typeof(TransferFlow).GetProperty(nameof(TransferFlow.Utilities))!.SetValue(flow, context.Utilities);
+        typeof(TransferFlow).GetProperty(nameof(Flow<Unit>.EventSource))!.SetValue(flow, eventSource);
+        typeof(TransferFlow).GetProperty(nameof(Flow<Unit>.Utilities))!.SetValue(flow, context.Utilities);
 
         await flow.Run(order);
     }
