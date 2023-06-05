@@ -7,11 +7,16 @@ namespace Sample.Holion;
 
 internal class Program
 {
+    private const string ConnectionString = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=holion;";
+    
+    public static async Task RecreateDatabase()
+        => await DatabaseHelper.RecreateDatabase(ConnectionString);
+    
     public static async Task Main(string[] args)
     {
-        const string connectionString = "Server=localhost;Port=5432;Userid=postgres;Password=Pa55word!;Database=holion;";
-        //await DatabaseHelper.RecreateDatabase(connectionString);
-        var store = new PostgreSqlFunctionStore(connectionString);
+        await RecreateDatabase();
+        
+        var store = new PostgreSqlFunctionStore(ConnectionString);
         await store.Initialize();
         var flows = new Flows(
             store,

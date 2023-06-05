@@ -19,7 +19,11 @@ public class MonitorExample
 
     public async Task<Result> Invoke(string id, string resourceId, string value)
     {
-        await using var @lock = await Monitor.Acquire(group: nameof(MonitorExample), name: "monitor", lockId: id);
+        await using var @lock = await Monitor.Acquire(
+            group: nameof(MonitorExample), 
+            name: "monitor", 
+            lockId: id
+        );
         if (@lock == null)
             return Postpone.For(10_000);
 

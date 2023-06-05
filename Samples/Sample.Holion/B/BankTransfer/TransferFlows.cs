@@ -22,10 +22,10 @@ public class TransferFlows
     public Task<ControlPanel<Transfer, RScrapbook>?> ControlPanel(string instanceId) => _registration.ControlPanels.For(instanceId);
     public EventSourceWriter EventSourceWriter(string instanceId) => _registration.EventSourceWriters.For(instanceId);
 
-    public Task Run(string instanceId, Transfer transfer, Scrapbook? scrapbook = null)
+    public Task Run(string instanceId, Transfer transfer, RScrapbook? scrapbook = null)
         => _registration.Invoke(instanceId, transfer, scrapbook);
 
-    public Task Schedule(string instanceId, Transfer transfer, Scrapbook? scrapbook = null) 
+    public Task Schedule(string instanceId, Transfer transfer, RScrapbook? scrapbook = null) 
         => _registration.Schedule(instanceId, transfer, scrapbook);
 
     private async Task PrepareAndExecute(TransferFlow flow, Transfer order, RScrapbook scrapbook, Context context)

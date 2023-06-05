@@ -1,10 +1,11 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Sample.Holion.A.Ordering;
 using Sample.Holion.A.Ordering.Clients;
 using Serilog;
 
-namespace Sample.Holion.A.Ordering;
+namespace Sample.Holion.Solutions.A;
 
-public class OrderFlow : Flow<Order, OrderFlow.OrderScrapbook>
+public class OrderFlow : Flow<Order, Scrapbook>
 {
     private readonly IPaymentProviderClient _paymentProviderClient;
     private readonly IEmailClient _emailClient;
@@ -21,16 +22,23 @@ public class OrderFlow : Flow<Order, OrderFlow.OrderScrapbook>
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
         
-        var transactionId = Guid.Empty;
-        await _paymentProviderClient.Reserve(order.CustomerId, transactionId, order.TotalPrice);
+        await _paymentProviderClient.Reserve(order.CustomerId, Scrapbook.TransactionId, order.TotalPrice);
 
-        await _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds);
+        await DoAtMostOnce(
+            workStatus: s => s.ProductsShippedStatus,
+            work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
+        );
 
-        await _paymentProviderClient.Capture(transactionId);
+        await _paymentProviderClient.Capture(Scrapbook.TransactionId);
 
         await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
 
         Log.Logger.ForContext<OrderFlow>().Information($"Processing of order '{order.OrderId}' completed");
     }
-    public class OrderScrapbook : RScrapbook {}
+}
+
+public class Scrapbook : RScrapbook
+{
+    public Guid TransactionId { get; set; } 
+    public WorkStatus ProductsShippedStatus { get; set; }
 }
