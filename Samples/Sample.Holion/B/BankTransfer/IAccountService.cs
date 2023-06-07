@@ -1,11 +1,11 @@
 ﻿namespace Sample.Holion.B.BankTransfer;
 
-public interface IBankCentralClient
+public interface IAccountService
 {
     Task<bool> PostTransaction(Guid transactionId, string account, decimal amount);
 }
 
-public class BankCentralClient : IBankCentralClient
+public class AccountService : IAccountService
 {
     public Task<bool> PostTransaction(Guid transactionId, string account, decimal amount)
     {

@@ -1,25 +1,14 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
-
-namespace Sample.Holion.B.BankTransfer;
+﻿namespace Sample.Holion.B.BankTransfer;
 
 public sealed class TransferFlow : Flow<Transfer>
 {
-    private IBankCentralClient BankCentralClient { get; }
+    private IAccountService AccountService { get; }
     
-    public TransferFlow(IBankCentralClient bankCentralClient) => BankCentralClient = bankCentralClient;
+    public TransferFlow(IAccountService accountService) => AccountService = accountService;
     
     public override async Task Run(Transfer transfer)
     {
-        var deductTask = Scrapbook.DoAtMostOnce(
-            "DeductAmount",
-            () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
-        );
-            
-        var addTask = Scrapbook.DoAtMostOnce(
-            "AddAmount",
-            () => BankCentralClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
-        );
-
-        await Task.WhenAll(deductTask, addTask);
+        await Task.CompletedTask;
+        throw new NotImplementedException();
     }
 }
