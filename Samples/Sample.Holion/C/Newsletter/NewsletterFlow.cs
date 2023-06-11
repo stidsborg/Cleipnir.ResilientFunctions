@@ -17,6 +17,17 @@ public class NewsletterFlow : Flow<MailAndRecipients, NewsletterFlow.NewsletterS
         throw new NotImplementedException();
     }
 
+    private async Task SendNewsletter(SmtpClient client, EmailAddress recipient, string subject, string content)
+    {
+        var message = new MimeMessage();
+        message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
+        message.From.Add(new MailboxAddress("Cleipnir.NET", "newsletter@cleipnir.net"));
+
+        message.Subject = subject;
+        message.Body = new TextPart(TextFormat.Html) { Text = content };
+        await client.SendAsync(message);
+    }
+
     public class NewsletterScrapbook : RScrapbook
     {
         
