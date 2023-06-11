@@ -8,6 +8,11 @@ public sealed class TransferFlow : Flow<Transfer>
     
     public override async Task Run(Transfer transfer)
     {
+        var (transferId, 
+             fromAccount, fromAccountTransactionId, 
+             toAccount, toAccountTransactionId, 
+             amount) = transfer;
+        
         await Task.CompletedTask;
         throw new NotImplementedException();
     }
