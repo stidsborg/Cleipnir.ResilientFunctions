@@ -10,6 +10,10 @@ public class SupportTicketFlow : Flow<SupportTicketRequest, SupportTicketFlow.Su
     public override async Task Run(SupportTicketRequest request)
     {
         var agents = request.CustomerSupportAgents.Length;
+
+        await MessageBroker.Send(
+            new TakeSupportTicket(request.SupportTicketId, "some@email.com", RequestId: Scrapbook.Try.ToString())
+        );
         await Task.CompletedTask;
         
         throw new NotImplementedException();
