@@ -4,11 +4,13 @@ using Serilog;
 
 namespace Sample.Holion.A.Ordering;
 
-public class OrderFlow : Flow<Order, OrderFlow.OrderScrapbook>
+public class OrderFlow : Flow<Order, OrderScrapbook>
 {
     private readonly IPaymentProviderClient _paymentProviderClient;
     private readonly IEmailClient _emailClient;
     private readonly ILogisticsClient _logisticsClient;
+    
+    private readonly ILogger _logger = Log.Logger.ForContext<OrderFlow>();
 
     public OrderFlow(IPaymentProviderClient paymentProviderClient, IEmailClient emailClient, ILogisticsClient logisticsClient)
     {
@@ -19,8 +21,8 @@ public class OrderFlow : Flow<Order, OrderFlow.OrderScrapbook>
 
     public override async Task Run(Order order)
     {
-        Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-        
+        _logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
+
         var transactionId = Guid.Empty;
         await _paymentProviderClient.Reserve(order.CustomerId, transactionId, order.TotalPrice);
 
@@ -30,7 +32,8 @@ public class OrderFlow : Flow<Order, OrderFlow.OrderScrapbook>
 
         await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
 
-        Log.Logger.ForContext<OrderFlow>().Information($"Processing of order '{order.OrderId}' completed");
+        _logger.Information($"Processing of order '{order.OrderId}' completed");
     }
-    public class OrderScrapbook : RScrapbook {}
 }
+
+public class OrderScrapbook : RScrapbook {}
