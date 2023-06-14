@@ -16,6 +16,7 @@ public class Flows
     public NewsletterFlows NewsletterFlows { get; }
     public SupportTicketFlows SupportTicketFlows { get; }
     public LoanApplicationFlows LoanApplicationFlows { get; }
+    public F.Ordering.OrderFlows OrderFlowsWithVersioning { get; }
 
     public Flows(IFunctionStore functionStore, Settings? settings = null)
     {
@@ -25,5 +26,6 @@ public class Flows
         NewsletterFlows = new NewsletterFlows(rFunctions);
         SupportTicketFlows = new SupportTicketFlows(rFunctions);
         LoanApplicationFlows = new LoanApplicationFlows(rFunctions);
+        OrderFlowsWithVersioning = new F.Ordering.OrderFlows(rFunctions);
     }
 }
