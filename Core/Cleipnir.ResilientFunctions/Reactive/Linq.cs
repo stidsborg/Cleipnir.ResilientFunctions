@@ -176,11 +176,11 @@ public static class Linq
         return tcs.Task;
     }
 
-    public static Task<List<T>> ToList<T>(this IReactiveChain<T> reactiveChain)
+    public static Task<List<T>> ToList<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();
-        var subscription = reactiveChain.Subscribe(
+        var subscription = s.Subscribe(
             onNext: t => list.Add(t),
             onCompletion: () => tcs.TrySetResult(list),
             onError: e => tcs.TrySetException(e)
@@ -190,11 +190,11 @@ public static class Linq
         return tcs.Task;
     }
 
-    public static List<T> PullExisting<T>(this IReactiveChain<T> reactiveChain)
+    public static List<T> PullExisting<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();
-        var subscription = reactiveChain.Subscribe(
+        var subscription = s.Subscribe(
             onNext: t => list.Add(t),
             onCompletion: () => tcs.TrySetResult(list),
             onError: e => tcs.TrySetException(e)
