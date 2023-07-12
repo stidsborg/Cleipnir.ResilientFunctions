@@ -57,11 +57,11 @@ public class AtLeastOnceWorkStatusAndResultTests
         using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
         
-        var rAction = rFunctions.RegisterAction(
+        var rFunc = rFunctions.RegisterFunc(
             "",
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task<string>(string param, Scrapbook scrapbook) =>
             {
-                await scrapbook
+                return await scrapbook
                     .DoAtLeastOnce(
                         workId: "someId",
                         work: () =>
@@ -75,7 +75,7 @@ public class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        _ = rAction.Invoke("", "hello");
+        _ = rFunc.Schedule("", "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(new FunctionId("", ""))
@@ -83,6 +83,9 @@ public class AtLeastOnceWorkStatusAndResultTests
         );
 
         counter.Current.ShouldBe(2);
+
+        var result = await rFunc.Invoke("", "hello");
+        result.ShouldBe("hello world");
     }
     
     [TestMethod]
