@@ -371,12 +371,9 @@ public class RFunctions : IDisposable
         
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new Invoker<Unit, TParam, TScrapbook, TReturn>(
+            var rFuncInvoker = new Invoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
-                inner, 
-                innerMethodSelector: null,
-                settingsWithDefaults.DependencyResolver,
-                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
+                inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities
@@ -529,12 +526,9 @@ public class RFunctions : IDisposable
 
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rActionInvoker = new Invoker<Unit, TParam, TScrapbook, Unit>(
+            var rActionInvoker = new Invoker<TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
-                innerMethodSelector: null,
-                settingsWithDefaults.DependencyResolver,
-                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities
@@ -563,146 +557,6 @@ public class RFunctions : IDisposable
             _functions[functionTypeId] = registration;
             _reInvokes[functionTypeId] = (id, epoch) => rActionInvoker.ReInvoke(id, epoch);
             _scheduleReInvocations[functionTypeId] = (id, epoch) => rActionInvoker.ScheduleReInvoke(id, epoch);
-            return registration;
-        }
-    }
-
-    // ** !! METHOD FUNC REGISTRATION !! ** //
-    public MethodRegistrationBuilder<TEntity> RegisterMethod<TEntity>() where TEntity : notnull => new(this);
-    
-    // ** !! METHOD ACTION REGISTRATION !! ** //
-    internal RAction<TParam> RegisterMethodAction<TEntity, TParam>(
-        FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> innerMethodSelector,
-        Settings? settings = null
-    ) where TParam : notnull where TEntity : notnull
-    {
-        var rAction = RegisterMethodAction<TEntity, TParam, RScrapbook>(
-            functionTypeId,
-            innerMethodSelector,
-            settings
-        );
-        return new RAction<TParam>(rAction);
-    }
-    
-    // ** !! METHOD FUNC WITH SCRAPBOOK REGISTRATION !! ** //
-    internal RFunc<TParam, TScrapbook, TReturn> RegisterMethodFunc<TEntity, TParam, TScrapbook, TReturn>(
-        FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> innerMethodSelector,
-        Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
-    {
-        if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-
-        lock (_sync)
-        {
-            if (_functions.ContainsKey(functionTypeId))
-            {
-                if (_functions[functionTypeId] is not RFunc<TParam, TScrapbook, TReturn> r)
-                    throw new ArgumentException($"<{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
-                return r;
-            }
-
-            var settingsWithDefaults = _settings.Merge(settings);
-            if (settingsWithDefaults.DependencyResolver == null)
-                throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
-            
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, TReturn>(
-                functionTypeId, 
-                inner: null,
-                innerMethodSelector, 
-                settingsWithDefaults.DependencyResolver,
-                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
-                invocationHelper,
-                settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
-            );
-
-            WatchDogsFactory.CreateAndStart(
-                functionTypeId,
-                _functionStore,
-                reInvoke: (id, epoch, status) => rFuncInvoker.ReInvoke(id.ToString(), epoch, status),
-                settingsWithDefaults,
-                _shutdownCoordinator
-            );
-
-            var controlPanels = new ControlPanels<TParam, TScrapbook, TReturn>(
-                functionTypeId,
-                invocationHelper,
-                rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleReInvoke
-            );
-            var registration = new RFunc<TParam, TScrapbook, TReturn>(
-                rFuncInvoker.Invoke,
-                rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleInvoke,
-                rFuncInvoker.ScheduleReInvoke,
-                controlPanels,
-                new EventSourceWriters(functionTypeId, _functionStore.EventStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
-            );
-            _functions[functionTypeId] = registration;
-            return registration;
-        }
-    }
-
-    // ** !! METHOD ACTION WITH SCRAPBOOK REGISTRATION !! ** //
-    internal RAction<TParam, TScrapbook> RegisterMethodAction<TEntity, TParam, TScrapbook>(
-        FunctionTypeId functionTypeId,
-        Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> innerMethodSelector,
-        Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() where TEntity : notnull
-    {
-        if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
-
-        lock (_sync)
-        {
-            if (_functions.ContainsKey(functionTypeId))
-            {
-                if (_functions[functionTypeId] is not RAction<TParam, TScrapbook> r)
-                    throw new ArgumentException($"<{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
-                return r;
-            }
-
-            var settingsWithDefaults = _settings.Merge(settings);
-            if (settingsWithDefaults.DependencyResolver == null)
-                throw new ArgumentNullException(nameof(IDependencyResolver), $"Cannot register method when settings' {nameof(IDependencyResolver)} is null");
-            
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rFuncInvoker = new Invoker<TEntity, TParam, TScrapbook, Unit>(
-                functionTypeId, 
-                inner: null,
-                innerMethodSelector,
-                settingsWithDefaults.DependencyResolver,
-                new MiddlewarePipeline(settingsWithDefaults.Middlewares),
-                invocationHelper,
-                settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
-            );
-
-            WatchDogsFactory.CreateAndStart(
-                functionTypeId,
-                _functionStore,
-                reInvoke: (id, epoch, status) => rFuncInvoker.ReInvoke(id.ToString(), epoch, status),
-                settingsWithDefaults,
-                _shutdownCoordinator
-            );
-
-            var controlPanels = new ControlPanels<TParam, TScrapbook>(
-                functionTypeId,
-                invocationHelper,
-                rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleReInvoke
-            );
-            var registration = new RAction<TParam, TScrapbook>(
-                rFuncInvoker.Invoke,
-                rFuncInvoker.ScheduleInvoke,
-                controlPanels,
-                new EventSourceWriters(functionTypeId, _functionStore.EventStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
-            );
-            _functions[functionTypeId] = registration;
             return registration;
         }
     }

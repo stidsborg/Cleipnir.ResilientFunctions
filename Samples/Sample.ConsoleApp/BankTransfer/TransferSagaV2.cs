@@ -12,11 +12,11 @@ public sealed class TransferSagaV2
     private readonly RAction<Transfer, RScrapbook> _rAction;
     public TransferSagaV2(RFunctions rFunctions)
     {
+        var saga = new Inner(new BankCentralClient());
         _rAction = rFunctions
-            .RegisterMethod<Inner>()
             .RegisterAction<Transfer, RScrapbook>(
-                functionTypeId: nameof(TransferSagaV1),
-                inner => inner.Perform
+                functionTypeId: nameof(TransferSagaV2),
+                (transfer, scrapbook, context) => saga.Perform(transfer, scrapbook, context)
             );
     }
 

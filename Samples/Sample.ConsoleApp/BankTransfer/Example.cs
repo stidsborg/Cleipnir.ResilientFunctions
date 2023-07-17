@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Utils;
 
 namespace ConsoleApp.BankTransfer;
 
@@ -11,10 +9,7 @@ public static class Example
 {
     public static async Task Perform()
     {
-        var rFunctions = new RFunctions(
-            new InMemoryFunctionStore(),
-            new Settings(dependencyResolver: new FuncDependencyResolver(_ => new BankCentralClient()))
-        );
+        var rFunctions = new RFunctions(new InMemoryFunctionStore());
 
         var transferSaga = new TransferSagaV1(rFunctions);
         var transfer = new Transfer(

@@ -19,10 +19,6 @@ public class Settings
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? EventSourcePullFrequency { get; }
     internal ISerializer? Serializer { get; }
-    internal IDependencyResolver? DependencyResolver { get; }
-    
-    private readonly List<MiddlewareInstanceOrResolverFunc> _middlewares;
-    internal IReadOnlyList<MiddlewareInstanceOrResolverFunc> Middlewares => _middlewares;
 
     public Settings(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
@@ -33,26 +29,7 @@ public class Settings
         TimeSpan? eventSourcePullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
-        ISerializer? serializer = null, 
-        IDependencyResolver? dependencyResolver = null
-    ) :this(
-        unhandledExceptionHandler, crashedCheckFrequency, postponedCheckFrequency, timeoutCheckFrequency, suspensionCheckFrequency, eventSourcePullFrequency, 
-        delayStartup, maxParallelRetryInvocations, serializer, dependencyResolver, 
-        middlewares: new List<MiddlewareInstanceOrResolverFunc>()
-    ) { }
-
-    internal Settings(
-        Action<RFunctionException>? unhandledExceptionHandler, 
-        TimeSpan? crashedCheckFrequency, 
-        TimeSpan? postponedCheckFrequency, 
-        TimeSpan? timeoutCheckFrequency,
-        TimeSpan? suspensionCheckFrequency,
-        TimeSpan? eventSourcePullFrequency,
-        TimeSpan? delayStartup, 
-        int? maxParallelRetryInvocations, 
-        ISerializer? serializer, 
-        IDependencyResolver? dependencyResolver,
-        List<MiddlewareInstanceOrResolverFunc> middlewares)
+        ISerializer? serializer = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         CrashedCheckFrequency = crashedCheckFrequency;
@@ -62,32 +39,7 @@ public class Settings
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
-        DependencyResolver = dependencyResolver;
-        _middlewares = middlewares;
         EventSourcePullFrequency = eventSourcePullFrequency;
-    }
-
-    public Settings UseMiddleware<TMiddleware>() where TMiddleware : IMiddleware 
-    {
-        if (DependencyResolver == null)
-            throw new InvalidOperationException(
-                $"{DependencyResolver} must be non-null when registering middleware using generic argument"
-            );
-
-        _middlewares.Add(
-            new MiddlewareInstanceOrResolverFunc(
-                Instance: null,
-                Resolver: resolver => resolver.Resolve<TMiddleware>()
-            )
-        );
-
-        return this;
-    }
-
-    public Settings UseMiddleware(IMiddleware middleware) 
-    {
-        _middlewares.Add(new MiddlewareInstanceOrResolverFunc(middleware, Resolver: null));
-        return this;
     }
 }
 
@@ -100,10 +52,7 @@ public record SettingsWithDefaults(
     TimeSpan EventSourcePullFrequency,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
-    ISerializer Serializer,
-    IDependencyResolver? DependencyResolver,
-    IReadOnlyList<MiddlewareInstanceOrResolverFunc> Middlewares
-)
+    ISerializer Serializer)
 {
     public SettingsWithDefaults Merge(Settings? child)
     {
@@ -120,9 +69,7 @@ public record SettingsWithDefaults(
             child.EventSourcePullFrequency ?? EventSourcePullFrequency,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
-            child.Serializer ?? Serializer,
-            child.DependencyResolver ?? DependencyResolver,
-            child.Middlewares.Any() ? child.Middlewares : Middlewares
+            child.Serializer ?? Serializer
         );
     }
 
@@ -136,8 +83,6 @@ public record SettingsWithDefaults(
             EventSourcePullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 10,
-            Serializer: DefaultSerializer.Instance,
-            DependencyResolver: null,
-            Middlewares: new List<MiddlewareInstanceOrResolverFunc>()
+            Serializer: DefaultSerializer.Instance
         );
 }

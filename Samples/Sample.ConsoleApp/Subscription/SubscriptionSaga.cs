@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Utils.Monitor;
 
 namespace ConsoleApp.Subscription;
 
@@ -13,11 +12,11 @@ public class SubscriptionSaga
     
     public SubscriptionSaga(RFunctions rFunctions)
     {
+        var inner = new Inner();
         _rAction = rFunctions
-            .RegisterMethod<Inner>()
             .RegisterAction<Inner.SubscriptionChange, Inner.Scrapbook>(
                 nameof(SubscriptionSaga),
-                inner => inner.UpdateSubscription
+                (change, scrapbook, context) => inner.UpdateSubscription(change, scrapbook, context)
         );
     }
 
@@ -26,17 +25,12 @@ public class SubscriptionSaga
 
     private class Inner
     {
-        private IMonitor Monitor { get; }
-
-        public Inner(IMonitor monitor)
-        {
-            Monitor = monitor;
-        }
 
         public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, Scrapbook scrapbook, Context context)
         {
+            var monitor = context.Utilities.Monitor;
             var (subscriptionId, startSubscription) = subscriptionChange;
-            await using var @lock = await Monitor.Acquire(
+            await using var @lock = await monitor.Acquire(
                 group: nameof(UpdateSubscription),
                 name: subscriptionChange.SubscriptionId,
                 lockId: scrapbook.LockId
