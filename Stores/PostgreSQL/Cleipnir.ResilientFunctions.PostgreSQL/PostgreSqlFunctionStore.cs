@@ -63,7 +63,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 suspended_at_epoch INT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 sign_of_life BIGINT NOT NULL DEFAULT 0,
-                crashed_check_frequency BIGINT NOT NULL,
+                sign_of_life_frequency BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
@@ -118,7 +118,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, sign_of_life, crashed_check_frequency)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, sign_of_life, sign_of_life_frequency)
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT DO NOTHING;";
@@ -174,7 +174,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, crashed_check_frequency = $1, sign_of_life = $2
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, sign_of_life_frequency = $1, sign_of_life = $2
             WHERE function_type_id = $3 AND function_instance_id = $4 AND epoch = $5";
 
         await using var command = new NpgsqlCommand(sql, conn)
@@ -219,7 +219,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
+            SELECT function_instance_id, epoch, sign_of_life, sign_of_life_frequency 
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND status = {(int) Status.Executing}";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -238,8 +238,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
             var signOfLife = reader.GetInt64(2);
-            var crashedCheckFrequency = reader.GetInt64(3);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));
+            var signOfLifeFrequency = reader.GetInt64(3);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, signOfLifeFrequency));
         }
 
         return functions;
@@ -561,7 +561,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 suspended_at_epoch,
                 epoch, 
                 sign_of_life,
-                crashed_check_frequency
+                sign_of_life_frequency
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
