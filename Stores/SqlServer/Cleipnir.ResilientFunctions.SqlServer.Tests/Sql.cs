@@ -54,11 +54,23 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
             // Convert byte array to a string
             var builder = new StringBuilder();
             foreach (var t in bytes)
-                builder.Append(t.ToString("x2"));
+                builder.Append(ReplaceDigits(t.ToString("X")));
             
             return builder.ToString();
         }
-        
+
+        private static string ReplaceDigits(string s) 
+            => s.Replace('0', 'a')
+                .Replace('1', 'b')
+                .Replace('2', 'c')
+                .Replace('3', 'd')
+                .Replace('4', 'e')
+                .Replace('5', 'f')
+                .Replace('6', 'g')
+                .Replace('7', 'h')
+                .Replace('8', 'i')
+                .Replace('9', 'j');
+
         public static async Task<IEventStore> CreateAndInitializeEventStore(
             [CallerFilePath] string sourceFilePath = "",
             [CallerMemberName] string callMemberName = "")
