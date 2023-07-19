@@ -65,7 +65,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
                 SignOfLife BIGINT NOT NULL,
-                CrashedCheckFrequency BIGINT NOT NULL,
+                SignOfLifeFrequency BIGINT NOT NULL,
                 SuspendedAtEpoch INT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
@@ -129,7 +129,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ScrapbookJson, ScrapbookType, 
                     Status,
                     Epoch, SignOfLife, 
-                    CrashedCheckFrequency)
+                    SignOfLifeFrequency)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
@@ -182,7 +182,7 @@ public class SqlServerFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}RFunctions
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
-                CrashedCheckFrequency = @SignOfLifeFrequency,
+                SignOfLifeFrequency = @SignOfLifeFrequency,
                 SignOfLife = @SignOfLife
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
@@ -219,7 +219,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            SELECT FunctionInstanceId, Epoch, SignOfLife, CrashedCheckFrequency
+            SELECT FunctionInstanceId, Epoch, SignOfLife, SignOfLifeFrequency
             FROM {_tablePrefix}RFunctions WITH (NOLOCK)
             WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing}";
 
@@ -235,8 +235,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 var functionInstanceId = reader.GetString(0);
                 var epoch = reader.GetInt32(1);
                 var signOfLife = reader.GetInt64(2);
-                var crashedCheckFrequency = reader.GetInt64(3);
-                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));    
+                var signOfLifeFrequency = reader.GetInt64(3);
+                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, signOfLifeFrequency));    
             }
 
             reader.NextResult();
@@ -525,7 +525,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     PostponedUntil,
                     SuspendedAtEpoch,
                     Epoch, SignOfLife, 
-                    CrashedCheckFrequency
+                    SignOfLifeFrequency
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
