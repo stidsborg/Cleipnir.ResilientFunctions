@@ -45,7 +45,7 @@ public class SignOfLifeUpdater : IDisposable
             epoch,
             functionStore,
             settings.UnhandledExceptionHandler,
-            updateFrequency: settings.SignOfLifeFrequency / 2
+            updateFrequency: settings.SignOfLifeFrequency
         );
             
         _ = signOfLifeUpdater.Start();

@@ -13,7 +13,7 @@ internal class CrashedWatchdog
     private readonly FunctionTypeId _functionTypeId;
     private readonly WatchDogReInvokeFunc _reInvoke;
     private readonly IFunctionStore _functionStore;
-    private readonly TimeSpan _checkFrequency;
+    private readonly TimeSpan _signOfLifeFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -27,7 +27,7 @@ internal class CrashedWatchdog
         IFunctionStore functionStore,
         WatchDogReInvokeFunc reInvoke,
         AsyncSemaphore asyncSemaphore,
-        TimeSpan checkFrequency,
+        TimeSpan signOfLifeFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -36,7 +36,7 @@ internal class CrashedWatchdog
         _functionStore = functionStore;
         _reInvoke = reInvoke;
         _asyncSemaphore = asyncSemaphore;
-        _checkFrequency = checkFrequency;
+        _signOfLifeFrequency = signOfLifeFrequency;
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -44,7 +44,7 @@ internal class CrashedWatchdog
 
     public async Task Start()
     {
-        if (_checkFrequency == TimeSpan.Zero) return;
+        if (_signOfLifeFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         
         try
@@ -53,7 +53,7 @@ internal class CrashedWatchdog
 
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                await Task.Delay(_checkFrequency);
+                await Task.Delay(_signOfLifeFrequency);
                 if (_shutdownCoordinator.ShutdownInitiated) return;
 
                 var currExecutingFunctions = await _functionStore
@@ -139,8 +139,8 @@ internal class CrashedWatchdog
     private int CalculateRemainingCount(StoredExecutingFunction sef) =>
         Math.Max(
             1,
-            sef.SignOfLifeFrequency / _checkFrequency.Ticks
-            + sef.SignOfLifeFrequency % _checkFrequency.Ticks == 0
+            sef.SignOfLifeFrequency / _signOfLifeFrequency.Ticks
+            + sef.SignOfLifeFrequency % _signOfLifeFrequency.Ticks == 0
                 ? 0
                 : 1
         ) - 1;
