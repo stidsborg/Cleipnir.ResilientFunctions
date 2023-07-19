@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
-public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long SignOfLife, long CrashedCheckFrequency, long? PostponedUntil)
+public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long SignOfLife, long SignOfLifeFrequency, long? PostponedUntil)
 {
     public Dictionary<string, string> ToDictionary()
     {
@@ -14,7 +14,7 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             { nameof(Status), ((int) Status).ToString() },
             { nameof(Epoch), Epoch.ToString() },
             { nameof(SignOfLife), SignOfLife.ToString() },
-            { nameof(CrashedCheckFrequency), CrashedCheckFrequency.ToString() }
+            { nameof(SignOfLifeFrequency), SignOfLifeFrequency.ToString() }
         };  
         
         if (PostponedUntil != null)
@@ -29,7 +29,7 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             Status: (Status)int.Parse(tags[nameof(Status)]),
             Epoch: int.Parse(tags[nameof(Epoch)]),
             SignOfLife: long.Parse(tags[nameof(SignOfLife)]),
-            CrashedCheckFrequency: long.Parse(tags[nameof(CrashedCheckFrequency)]),
+            SignOfLifeFrequency: long.Parse(tags[nameof(SignOfLifeFrequency)]),
             PostponedUntil: tags.ContainsKey(nameof(PostponedUntil)) 
                 ? long.Parse(tags[nameof(PostponedUntil)]) 
                 : default(long?)
@@ -47,12 +47,12 @@ public static class RfTagsExtensions
         var status = (Status) int.Parse(tags["Status"]);
         var epoch = int.Parse(tags["Epoch"]);
         var signOfLife = long.Parse(tags["SignOfLife"]);
-        var crashedCheckFrequency = long.Parse(tags["CrashedCheckFrequency"]);
+        var signOfLifeFrequency = long.Parse(tags["SignOfLifeFrequency"]);
         var postponedUntil = tags.ContainsKey("PostponedUntil")
             ? long.Parse(tags["PostponedUntil"])
             : default;
 
-        return new RfTags(functionType, status, epoch, signOfLife, crashedCheckFrequency, postponedUntil);
+        return new RfTags(functionType, status, epoch, signOfLife, signOfLifeFrequency, postponedUntil);
     }
 
     public static Task SetRfTags(this BlobClient client, RfTags rfTags) 

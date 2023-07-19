@@ -149,7 +149,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         try
         {
             await blobClient.SetRfTags(
-                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, newSignOfLife, CrashedCheckFrequency: complementaryState.CrashedCheckFrequency, PostponedUntil: null),
+                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, newSignOfLife, SignOfLifeFrequency: complementaryState.SignOfLifeFrequency, PostponedUntil: null),
                 expectedEpoch
             );
         } catch (RequestFailedException e)
@@ -166,7 +166,7 @@ public class AzureBlobFunctionStore : IFunctionStore
     public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         var executingBlobs = _blobContainerClient.FindBlobsByTagsAsync(
-            tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND SignOfLife >= '0' AND CrashedCheckFrequency >= '0'"
+            tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND SignOfLife >= '0' AND SignOfLifeFrequency >= '0'"
         );
 
         var executingFunctions = new List<StoredExecutingFunction>();
@@ -178,7 +178,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 instanceName,
                 rfTags.Epoch,
                 rfTags.SignOfLife,
-                rfTags.CrashedCheckFrequency
+                rfTags.SignOfLifeFrequency
             );
             
             executingFunctions.Add(storedExecutingFunction);
@@ -316,7 +316,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         status,
                         Epoch: incrementEpoch ? expectedEpoch + 1 : expectedEpoch,
                         SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                        CrashedCheckFrequency: 0,
+                        SignOfLifeFrequency: 0,
                         PostponedUntil: postponeUntil
                     ).ToDictionary()
                 }
@@ -420,7 +420,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         status,
                         Epoch: expectedEpoch + 1,
                         SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                        CrashedCheckFrequency: 0,
+                        SignOfLifeFrequency: 0,
                         PostponedUntil: postponeUntil
                     ).ToDictionary()
                 }
@@ -446,7 +446,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType), crashedCheckFrequency) = complementaryState;
+        var ((paramJson, paramType), (scrapbookJson, scrapbookType), signOfLifeFrequency) = complementaryState;
         
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
@@ -470,7 +470,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Executing, 
                         expectedEpoch, 
                         SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                        crashedCheckFrequency,
+                        signOfLifeFrequency,
                         PostponedUntil: null
                     ).ToDictionary()
                 }
@@ -541,7 +541,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Succeeded, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Succeeded, Epoch: expectedEpoch, SignOfLife: 0, SignOfLifeFrequency: 0, PostponedUntil: null).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -579,7 +579,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Postponed, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, postponeUntil).ToDictionary(),
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Postponed, Epoch: expectedEpoch, SignOfLife: 0, SignOfLifeFrequency: 0, postponeUntil).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -620,7 +620,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Failed, Epoch: expectedEpoch, SignOfLife: 0, CrashedCheckFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(functionId.TypeId.Value, Status.Failed, Epoch: expectedEpoch, SignOfLife: 0, SignOfLifeFrequency: 0, PostponedUntil: null).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -750,7 +750,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             SuspendedAtEpoch: suspendedAtEpoch,
             Epoch: rfTags.Epoch,
             SignOfLife: rfTags.SignOfLife,
-            CrashedCheckFrequency: rfTags.CrashedCheckFrequency
+            CrashedCheckFrequency: rfTags.SignOfLifeFrequency
         );
     }
 

@@ -94,7 +94,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store
-            .UpdateSignOfLife(functionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife(CrashedCheckFrequency: 10_000))
+            .UpdateSignOfLife(functionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife(SignOfLifeFrequency: 10_000))
             .ShouldBeTrueAsync();
 
         await BusyWait.Until(() =>
@@ -486,7 +486,7 @@ public abstract class StoreTests
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, CrashedCheckFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, SignOfLifeFrequency: 0)
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(functionId);
@@ -517,7 +517,7 @@ public abstract class StoreTests
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, CrashedCheckFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, SignOfLifeFrequency: 0)
         ).ShouldBeFalseAsync();
         
         var sf = await store.GetFunction(functionId);

@@ -173,7 +173,7 @@ public abstract class StoreCrudTests
             FunctionId, 
             storedScrapbook.ScrapbookJson, 
             expectedEpoch: 0, 
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, CrashedCheckFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -203,7 +203,7 @@ public abstract class StoreCrudTests
             FunctionId, 
             storedScrapbook.ScrapbookJson, 
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, CrashedCheckFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
         ).ShouldBeFalseAsync();
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
