@@ -7,7 +7,7 @@ public record FunctionState<TParam, TScrapbook, TReturn>(
     FunctionId FunctionId, 
     Status Status,
     int Epoch,
-    long CrashedCheckFrequency,
+    long SignOfLifeFrequency,
     TParam Param, 
     TScrapbook Scrapbook, 
     TReturn? Result,

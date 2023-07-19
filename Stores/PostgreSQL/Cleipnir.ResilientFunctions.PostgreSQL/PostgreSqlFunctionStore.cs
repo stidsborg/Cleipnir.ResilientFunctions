@@ -594,7 +594,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 suspendedAtEpoch ? reader.GetInt32(9) : null,
                 Epoch: reader.GetInt32(10),
                 SignOfLife: reader.GetInt64(11),
-                CrashedCheckFrequency: reader.GetInt64(12)
+                SignOfLifeFrequency: reader.GetInt64(12)
             );
         }
 

@@ -21,7 +21,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         FunctionId functionId, 
         Status status, 
         int epoch,
-        long crashedCheckFrequency,
+        long signOfLifeFrequency,
         TParam param, 
         TScrapbook scrapbook, 
         DateTime? postponedUntil, 
@@ -33,7 +33,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
-        CrashedCheckFrequency = crashedCheckFrequency;
+        SignOfLifeFrequency = signOfLifeFrequency;
         _param = param;
         _scrapbook = scrapbook;
         PostponedUntil = postponedUntil;
@@ -44,7 +44,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
-    public long CrashedCheckFrequency { get; private set; }
+    public long SignOfLifeFrequency { get; private set; }
 
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
@@ -178,7 +178,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
 
         Status = sf.Status;
         Epoch = sf.Epoch;
-        CrashedCheckFrequency = sf.CrashedCheckFrequency;
+        SignOfLifeFrequency = sf.SignOfLifeFrequency;
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;
         PostponedUntil = sf.PostponedUntil;
@@ -205,7 +205,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         FunctionId functionId, 
         Status status, 
         int epoch,
-        long crashedCheckFrequency,
+        long signOfLifeFrequency,
         TParam param, 
         TScrapbook scrapbook, 
         TReturn? result,
@@ -218,7 +218,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
-        CrashedCheckFrequency = crashedCheckFrequency;
+        SignOfLifeFrequency = signOfLifeFrequency;
         _param = param;
         _scrapbook = scrapbook;
         Result = result;
@@ -230,7 +230,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
-    public long CrashedCheckFrequency { get; private set; }
+    public long SignOfLifeFrequency { get; private set; }
     
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
@@ -366,7 +366,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
 
         Status = sf.Status;
         Epoch = sf.Epoch;
-        CrashedCheckFrequency = sf.CrashedCheckFrequency;
+        SignOfLifeFrequency = sf.SignOfLifeFrequency;
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;
         Result = sf.Result;

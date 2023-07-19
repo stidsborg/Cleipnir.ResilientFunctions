@@ -750,7 +750,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             SuspendedAtEpoch: suspendedAtEpoch,
             Epoch: rfTags.Epoch,
             SignOfLife: rfTags.SignOfLife,
-            CrashedCheckFrequency: rfTags.SignOfLifeFrequency
+            SignOfLifeFrequency: rfTags.SignOfLifeFrequency
         );
     }
 

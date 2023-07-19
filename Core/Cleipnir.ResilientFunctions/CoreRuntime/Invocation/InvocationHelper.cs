@@ -93,7 +93,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
         => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.SignOfLifeFrequency.Ticks));
 
-    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long crashedCheckFrequency)
+    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long signOfLifeFrequency)
     {
         var storedParameter = Serializer.SerializeParameter(param);
         var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
@@ -102,7 +102,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, crashedCheckFrequency)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, signOfLifeFrequency)
         );
 
         if (!success)
@@ -400,7 +400,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             sf.Status,
             sf.Epoch,
-            sf.CrashedCheckFrequency, 
+            sf.SignOfLifeFrequency, 
             Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
             Scrapbook: serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType),
             Result: sf.Result.ResultType == null 

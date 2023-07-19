@@ -16,7 +16,7 @@ public record StoredFunction(
     int? SuspendedAtEpoch,
     int Epoch,
     long SignOfLife,
-    long CrashedCheckFrequency
+    long SignOfLifeFrequency
 );
 
 public record StoredFunctionStatus(FunctionId FunctionId, Status Status, int Epoch);
