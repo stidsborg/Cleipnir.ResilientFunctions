@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -36,10 +38,25 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 
         private static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new SqlServerFunctionStore(ConnectionString);
+            var store = new SqlServerFunctionStore(ConnectionString, tablePrefix: ComputeSha256Hash(testClass + "§" + testMethod));
             await store.DropIfExists();
             await store.Initialize();
             return store;
+        }
+        
+        private static string ComputeSha256Hash(string rawData)
+        {
+            // Create a SHA256
+            using SHA256 sha256Hash = SHA256.Create();
+            // ComputeHash - returns byte array
+            var bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+
+            // Convert byte array to a string
+            var builder = new StringBuilder();
+            foreach (var t in bytes)
+                builder.Append(t.ToString("x2"));
+            
+            return builder.ToString();
         }
         
         public static async Task<IEventStore> CreateAndInitializeEventStore(
