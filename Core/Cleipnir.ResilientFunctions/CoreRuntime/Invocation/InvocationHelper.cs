@@ -401,6 +401,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             sf.Status,
             sf.Epoch,
             sf.SignOfLifeFrequency, 
+            LastSignOfLife: sf.SignOfLife,
             Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
             Scrapbook: serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType),
             Result: sf.Result.ResultType == null 

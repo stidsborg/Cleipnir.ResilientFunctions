@@ -8,6 +8,7 @@ public record FunctionState<TParam, TScrapbook, TReturn>(
     Status Status,
     int Epoch,
     long SignOfLifeFrequency,
+    long LastSignOfLife,
     TParam Param, 
     TScrapbook Scrapbook, 
     TReturn? Result,

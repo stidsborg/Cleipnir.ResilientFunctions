@@ -607,6 +607,77 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task LastSignOfLifeIsUpdatedForExecutingFunc();
+    protected async Task LastSignOfLifeIsUpdatedForExecutingFunc(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        var before = DateTime.UtcNow;
+        
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch, signOfLifeFrequency: TimeSpan.FromMilliseconds(250)));
+        var flag = new SyncedFlag();
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            async Task<string> (string param) =>
+            {
+                await flag.WaitForRaised();
+                return param;
+            });
+
+        await rFunc.Schedule(functionInstanceId.Value, param: "param");
+
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Executing);
+        var curr = controlPanel.LastSignOfLife;
+        curr.ShouldBeGreaterThan(before);
+        while (controlPanel.LastSignOfLife == curr)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            await controlPanel.Refresh();
+        }
+
+        flag.Raise();
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task LastSignOfLifeIsUpdatedForExecutingAction();
+    protected async Task LastSignOfLifeIsUpdatedForExecutingAction(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        var before = DateTime.UtcNow;
+        
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch, signOfLifeFrequency: TimeSpan.FromMilliseconds(250)));
+        var flag = new SyncedFlag();
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param) =>
+            {
+                await flag.WaitForRaised();
+            });
+
+        await rAction.Schedule(functionInstanceId.Value, param: "param");
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Executing);
+        var curr = controlPanel.LastSignOfLife;
+        curr.ShouldBeGreaterThan(before);
+        while (controlPanel.LastSignOfLife == curr)
+        {
+            await controlPanel.Refresh();
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+
+        flag.Raise();
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     public abstract Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook();
     protected async Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook(Task<IFunctionStore> storeTask)
     {

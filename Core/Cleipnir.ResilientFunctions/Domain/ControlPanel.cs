@@ -22,6 +22,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Status status, 
         int epoch,
         long signOfLifeFrequency,
+        long lastSignOfLife,
         TParam param, 
         TScrapbook scrapbook, 
         DateTime? postponedUntil, 
@@ -34,6 +35,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Status = status;
         Epoch = epoch;
         SignOfLifeFrequency = signOfLifeFrequency;
+        LastSignOfLife = new DateTime(lastSignOfLife, DateTimeKind.Utc);
         _param = param;
         _scrapbook = scrapbook;
         PostponedUntil = postponedUntil;
@@ -45,6 +47,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     
     public int Epoch { get; private set; }
     public long SignOfLifeFrequency { get; private set; }
+    public DateTime LastSignOfLife { get; private set; }
 
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
@@ -179,6 +182,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Status = sf.Status;
         Epoch = sf.Epoch;
         SignOfLifeFrequency = sf.SignOfLifeFrequency;
+        LastSignOfLife = new DateTime(sf.LastSignOfLife, DateTimeKind.Utc);
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;
         PostponedUntil = sf.PostponedUntil;
@@ -206,6 +210,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Status status, 
         int epoch,
         long signOfLifeFrequency,
+        long lastSignOfLife,
         TParam param, 
         TScrapbook scrapbook, 
         TReturn? result,
@@ -219,6 +224,8 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Status = status;
         Epoch = epoch;
         SignOfLifeFrequency = signOfLifeFrequency;
+        LastSignOfLife = new DateTime(lastSignOfLife, DateTimeKind.Utc);
+        
         _param = param;
         _scrapbook = scrapbook;
         Result = result;
@@ -231,6 +238,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     
     public int Epoch { get; private set; }
     public long SignOfLifeFrequency { get; private set; }
+    public DateTime LastSignOfLife { get; private set; }
     
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
@@ -367,6 +375,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Status = sf.Status;
         Epoch = sf.Epoch;
         SignOfLifeFrequency = sf.SignOfLifeFrequency;
+        LastSignOfLife = new DateTime(sf.LastSignOfLife, DateTimeKind.Utc);
         Param = sf.Param;
         Scrapbook = sf.Scrapbook;
         Result = sf.Result;
