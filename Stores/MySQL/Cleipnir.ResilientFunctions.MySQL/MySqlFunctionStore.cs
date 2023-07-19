@@ -53,7 +53,7 @@ public class MySqlFunctionStore : IFunctionStore
                 suspended_at_epoch INT NULL,
                 epoch INT NOT NULL,
                 sign_of_life BIGINT NOT NULL,
-                crashed_check_frequency BIGINT NOT NULL,
+                sign_of_life_frequency BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -94,7 +94,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, sign_of_life, crashed_check_frequency)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, sign_of_life, sign_of_life_frequency)
             VALUES
                 (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, ?, ?)";
         await using var command = new MySqlCommand(sql, conn)
@@ -147,7 +147,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, crashed_check_frequency = ?, sign_of_life = ?
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, sign_of_life_frequency = ?, sign_of_life = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
         await using var command = new MySqlCommand(sql, conn)
@@ -192,7 +192,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
-            SELECT function_instance_id, epoch, sign_of_life, crashed_check_frequency 
+            SELECT function_instance_id, epoch, sign_of_life, sign_of_life_frequency 
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(sql, conn)
@@ -211,8 +211,8 @@ public class MySqlFunctionStore : IFunctionStore
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
             var signOfLife = reader.GetInt64(2);
-            var crashedCheckFrequency = reader.GetInt64(3);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));
+            var signOfLifeFrequency = reader.GetInt64(3);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, signOfLifeFrequency));
         }
 
         return functions;
@@ -525,7 +525,7 @@ public class MySqlFunctionStore : IFunctionStore
                 suspended_at_epoch,
                 epoch, 
                 sign_of_life,
-                crashed_check_frequency
+                sign_of_life_frequency
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(sql, conn)
