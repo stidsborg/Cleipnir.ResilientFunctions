@@ -28,7 +28,7 @@ public abstract class PostponedTests
                     crashableStore,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero,
+                        signOfLifeFrequency: TimeSpan.Zero,
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
@@ -48,7 +48,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
@@ -79,7 +79,7 @@ public abstract class PostponedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero,
+                        signOfLifeFrequency: TimeSpan.Zero,
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
@@ -97,7 +97,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
@@ -140,7 +140,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
             );
@@ -157,7 +157,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -188,7 +188,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
             );
@@ -207,7 +207,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
                 )
             );
@@ -250,7 +250,7 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
+                signOfLifeFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.FromSeconds(10)
             )
         );
@@ -285,7 +285,7 @@ public abstract class PostponedTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromSeconds(10)
                 )
             );
@@ -304,7 +304,7 @@ public abstract class PostponedTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.Zero,
+                    signOfLifeFrequency: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -366,7 +366,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -386,7 +387,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -449,7 +451,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -469,7 +472,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -536,7 +540,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -556,7 +561,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
@@ -621,7 +627,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -641,7 +648,8 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: 1000
+                signOfLifeFrequency: 1000,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
@@ -674,7 +682,8 @@ public abstract class PostponedTests
             functionId,
             storedParameter,
             storedScrapbook,
-            crashedCheckFrequency: 0
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

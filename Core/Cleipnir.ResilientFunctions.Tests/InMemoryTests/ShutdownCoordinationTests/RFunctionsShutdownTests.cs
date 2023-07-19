@@ -21,7 +21,7 @@ public class RFunctionsShutdownTests
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -63,7 +63,7 @@ public class RFunctionsShutdownTests
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -97,7 +97,8 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -105,7 +106,7 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -146,7 +147,8 @@ public class RFunctionsShutdownTests
             functionId,
             storedParameter,
             storedScrapbook,
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -162,7 +164,7 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -201,7 +203,7 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );

@@ -24,7 +24,7 @@ public static class BrandExample
         using var rFunctions = new RFunctions(
             crashableStore, 
             new Settings(
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
 
@@ -49,7 +49,7 @@ public static class BrandExample
             Store, 
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
 

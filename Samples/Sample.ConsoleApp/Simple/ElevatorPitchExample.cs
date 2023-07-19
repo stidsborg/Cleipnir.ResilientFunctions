@@ -22,7 +22,7 @@ public static class ElevatorPitchExample
             new Settings(
                 unhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
                 e => Log.Error(e, "Resilient Function Framework exception occured"),
-                crashedCheckFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
+                signOfLifeFrequency: TimeSpan.FromMinutes(1), // you are in control deciding the sweet spot 
                 postponedCheckFrequency: TimeSpan.FromMinutes(1) // between quick reaction and pressure on the function store
             )
         );

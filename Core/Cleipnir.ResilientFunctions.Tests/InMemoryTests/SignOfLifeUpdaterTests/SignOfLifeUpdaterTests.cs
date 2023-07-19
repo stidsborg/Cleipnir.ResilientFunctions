@@ -34,7 +34,7 @@ public class SignOfLifeUpdaterTests
         
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            signOfLifeFrequency: TimeSpan.FromMilliseconds(10)
         );
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
@@ -49,7 +49,7 @@ public class SignOfLifeUpdaterTests
         invocations.Count.ShouldBeGreaterThan(2);
         invocations.All(p => p.FunctionId == _functionId).ShouldBeTrue();
 
-        const int expectedInitialSignOfLife = 0;
+        const long expectedInitialSignOfLife = 0;
         _ = invocations.Aggregate(expectedInitialSignOfLife, (prevSignOfLife, parameters) =>
         {
             parameters.ExpectedEpoch.ShouldBe(expectedEpoch);
@@ -70,7 +70,7 @@ public class SignOfLifeUpdaterTests
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            signOfLifeFrequency: TimeSpan.FromMilliseconds(10)
         );
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
@@ -99,7 +99,7 @@ public class SignOfLifeUpdaterTests
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(10)
+            signOfLifeFrequency: TimeSpan.FromMilliseconds(10)
         );
         var updater = SignOfLifeUpdater.CreateAndStart(
             _functionId,
@@ -116,5 +116,5 @@ public class SignOfLifeUpdaterTests
         syncedCounter.Current.ShouldBe(1);
     }
 
-    private record Parameters(FunctionId FunctionId, int ExpectedEpoch, int NewSignOfLife);
+    private record Parameters(FunctionId FunctionId, int ExpectedEpoch, long NewSignOfLife);
 }

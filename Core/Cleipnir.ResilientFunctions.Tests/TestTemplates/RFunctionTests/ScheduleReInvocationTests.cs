@@ -23,7 +23,7 @@ public abstract class ScheduleReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
+                signOfLifeFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
@@ -75,7 +75,7 @@ public abstract class ScheduleReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
+                signOfLifeFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
@@ -130,7 +130,7 @@ public abstract class ScheduleReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
+                signOfLifeFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
@@ -177,7 +177,7 @@ public abstract class ScheduleReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
+                signOfLifeFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );

@@ -41,7 +41,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         FunctionId functionId,
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        long crashedCheckFrequency)
+        long signOfLifeFrequency,
+        long initialSignOfLife)
     {
         lock (_sync)
         {
@@ -55,11 +56,11 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 Scrapbook = storedScrapbook,
                 Status = Status.Executing,
                 Epoch = 0,
-                SignOfLife = 0,
                 Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = null,
-                CrashedCheckFrequency = crashedCheckFrequency
+                LastSignOfLife = initialSignOfLife,
+                SignOfLifeFrequency = signOfLifeFrequency
             };
 
             _events[functionId] = new List<StoredEvent>();
@@ -85,7 +86,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     public Task<bool> RestartExecution(
         FunctionId functionId,
         int expectedEpoch,
-        long crashedCheckFrequency)
+        long signOfLifeFrequency,
+        long signOfLife)
     {
         lock (_sync)
         {
@@ -98,12 +100,13 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 
             state.Epoch += 1;
             state.Status = Status.Executing;
-            state.CrashedCheckFrequency = crashedCheckFrequency;
+            state.SignOfLifeFrequency = signOfLifeFrequency;
+            state.LastSignOfLife = signOfLife;
             return true.ToTask();
         }
     }
 
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
+    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
     {
         lock (_sync)
         {
@@ -114,7 +117,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
-            state.SignOfLife = newSignOfLife;
+            state.LastSignOfLife = newSignOfLife;
             return true.ToTask();
         }
     }
@@ -126,7 +129,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Executing)
-                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.SignOfLife, s.CrashedCheckFrequency))
+                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.LastSignOfLife, s.SignOfLifeFrequency))
                 .ToList()
                 .AsEnumerable()
                 .ToTask();
@@ -334,8 +337,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                     state.PostponeUntil,
                     state.SuspendedAtEpoch,
                     state.Epoch,
-                    state.SignOfLife,
-                    state.CrashedCheckFrequency
+                    state.LastSignOfLife,
+                    state.SignOfLifeFrequency
                 )
                 .ToNullable()
                 .ToTask();
@@ -378,8 +381,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         public StoredException? Exception { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
-        public int SignOfLife { get; set; }
-        public long CrashedCheckFrequency { get; set; }
+        public long LastSignOfLife { get; set; }
+        public long SignOfLifeFrequency { get; set; }
         public int? SuspendedAtEpoch { get; set; }
     }
     #endregion

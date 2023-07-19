@@ -27,7 +27,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero, 
+                        signOfLifeFrequency: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
@@ -43,7 +43,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -82,7 +82,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero, 
+                        signOfLifeFrequency: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
@@ -99,7 +99,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -147,7 +147,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero, 
+                        signOfLifeFrequency: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
@@ -164,7 +164,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -204,7 +204,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        crashedCheckFrequency: TimeSpan.Zero, 
+                        signOfLifeFrequency: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
@@ -220,7 +220,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -263,14 +263,15 @@ public abstract class CrashedTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         using var rFunctions = new RFunctions(
             store, 
             new Settings(
                 unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
             )
         );
 

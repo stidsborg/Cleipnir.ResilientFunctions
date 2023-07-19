@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
-public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, int SignOfLife, long CrashedCheckFrequency, long? PostponedUntil)
+public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long SignOfLife, long CrashedCheckFrequency, long? PostponedUntil)
 {
     public Dictionary<string, string> ToDictionary()
     {
@@ -28,7 +28,7 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             FunctionType: tags[nameof(FunctionType)],
             Status: (Status)int.Parse(tags[nameof(Status)]),
             Epoch: int.Parse(tags[nameof(Epoch)]),
-            SignOfLife: int.Parse(tags[nameof(SignOfLife)]),
+            SignOfLife: long.Parse(tags[nameof(SignOfLife)]),
             CrashedCheckFrequency: long.Parse(tags[nameof(CrashedCheckFrequency)]),
             PostponedUntil: tags.ContainsKey(nameof(PostponedUntil)) 
                 ? long.Parse(tags[nameof(PostponedUntil)]) 
@@ -46,7 +46,7 @@ public static class RfTagsExtensions
         var functionType = tags["FunctionType"];
         var status = (Status) int.Parse(tags["Status"]);
         var epoch = int.Parse(tags["Epoch"]);
-        var signOfLife = int.Parse(tags["SignOfLife"]);
+        var signOfLife = long.Parse(tags["SignOfLife"]);
         var crashedCheckFrequency = long.Parse(tags["CrashedCheckFrequency"]);
         var postponedUntil = tags.ContainsKey("PostponedUntil")
             ? long.Parse(tags["PostponedUntil"])

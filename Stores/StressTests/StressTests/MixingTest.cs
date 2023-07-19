@@ -38,7 +38,8 @@ public static class MixingTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+                signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             );
             if (i % 2 == 0)
                 await store.PostponeFunction(
@@ -67,7 +68,7 @@ public static class MixingTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1),
+                signOfLifeFrequency: TimeSpan.FromSeconds(1),
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
@@ -80,7 +81,7 @@ public static class MixingTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1),
+                signOfLifeFrequency: TimeSpan.FromSeconds(1),
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );

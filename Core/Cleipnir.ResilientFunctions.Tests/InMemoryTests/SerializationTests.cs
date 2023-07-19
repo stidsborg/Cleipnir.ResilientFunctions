@@ -87,13 +87,14 @@ public class SerializationTests
             new FunctionId("typeId", "instanceId"),
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         using var rFunctions = new RFunctions(
             store, 
             new Settings(
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(1),
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(1),
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );

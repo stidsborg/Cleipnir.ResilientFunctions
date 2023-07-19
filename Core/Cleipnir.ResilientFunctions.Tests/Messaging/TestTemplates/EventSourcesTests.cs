@@ -21,7 +21,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
@@ -48,7 +54,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
@@ -75,7 +87,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
@@ -109,7 +127,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
@@ -145,7 +169,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
@@ -175,7 +205,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
@@ -217,7 +253,13 @@ public abstract class EventSourcesTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,

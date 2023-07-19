@@ -24,7 +24,7 @@ public abstract class TimeoutTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                crashedCheckFrequency: TimeSpan.Zero,
+                signOfLifeFrequency: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero,
                 timeoutCheckFrequency: TimeSpan.FromMilliseconds(1)
             )

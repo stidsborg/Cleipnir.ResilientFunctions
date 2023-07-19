@@ -24,7 +24,7 @@ public static class PaymentProviderExample
         using var rFunctions = new RFunctions(
             crashableStore, 
             new Settings(
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
 
@@ -51,7 +51,7 @@ public static class PaymentProviderExample
             Store, 
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                signOfLifeFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
 

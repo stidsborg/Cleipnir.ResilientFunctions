@@ -17,7 +17,13 @@ public abstract class CustomEventSerializerTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventSerializer = new EventSerializer();
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, eventSerializer, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         var eventSource = new EventSource(

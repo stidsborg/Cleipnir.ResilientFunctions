@@ -23,12 +23,13 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new RFunctions(store, new Settings(
-            crashedCheckFrequency: TimeSpan.FromMilliseconds(10),
+            signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
@@ -50,11 +51,12 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        using var rFunctions = new RFunctions(store, new Settings(crashedCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new RFunctions(store, new Settings(signOfLifeFrequency: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => { }
@@ -74,7 +76,8 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
             functionId,
@@ -109,7 +112,8 @@ public class DelayedStartUpTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
             functionId,

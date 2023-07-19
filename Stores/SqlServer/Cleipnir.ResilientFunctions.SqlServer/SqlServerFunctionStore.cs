@@ -64,7 +64,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 ExceptionJson NVARCHAR(MAX) NULL,
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
-                SignOfLife INT NOT NULL,
+                SignOfLife BIGINT NOT NULL,
                 CrashedCheckFrequency BIGINT NOT NULL,
                 SuspendedAtEpoch INT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
@@ -112,7 +112,12 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)
+    public async Task<bool> CreateFunction(
+        FunctionId functionId, 
+        StoredParameter param, 
+        StoredScrapbook storedScrapbook, 
+        long signOfLifeFrequency,
+        long initialSignOfLife)
     {
         await using var conn = await _connFunc();
         try
@@ -130,8 +135,9 @@ public class SqlServerFunctionStore : IFunctionStore
                     @ParamJson, @ParamType,  
                     @ScrapbookJson, @ScrapbookType,
                     {(int) Status.Executing},
-                    0, 0,
-                    @CrashedCheckFrequency)";
+                    0, 
+                    @SignOfLife,
+                    @SignOfLifeFrequency)";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
@@ -139,7 +145,8 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
             command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
             command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
-            command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+            command.Parameters.AddWithValue("@SignOfLife", initialSignOfLife);            
+            command.Parameters.AddWithValue("@SignOfLifeFrequency", signOfLifeFrequency);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -168,18 +175,20 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
-                CrashedCheckFrequency = @CrashedCheckFrequency
+                CrashedCheckFrequency = @SignOfLifeFrequency,
+                SignOfLife = @SignOfLife
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@CrashedCheckFrequency", crashedCheckFrequency);
+        command.Parameters.AddWithValue("@SignOfLifeFrequency", signOfLifeFrequency);
+        command.Parameters.AddWithValue("@SignOfLife", signOfLife);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -188,7 +197,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
+    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -225,7 +234,7 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var functionInstanceId = reader.GetString(0);
                 var epoch = reader.GetInt32(1);
-                var signOfLife = reader.GetInt32(2);
+                var signOfLife = reader.GetInt64(2);
                 var crashedCheckFrequency = reader.GetInt64(3);
                 rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, crashedCheckFrequency));    
             }
@@ -544,7 +553,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
                 var suspendedAtEpoch = reader.IsDBNull(9) ? default(int?) : reader.GetInt32(9);
                 var epoch = reader.GetInt32(10);
-                var signOfLife = reader.GetInt32(11);
+                var signOfLife = reader.GetInt64(11);
                 var crashedCheckFrequency = reader.GetInt64(12);
 
                 return new StoredFunction(

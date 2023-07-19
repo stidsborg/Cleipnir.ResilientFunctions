@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -29,7 +30,8 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
@@ -85,12 +87,14 @@ public abstract class ScrapbookTests
             FunctionId,
             Param,
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
             expectedEpoch: 0, 
-            crashedCheckFrequency: 100
+            signOfLifeFrequency: 100,
+            signOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         var scrapbook = new Scrapbook() {Name = "Peter"};

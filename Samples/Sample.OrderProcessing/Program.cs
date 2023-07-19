@@ -21,7 +21,7 @@ internal static class Program
             store,
             new Settings(
                 unhandledExceptionHandler: e => Log.Logger.Error(e, "Unhandled framework exception occured"),
-                crashedCheckFrequency: TimeSpan.FromSeconds(5)
+                signOfLifeFrequency: TimeSpan.FromSeconds(5)
             )
         );
         

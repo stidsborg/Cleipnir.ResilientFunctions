@@ -36,7 +36,8 @@ public static class PostponedTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+                signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             );
             await store.PostponeFunction(
                 functionId,

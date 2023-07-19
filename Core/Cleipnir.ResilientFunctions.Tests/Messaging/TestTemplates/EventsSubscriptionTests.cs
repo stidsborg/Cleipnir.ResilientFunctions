@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -17,7 +18,13 @@ public abstract class EventSubscriptionTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);

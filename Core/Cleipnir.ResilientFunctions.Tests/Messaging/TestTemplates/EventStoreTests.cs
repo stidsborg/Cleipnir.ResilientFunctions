@@ -19,7 +19,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello world";
@@ -50,7 +56,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello here";
@@ -83,7 +95,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello world";
@@ -109,7 +127,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         const string msg1 = "hello here";
@@ -129,7 +153,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
         
         await eventStore.Truncate(functionId);
@@ -142,7 +172,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvent(
@@ -181,7 +217,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         await eventStore.Truncate(functionId);
@@ -219,7 +261,12 @@ public abstract class EventStoreTests
         
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks);
         var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvent(functionId, event1);
@@ -247,7 +294,13 @@ public abstract class EventStoreTests
         
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvents(functionId, new [] {event1, event2});
@@ -263,7 +316,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
         var events = await eventStore.GetEvents(functionId);
         events.ShouldBeEmpty();
@@ -274,7 +333,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);
@@ -315,7 +380,13 @@ public abstract class EventStoreTests
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(functionId, Test.SimpleStoredParameter, Test.SimpleStoredScrapbook, crashedCheckFrequency: 0);
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            signOfLifeFrequency: 0,
+            initialSignOfLife: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         var subscription = await eventStore.SubscribeToEvents(functionId);

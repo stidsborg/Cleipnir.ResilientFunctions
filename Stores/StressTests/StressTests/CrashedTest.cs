@@ -27,7 +27,8 @@ public static class CrashedTest
                 new FunctionId("CrashedTest", i.ToString()),
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
-                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+                signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             );
         }
         
@@ -40,7 +41,7 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1)
+                signOfLifeFrequency: TimeSpan.FromSeconds(1)
             )
         );
         var _ = rFunctions.RegisterAction(
@@ -52,7 +53,7 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1)
+                signOfLifeFrequency: TimeSpan.FromSeconds(1)
             )
         );
         _ = rFunctions2.RegisterAction(

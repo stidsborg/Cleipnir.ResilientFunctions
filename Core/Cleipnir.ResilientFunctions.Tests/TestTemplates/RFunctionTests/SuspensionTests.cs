@@ -123,7 +123,7 @@ public abstract class SuspensionTests
         using var rFunctions = new RFunctions
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch, suspensionCheckFrequency: TimeSpan.FromMilliseconds(100))
+            new Settings(unhandledExceptionHandler.Catch)
         );
 
         var flag = new SyncedFlag();
@@ -157,7 +157,7 @@ public abstract class SuspensionTests
         using var rFunctions = new RFunctions
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch, suspensionCheckFrequency: TimeSpan.FromMilliseconds(100))
+            new Settings(unhandledExceptionHandler.Catch)
         );
 
         var registration = rFunctions.RegisterFunc(
@@ -201,7 +201,7 @@ public abstract class SuspensionTests
         using var rFunctions = new RFunctions
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch, suspensionCheckFrequency: TimeSpan.FromMilliseconds(100))
+            new Settings(unhandledExceptionHandler.Catch)
         );
 
         var registration = rFunctions.RegisterFunc(

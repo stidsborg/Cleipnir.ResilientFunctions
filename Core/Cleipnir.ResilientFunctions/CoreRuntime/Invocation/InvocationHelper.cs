@@ -44,7 +44,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                crashedCheckFrequency: _settings.CrashedCheckFrequency.Ticks
+                signOfLifeFrequency: _settings.SignOfLifeFrequency.Ticks,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             );
 
             if (!created) runningFunction.Dispose();
@@ -90,7 +91,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
-        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.CrashedCheckFrequency.Ticks));
+        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.SignOfLifeFrequency.Ticks));
 
     private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long crashedCheckFrequency)
     {
@@ -237,7 +238,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             var success = await _functionStore.RestartExecution(
                 functionId,
                 expectedEpoch: sf.Epoch,
-                _settings.CrashedCheckFrequency.Ticks
+                _settings.SignOfLifeFrequency.Ticks,
+                signOfLife: DateTime.UtcNow.Ticks
             );
 
             if (!success)
@@ -249,7 +251,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.CrashedCheckFrequency.Ticks));
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.SignOfLifeFrequency.Ticks));
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
         }

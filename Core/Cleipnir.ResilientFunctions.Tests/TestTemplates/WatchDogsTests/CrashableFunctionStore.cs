@@ -35,25 +35,31 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)
-        => _crashed 
-            ? Task.FromException<bool>(new TimeoutException()) 
-            : _inner.CreateFunction(
-                functionId, 
-                param, 
-                storedScrapbook,
-                crashedCheckFrequency
-            );
+    public Task<bool> CreateFunction(
+        FunctionId functionId,
+        StoredParameter param,
+        StoredScrapbook storedScrapbook,
+        long signOfLifeFrequency,
+        long initialSignOfLife
+    ) => _crashed
+        ? Task.FromException<bool>(new TimeoutException())
+        : _inner.CreateFunction(
+            functionId,
+            param,
+            storedScrapbook,
+            signOfLifeFrequency,
+            initialSignOfLife
+        );
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
+    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.RestartExecution(functionId, expectedEpoch, crashedCheckFrequency);
+            : _inner.RestartExecution(functionId, expectedEpoch, signOfLifeFrequency, signOfLife);
     
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
+    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.UpdateSignOfLife(functionId, expectedEpoch, newSignOfLife, complementaryState);

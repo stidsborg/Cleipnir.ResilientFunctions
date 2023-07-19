@@ -64,12 +64,12 @@ internal class CrashedWatchdog
                 foreach (var sef in currExecutingFunctions)
                 {
                     if (!prevFunctionCounts.ContainsKey(sef.InstanceId))
-                        newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.SignOfLife, CalculateRemainingCount(sef));
+                        newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.LastSignOfLife, CalculateRemainingCount(sef));
                     else
                     {
                         var prev = prevFunctionCounts[sef.InstanceId];
-                        if (sef.SignOfLife != prev.SignOfLife || sef.Epoch != prev.Epoch)
-                            newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.SignOfLife, CalculateRemainingCount(sef));
+                        if (sef.LastSignOfLife != prev.SignOfLife || sef.Epoch != prev.Epoch)
+                            newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.LastSignOfLife, CalculateRemainingCount(sef));
                         else if (prevFunctionCounts[sef.InstanceId].RemainingCount == 0)
                             hangingFunctions.Add(sef);
                         else
@@ -139,11 +139,11 @@ internal class CrashedWatchdog
     private int CalculateRemainingCount(StoredExecutingFunction sef) =>
         Math.Max(
             1,
-            sef.CrashedCheckFrequency / _checkFrequency.Ticks
-            + sef.CrashedCheckFrequency % _checkFrequency.Ticks == 0
+            sef.SignOfLifeFrequency / _checkFrequency.Ticks
+            + sef.SignOfLifeFrequency % _checkFrequency.Ticks == 0
                 ? 0
                 : 1
         ) - 1;
 
-    private record ObservationAndRemainingCount(int Epoch, int SignOfLife, int RemainingCount);
+    private record ObservationAndRemainingCount(int Epoch, long SignOfLife, int RemainingCount);
 }

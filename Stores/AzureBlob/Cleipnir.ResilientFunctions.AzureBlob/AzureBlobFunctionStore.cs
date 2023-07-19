@@ -36,7 +36,12 @@ public class AzureBlobFunctionStore : IFunctionStore
         await _blobContainerClient.CreateIfNotExistsAsync();
     }
 
-    public async Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook scrapbook, long crashedCheckFrequency)
+    public async Task<bool> CreateFunction(
+        FunctionId functionId, 
+        StoredParameter param, 
+        StoredScrapbook scrapbook, 
+        long signOfLifeFrequency,
+        long initialSignOfLife)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -57,7 +62,14 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: 0, SignOfLife: 0, crashedCheckFrequency, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(
+                        functionId.TypeId.Value, 
+                        Status.Executing, 
+                        Epoch: 0, 
+                        SignOfLife: initialSignOfLife, 
+                        signOfLifeFrequency, 
+                        PostponedUntil: null
+                    ).ToDictionary(),
                     Conditions = new BlobRequestConditions { IfNoneMatch = new ETag("*") }
                 }
             );    
@@ -99,7 +111,8 @@ public class AzureBlobFunctionStore : IFunctionStore
     public async Task<bool> RestartExecution(
         FunctionId functionId,
         int expectedEpoch, 
-        long crashedCheckFrequency)
+        long signOfLifeFrequency,
+        long signOfLife)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -108,7 +121,13 @@ public class AzureBlobFunctionStore : IFunctionStore
         {
             await blobClient
                 .SetRfTags(
-                    new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch + 1, SignOfLife: 0, crashedCheckFrequency, PostponedUntil: null),
+                    new RfTags(
+                        functionId.TypeId.Value, 
+                        Status.Executing, 
+                        Epoch: expectedEpoch + 1, 
+                        signOfLife, signOfLifeFrequency, 
+                        PostponedUntil: null
+                    ),
                     expectedEpoch
                 );
         } catch (RequestFailedException e)
@@ -122,7 +141,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;    
     }
 
-    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
+    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);

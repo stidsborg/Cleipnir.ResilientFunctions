@@ -45,7 +45,7 @@ public class SignOfLifeUpdater : IDisposable
             epoch,
             functionStore,
             settings.UnhandledExceptionHandler,
-            updateFrequency: settings.CrashedCheckFrequency / 2
+            updateFrequency: settings.SignOfLifeFrequency / 2
         );
             
         _ = signOfLifeUpdater.Start();
@@ -62,7 +62,6 @@ public class SignOfLifeUpdater : IDisposable
 
         return Task.Run(async () =>
         {
-            var heartBeat = 1;
             while (!_disposed)
             {
                 try
@@ -74,7 +73,7 @@ public class SignOfLifeUpdater : IDisposable
                     var success = await _functionStore.UpdateSignOfLife(
                         _functionId,
                         expectedEpoch: _leader,
-                        newSignOfLife: heartBeat++,
+                        newSignOfLife: DateTime.UtcNow.Ticks,
                         _complementaryState
                     );
 

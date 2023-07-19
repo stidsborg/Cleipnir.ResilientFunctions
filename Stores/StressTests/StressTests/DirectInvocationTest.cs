@@ -20,8 +20,7 @@ public class DirectInvocationTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1),
-                suspensionCheckFrequency: TimeSpan.FromSeconds(1)
+                signOfLifeFrequency: TimeSpan.FromSeconds(1)
             )
         );
         var rFunc1 = rFunctions.RegisterFunc(
@@ -46,11 +45,7 @@ public class DirectInvocationTest
         
         using var rFunctions2 = new RFunctions(
             store,
-            new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1),
-                suspensionCheckFrequency: TimeSpan.FromSeconds(1)
-            )
+            new Settings(unhandledExceptionHandler: Console.WriteLine, signOfLifeFrequency: TimeSpan.FromSeconds(1))
         );
         var rFunc2 = rFunctions2.RegisterFunc(
             "DirectInvocationTest",

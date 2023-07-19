@@ -17,17 +17,19 @@ public interface IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        long crashedCheckFrequency
+        long signOfLifeFrequency,
+        long initialSignOfLife
     );
     
     Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);
     Task<bool> RestartExecution(
         FunctionId functionId,
         int expectedEpoch,
-        long crashedCheckFrequency
+        long signOfLifeFrequency,
+        long signOfLife
     );
     
-    Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState);
+    Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState);
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);

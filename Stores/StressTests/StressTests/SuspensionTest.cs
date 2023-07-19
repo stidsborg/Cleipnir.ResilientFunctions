@@ -37,7 +37,8 @@ public class SuspensionTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1).Ticks
+                signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
+                initialSignOfLife: DateTime.UtcNow.Ticks
             );
             await store.SuspendFunction(
                 functionId,
@@ -57,10 +58,7 @@ public class SuspensionTest
         Console.WriteLine("SUSPENSION_TEST: Waiting for invocations to begin");
         using var rFunctions = new RFunctions(
             store,
-            new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                suspensionCheckFrequency: TimeSpan.FromSeconds(1)
-            )
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         var _ = rFunctions.RegisterAction(
             "SuspensionTest",
@@ -71,7 +69,7 @@ public class SuspensionTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                crashedCheckFrequency: TimeSpan.FromSeconds(1)
+                signOfLifeFrequency: TimeSpan.FromSeconds(1)
             )
         );
         _ = rFunctions2.RegisterAction(

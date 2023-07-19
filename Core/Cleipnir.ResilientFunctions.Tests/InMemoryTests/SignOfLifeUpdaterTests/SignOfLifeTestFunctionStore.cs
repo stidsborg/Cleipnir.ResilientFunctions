@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -11,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests
 
 public class SignOfLifeTestFunctionStore : IFunctionStore
 {
-    public delegate bool SignOfLifeCallback(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState);
+    public delegate bool SignOfLifeCallback(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState);
 
     private readonly SignOfLifeCallback _signOfLifeCallback;
     private readonly IFunctionStore _inner = new InMemoryFunctionStore();
@@ -23,16 +22,21 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Utilities Utilities => _inner.Utilities;
     public Task Initialize() => _inner.Initialize();
 
-    public Task<bool> CreateFunction(FunctionId functionId, StoredParameter param, StoredScrapbook storedScrapbook, long crashedCheckFrequency)
-        => _inner.CreateFunction(functionId, param, storedScrapbook, crashedCheckFrequency);
+    public Task<bool> CreateFunction(
+        FunctionId functionId, 
+        StoredParameter param, 
+        StoredScrapbook storedScrapbook, 
+        long signOfLifeFrequency,
+        long initialSignOfLife
+    ) => _inner.CreateFunction(functionId, param, storedScrapbook, signOfLifeFrequency, initialSignOfLife);
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long crashedCheckFrequency)
-        => _inner.RestartExecution(functionId, expectedEpoch, crashedCheckFrequency);
+    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
+        => _inner.RestartExecution(functionId, expectedEpoch, signOfLifeFrequency, signOfLife);
 
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, int newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
+    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
     {
         var success = _signOfLifeCallback(functionId, expectedEpoch, newSignOfLife, complementaryState);
         return success.ToTask();

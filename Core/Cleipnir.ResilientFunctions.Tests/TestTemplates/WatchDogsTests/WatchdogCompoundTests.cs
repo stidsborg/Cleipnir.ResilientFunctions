@@ -30,7 +30,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -60,7 +60,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -85,7 +85,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -108,7 +108,7 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -142,7 +142,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -174,7 +174,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -201,7 +201,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -226,7 +226,7 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
@@ -272,7 +272,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -302,7 +302,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -330,7 +330,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -355,7 +355,7 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
@@ -392,7 +392,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -423,7 +423,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -452,7 +452,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(100),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -480,7 +480,7 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    crashedCheckFrequency: TimeSpan.FromMilliseconds(250),
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250),
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
