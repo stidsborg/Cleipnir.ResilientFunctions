@@ -215,6 +215,28 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET sign_of_life = $1
+            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = leaseExpiration},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
+            }
+        };
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         await using var conn = await CreateConnection();

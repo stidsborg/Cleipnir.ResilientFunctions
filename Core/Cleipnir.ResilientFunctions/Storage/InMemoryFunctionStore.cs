@@ -122,6 +122,22 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
+    public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
+
+            state.LastSignOfLife = leaseExpiration;
+            return true.ToTask();
+        }
+    }
+
     public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         lock (_sync)

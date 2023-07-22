@@ -26,7 +26,7 @@ public class SignOfLifeUpdaterTests
         const int expectedEpoch = 100;
         var invocations = new SyncedList<Parameters>();
         var store = new SignOfLifeTestFunctionStore(
-            (id, epoch, life, _) =>
+            (id, epoch, life) =>
             {
                 invocations.Add(new Parameters(id, ExpectedEpoch: epoch, NewSignOfLife: life));
                 return true;
@@ -62,7 +62,7 @@ public class SignOfLifeUpdaterTests
     public async Task SignOfLifeStopsInvokingStoreWhenFalseIsReturnedFromStore()
     {
         var syncedCounter = new SyncedCounter();
-        var store = new SignOfLifeTestFunctionStore((id, epoch, life, _) =>
+        var store = new SignOfLifeTestFunctionStore((id, epoch, life) =>
         {
             syncedCounter.Increment();
             return false;
@@ -91,7 +91,7 @@ public class SignOfLifeUpdaterTests
     {
         var syncedCounter = new SyncedCounter();
         var store = new SignOfLifeTestFunctionStore(
-            (id, epoch, life, _) =>
+            (id, epoch, life) =>
             {
                 syncedCounter.Increment();
                 throw new Exception();

@@ -9,10 +9,9 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 public class SignOfLifeUpdater : IDisposable
 {
     private readonly FunctionId _functionId;
-    private readonly int _leader;
+    private readonly int _epoch;
 
-    private readonly TimeSpan _updateFrequency;
-    private readonly ComplimentaryState.UpdateSignOfLife _complementaryState;
+    private readonly TimeSpan _signFrequency;
     
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -20,18 +19,17 @@ public class SignOfLifeUpdater : IDisposable
 
     public SignOfLifeUpdater(
         FunctionId functionId, 
-        int leader, 
+        int epoch, 
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        TimeSpan updateFrequency)
+        TimeSpan signFrequency)
     {
         _functionId = functionId;
-        _leader = leader;
+        _epoch = epoch;
             
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _updateFrequency = updateFrequency;
-        _complementaryState = new ComplimentaryState.UpdateSignOfLife((_updateFrequency * 2).Ticks);
+        _signFrequency = signFrequency;
     }
 
     public static IDisposable CreateAndStart(
@@ -45,7 +43,7 @@ public class SignOfLifeUpdater : IDisposable
             epoch,
             functionStore,
             settings.UnhandledExceptionHandler,
-            updateFrequency: settings.SignOfLifeFrequency
+            signFrequency: settings.SignOfLifeFrequency
         );
             
         _ = signOfLifeUpdater.Start();
@@ -54,7 +52,7 @@ public class SignOfLifeUpdater : IDisposable
     
     public Task Start()
     {
-        if (_updateFrequency == TimeSpan.Zero)
+        if (_signFrequency == TimeSpan.Zero)
         {
             _disposed = true;
             return Task.CompletedTask;
@@ -66,15 +64,14 @@ public class SignOfLifeUpdater : IDisposable
             {
                 try
                 {
-                    await Task.Delay(_updateFrequency);
+                    await Task.Delay(_signFrequency);
 
                     if (_disposed) return;
 
-                    var success = await _functionStore.UpdateSignOfLife(
+                    var success = await _functionStore.RenewLease(
                         _functionId,
-                        expectedEpoch: _leader,
-                        newSignOfLife: DateTime.UtcNow.Ticks,
-                        _complementaryState
+                        expectedEpoch: _epoch,
+                        leaseExpiration: DateTime.UtcNow.Ticks + (_signFrequency * 2).Ticks
                     );
 
                     _disposed = !success;

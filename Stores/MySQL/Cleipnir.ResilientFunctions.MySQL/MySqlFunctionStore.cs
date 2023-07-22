@@ -188,6 +188,28 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET sign_of_life = ?
+            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = leaseExpiration},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = expectedEpoch},
+            }
+        };
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

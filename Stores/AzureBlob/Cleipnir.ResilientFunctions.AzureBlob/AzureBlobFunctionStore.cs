@@ -163,6 +163,28 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
+    public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    {
+        var blobName = functionId.GetStateBlobName();
+        var blobClient = _blobContainerClient.GetBlobClient(blobName);
+
+        try
+        {
+            await blobClient.SetRfTags(
+                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, leaseExpiration, SignOfLifeFrequency: 0, PostponedUntil: null),
+                expectedEpoch
+            );
+        } catch (RequestFailedException e)
+        {
+            if (e.ErrorCode != "ConditionNotMet")
+                throw;
+
+            return false;
+        }
+
+        return true;
+    }
+
     public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
     {
         var executingBlobs = _blobContainerClient.FindBlobsByTagsAsync(
