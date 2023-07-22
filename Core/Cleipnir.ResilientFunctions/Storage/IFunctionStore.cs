@@ -29,7 +29,6 @@ public interface IFunctionStore
         long signOfLife
     );
     
-    Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState);
     Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration);
 
     Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);

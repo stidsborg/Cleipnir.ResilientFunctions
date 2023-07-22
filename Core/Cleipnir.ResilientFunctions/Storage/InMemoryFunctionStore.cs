@@ -106,22 +106,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId))
-                return false.ToTask();
-
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch)
-                return false.ToTask();
-
-            state.LastSignOfLife = newSignOfLife;
-            return true.ToTask();
-        }
-    }
-
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)

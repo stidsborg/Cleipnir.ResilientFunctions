@@ -94,7 +94,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store
-            .UpdateSignOfLife(functionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife(SignOfLifeFrequency: 10_000))
+            .RenewLease(functionId, expectedEpoch: 0, leaseExpiration: 1)
             .ShouldBeTrueAsync();
 
         await BusyWait.Until(() =>
@@ -129,11 +129,10 @@ public abstract class StoreTests
             initialSignOfLife
         ).ShouldBeTrueAsync();
 
-        await store.UpdateSignOfLife(
+        await store.RenewLease(
             functionId,  
             expectedEpoch: 1,
-            newSignOfLife: 1,
-            complementaryState: new ComplimentaryState.UpdateSignOfLife()
+            leaseExpiration: 1
         ).ShouldBeFalseAsync();
 
         await BusyWait.Until(() =>

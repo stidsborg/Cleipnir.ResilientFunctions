@@ -59,11 +59,6 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.RestartExecution(functionId, expectedEpoch, signOfLifeFrequency, signOfLife);
     
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.UpdateSignOfLife(functionId, expectedEpoch, newSignOfLife, complementaryState);
-
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

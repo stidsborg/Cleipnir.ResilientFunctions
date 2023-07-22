@@ -35,13 +35,7 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
 
     public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
         => _inner.RestartExecution(functionId, expectedEpoch, signOfLifeFrequency, signOfLife);
-
-    public Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife complementaryState)
-    {
-        var success = _signOfLifeCallback(functionId, expectedEpoch, newSignOfLife);
-        return success.ToTask();
-    }
-
+    
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         var success = _signOfLifeCallback(functionId, expectedEpoch, leaseExpiration);

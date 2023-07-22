@@ -197,24 +197,6 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> UpdateSignOfLife(FunctionId functionId, int expectedEpoch, long newSignOfLife, ComplimentaryState.UpdateSignOfLife _)
-    {
-        await using var conn = await _connFunc();
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET SignOfLife = @SignOfLife
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @Epoch";
-        
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@SignOfLife", newSignOfLife);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@Epoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-
     public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await _connFunc();

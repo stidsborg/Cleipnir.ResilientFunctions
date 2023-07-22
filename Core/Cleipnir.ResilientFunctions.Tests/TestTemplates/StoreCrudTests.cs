@@ -127,7 +127,7 @@ public abstract class StoreCrudTests
             initialSignOfLife: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 0, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife()).ShouldBeTrueAsync();
+        await store.RenewLease(FunctionId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);
@@ -147,7 +147,7 @@ public abstract class StoreCrudTests
             initialSignOfLife
         ).ShouldBeTrueAsync();
 
-        await store.UpdateSignOfLife(FunctionId, expectedEpoch: 1, newSignOfLife: 1, new ComplimentaryState.UpdateSignOfLife()).ShouldBeFalseAsync();
+        await store.RenewLease(FunctionId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);
