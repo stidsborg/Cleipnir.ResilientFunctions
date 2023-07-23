@@ -631,9 +631,9 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
-        var curr = controlPanel.LastSignOfLife;
+        var curr = controlPanel.LeaseExpiration;
         curr.ShouldBeGreaterThan(before);
-        while (controlPanel.LastSignOfLife == curr)
+        while (controlPanel.LeaseExpiration == curr)
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
             await controlPanel.Refresh();
@@ -666,9 +666,9 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
-        var curr = controlPanel.LastSignOfLife;
+        var curr = controlPanel.LeaseExpiration;
         curr.ShouldBeGreaterThan(before);
-        while (controlPanel.LastSignOfLife == curr)
+        while (controlPanel.LeaseExpiration == curr)
         {
             await controlPanel.Refresh();
             await Task.Delay(TimeSpan.FromMilliseconds(100));

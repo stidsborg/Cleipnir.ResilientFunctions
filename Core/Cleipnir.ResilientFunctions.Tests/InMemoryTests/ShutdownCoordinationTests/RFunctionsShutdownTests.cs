@@ -97,8 +97,7 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -147,8 +146,7 @@ public class RFunctionsShutdownTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
-public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long SignOfLife, long SignOfLifeFrequency, long? PostponedUntil)
+public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long LeaseExpiration, long? PostponedUntil)
 {
     public Dictionary<string, string> ToDictionary()
     {
@@ -13,8 +13,7 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             { nameof(FunctionType), FunctionType },
             { nameof(Status), ((int) Status).ToString() },
             { nameof(Epoch), Epoch.ToString() },
-            { nameof(SignOfLife), SignOfLife.ToString() },
-            { nameof(SignOfLifeFrequency), SignOfLifeFrequency.ToString() }
+            { nameof(LeaseExpiration), LeaseExpiration.ToString() }
         };  
         
         if (PostponedUntil != null)
@@ -28,8 +27,7 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             FunctionType: tags[nameof(FunctionType)],
             Status: (Status)int.Parse(tags[nameof(Status)]),
             Epoch: int.Parse(tags[nameof(Epoch)]),
-            SignOfLife: long.Parse(tags[nameof(SignOfLife)]),
-            SignOfLifeFrequency: long.Parse(tags[nameof(SignOfLifeFrequency)]),
+            LeaseExpiration: long.Parse(tags[nameof(LeaseExpiration)]),
             PostponedUntil: tags.ContainsKey(nameof(PostponedUntil)) 
                 ? long.Parse(tags[nameof(PostponedUntil)]) 
                 : default(long?)
@@ -46,13 +44,12 @@ public static class RfTagsExtensions
         var functionType = tags["FunctionType"];
         var status = (Status) int.Parse(tags["Status"]);
         var epoch = int.Parse(tags["Epoch"]);
-        var signOfLife = long.Parse(tags["SignOfLife"]);
-        var signOfLifeFrequency = long.Parse(tags["SignOfLifeFrequency"]);
+        var leaseExpiration = long.Parse(tags["LeaseExpiration"]);
         var postponedUntil = tags.ContainsKey("PostponedUntil")
             ? long.Parse(tags["PostponedUntil"])
             : default;
 
-        return new RfTags(functionType, status, epoch, signOfLife, signOfLifeFrequency, postponedUntil);
+        return new RfTags(functionType, status, epoch, leaseExpiration, postponedUntil);
     }
 
     public static Task SetRfTags(this BlobClient client, RfTags rfTags) 

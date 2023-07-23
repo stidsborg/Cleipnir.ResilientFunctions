@@ -41,8 +41,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         FunctionId functionId,
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        long signOfLifeFrequency,
-        long initialSignOfLife)
+        long leaseExpiration)
     {
         lock (_sync)
         {
@@ -59,8 +58,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = null,
-                LastSignOfLife = initialSignOfLife,
-                SignOfLifeFrequency = signOfLifeFrequency
+                LeaseExpiration = leaseExpiration
             };
 
             _events[functionId] = new List<StoredEvent>();
@@ -83,11 +81,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> RestartExecution(
-        FunctionId functionId,
-        int expectedEpoch,
-        long signOfLifeFrequency,
-        long signOfLife)
+    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
@@ -100,8 +94,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
 
             state.Epoch += 1;
             state.Status = Status.Executing;
-            state.SignOfLifeFrequency = signOfLifeFrequency;
-            state.LastSignOfLife = signOfLife;
+            state.LeaseExpiration = leaseExpiration;
             return true.ToTask();
         }
     }
@@ -117,19 +110,20 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
-            state.LastSignOfLife = leaseExpiration;
+            state.LeaseExpiration = leaseExpiration;
             return true.ToTask();
         }
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Executing)
-                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.LastSignOfLife, s.SignOfLifeFrequency))
+                .Where(s => s.LeaseExpiration < leaseExpiration)
+                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.LeaseExpiration))
                 .ToList()
                 .AsEnumerable()
                 .ToTask();
@@ -337,8 +331,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                     state.PostponeUntil,
                     state.SuspendedAtEpoch,
                     state.Epoch,
-                    state.LastSignOfLife,
-                    state.SignOfLifeFrequency
+                    state.LeaseExpiration
                 )
                 .ToNullable()
                 .ToTask();
@@ -381,8 +374,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         public StoredException? Exception { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
-        public long LastSignOfLife { get; set; }
-        public long SignOfLifeFrequency { get; set; }
+        public long LeaseExpiration { get; set; }
         public int? SuspendedAtEpoch { get; set; }
     }
     #endregion

@@ -44,8 +44,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                signOfLifeFrequency: _settings.SignOfLifeFrequency.Ticks,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks + (2 * _settings.SignOfLifeFrequency.Ticks)
             );
 
             if (!created) runningFunction.Dispose();
@@ -238,8 +237,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             var success = await _functionStore.RestartExecution(
                 functionId,
                 expectedEpoch: sf.Epoch,
-                _settings.SignOfLifeFrequency.Ticks,
-                signOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks + 2 * _settings.SignOfLifeFrequency.Ticks 
             );
 
             if (!success)
@@ -400,8 +398,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             sf.Status,
             sf.Epoch,
-            sf.SignOfLifeFrequency, 
-            LastSignOfLife: sf.SignOfLife,
+            sf.LeaseExpiration,
             Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
             Scrapbook: serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType),
             Result: sf.Result.ResultType == null 

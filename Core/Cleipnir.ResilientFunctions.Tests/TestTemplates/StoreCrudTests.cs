@@ -29,13 +29,12 @@ public abstract class StoreCrudTests
         await store.Initialize();
         await store.Initialize();
         
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FunctionId,
             Param,
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -49,20 +48,19 @@ public abstract class StoreCrudTests
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
-        stored.SignOfLife.ShouldBe(initialSignOfLife);
+        stored.LeaseExpiration.ShouldBe(leaseExpiration);
     }
 
     public abstract Task FunctionCanBeCreatedWithTwoParametersSuccessfully();
     protected async Task FunctionCanBeCreatedWithTwoParametersSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -77,20 +75,19 @@ public abstract class StoreCrudTests
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
-        stored.SignOfLife.ShouldBe(initialSignOfLife);
+        stored.LeaseExpiration.ShouldBe(leaseExpiration);
     }
         
     public abstract Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully();
     protected async Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -105,7 +102,7 @@ public abstract class StoreCrudTests
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
-        stored.SignOfLife.ShouldBe(initialSignOfLife);
+        stored.LeaseExpiration.ShouldBe(leaseExpiration);
     }
 
     public abstract Task FetchingNonExistingFunctionReturnsNull();
@@ -123,35 +120,33 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(FunctionId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);
-        storedFunction!.SignOfLife.ShouldBe(1);
+        storedFunction.LeaseExpiration.ShouldBe(1);
     }
     
     public abstract Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent();
     protected async Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(FunctionId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
         storedFunction!.Epoch.ShouldBe(0);
-        storedFunction.SignOfLife.ShouldBe(initialSignOfLife);
+        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
     }
 
     public abstract Task UpdateScrapbookSunshineScenario();
@@ -162,8 +157,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
@@ -192,8 +186,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
@@ -219,8 +212,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.DeleteFunction(FunctionId).ShouldBeTrueAsync();
@@ -243,14 +235,12 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
             expectedEpoch: 0,
-            signOfLifeFrequency: 100,
-            signOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.DeleteFunction(FunctionId, expectedEpoch: 0).ShouldBeFalseAsync();
 
@@ -265,8 +255,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = new StoredParameter(
@@ -305,8 +294,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = new StoredParameter(
@@ -339,8 +327,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         var updatedStoredScrapbook = new StoredScrapbook(
@@ -373,14 +360,12 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
             expectedEpoch: 0,
-            signOfLifeFrequency: 100,
-            signOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = new StoredParameter(

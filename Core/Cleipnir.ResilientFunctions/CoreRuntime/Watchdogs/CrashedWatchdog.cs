@@ -49,42 +49,16 @@ internal class CrashedWatchdog
         
         try
         {
-            var prevFunctionCounts = new Dictionary<FunctionInstanceId, ObservationAndRemainingCount>();
-
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
                 await Task.Delay(_signOfLifeFrequency);
                 if (_shutdownCoordinator.ShutdownInitiated) return;
-
-                var currExecutingFunctions = await _functionStore
-                    .GetExecutingFunctions(_functionTypeId);
-
-                var hangingFunctions = new List<StoredExecutingFunction>();
-                var newFunctionCounts = new Dictionary<FunctionInstanceId, ObservationAndRemainingCount>();
-                foreach (var sef in currExecutingFunctions)
-                {
-                    if (!prevFunctionCounts.ContainsKey(sef.InstanceId))
-                        newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.LastSignOfLife, CalculateRemainingCount(sef));
-                    else
-                    {
-                        var prev = prevFunctionCounts[sef.InstanceId];
-                        if (sef.LastSignOfLife != prev.SignOfLife || sef.Epoch != prev.Epoch)
-                            newFunctionCounts[sef.InstanceId] = new ObservationAndRemainingCount(sef.Epoch, sef.LastSignOfLife, CalculateRemainingCount(sef));
-                        else if (prevFunctionCounts[sef.InstanceId].RemainingCount == 0)
-                            hangingFunctions.Add(sef);
-                        else
-                            newFunctionCounts[sef.InstanceId] = prevFunctionCounts[sef.InstanceId]
-                                with
-                                {
-                                    RemainingCount = prev.RemainingCount - 1
-                                };
-                    }
-                }
-
+                
+                var hangingFunctions = 
+                    await _functionStore.GetExecutingFunctions(_functionTypeId, leaseExpiration: DateTime.UtcNow.Ticks);
+                    
                 foreach (var hangingFunction in hangingFunctions.RandomlyPermute())
                     _ = ReInvokeCrashedFunction(hangingFunction);
-
-                prevFunctionCounts = newFunctionCounts;
             }
         }
         catch (Exception thrownException)
@@ -135,15 +109,4 @@ internal class CrashedWatchdog
                 _toBeExecuted.Remove(sef.InstanceId);
         }
     }
-
-    private int CalculateRemainingCount(StoredExecutingFunction sef) =>
-        Math.Max(
-            1,
-            sef.SignOfLifeFrequency / _signOfLifeFrequency.Ticks
-            + sef.SignOfLifeFrequency % _signOfLifeFrequency.Ticks == 0
-                ? 0
-                : 1
-        ) - 1;
-
-    private record ObservationAndRemainingCount(int Epoch, long SignOfLife, int RemainingCount);
 }

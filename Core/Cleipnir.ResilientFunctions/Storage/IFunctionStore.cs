@@ -17,21 +17,15 @@ public interface IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        long signOfLifeFrequency,
-        long initialSignOfLife
+        long leaseExpiration
     );
     
     Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);
-    Task<bool> RestartExecution(
-        FunctionId functionId,
-        int expectedEpoch,
-        long signOfLifeFrequency,
-        long signOfLife
-    );
+    Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration);
     
     Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration);
 
-    Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId);
+    Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
 
     Task<bool> SetFunctionState(

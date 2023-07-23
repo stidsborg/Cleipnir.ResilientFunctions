@@ -71,10 +71,8 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         );
 
     [TestMethod]
-    public override Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency()
-        => LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(
-            FunctionStore.CastTo<IFunctionStore>().ToTask()
-        );
+    public override Task OnlyEligibleCrashedFunctionsAreReturnedFromStore()
+        => OnlyEligibleCrashedFunctionsAreReturnedFromStore(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task IncrementEpochSucceedsWhenEpochIsAsExpected()

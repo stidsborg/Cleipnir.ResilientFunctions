@@ -26,27 +26,25 @@ public abstract class StoreTests
         var storedParameter = new StoredParameter(paramJson, paramType);
         var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
 
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => 
-            store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
+            store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
         );
         
-        var nonCompletes = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+        var nonCompletes = await store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).ToListAsync();
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
         nonCompleted.InstanceId.ShouldBe(functionId.InstanceId);
         nonCompleted.Epoch.ShouldBe(0);
-        nonCompleted.LastSignOfLife.ShouldBe(initialSignOfLife);
-        nonCompleted.SignOfLifeFrequency.ShouldBe(100);
+        nonCompleted.LeaseExpiration.ShouldBe(leaseExpiration);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -56,7 +54,7 @@ public abstract class StoreTests
         storedFunction.Scrapbook.ShouldNotBeNull();
         storedFunction.Scrapbook.ScrapbookType.ShouldBe(typeof(RScrapbook).SimpleQualifiedName());
         storedFunction.Epoch.ShouldBe(0);
-        storedFunction.SignOfLife.ShouldBe(initialSignOfLife);
+        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
         storedFunction.PostponedUntil.ShouldBeNull();
 
         const string result = "hello world";
@@ -89,8 +87,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store
@@ -98,16 +95,20 @@ public abstract class StoreTests
             .ShouldBeTrueAsync();
 
         await BusyWait.Until(() =>
-            store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
+            store
+                .GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks)
+                .SelectAsync(efs => efs.Any())
         );
 
         await BusyWait.Until(async () =>
         {
-            var nonCompletedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+            var nonCompletedFunctions = await store
+                .GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks)
+                .ToListAsync();
             if (!nonCompletedFunctions.Any()) return false;
             
             var nonCompletedFunction = nonCompletedFunctions.Single();
-            return nonCompletedFunction is { Epoch: 0, LastSignOfLife: 1 };
+            return nonCompletedFunction is { Epoch: 0, LeaseExpiration: 1 };
         });
     }
 
@@ -120,13 +121,12 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(
@@ -136,15 +136,17 @@ public abstract class StoreTests
         ).ShouldBeFalseAsync();
 
         await BusyWait.Until(() =>
-            store.GetExecutingFunctions(functionId.TypeId).SelectAsync(efs => efs.Any())
+            store
+                .GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks)
+                .SelectAsync(efs => efs.Any())
         );
         
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(functionId.TypeId);
+            await store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks);
         
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
-        nonCompletedFunction.LastSignOfLife.ShouldBe(initialSignOfLife);
+        nonCompletedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
     }
         
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
@@ -160,23 +162,21 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var signOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store
             .RestartExecution(
                 functionId,
                 expectedEpoch: 0,
-                signOfLifeFrequency: 100,
-                signOfLife
+                leaseExpiration
             ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Epoch.ShouldBe(1);
-        storedFunction.SignOfLife.ShouldBe(signOfLife);
+        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
     }
         
     public abstract Task BecomeLeaderFailsWhenEpochIsNotAsExpected();
@@ -188,27 +188,25 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
 
-        var initialSignOfLife = DateTime.UtcNow.Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife
+            leaseExpiration
         ).ShouldBeTrueAsync();
         
         await store
             .RestartExecution(
                 functionId,
                 expectedEpoch: 1,
-                signOfLifeFrequency: 100,
-                signOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeFalseAsync();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Epoch.ShouldBe(0);
-        storedFunction.SignOfLife.ShouldBe(initialSignOfLife);
+        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
     }
 
     public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
@@ -224,16 +222,14 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeFalseAsync();
     }
     
@@ -254,8 +250,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -295,8 +290,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -336,8 +330,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: 100,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -374,52 +367,51 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
-        var crashedCheckFrequency = TimeSpan.FromSeconds(10).Ticks;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: crashedCheckFrequency,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration
         );
 
-        await BusyWait.Until(() => store.GetExecutingFunctions(functionId.TypeId).Any());
+        await BusyWait.Until(() => store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).Any());
         
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId).ToListAsync();
+        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
-        sf.SignOfLifeFrequency.ShouldBe(crashedCheckFrequency);
+        sf.LeaseExpiration.ShouldBe(leaseExpiration);
     }
     
-    public abstract Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency();
-    protected async Task LeaderElectionSpecifiedCrashCheckFrequencyIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
+    public abstract Task OnlyEligibleCrashedFunctionsAreReturnedFromStore();
+    protected async Task OnlyEligibleCrashedFunctionsAreReturnedFromStore(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var crashedCheckFrequency = TimeSpan.FromSeconds(10).Ticks;
-        
+        var function1Id = TestFunctionId.Create();
+        var function2Id = new FunctionId(function1Id.TypeId, functionInstanceId: Guid.NewGuid().ToString("N"));
+
         await store.CreateFunction(
-            functionId,
+            function1Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: 0
+        );
+        
+        await store.CreateFunction(
+            function2Id,
+            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            leaseExpiration: 2
         );
 
-        await store.RestartExecution(
-            functionId,
-            expectedEpoch: 0,
-            crashedCheckFrequency,
-            signOfLife: DateTime.UtcNow.Ticks
-        );
+        await BusyWait.Until(() => store.GetExecutingFunctions(function1Id.TypeId, leaseExpiration: 1).Any());
         
-        await BusyWait.Until(() => store.GetExecutingFunctions(functionId.TypeId).Any());
-        
-        var storedFunctions = await TaskLinq.ToListAsync(store.GetExecutingFunctions(functionId.TypeId));
+        var storedFunctions = await store.GetExecutingFunctions(function1Id.TypeId, leaseExpiration: 1).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
-        sf.SignOfLifeFrequency.ShouldBe(crashedCheckFrequency);
+        sf.InstanceId.ShouldBe(function1Id.InstanceId);
+        sf.LeaseExpiration.ShouldBe(0);
     }
     
     public abstract Task IncrementEpochSucceedsWhenEpochIsAsExpected();
@@ -432,8 +424,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
@@ -453,8 +444,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
@@ -476,8 +466,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         storedScrapbook = storedScrapbook with { ScrapbookJson = new Scrapbook() { State = "completed" }.ToJson()};
@@ -507,8 +496,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         storedScrapbook = storedScrapbook with { ScrapbookJson = new Scrapbook() { State = "completed" }.ToJson()};
@@ -543,8 +531,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -567,8 +554,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -594,8 +580,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var storedException = new StoredException(
@@ -637,8 +622,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -675,8 +659,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var event1 = new StoredEvent(
@@ -741,8 +724,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -786,21 +768,18 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(
             functionId, 
             expectedEpoch: 0, 
-            signOfLifeFrequency: 1_000, 
-            signOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             functionId, 
             expectedEpoch: 0, 
-            signOfLifeFrequency: 1_000,
-            signOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeFalseAsync();
     }
 }

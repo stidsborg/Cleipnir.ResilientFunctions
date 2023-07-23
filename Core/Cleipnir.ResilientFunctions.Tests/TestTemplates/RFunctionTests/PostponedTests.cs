@@ -366,8 +366,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -387,8 +386,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -451,8 +449,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -472,8 +469,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -540,8 +536,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -561,8 +556,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
@@ -627,8 +621,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -648,8 +641,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-                signOfLifeFrequency: 1000,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
@@ -682,8 +674,7 @@ public abstract class PostponedTests
             functionId,
             storedParameter,
             storedScrapbook,
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

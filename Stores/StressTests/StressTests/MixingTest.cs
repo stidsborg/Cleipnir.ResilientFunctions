@@ -38,8 +38,7 @@ public static class MixingTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             );
             if (i % 2 == 0)
                 await store.PostponeFunction(

@@ -37,8 +37,7 @@ public class SuspensionTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                signOfLifeFrequency: TimeSpan.FromSeconds(1).Ticks,
-                initialSignOfLife: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks
             );
             await store.SuspendFunction(
                 functionId,

@@ -40,8 +40,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook scrapbook, 
-        long signOfLifeFrequency,
-        long initialSignOfLife)
+        long leaseExpiration)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -66,8 +65,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value, 
                         Status.Executing, 
                         Epoch: 0, 
-                        SignOfLife: initialSignOfLife, 
-                        signOfLifeFrequency, 
+                        leaseExpiration,
                         PostponedUntil: null
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { IfNoneMatch = new ETag("*") }
@@ -94,7 +92,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         {
             await blobClient
                 .SetRfTags(
-                    rfTags with { Epoch = expectedEpoch + 1, SignOfLife = 0 },
+                    rfTags with { Epoch = expectedEpoch + 1, LeaseExpiration = DateTime.UtcNow.Ticks },
                     expectedEpoch
                 );
         } catch (RequestFailedException e)
@@ -108,11 +106,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> RestartExecution(
-        FunctionId functionId,
-        int expectedEpoch, 
-        long signOfLifeFrequency,
-        long signOfLife)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -125,7 +119,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value, 
                         Status.Executing, 
                         Epoch: expectedEpoch + 1, 
-                        signOfLife, signOfLifeFrequency, 
+                        LeaseExpiration: leaseExpiration, 
                         PostponedUntil: null
                     ),
                     expectedEpoch
@@ -149,7 +143,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         try
         {
             await blobClient.SetRfTags(
-                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, leaseExpiration, SignOfLifeFrequency: 0, PostponedUntil: null),
+                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, leaseExpiration, PostponedUntil: null),
                 expectedEpoch
             );
         } catch (RequestFailedException e)
@@ -163,10 +157,10 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
     {
         var executingBlobs = _blobContainerClient.FindBlobsByTagsAsync(
-            tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND SignOfLife >= '0' AND SignOfLifeFrequency >= '0'"
+            tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND LeaseExpiration < '{leaseExpiration}'"
         );
 
         var executingFunctions = new List<StoredExecutingFunction>();
@@ -177,8 +171,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             var storedExecutingFunction = new StoredExecutingFunction(
                 instanceName,
                 rfTags.Epoch,
-                rfTags.SignOfLife,
-                rfTags.SignOfLifeFrequency
+                rfTags.LeaseExpiration
             );
             
             executingFunctions.Add(storedExecutingFunction);
@@ -315,8 +308,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value,
                         status,
                         Epoch: incrementEpoch ? expectedEpoch + 1 : expectedEpoch,
-                        SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                        SignOfLifeFrequency: 0,
+                        LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: postponeUntil
                     ).ToDictionary()
                 }
@@ -419,8 +411,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value,
                         status,
                         Epoch: expectedEpoch + 1,
-                        SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                        SignOfLifeFrequency: 0,
+                        LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: postponeUntil
                     ).ToDictionary()
                 }
@@ -469,8 +460,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value, 
                         Status.Executing, 
                         expectedEpoch, 
-                        SignOfLife: Random.Shared.Next(0, int.MaxValue),
-                        signOfLifeFrequency,
+                        LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: null
                     ).ToDictionary()
                 }
@@ -541,7 +531,13 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Succeeded, Epoch: expectedEpoch, SignOfLife: 0, SignOfLifeFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(
+                        functionId.TypeId.Value, 
+                        Status.Succeeded, 
+                        Epoch: expectedEpoch, 
+                        LeaseExpiration: DateTime.UtcNow.Ticks, 
+                        PostponedUntil: null
+                    ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -579,7 +575,13 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Postponed, Epoch: expectedEpoch, SignOfLife: 0, SignOfLifeFrequency: 0, postponeUntil).ToDictionary(),
+                    Tags = new RfTags(
+                        functionId.TypeId.Value, 
+                        Status.Postponed, 
+                        Epoch: expectedEpoch, 
+                        LeaseExpiration: DateTime.UtcNow.Ticks,
+                        postponeUntil
+                    ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -620,7 +622,13 @@ public class AzureBlobFunctionStore : IFunctionStore
                 new BinaryData(content),
                 new BlobUploadOptions
                 {
-                    Tags = new RfTags(functionId.TypeId.Value, Status.Failed, Epoch: expectedEpoch, SignOfLife: 0, SignOfLifeFrequency: 0, PostponedUntil: null).ToDictionary(),
+                    Tags = new RfTags(
+                        functionId.TypeId.Value, 
+                        Status.Failed, 
+                        Epoch: expectedEpoch, 
+                        LeaseExpiration: DateTime.UtcNow.Ticks,
+                        PostponedUntil: null
+                    ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
@@ -749,8 +757,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             PostponedUntil: rfTags.PostponedUntil,  
             SuspendedAtEpoch: suspendedAtEpoch,
             Epoch: rfTags.Epoch,
-            SignOfLife: rfTags.SignOfLife,
-            SignOfLifeFrequency: rfTags.SignOfLifeFrequency
+            LeaseExpiration: rfTags.LeaseExpiration
         );
     }
 

@@ -23,8 +23,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -60,8 +59,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -99,8 +97,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -131,8 +128,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -157,8 +153,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
         
@@ -176,8 +171,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -221,8 +215,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -265,8 +258,8 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks);
+            leaseExpiration: DateTime.UtcNow.Ticks
+        );
         var eventStore = functionStore.EventStore;
 
         await eventStore.AppendEvent(functionId, event1);
@@ -298,8 +291,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -320,8 +312,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
         var events = await eventStore.GetEvents(functionId);
@@ -337,8 +328,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -384,8 +374,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 

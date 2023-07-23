@@ -39,35 +39,33 @@ public class CrashableFunctionStore : IFunctionStore
         FunctionId functionId,
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        long signOfLifeFrequency,
-        long initialSignOfLife
+        long leaseExpiration
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
             functionId,
             param,
             storedScrapbook,
-            signOfLifeFrequency,
-            initialSignOfLife
+            leaseExpiration
         );
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
+    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.RestartExecution(functionId, expectedEpoch, signOfLifeFrequency, signOfLife);
+            : _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);
     
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.RenewLease(functionId, expectedEpoch, leaseExpiration);
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
         => _crashed
             ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
-            : _inner.GetExecutingFunctions(functionTypeId);
+            : _inner.GetExecutingFunctions(functionTypeId, leaseExpiration);
 
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
         => _crashed

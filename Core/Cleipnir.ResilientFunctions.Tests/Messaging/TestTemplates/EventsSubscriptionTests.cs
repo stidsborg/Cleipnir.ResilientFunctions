@@ -22,8 +22,7 @@ public abstract class EventSubscriptionTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 

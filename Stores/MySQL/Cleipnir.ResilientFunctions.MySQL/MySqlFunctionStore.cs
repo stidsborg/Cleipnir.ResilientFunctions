@@ -52,8 +52,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 suspended_at_epoch INT NULL,
                 epoch INT NOT NULL,
-                sign_of_life BIGINT NOT NULL,
-                sign_of_life_frequency BIGINT NOT NULL,
+                lease_expiration BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -88,15 +87,14 @@ public class MySqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
-        long signOfLifeFrequency,
-        long initialSignOfLife)
+        long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, sign_of_life, sign_of_life_frequency)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration)
             VALUES
-                (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, ?, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -107,8 +105,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = initialSignOfLife},
-                new() {Value = signOfLifeFrequency}
+                new() {Value = leaseExpiration}
             }
         };
 
@@ -138,24 +135,19 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> RestartExecution(
-        FunctionId functionId, 
-        int expectedEpoch, 
-        long signOfLifeFrequency,
-        long signOfLife)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, sign_of_life_frequency = ?, sign_of_life = ?
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
 
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = signOfLifeFrequency },
-                new() { Value = signOfLife },
+                new() { Value = leaseExpiration },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -171,7 +163,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET sign_of_life = ?
+            SET lease_expiration = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
         await using var command = new MySqlCommand(sql, conn)
         {
@@ -188,18 +180,19 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
-            SELECT function_instance_id, epoch, sign_of_life, sign_of_life_frequency 
+            SELECT function_instance_id, epoch, lease_expiration 
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND status = {(int) Status.Executing}";
+            WHERE function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value}
+                new() {Value = functionTypeId.Value},
+                new() { Value = leaseExpiration }
             }
         };
 
@@ -210,9 +203,8 @@ public class MySqlFunctionStore : IFunctionStore
         {
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            var signOfLife = reader.GetInt64(2);
-            var signOfLifeFrequency = reader.GetInt64(3);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, signOfLifeFrequency));
+            var expiration = reader.GetInt64(2);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, expiration));
         }
 
         return functions;
@@ -524,8 +516,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 suspended_at_epoch,
                 epoch, 
-                sign_of_life,
-                sign_of_life_frequency
+                lease_expiration
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(sql, conn)
@@ -560,8 +551,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 suspendedAtEpoch ? reader.GetInt32(9) : null,
                 Epoch: reader.GetInt32(10),
-                SignOfLife: reader.GetInt64(11),
-                SignOfLifeFrequency: reader.GetInt64(12)
+                LeaseExpiration: reader.GetInt64(11)
             );
         }
 

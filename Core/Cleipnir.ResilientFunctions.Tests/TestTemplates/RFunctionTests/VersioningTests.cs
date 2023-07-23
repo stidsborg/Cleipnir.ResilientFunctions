@@ -35,8 +35,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            TimeSpan.FromMilliseconds(10).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         _ = rFunctions.RegisterFunc(
@@ -72,8 +71,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-           TimeSpan.FromMilliseconds(10).Ticks,
-           initialSignOfLife: DateTime.UtcNow.Ticks
+           leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -113,8 +111,7 @@ public abstract class VersioningTests
                 typeof(string).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            TimeSpan.FromMilliseconds(10).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -157,8 +154,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: TimeSpan.FromMilliseconds(10).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         var v2FunctionId = TestFunctionId.Create() with { TypeId = v1FunctionId.TypeId };
         await store.CreateFunction(
@@ -168,8 +164,7 @@ public abstract class VersioningTests
                 typeof(PersonV2).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            signOfLifeFrequency: TimeSpan.FromMilliseconds(10).Ticks,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var invocations = new SyncedList<Person>();

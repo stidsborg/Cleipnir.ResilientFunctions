@@ -21,8 +21,7 @@ public abstract class CustomEventSerializerTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            signOfLifeFrequency: 0,
-            initialSignOfLife: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventSerializer = new EventSerializer();
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, eventSerializer, scheduleReInvocation: (_, _, _) => Task.CompletedTask);

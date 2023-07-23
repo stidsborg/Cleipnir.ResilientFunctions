@@ -62,13 +62,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 suspended_at_epoch INT NULL,
                 epoch INT NOT NULL DEFAULT 0,
-                sign_of_life BIGINT NOT NULL DEFAULT 0,
-                sign_of_life_frequency BIGINT NOT NULL,
+                lease_expiration BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
-            ON {_tablePrefix}rfunctions(function_type_id, function_instance_id)
-            INCLUDE (epoch, sign_of_life)
+            ON {_tablePrefix}rfunctions(function_type_id, lease_expiration, function_instance_id)
+            INCLUDE (epoch)
             WHERE status = {(int) Status.Executing};
 
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_postponed
@@ -112,15 +111,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
-        long signOfLifeFrequency,
-        long initialSignOfLife)
+        long leaseExpiration)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, sign_of_life, sign_of_life_frequency)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -132,8 +130,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = initialSignOfLife},
-                new() {Value = signOfLifeFrequency}
+                new() {Value = leaseExpiration}
             }
         };
 
@@ -164,25 +161,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> RestartExecution(
-        FunctionId functionId, 
-        int expectedEpoch, 
-        long signOfLifeFrequency, 
-        long signOfLife)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateConnection();
 
         var sql = @$"
             UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, sign_of_life_frequency = $1, sign_of_life = $2
-            WHERE function_type_id = $3 AND function_instance_id = $4 AND epoch = $5";
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = $1
+            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = signOfLifeFrequency },
-                new() { Value = signOfLife },
+                new() { Value = leaseExpiration },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -198,7 +190,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET sign_of_life = $1
+            SET lease_expiration = $1
             WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -215,18 +207,19 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            SELECT function_instance_id, epoch, sign_of_life, sign_of_life_frequency 
+            SELECT function_instance_id, epoch, lease_expiration 
             FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = $1 AND status = {(int) Status.Executing}";
+            WHERE function_type_id = $1 AND lease_expiration < $2 AND status = {(int) Status.Executing}";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value}
+                new() {Value = functionTypeId.Value},
+                new () {Value = leaseExpiration }
             }
         };
 
@@ -237,9 +230,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            var signOfLife = reader.GetInt64(2);
-            var signOfLifeFrequency = reader.GetInt64(3);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, signOfLifeFrequency));
+            var expiration = reader.GetInt64(2);
+            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, expiration));
         }
 
         return functions;
@@ -560,8 +552,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 suspended_at_epoch,
                 epoch, 
-                sign_of_life,
-                sign_of_life_frequency
+                lease_expiration
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -593,8 +584,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 suspendedAtEpoch ? reader.GetInt32(9) : null,
                 Epoch: reader.GetInt32(10),
-                SignOfLife: reader.GetInt64(11),
-                SignOfLifeFrequency: reader.GetInt64(12)
+                LeaseExpiration: reader.GetInt64(11)
             );
         }
 

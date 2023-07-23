@@ -26,15 +26,14 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
-        long signOfLifeFrequency,
-        long initialSignOfLife
-    ) => _inner.CreateFunction(functionId, param, storedScrapbook, signOfLifeFrequency, initialSignOfLife);
+        long leaseExpiration
+    ) => _inner.CreateFunction(functionId, param, storedScrapbook, leaseExpiration);
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
 
-    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
-        => _inner.RestartExecution(functionId, expectedEpoch, signOfLifeFrequency, signOfLife);
+    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+        => _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);
     
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
@@ -42,8 +41,8 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
-        => _inner.GetExecutingFunctions(functionTypeId);
+    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
+        => _inner.GetExecutingFunctions(functionTypeId, leaseExpiration);
 
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
         => _inner.GetPostponedFunctions(functionTypeId, expiresBefore);

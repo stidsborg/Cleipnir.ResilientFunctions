@@ -64,14 +64,13 @@ public class SqlServerFunctionStore : IFunctionStore
                 ExceptionJson NVARCHAR(MAX) NULL,
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
-                SignOfLife BIGINT NOT NULL,
-                SignOfLifeFrequency BIGINT NOT NULL,
+                LeaseExpiration BIGINT NOT NULL,
                 SuspendedAtEpoch INT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
             CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
-                ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
-                INCLUDE (Epoch, SignOfLife)
+                ON {_tablePrefix}RFunctions (FunctionTypeId, LeaseExpiration, FunctionInstanceId)
+                INCLUDE (Epoch)
                 WHERE Status = {(int)Status.Executing};
             CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
                 ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
@@ -116,8 +115,7 @@ public class SqlServerFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
-        long signOfLifeFrequency,
-        long initialSignOfLife)
+        long leaseExpiration)
     {
         await using var conn = await _connFunc();
         try
@@ -128,16 +126,16 @@ public class SqlServerFunctionStore : IFunctionStore
                     ParamJson, ParamType, 
                     ScrapbookJson, ScrapbookType, 
                     Status,
-                    Epoch, SignOfLife, 
-                    SignOfLifeFrequency)
+                    Epoch, 
+                    LeaseExpiration)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
                     @ScrapbookJson, @ScrapbookType,
                     {(int) Status.Executing},
                     0, 
-                    @SignOfLife,
-                    @SignOfLifeFrequency)";
+                    @LeaseExpiration
+                )";
             await using var command = new SqlCommand(sql, conn);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
@@ -145,8 +143,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
             command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
             command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
-            command.Parameters.AddWithValue("@SignOfLife", initialSignOfLife);            
-            command.Parameters.AddWithValue("@SignOfLifeFrequency", signOfLifeFrequency);
+            command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);            
 
             await command.ExecuteNonQueryAsync();
         }
@@ -175,20 +172,18 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long signOfLifeFrequency, long signOfLife)
+    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
-                SignOfLifeFrequency = @SignOfLifeFrequency,
-                SignOfLife = @SignOfLife
+                LeaseExpiration = @LeaseExpiration
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@SignOfLifeFrequency", signOfLifeFrequency);
-        command.Parameters.AddWithValue("@SignOfLife", signOfLife);
+        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -202,11 +197,11 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET SignOfLife = @SignOfLife
+            SET LeaseExpiration = @LeaseExpiration
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @Epoch";
         
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@SignOfLife", leaseExpiration);
+        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@Epoch", expectedEpoch);
@@ -215,16 +210,17 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            SELECT FunctionInstanceId, Epoch, SignOfLife, SignOfLifeFrequency
+            SELECT FunctionInstanceId, Epoch, LeaseExpiration
             FROM {_tablePrefix}RFunctions WITH (NOLOCK)
-            WHERE FunctionTypeId = @FunctionTypeId AND Status = {(int) Status.Executing}";
+            WHERE FunctionTypeId = @FunctionTypeId AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}";
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
+        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredExecutingFunction>(); 
@@ -234,9 +230,8 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var functionInstanceId = reader.GetString(0);
                 var epoch = reader.GetInt32(1);
-                var signOfLife = reader.GetInt64(2);
-                var signOfLifeFrequency = reader.GetInt64(3);
-                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, signOfLife, signOfLifeFrequency));    
+                var expiration = reader.GetInt64(2);
+                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, expiration));    
             }
 
             reader.NextResult();
@@ -524,8 +519,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     ExceptionJson,
                     PostponedUntil,
                     SuspendedAtEpoch,
-                    Epoch, SignOfLife, 
-                    SignOfLifeFrequency
+                    Epoch, 
+                    LeaseExpiration
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
@@ -553,8 +548,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
                 var suspendedAtEpoch = reader.IsDBNull(9) ? default(int?) : reader.GetInt32(9);
                 var epoch = reader.GetInt32(10);
-                var signOfLife = reader.GetInt64(11);
-                var crashedCheckFrequency = reader.GetInt64(12);
+                var leaseExpiration = reader.GetInt64(11);
 
                 return new StoredFunction(
                     functionId,
@@ -566,8 +560,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     postponedUntil,
                     suspendedAtEpoch,
                     epoch,
-                    signOfLife,
-                    crashedCheckFrequency
+                    leaseExpiration
                 );
             }
         }
