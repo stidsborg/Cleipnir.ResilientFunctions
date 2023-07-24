@@ -51,14 +51,13 @@ internal class CrashedWatchdog
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                await Task.Delay(_signOfLifeFrequency);
-                if (_shutdownCoordinator.ShutdownInitiated) return;
-                
                 var hangingFunctions = 
                     await _functionStore.GetCrashedFunctions(_functionTypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
                     
                 foreach (var hangingFunction in hangingFunctions.RandomlyPermute())
                     _ = ReInvokeCrashedFunction(hangingFunction);
+                
+                await Task.Delay(_signOfLifeFrequency);
             }
         }
         catch (Exception thrownException)
@@ -83,7 +82,7 @@ internal class CrashedWatchdog
         
         using var @lock = await _asyncSemaphore.Take();
         
-        if (_shutdownCoordinator.ShutdownInitiated) return;
+        if (_shutdownCoordinator.ShutdownInitiated || sef.LeaseExpiration > DateTime.UtcNow.Ticks) return;
         try
         {
             await _reInvoke(sef.InstanceId, expectedEpoch: sef.Epoch, expectedStatus: Status.Executing);
