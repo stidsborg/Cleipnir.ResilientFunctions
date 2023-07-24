@@ -460,7 +460,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value, 
                         Status.Executing, 
                         expectedEpoch, 
-                        LeaseExpiration: DateTime.UtcNow.Ticks,
+                        LeaseExpiration: DateTime.UtcNow.Ticks + 2 * signOfLifeFrequency,
                         PostponedUntil: null
                     ).ToDictionary()
                 }
