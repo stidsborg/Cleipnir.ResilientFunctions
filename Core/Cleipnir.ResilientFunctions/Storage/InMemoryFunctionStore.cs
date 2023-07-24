@@ -115,14 +115,14 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
+    public Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Executing)
-                .Where(s => s.LeaseExpiration < leaseExpiration)
+                .Where(s => s.LeaseExpiration < leaseExpiresBefore)
                 .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.LeaseExpiration))
                 .ToList()
                 .AsEnumerable()

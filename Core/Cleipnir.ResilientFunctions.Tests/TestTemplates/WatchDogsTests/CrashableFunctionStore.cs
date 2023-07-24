@@ -62,10 +62,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.RenewLease(functionId, expectedEpoch, leaseExpiration);
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
+    public Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
         => _crashed
             ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
-            : _inner.GetExecutingFunctions(functionTypeId, leaseExpiration);
+            : _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
 
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
         => _crashed

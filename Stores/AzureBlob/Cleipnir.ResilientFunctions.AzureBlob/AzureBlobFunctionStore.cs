@@ -157,10 +157,10 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         var executingBlobs = _blobContainerClient.FindBlobsByTagsAsync(
-            tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND LeaseExpiration < '{leaseExpiration}'"
+            tagFilterSqlExpression: $"FunctionType = '{functionTypeId}' AND Status = '{(int) Status.Executing}' AND Epoch >= '0' AND LeaseExpiration < '{leaseExpiresBefore}'"
         );
 
         var executingFunctions = new List<StoredExecutingFunction>();

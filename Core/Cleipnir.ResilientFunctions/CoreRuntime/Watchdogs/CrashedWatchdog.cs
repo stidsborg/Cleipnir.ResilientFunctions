@@ -55,7 +55,7 @@ internal class CrashedWatchdog
                 if (_shutdownCoordinator.ShutdownInitiated) return;
                 
                 var hangingFunctions = 
-                    await _functionStore.GetExecutingFunctions(_functionTypeId, leaseExpiration: DateTime.UtcNow.Ticks);
+                    await _functionStore.GetCrashedFunctions(_functionTypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
                     
                 foreach (var hangingFunction in hangingFunctions.RandomlyPermute())
                     _ = ReInvokeCrashedFunction(hangingFunction);

@@ -35,10 +35,10 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => 
-            store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
+            store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
         );
         
-        var nonCompletes = await store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).ToListAsync();
+        var nonCompletes = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).ToListAsync();
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
@@ -96,14 +96,14 @@ public abstract class StoreTests
 
         await BusyWait.Until(() =>
             store
-                .GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks)
+                .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks)
                 .SelectAsync(efs => efs.Any())
         );
 
         await BusyWait.Until(async () =>
         {
             var nonCompletedFunctions = await store
-                .GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks)
+                .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks)
                 .ToListAsync();
             if (!nonCompletedFunctions.Any()) return false;
             
@@ -137,12 +137,12 @@ public abstract class StoreTests
 
         await BusyWait.Until(() =>
             store
-                .GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks)
+                .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks)
                 .SelectAsync(efs => efs.Any())
         );
         
         var nonCompletedFunctions = 
-            await store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks);
+            await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
         
         var nonCompletedFunction = nonCompletedFunctions.Single();
         nonCompletedFunction.Epoch.ShouldBe(0);
@@ -376,9 +376,9 @@ public abstract class StoreTests
             leaseExpiration
         );
 
-        await BusyWait.Until(() => store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).Any());
+        await BusyWait.Until(() => store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).Any());
         
-        var storedFunctions = await store.GetExecutingFunctions(functionId.TypeId, leaseExpiration: DateTime.UtcNow.Ticks).ToListAsync();
+        var storedFunctions = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.LeaseExpiration.ShouldBe(leaseExpiration);
@@ -405,9 +405,9 @@ public abstract class StoreTests
             leaseExpiration: 2
         );
 
-        await BusyWait.Until(() => store.GetExecutingFunctions(function1Id.TypeId, leaseExpiration: 1).Any());
+        await BusyWait.Until(() => store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1).Any());
         
-        var storedFunctions = await store.GetExecutingFunctions(function1Id.TypeId, leaseExpiration: 1).ToListAsync();
+        var storedFunctions = await store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1).ToListAsync();
         storedFunctions.Count.ShouldBe(1);
         var sf = storedFunctions[0];
         sf.InstanceId.ShouldBe(function1Id.InstanceId);

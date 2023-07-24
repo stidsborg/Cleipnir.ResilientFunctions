@@ -210,7 +210,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -220,7 +220,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
-        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
+        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiresBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredExecutingFunction>(); 

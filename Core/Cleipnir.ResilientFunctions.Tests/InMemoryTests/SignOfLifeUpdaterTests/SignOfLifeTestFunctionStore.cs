@@ -41,8 +41,8 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
-        => _inner.GetExecutingFunctions(functionTypeId, leaseExpiration);
+    public Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+        => _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
 
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
         => _inner.GetPostponedFunctions(functionTypeId, expiresBefore);

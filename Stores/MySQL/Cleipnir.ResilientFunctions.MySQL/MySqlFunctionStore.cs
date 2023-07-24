@@ -180,7 +180,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration)
+    public async Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = @$"
@@ -192,7 +192,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() { Value = leaseExpiration }
+                new() { Value = leaseExpiresBefore }
             }
         };
 

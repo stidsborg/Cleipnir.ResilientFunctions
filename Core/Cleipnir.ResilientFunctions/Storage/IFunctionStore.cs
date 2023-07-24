@@ -25,7 +25,7 @@ public interface IFunctionStore
     
     Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration);
 
-    Task<IEnumerable<StoredExecutingFunction>> GetExecutingFunctions(FunctionTypeId functionTypeId, long leaseExpiration);
+    Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
 
     Task<bool> SetFunctionState(
