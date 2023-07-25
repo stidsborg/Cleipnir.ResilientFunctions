@@ -15,7 +15,7 @@ public static class Saga
 
         await eventSource.TimeoutProvider.RegisterTimeout(
             timeoutId: "Timeout",
-            expiresIn: transaction.Created.AddSeconds(2)
+            expiresAt: transaction.Created.AddSeconds(2)
         );
         
         var next = await eventSource

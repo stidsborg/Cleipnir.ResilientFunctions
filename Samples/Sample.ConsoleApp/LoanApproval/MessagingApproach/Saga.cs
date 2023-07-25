@@ -15,7 +15,7 @@ public static class Saga
 
         await eventSource.TimeoutProvider.RegisterTimeout(
             timeoutId: "Timeout",
-            expiresIn: loanApplication.Created.AddMinutes(15)
+            expiresAt: loanApplication.Created.AddMinutes(15)
         );
 
         var outcomes = await eventSource

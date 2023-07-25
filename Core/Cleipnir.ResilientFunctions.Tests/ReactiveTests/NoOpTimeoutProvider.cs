@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 public class NoOpTimeoutProvider : ITimeoutProvider
 {
     public static NoOpTimeoutProvider Instance { get; } = new();
-    public Task RegisterTimeout(string timeoutId, DateTime expiresIn)
+    public Task RegisterTimeout(string timeoutId, DateTime expiresAt)
         => Task.CompletedTask;
 
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)

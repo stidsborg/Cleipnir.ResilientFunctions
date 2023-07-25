@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public interface ITimeoutProvider
 {
-    Task RegisterTimeout(string timeoutId, DateTime expiresIn);
+    Task RegisterTimeout(string timeoutId, DateTime expiresAt);
     Task RegisterTimeout(string timeoutId, TimeSpan expiresIn);
     Task CancelTimeout(string timeoutId);
 }
@@ -35,11 +35,11 @@ public class TimeoutProvider : ITimeoutProvider
         _functionId = functionId;
     }
 
-    public async Task RegisterTimeout(string timeoutId, DateTime expiresIn)
+    public async Task RegisterTimeout(string timeoutId, DateTime expiresAt)
     {
-        expiresIn = expiresIn.ToUniversalTime();
-        _ = RegisterLocalTimeout(timeoutId, expiresIn);
-        await _timeoutStore.UpsertTimeout(new StoredTimeout(_functionId, timeoutId, expiresIn.Ticks));
+        expiresAt = expiresAt.ToUniversalTime();
+        _ = RegisterLocalTimeout(timeoutId, expiresAt);
+        await _timeoutStore.UpsertTimeout(new StoredTimeout(_functionId, timeoutId, expiresAt.Ticks));
     }
 
     private async Task RegisterLocalTimeout(string timeoutId, DateTime expiresAt)
@@ -64,7 +64,7 @@ public class TimeoutProvider : ITimeoutProvider
     }
     
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
-        => RegisterTimeout(timeoutId, expiresIn: DateTime.UtcNow.Add(expiresIn));
+        => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
 
     public async Task CancelTimeout(string timeoutId)
     {
