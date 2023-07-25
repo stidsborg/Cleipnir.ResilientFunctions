@@ -60,7 +60,6 @@ internal class PostponedWatchdog
         }
         catch (Exception innerException)
         {
-            Console.WriteLine(innerException);
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,

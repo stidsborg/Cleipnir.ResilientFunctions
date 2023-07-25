@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -52,8 +53,8 @@ internal static class WatchDogsFactory
             shutdownCoordinator
         );
 
-        _ = crashedWatchdog.Start();
-        _ = postponedWatchdog.Start();
-        _ = timeoutWatchdog.Start();
+        Task.Run(crashedWatchdog.Start);
+        Task.Run(postponedWatchdog.Start);
+        Task.Run(timeoutWatchdog.Start);
     }
 }
