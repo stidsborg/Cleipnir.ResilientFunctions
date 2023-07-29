@@ -230,7 +230,7 @@ public class LinqTests
             
         subscription.DeliverExisting();
             
-        completed.ShouldBeFalse();
+        completed.ShouldBeTrue();
         failed.ShouldBeTrue();
         latest.ShouldBe("");
     }
@@ -441,5 +441,14 @@ public class LinqTests
         existing.Count.ShouldBe(2);
         existing[0].ShouldBe("hello");
         existing[1].ShouldBe("world");
+    }
+    
+    [TestMethod]
+    public void PullExistingOnChunkedChainShouldReturnPartialChunk()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        var existing = source.Chunk(2).PullExisting();
+        existing.Count.ShouldBe(1);
     }
 }

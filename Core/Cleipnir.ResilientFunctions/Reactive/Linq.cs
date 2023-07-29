@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -67,11 +66,11 @@ public static class Linq
             }
         );
 
-    private static IReactiveChain<TOut> WithOperator<TIn, TOut>(this IReactiveChain<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc)
-        => new CustomOperator<TIn, TOut>(inner, operatorFunc);
+    private static IReactiveChain<TOut> WithOperator<TIn, TOut>(this IReactiveChain<TIn> inner, Func<Operator<TIn, TOut>> operatorFunc, OnCompletion<TOut>? handleCompletion = null)
+        => new CustomOperator<TIn, TOut>(inner, operatorFunc, handleCompletion);
 
-    private static IReactiveChain<TOut> WithOperator<TIn, TOut>(this IReactiveChain<TIn> inner, Operator<TIn, TOut> @operator)
-        => new CustomOperator<TIn, TOut>(inner, () => @operator);
+    private static IReactiveChain<TOut> WithOperator<TIn, TOut>(this IReactiveChain<TIn> inner, Operator<TIn, TOut> @operator, OnCompletion<TOut>? handleCompletion = null)
+        => new CustomOperator<TIn, TOut>(inner, () => @operator, handleCompletion);
 
     public static IReactiveChain<T> Take<T>(this IReactiveChain<T> s, int toTake)
     {
@@ -338,14 +337,13 @@ public static class Linq
         
         var delivered = subscription.DeliverExisting();
 
-        if (!tcs.Task.IsCompleted && !eventEmitted)
+        if (!eventEmitted)
             throw new SuspendInvocationException(delivered);
 
-        if (eventEmitted)
-            tcs.TrySetResult(emittedEvent!);
-        
+        tcs.TrySetResult(emittedEvent!);
         return await tcs.Task;
     }
+    
     public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().SuspendUntilNext();
     public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s, TimeSpan waitBeforeSuspension)

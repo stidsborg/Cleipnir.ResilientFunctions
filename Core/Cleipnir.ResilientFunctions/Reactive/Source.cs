@@ -282,6 +282,9 @@ public class Source : ISource
                     subscription.OnNext(toEmit.Event!);
             }
 
+            foreach (var subscription in _subscriptions)
+                subscription.OnCompletion();
+            
             return toEmits.Length;
         }
 
