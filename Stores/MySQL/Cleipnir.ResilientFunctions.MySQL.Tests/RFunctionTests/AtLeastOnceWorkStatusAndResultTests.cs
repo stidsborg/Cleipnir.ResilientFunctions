@@ -1,0 +1,27 @@
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Cleipnir.ResilientFunctions.MySQL.Tests.RFunctionTests;
+
+[TestClass]
+public class AtLeastOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.AtLeastOnceWorkStatusAndResultTests
+{
+    [TestMethod]
+    public override Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted()
+        => AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted()
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes()
+        => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes()
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ReferencingGetOnlyPropertyThrowsException()
+        => ReferencingGetOnlyPropertyThrowsException(Sql.AutoCreateAndInitializeStore());
+}

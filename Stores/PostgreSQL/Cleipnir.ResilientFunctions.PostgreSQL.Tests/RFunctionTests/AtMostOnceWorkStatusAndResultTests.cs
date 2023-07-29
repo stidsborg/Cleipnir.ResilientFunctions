@@ -1,28 +1,28 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
 public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.AtMostOnceWorkStatusAndResultTests
 {
     [TestMethod]
     public override Task AtMostOnceWorkIsNotExecutedMultipleTimes()
-        => AtMostOnceWorkIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+        => AtMostOnceWorkIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
-        => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+        => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
-        => ReferencingGetOnlyPropertyThrowsException(Utils.CreateInMemoryFunctionStoreTask());
+        => ReferencingGetOnlyPropertyThrowsException(Sql.AutoCreateAndInitializeStore());
 }
