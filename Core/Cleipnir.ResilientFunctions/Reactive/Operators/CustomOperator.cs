@@ -10,19 +10,26 @@ public delegate void Operator<in TIn, out TOut>(
     Action<Exception> signalException
 );
 
+public delegate void OnCompletion<out TOut>(Action<TOut> notify, Action<Exception> signalException);
+
 public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 {
     private readonly IReactiveChain<TIn> _inner;
     private readonly Func<Operator<TIn, TOut>> _operatorFactory;
+    private readonly OnCompletion<TOut>? _handleCompletion;
 
-    public CustomOperator(IReactiveChain<TIn> inner, Func<Operator<TIn, TOut>> operatorFactory)
+    public CustomOperator(
+        IReactiveChain<TIn> inner, 
+        Func<Operator<TIn, TOut>> operatorFactory,
+        OnCompletion<TOut>? handleCompletion)
     {
         _inner = inner;
         _operatorFactory = operatorFactory;
+        _handleCompletion = handleCompletion;
     }
 
     public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
-        => new Subscription(_inner, _operatorFactory, onNext, onCompletion, onError, subscriptionGroupId);
+        => new Subscription(_inner, _operatorFactory, _handleCompletion, onNext, onCompletion, onError, subscriptionGroupId);
 
     private class Subscription : ISubscription
     {
@@ -32,17 +39,22 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 
         private readonly ISubscription _innerSubscription;
         private bool _completed;
-        
+
         private Operator<TIn, TOut> Operator { get; }
+        
+        private bool _handlingCompletion;
+        private OnCompletion<TOut>? HandleCompletion { get; }
 
         public IReactiveChain<object> Source => _innerSubscription.Source;
 
         public Subscription(
             IReactiveChain<TIn> inner,
             Func<Operator<TIn, TOut>> operatorFactory,
+            OnCompletion<TOut>? handleCompletion,
             Action<TOut> onNext, Action onCompletion, Action<Exception> onError,
             int? subscriptionGroupId)
         {
+            HandleCompletion = handleCompletion;
             _onNext = onNext;
             _onCompletion = onCompletion;
             _onError = onError;
@@ -83,6 +95,24 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         
         private void SignalCompletion()
         {
+            if (!_completed)
+            {
+                if (_handlingCompletion) return;
+                _handlingCompletion = true;
+                
+                try
+                {
+                    HandleCompletion?.Invoke(
+                        _onNext,
+                        signalException: exception => { SignalError(exception); Dispose(); }
+                    );
+                }
+                catch (Exception exception)
+                {
+                    SignalError(exception);
+                }
+            }
+            
             _completed = true;
             _onCompletion();
         }
