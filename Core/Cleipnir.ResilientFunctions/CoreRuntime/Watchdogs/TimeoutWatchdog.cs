@@ -77,7 +77,7 @@ internal class TimeoutWatchdog
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
             var delay = TimeSpanHelper.Max(expiresAt - DateTime.UtcNow, TimeSpan.Zero);
             await Task.Delay(delay);
-            await _eventSourceWriters.For(functionId.InstanceId).AppendEvent(new Timeout(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await _eventSourceWriters.For(functionId.InstanceId).AppendEvent(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }

@@ -20,7 +20,7 @@ public static class Saga
 
         var outcomes = await eventSource
             .Take(3)
-            .TakeUntil(next => next is Timeout)
+            .TakeUntil(next => next is TimeoutEvent)
             .OfType<CreditCheckOutcome>()
             .ToList();
         

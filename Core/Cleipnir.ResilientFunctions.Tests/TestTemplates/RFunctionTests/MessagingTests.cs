@@ -94,7 +94,7 @@ public abstract class MessagingTests
                 }
                 catch (TimeoutException)
                 {
-                    var success = es.OfType<Timeout>().TryNext(out var timeoutId);
+                    var success = es.OfType<TimeoutEvent>().TryNext(out var timeoutId);
                     return Tuple.Create(success, timeoutId?.TimeoutId ?? "");
                 }
 

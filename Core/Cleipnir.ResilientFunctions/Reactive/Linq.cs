@@ -377,7 +377,7 @@ public static class Linq
 
         timeoutSubscription = subscription
             .Source
-            .OfType<Timeout>()
+            .OfType<TimeoutEvent>()
             .Where(t => t.TimeoutId == timeoutId)
             .Subscribe(
                 onNext: _ =>
@@ -404,7 +404,7 @@ public static class Linq
     public static async Task SuspendUntil(this EventSource s, DateTime resumeAt, string timeoutId)
     {
         var subscription = s
-            .OfType<Timeout>()
+            .OfType<TimeoutEvent>()
             .Where(t => t.TimeoutId == timeoutId)
             .Subscribe(
                 onNext: _ => {},

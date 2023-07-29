@@ -3,9 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
-using Timeout = Cleipnir.ResilientFunctions.Domain.Events.Timeout;
 
 namespace ConsoleApp.SupportTicket;
 
@@ -26,7 +26,7 @@ public class Saga
             }
             
             var either = await eventSource
-                .OfTypes<SupportTicketTaken, Timeout>()
+                .OfTypes<SupportTicketTaken, TimeoutEvent>()
                 .Where(e => e.Match(stt => int.Parse(stt.RequestId), t => int.Parse(t.TimeoutId)) == scrapbook.Try)
                 .SuspendUntilNext();
 
@@ -46,7 +46,7 @@ public class Saga
     private static bool TimeoutOrResponseForTryReceived(EventSource eventSource, int @try)
     {
         return eventSource
-            .OfTypes<SupportTicketTaken, Timeout>()
+            .OfTypes<SupportTicketTaken, TimeoutEvent>()
             .Where(e => e.Match(stt => int.Parse(stt.RequestId), t => int.Parse(t.TimeoutId)) == @try)
             .PullExisting()
             .Any();

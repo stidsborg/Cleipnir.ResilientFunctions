@@ -56,7 +56,7 @@ public class TimeoutProvider : ITimeoutProvider
             if (!_localTimeouts.Contains(timeoutId)) return;
 
         await _eventSourceWriter.AppendEvent(
-            new Timeout(timeoutId, expiresAt),
+            new TimeoutEvent(timeoutId, expiresAt),
             idempotencyKey: $"Timeout¤{timeoutId}"
         );
 

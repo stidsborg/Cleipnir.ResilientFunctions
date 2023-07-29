@@ -28,7 +28,7 @@ public static class Saga
 
         
         var first3 = await eventSource.Chunk(3).Next();
-        if (first3.OfType<Timeout>().Any())
+        if (first3.OfType<TimeoutEvent>().Any())
         {
             await MessageBroker.Send(new BookingFailed(bookingRequest.BookingId));
             throw new TimeoutException("All responses were not received within threshold");

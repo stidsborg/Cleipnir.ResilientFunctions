@@ -2,4 +2,4 @@
 
 namespace Cleipnir.ResilientFunctions.Domain.Events;
 
-public record Timeout(string TimeoutId, DateTime Occured);
+public record TimeoutEvent(string TimeoutId, DateTime Expiration);

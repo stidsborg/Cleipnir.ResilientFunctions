@@ -19,7 +19,7 @@ public static class Saga
         );
         
         var next = await eventSource
-            .OfTypes<FraudDetectorResult, Timeout>()
+            .OfTypes<FraudDetectorResult, TimeoutEvent>()
             .Take(3)
             .ToList();
 
