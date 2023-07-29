@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -56,6 +57,19 @@ public class Either<T1, T2>
                 break;
             case Value.Second:
                 second(Second);
+                break;
+        }
+    }
+    
+    public async Task Do(Func<T1, Task> first, Func<T2, Task> second)
+    {
+        switch (ValueSpecified)
+        {
+            case Value.First:
+                await first(First);
+                break;
+            case Value.Second:
+                await second(Second);
                 break;
         }
     }
