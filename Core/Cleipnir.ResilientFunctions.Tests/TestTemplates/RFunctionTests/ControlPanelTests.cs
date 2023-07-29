@@ -58,7 +58,7 @@ public abstract class ControlPanelTests
         
         await rFunc.Invoke(functionInstanceId.Value, "");
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.Delete();
 
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
@@ -112,7 +112,7 @@ public abstract class ControlPanelTests
         
         await rFunc.Invoke(functionInstanceId.Value, "");
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
 
         await rFunc.ReInvoke(functionInstanceId.Value, expectedEpoch: 0); //bump epoch
 
@@ -176,7 +176,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
@@ -248,7 +248,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
 
@@ -316,7 +316,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
@@ -391,7 +391,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
@@ -465,7 +465,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
@@ -528,10 +528,10 @@ public abstract class ControlPanelTests
 
         await rFunc.Invoke(functionInstanceId.Value, param: "first");
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
 
         {
-            var tempControlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+            var tempControlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
             await tempControlPanel.SaveChanges(); //increment epoch
         }
         
@@ -561,7 +561,7 @@ public abstract class ControlPanelTests
 
         await rFunc.Schedule(functionInstanceId.Value, param: "param");
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
 
         var completionTask = controlPanel.WaitForCompletion();
@@ -629,7 +629,7 @@ public abstract class ControlPanelTests
 
         await rFunc.Schedule(functionInstanceId.Value, param: "param");
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
         var curr = controlPanel.LeaseExpiration;
         curr.ShouldBeGreaterThan(before);
@@ -695,7 +695,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
         await controlPanel.ReInvoke().ShouldBeAsync("param");
         

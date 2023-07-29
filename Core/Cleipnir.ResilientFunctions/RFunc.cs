@@ -23,7 +23,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.ReInvoke<TReturn> ReInvoke { get; }
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleReInvoke ScheduleReInvoke { get; }
-    public ControlPanels<TParam, RScrapbook, TReturn> ControlPanel { get; }
+    public ControlPanels<TParam, RScrapbook, TReturn> ControlPanels { get; }
     public EventSourceWriters EventSourceWriters { get; }
 
     internal RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
@@ -32,7 +32,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
         ReInvoke = rFunc.ReInvoke;
         Schedule = rFunc.Schedule;
         ScheduleReInvoke = rFunc.ScheduleReInvoke;
-        ControlPanel = rFunc.ControlPanel;
+        ControlPanels = rFunc.ControlPanel;
         EventSourceWriters = rFunc.EventSourceWriters;
     }
 }
