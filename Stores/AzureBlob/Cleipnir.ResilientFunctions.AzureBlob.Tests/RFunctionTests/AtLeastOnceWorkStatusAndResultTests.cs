@@ -8,21 +8,29 @@ public class AtLeastOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.T
 {
     [TestMethod]
     public override Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted()
-        => AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted()
-        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.FunctionStoreTask);
+
+    [TestMethod]
+    public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource()
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes()
-        => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
+    
+    [TestMethod]
+    public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
-        => ReferencingGetOnlyPropertyThrowsException(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => ReferencingGetOnlyPropertyThrowsException(FunctionStoreFactory.FunctionStoreTask);
 }

@@ -15,12 +15,20 @@ public class AtLeastOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.T
         => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource()
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
     public override Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes()
         => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes()
         => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()

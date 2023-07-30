@@ -14,6 +14,14 @@ public class AtLeastOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.T
         => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource()
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
     public override Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes()
         => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 

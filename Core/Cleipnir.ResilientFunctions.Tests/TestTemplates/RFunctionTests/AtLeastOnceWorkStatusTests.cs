@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
@@ -18,9 +20,11 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = rFunctions.RegisterAction(
-            "",
+            functionTypeId,
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
@@ -36,10 +40,10 @@ public abstract class AtLeastOnceWorkStatusTests
                     );
             });
 
-        _ = rAction.Invoke("", "hello");
+        await rAction.Schedule(functionInstanceId.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(new FunctionId("", ""))
+            store.GetFunction(functionId)
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
@@ -52,9 +56,11 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = rFunctions.RegisterAction(
-            "",
+            functionTypeId,
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
@@ -70,14 +76,61 @@ public abstract class AtLeastOnceWorkStatusTests
                     );
             });
 
-        _ = rAction.Invoke("", "hello");
+        await rAction.Schedule(functionInstanceId.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(new FunctionId("", ""))
+            store.GetFunction(functionId)
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
         counter.Current.ShouldBe(2);
+    }
+    
+    public abstract Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource();
+    public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(Task<IFunctionStore> functionStoreTask)
+    {
+        var store = await functionStoreTask;
+        using var rFunctions = new RFunctions(store);
+        var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, Context context) =>
+            {
+                var es = await context.EventSource;
+                await es
+                    .DoAtLeastOnce(
+                        workId: "someId",
+                        work: () =>
+                        {
+                            counter.Increment();
+                            if (counter.Current == 1)
+                                throw new PostponeInvocationException(1);
+                            return Task.CompletedTask;
+                        }
+                    );
+            });
+
+        await rAction.Schedule(functionInstanceId.ToString(), "hello");
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId.ToString());
+        controlPanel.ShouldNotBeNull();
+
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+
+        counter.Current.ShouldBe(2);
+        var events = await controlPanel.Events;
+        events.ExistingCount.ShouldBe(1);
+        var workCompleted = events.OfType<WorkCompleted>().Single();
+        workCompleted.WorkId.ShouldBe("someId");
+
+        controlPanel.Status.ShouldBe(Status.Succeeded);
     }
     
     public abstract Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes();
@@ -86,9 +139,11 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = rFunctions.RegisterAction(
-            "",
+            functionTypeId,
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
@@ -97,8 +152,8 @@ public abstract class AtLeastOnceWorkStatusTests
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
 
-        await rAction.Invoke("", "hello");
-        await rAction.ControlPanels.For("").Result!.ReInvoke();
+        await rAction.Invoke(functionInstanceId.ToString(), "hello");
+        await rAction.ControlPanels.For(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }
@@ -109,9 +164,11 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var rFunctions = new RFunctions(store);
         var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = rFunctions.RegisterAction(
-            "",
+            functionTypeId,
             async Task(string param, Scrapbook scrapbook) =>
             {
                 await scrapbook
@@ -120,8 +177,43 @@ public abstract class AtLeastOnceWorkStatusTests
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
 
-        await rAction.Invoke("", "hello");
-        await rAction.ControlPanels.For("").Result!.ReInvoke();
+        await rAction.Invoke(functionInstanceId.ToString(), "hello");
+        await rAction.ControlPanels.For(functionInstanceId).Result!.ReInvoke();
+
+        counter.Current.ShouldBe(1);
+    }
+    
+    public abstract Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource();
+    public async Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Task<IFunctionStore> functionStoreTask)
+    {
+        var store = await functionStoreTask;
+        using var rFunctions = new RFunctions(store);
+        var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, Context context) =>
+            {
+                var es = await context.EventSource;
+                await es
+                    .DoAtLeastOnce(
+                        workId: "someId",
+                        work: () => { counter.Increment(); return Task.CompletedTask; }
+                    );
+            });
+
+        await rAction.Invoke(functionInstanceId.ToString(), "hello");
+
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.ReInvoke();
+
+        var events = await controlPanel.Events;
+        events.ExistingCount.ShouldBe(1);
+        var workCompleted = events.OfType<WorkCompleted>().Single();
+        workCompleted.WorkId.ShouldBe("someId");
 
         counter.Current.ShouldBe(1);
     }

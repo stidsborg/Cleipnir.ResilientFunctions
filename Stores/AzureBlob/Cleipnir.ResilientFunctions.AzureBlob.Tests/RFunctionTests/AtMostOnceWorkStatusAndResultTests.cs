@@ -8,21 +8,29 @@ public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Te
 {
     [TestMethod]
     public override Task AtMostOnceWorkIsNotExecutedMultipleTimes()
-        => AtMostOnceWorkIsNotExecutedMultipleTimes(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => AtMostOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
+
+    [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
-        => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
+
+    [TestMethod]
+    public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
-        => ReferencingGetOnlyPropertyThrowsException(ResilientFunctions.Tests.InMemoryTests.Utils.CreateInMemoryFunctionStoreTask());
+        => ReferencingGetOnlyPropertyThrowsException(FunctionStoreFactory.FunctionStoreTask);
 }

@@ -15,6 +15,10 @@ public class AtMostOnceWorkStatusTests : Cleipnir.ResilientFunctions.Tests.TestT
         => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
         => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Sql.AutoCreateAndInitializeStore());
 

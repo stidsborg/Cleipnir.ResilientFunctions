@@ -25,4 +25,8 @@ public class AtMostOnceWorkStatusTests : Cleipnir.ResilientFunctions.Tests.TestT
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
         => ReferencingGetOnlyPropertyThrowsException(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
+        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Sql.AutoCreateAndInitializeStore());
 }
