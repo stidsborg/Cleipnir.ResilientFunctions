@@ -348,18 +348,17 @@ public static class Linq
         => s.OfType<T>().SuspendUntilNext();
     public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s, TimeSpan waitBeforeSuspension)
         => s.OfType<T>().SuspendUntilNext(waitBeforeSuspension);
-    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IReactiveChain<object> s, string timeoutId, TimeSpan expiresIn)
-        => s.OfType<T>().SuspendUntilNextOrTimeoutEventFired(timeoutId, expiresIn);
-    public static Task<T> SuspendUntilNextOfTypeOrTimeoutEventFired<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt)
-        => s.OfType<T>().SuspendUntilNextOrTimeoutEventFired(timeoutId, expiresAt);
-    public static Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IReactiveChain<T> s, string timeoutId, TimeSpan expiresIn)
-        => SuspendUntilNextOrTimeoutEventFired(s, timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
-    public static async Task<T> SuspendUntilNextOrTimeoutEventFired<T>(this IReactiveChain<T> s, string timeoutId, DateTime expiresAt)
+    
+    public static Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan expiresIn)
+        => SuspendUntilNext(s, timeoutEventId, expiresAt: DateTime.UtcNow.Add(expiresIn));
+    public static async Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime expiresAt)
     {
         var tcs = new TaskCompletionSource<T>();
         
         ISubscription? subscription = null;
         ISubscription? timeoutSubscription = null;
+
+        expiresAt = expiresAt.ToUniversalTime();
         
         subscription = s.Subscribe(
             onNext: t =>
@@ -378,7 +377,7 @@ public static class Linq
         timeoutSubscription = subscription
             .Source
             .OfType<TimeoutEvent>()
-            .Where(t => t.TimeoutId == timeoutId)
+            .Where(t => t.TimeoutId == timeoutEventId)
             .Subscribe(
                 onNext: _ =>
                 {
@@ -397,15 +396,15 @@ public static class Linq
 
         if (tcs.Task.IsCompleted) return await tcs.Task;
         
-        await subscription.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
+        await subscription.TimeoutProvider.RegisterTimeout(timeoutEventId, expiresAt);
         throw new SuspendInvocationException(delivered);
     }
 
-    public static async Task SuspendUntil(this EventSource s, DateTime resumeAt, string timeoutId)
+    public static async Task SuspendUntil(this EventSource s, string timeoutEventId, DateTime resumeAt)
     {
         var subscription = s
             .OfType<TimeoutEvent>()
-            .Where(t => t.TimeoutId == timeoutId)
+            .Where(t => t.TimeoutId == timeoutEventId)
             .Subscribe(
                 onNext: _ => {},
                 onCompletion: () => {},
@@ -415,12 +414,12 @@ public static class Linq
         if (delivered > 0)
             return;
 
-        await subscription.TimeoutProvider.RegisterTimeout(timeoutId, resumeAt);
+        await subscription.TimeoutProvider.RegisterTimeout(timeoutEventId, resumeAt);
         throw new SuspendInvocationException(delivered);
     }
 
-    public static Task SuspendFor(this EventSource s, TimeSpan resumeAfter, string timeoutId)
-        => s.SuspendUntil(DateTime.UtcNow.Add(resumeAfter), timeoutId);
+    public static Task SuspendFor(this EventSource s, string timeoutEventId, TimeSpan resumeAfter)
+        => s.SuspendUntil(timeoutEventId, DateTime.UtcNow.Add(resumeAfter));
 
     public static Task Completion<T>(this IReactiveChain<T> s)
     {

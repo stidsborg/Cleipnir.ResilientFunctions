@@ -29,7 +29,7 @@ public class Example
     private static async Task SuspensionDelayWorkflow(string param, Context context)
     {
         var eventSource = await context.EventSource;
-        await eventSource.SuspendFor(TimeSpan.FromSeconds(5), timeoutId: "timeout");
+        await eventSource.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(5));
         Console.WriteLine("Completed!");
     }
 }

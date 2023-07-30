@@ -90,7 +90,7 @@ public abstract class MessagingTests
                 {
                     await es
                         .OfType<string>()
-                        .SuspendUntilNextOrTimeoutEventFired("timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250));
+                        .SuspendUntilNext(timeoutEventId: "timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250));
                 }
                 catch (TimeoutException)
                 {

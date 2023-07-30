@@ -26,7 +26,7 @@ public class ReactiveIntegrationTests
             inner: async (_, context) =>
             {
                 var es = await context.EventSource;
-                await es.SuspendFor(TimeSpan.FromSeconds(1), "timeout");
+                await es.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(rAction.Invoke(functionInstanceId.Value, "param"));
