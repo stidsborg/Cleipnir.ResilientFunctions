@@ -86,19 +86,15 @@ public abstract class MessagingTests
             {
                 var es = await context.EventSource;
 
-                try
-                {
-                    await es
-                        .OfType<string>()
-                        .SuspendUntilNext(timeoutEventId: "timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250));
-                }
-                catch (TimeoutException)
-                {
-                    var success = es.OfType<TimeoutEvent>().TryNext(out var timeoutId);
-                    return Tuple.Create(success, timeoutId?.TimeoutId ?? "");
-                }
-
-                throw new Exception("The code should never reach this point");
+                var timeoutOption = await es
+                    .OfType<string>()
+                    .SuspendUntilNext(timeoutEventId: "timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250));
+                
+                var timeoutEventExists = es
+                    .OfType<TimeoutEvent>()
+                    .TryNext(out var timeoutId);
+                
+                return Tuple.Create(timeoutEventExists && timeoutOption.TimedOut, timeoutId?.TimeoutId ?? "");
             }
         );
 
