@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive;
 
 namespace ConsoleApp.LoanApproval.MessagingApproach;
@@ -13,17 +12,20 @@ public static class Saga
         var eventSource = await context.EventSource;
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));
 
-        await eventSource.TimeoutProvider.RegisterTimeout(
+        await eventSource.RegisterTimeoutEvent(
             timeoutId: "Timeout",
             expiresAt: loanApplication.Created.AddMinutes(15)
         );
 
-        var outcomes = await eventSource
-            .Take(3)
-            .TakeUntil(next => next is TimeoutEvent)
+        var outcomesAndTimeout = await eventSource
+            .Chunk(3)
+            .SuspendUntilNext();
+
+        var outcomes = outcomesAndTimeout
+            .TakeWhile(e => e is CreditCheckOutcome)
             .OfType<CreditCheckOutcome>()
             .ToList();
-        
+
         if (outcomes.Count < 2)
             await MessageBroker.Send(new LoanApplicationRejected(loanApplication));
         else

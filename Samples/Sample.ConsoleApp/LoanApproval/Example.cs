@@ -19,7 +19,7 @@ public static class Example
         );
 
         var rFunc = functions
-            .RegisterFunc<LoanApplication, RScrapbook, bool>(
+            .RegisterFunc<LoanApplication, bool>(
                 "LoanApproval",
                 RpcApproach.Saga.ApproveLoan
             ).Invoke;

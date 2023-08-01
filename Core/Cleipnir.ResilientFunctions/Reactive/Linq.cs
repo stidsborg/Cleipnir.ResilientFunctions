@@ -349,11 +349,11 @@ public static class Linq
     public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s, TimeSpan waitBeforeSuspension)
         => s.OfType<T>().SuspendUntilNext(waitBeforeSuspension);
     
-    public static Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan expiresIn)
+    public static Task<TimeoutOption<T>> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan expiresIn)
         => SuspendUntilNext(s, timeoutEventId, expiresAt: DateTime.UtcNow.Add(expiresIn));
-    public static async Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime expiresAt)
+    public static async Task<TimeoutOption<T>> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime expiresAt)
     {
-        var tcs = new TaskCompletionSource<T>();
+        var tcs = new TaskCompletionSource<TimeoutOption<T>>();
         
         ISubscription? subscription = null;
         ISubscription? timeoutSubscription = null;
@@ -368,7 +368,7 @@ public static class Linq
                 // ReSharper disable once AccessToModifiedClosure
                 timeoutSubscription?.Dispose();
 
-                tcs.TrySetResult(t);
+                tcs.TrySetResult(new TimeoutOption<T>(TimedOut: false, t));
             },
             onCompletion: () => { },
             onError: e => tcs.TrySetException(e)
@@ -384,8 +384,8 @@ public static class Linq
                     subscription.Dispose();
                     // ReSharper disable once AccessToModifiedClosure
                     timeoutSubscription?.Dispose();
-                    
-                    tcs.TrySetException(new TimeoutException("Event was not emitted within timeout"));
+
+                    tcs.TrySetResult(new TimeoutOption<T>(true, default!));
                 },
                 onCompletion: () => {},
                 onError: _ => {},

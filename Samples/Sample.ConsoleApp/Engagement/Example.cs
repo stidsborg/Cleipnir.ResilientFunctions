@@ -22,13 +22,13 @@ public static class Example
         var rAction = functions
             .RegisterAction(
              "EngagementSaga",
-             (string email, Context context) => EngagementSaga.Start(email, context)
+             (StartCustomerEngagement startCustomerEngagement, Context context) => EngagementSaga.Start(startCustomerEngagement, context)
             );
 
         const string customerEmail = "peter@gmail.com";
         await rAction.Schedule(
             functionInstanceId: customerEmail,
-            param: customerEmail
+            param: new StartCustomerEngagement(customerEmail, DateTime.Today)
         );
 
         var eventSourceWriter = rAction.EventSourceWriters.For(customerEmail);
