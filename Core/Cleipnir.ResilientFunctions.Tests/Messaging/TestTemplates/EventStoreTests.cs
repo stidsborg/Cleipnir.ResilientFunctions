@@ -23,6 +23,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -59,6 +60,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -97,6 +99,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -128,6 +131,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -153,6 +157,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -171,6 +176,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -215,6 +221,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -258,6 +265,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -291,6 +299,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -312,6 +321,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -328,6 +338,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
@@ -374,6 +385,7 @@ public abstract class EventStoreTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;

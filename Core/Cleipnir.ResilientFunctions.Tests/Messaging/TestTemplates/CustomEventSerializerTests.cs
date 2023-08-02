@@ -21,6 +21,7 @@ public abstract class CustomEventSerializerTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventSerializer = new EventSerializer();

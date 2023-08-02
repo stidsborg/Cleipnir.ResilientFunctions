@@ -22,6 +22,7 @@ public abstract class EventSubscriptionTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;

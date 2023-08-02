@@ -38,6 +38,7 @@ public static class MixingTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             );
             if (i % 2 == 0)

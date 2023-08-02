@@ -87,15 +87,22 @@ public class MySqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
+        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
+        MySqlTransaction? transaction = null;
+        if (storedEvents != null)
+        {
+            transaction = await conn.BeginTransactionAsync();
+            await _eventStore.AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
+        }
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration)
             VALUES
                 (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, ?)";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(sql, conn, transaction)
         {
             Parameters =
             {
@@ -110,6 +117,7 @@ public class MySqlFunctionStore : IFunctionStore
         };
 
         var affectedRows = await command.ExecuteNonQueryAsync();
+        await (transaction?.CommitAsync() ?? Task.CompletedTask);
         return affectedRows == 1;
     }
 

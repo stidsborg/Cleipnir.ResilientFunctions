@@ -35,6 +35,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -71,6 +72,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+           storedEvents: null,
            leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -111,6 +113,7 @@ public abstract class VersioningTests
                 typeof(string).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -154,6 +157,7 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         var v2FunctionId = TestFunctionId.Create() with { TypeId = v1FunctionId.TypeId };
@@ -164,6 +168,7 @@ public abstract class VersioningTests
                 typeof(PersonV2).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 

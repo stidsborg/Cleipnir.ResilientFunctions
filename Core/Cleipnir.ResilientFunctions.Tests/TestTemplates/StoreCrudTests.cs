@@ -34,6 +34,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
 
@@ -60,6 +61,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
 
@@ -87,6 +89,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
 
@@ -120,6 +123,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -139,6 +143,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
 
@@ -157,6 +162,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -186,6 +192,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -212,6 +219,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -235,6 +243,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
@@ -255,6 +264,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -294,6 +304,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -327,6 +338,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
@@ -360,6 +372,7 @@ public abstract class StoreCrudTests
             FunctionId,
             Param,
             Scrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(

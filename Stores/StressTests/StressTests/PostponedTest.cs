@@ -36,6 +36,7 @@ public static class PostponedTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             );
             await store.PostponeFunction(

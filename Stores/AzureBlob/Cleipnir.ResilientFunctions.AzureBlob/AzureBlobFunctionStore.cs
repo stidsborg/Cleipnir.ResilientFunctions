@@ -40,11 +40,15 @@ public class AzureBlobFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook scrapbook, 
+        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
-        
+
+        if (storedEvents != null)
+            await _eventStore.CreateEvents(functionId, storedEvents);
+
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
             {

@@ -44,6 +44,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedParameter,
                 storedScrapbook,
+                storedEvents: null, //todo add events here!
                 leaseExpiration: DateTime.UtcNow.Ticks + (2 * _settings.SignOfLifeFrequency.Ticks)
             );
 

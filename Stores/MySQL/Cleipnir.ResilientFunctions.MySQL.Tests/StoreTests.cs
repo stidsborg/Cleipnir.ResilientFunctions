@@ -98,4 +98,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
+        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(Sql.AutoCreateAndInitializeStore());
 }

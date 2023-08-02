@@ -20,6 +20,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
 
@@ -46,6 +47,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
 
@@ -75,6 +77,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
 
@@ -107,6 +110,7 @@ public abstract class InitialInvocationFailedTests
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         );
 

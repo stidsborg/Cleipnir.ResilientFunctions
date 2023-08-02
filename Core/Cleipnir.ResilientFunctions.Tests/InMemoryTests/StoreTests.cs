@@ -109,4 +109,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
+        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

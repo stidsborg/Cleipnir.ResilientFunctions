@@ -115,9 +115,18 @@ public class SqlServerFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
+        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration)
     {
         await using var conn = await _connFunc();
+        SqlTransaction? transaction = null;
+        
+        if (storedEvents != null)
+        {
+            transaction = conn.BeginTransaction();
+            await _eventStore.AppendEvents(functionId, storedEvents, conn, transaction);
+        }
+        
         try
         {
             var sql = @$"
@@ -136,7 +145,11 @@ public class SqlServerFunctionStore : IFunctionStore
                     0, 
                     @LeaseExpiration
                 )";
-            await using var command = new SqlCommand(sql, conn);
+
+            await using var command = transaction == null
+                ? new SqlCommand(sql, conn)
+                : new SqlCommand(sql, conn, transaction);
+            
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@ParamJson", param.ParamJson);
@@ -151,6 +164,8 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             return false;
         }
+        
+        await (transaction?.CommitAsync() ?? Task.CompletedTask);
 
         return true;
     }

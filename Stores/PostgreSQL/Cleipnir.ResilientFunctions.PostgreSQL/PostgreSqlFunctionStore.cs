@@ -111,16 +111,24 @@ public class PostgreSqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
+        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration)
     {
         await using var conn = await CreateConnection();
+        NpgsqlTransaction? transaction = null;
+        if (storedEvents != null)
+        {
+            transaction = await conn.BeginTransactionAsync();
+            await _eventStore.AppendEvents(functionId, storedEvents, conn, transaction);
+        }
+        
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration)
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT DO NOTHING;";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, conn, transaction)
         {
             Parameters =
             {
@@ -135,6 +143,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
 
         var affectedRows = await command.ExecuteNonQueryAsync();
+        await (transaction?.CommitAsync() ?? Task.CompletedTask);
         return affectedRows == 1;
     }
 

@@ -263,6 +263,7 @@ public abstract class CrashedTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 

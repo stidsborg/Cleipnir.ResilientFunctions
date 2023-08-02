@@ -97,6 +97,7 @@ public class RFunctionsShutdownTests
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
@@ -146,6 +147,7 @@ public class RFunctionsShutdownTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 

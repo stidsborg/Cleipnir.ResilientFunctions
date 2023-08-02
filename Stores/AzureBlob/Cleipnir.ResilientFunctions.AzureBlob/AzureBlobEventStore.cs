@@ -39,6 +39,24 @@ public class AzureBlobEventStore : IEventStore
         return await AppendOrCreate(functionId, marshalledString);
     }
 
+    public async Task CreateEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        var marshalledString = SimpleMarshaller.Serialize(storedEvents
+            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+            .ToArray()
+        );
+        
+        var eventsBlobName = functionId.GetEventsBlobName();
+        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+        
+        await eventsBlobClient.CreateAsync(
+            new AppendBlobCreateOptions { Conditions = new AppendBlobRequestConditions { IfNoneMatch = new ETag("*") } }
+        );
+        
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
+        await eventsBlobClient.AppendBlockAsync(ms);
+    }
+
     public async Task Truncate(FunctionId functionId)
     {
         var blobName = functionId.GetEventsBlobName();

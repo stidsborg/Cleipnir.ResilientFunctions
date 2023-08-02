@@ -41,6 +41,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         FunctionId functionId,
         StoredParameter param,
         StoredScrapbook storedScrapbook,
+        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration)
     {
         lock (_sync)
@@ -62,6 +63,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             };
 
             _events[functionId] = new List<StoredEvent>();
+            if (storedEvents != null)
+                _events[functionId].AddRange(storedEvents);
 
             return true.ToTask();
         }

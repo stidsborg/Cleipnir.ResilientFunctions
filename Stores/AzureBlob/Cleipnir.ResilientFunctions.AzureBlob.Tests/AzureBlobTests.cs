@@ -348,4 +348,28 @@ public class AzureBlobTests
             downloadEtag.ShouldBe(eTag);
         }
     }
+
+    [TestMethod]
+    public async Task CreateAppendBlobFailsWhenBlobAlreadyExists()
+    {
+        var blobName = Guid.NewGuid().ToString("N");
+        var blobClient = BlobContainerClient.GetAppendBlobClient(blobName);
+        await blobClient.CreateAsync();
+        
+        await blobClient.CreateAsync(); //should execute successfully
+
+        try
+        {
+            await blobClient.CreateAsync(new AppendBlobCreateOptions
+            {
+                Conditions = new AppendBlobRequestConditions { IfNoneMatch = new ETag("*") }
+            });
+            
+            throw new Exception("RequestFailedException was not thrown as expected");
+        }
+        catch (RequestFailedException requestFailedException)
+        {
+            requestFailedException.ErrorCode.ShouldBe("BlobAlreadyExists");
+        }
+    }
 }

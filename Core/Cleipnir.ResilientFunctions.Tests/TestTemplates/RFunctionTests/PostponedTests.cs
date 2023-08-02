@@ -366,6 +366,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
@@ -386,6 +387,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
@@ -449,6 +451,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
@@ -469,6 +472,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
@@ -536,6 +540,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
@@ -554,6 +559,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
@@ -620,6 +626,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
@@ -639,6 +646,7 @@ public abstract class PostponedTests
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
@@ -673,6 +681,7 @@ public abstract class PostponedTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 

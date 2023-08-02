@@ -31,6 +31,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
 
@@ -87,6 +88,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -126,6 +128,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
 
@@ -162,6 +165,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -193,6 +197,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         ).ShouldBeTrueAsync();
         
@@ -222,6 +227,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -229,6 +235,7 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeFalseAsync();
     }
@@ -250,6 +257,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -290,6 +298,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -330,6 +339,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -373,6 +383,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration
         );
 
@@ -395,6 +406,7 @@ public abstract class StoreTests
             function1Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: 0
         );
         
@@ -402,6 +414,7 @@ public abstract class StoreTests
             function2Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: 2
         );
 
@@ -424,6 +437,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -444,6 +458,7 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -466,6 +481,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -496,6 +512,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -531,6 +548,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -554,6 +572,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -580,6 +599,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -622,6 +642,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -659,6 +680,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -724,6 +746,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -768,6 +791,7 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
+            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
@@ -781,5 +805,31 @@ public abstract class StoreTests
             expectedEpoch: 0, 
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeFalseAsync();
+    }
+    
+    public abstract Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated();
+    public async Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new Scrapbook { State = "initial" }.ToJson(), typeof(Scrapbook).SimpleQualifiedName());
+        await store.CreateFunction(
+            functionId,
+            storedParameter,
+            storedScrapbook,
+            storedEvents: new []
+            {
+                new StoredEvent("Hello".ToJson(), EventType: typeof(string).SimpleQualifiedName()),
+                new StoredEvent("World".ToJson(), EventType: typeof(string).SimpleQualifiedName())
+            },
+            leaseExpiration: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        var events = await store.EventStore.GetEvents(functionId).ToListAsync();
+        events.Count.ShouldBe(2);
+        events[0].DefaultDeserialize().ShouldBe("Hello");
+        events[1].DefaultDeserialize().ShouldBe("World");
     }
 }
