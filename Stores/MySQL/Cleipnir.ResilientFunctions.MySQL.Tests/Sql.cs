@@ -17,7 +17,7 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.MySQL.Tests.ConnectionString")
-                ?? @"server=localhost;userid=root;password=Pa55word!;database=rfunctions_tests;";
+                ?? @"server=localhost;userid=root;password=Pa55word!;database=rfunctions_tests;SSL Mode=None";
             ConnFunc = async () =>
             {
                 var conn = new MySqlConnection(ConnectionString);
