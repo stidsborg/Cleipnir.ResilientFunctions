@@ -538,10 +538,8 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
-            
-            Should.Throw<FunctionInvocationPostponedException>(
-                () => rFunc.ReInvoke(functionId.InstanceId.Value, expectedEpoch: 0)
-            );
+            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
             status.ShouldBe(Status.Postponed);
@@ -559,7 +557,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
+            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            await controlPanel.ScheduleReInvoke();
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
@@ -623,10 +622,9 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
-            
-            Should.Throw<FunctionInvocationPostponedException>(
-                () => rFunc.ReInvoke(functionId.InstanceId.Value, expectedEpoch: 0)
-            );
+
+            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
             status.ShouldBe(Status.Postponed);
@@ -644,7 +642,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            await rFunc.ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch: 0);
+            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            await controlPanel.ScheduleReInvoke();
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             

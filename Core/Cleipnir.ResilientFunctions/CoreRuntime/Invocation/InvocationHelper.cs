@@ -383,8 +383,14 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public async Task<bool> Delete(FunctionId functionId, int expectedEpoch)
-        => await _functionStore.DeleteFunction(functionId, expectedEpoch);
+    public async Task Delete(FunctionId functionId, int expectedEpoch)
+    {
+        var success = await _functionStore.DeleteFunction(functionId, expectedEpoch);
+        
+        if (!success)
+            throw new ConcurrentModificationException(functionId);
+    }
+        
 
     public async Task<FunctionState<TParam, TScrapbook, TReturn>?> GetFunction(FunctionId functionId)
     {

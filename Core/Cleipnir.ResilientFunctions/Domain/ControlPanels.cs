@@ -7,19 +7,13 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     private readonly FunctionTypeId _functionTypeId;
+    private readonly Invoker<TParam, TScrapbook, Unit> _invoker;
     private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
-    private readonly RAction.ReInvoke _reInvoke;
-    private readonly RAction.ScheduleReInvoke _scheduleReInvoke;
 
-    internal ControlPanels(
-        FunctionTypeId functionTypeId, 
-        InvocationHelper<TParam, TScrapbook, Unit> invocationHelper, 
-        RAction.ReInvoke reInvoke, 
-        RAction.ScheduleReInvoke scheduleReInvoke)
+    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TScrapbook, Unit> invoker, InvocationHelper<TParam, TScrapbook, Unit> invocationHelper)
     {
+        _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _reInvoke = reInvoke;
-        _scheduleReInvoke = scheduleReInvoke;
         _functionTypeId = functionTypeId;
     }
     
@@ -31,9 +25,8 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
             return null;
         
         return new ControlPanel<TParam, TScrapbook>(
+            _invoker,
             _invocationHelper,
-            _reInvoke,
-            _scheduleReInvoke,
             functionId,
             f.Status,
             f.Epoch,
@@ -48,20 +41,17 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
 
 public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
+    public delegate Task<TReturn> ReInvoke(string functionInstanceId, int expectedEpoch);
+    public delegate Task ScheduleReInvoke(string functionInstanceId, int expectedEpoch);
+    
     private readonly FunctionTypeId _functionTypeId;
+    private readonly Invoker<TParam, TScrapbook, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
-    private readonly RFunc.ReInvoke<TReturn> _reInvoke;
-    private readonly RFunc.ScheduleReInvoke _scheduleReInvoke;
 
-    internal ControlPanels(
-        FunctionTypeId functionTypeId, 
-        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper, 
-        RFunc.ReInvoke<TReturn> reInvoke, 
-        RFunc.ScheduleReInvoke scheduleReInvoke)
+    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TScrapbook, TReturn> invoker, InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper)
     {
+        _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _reInvoke = reInvoke;
-        _scheduleReInvoke = scheduleReInvoke;
         _functionTypeId = functionTypeId;
     }
 
@@ -73,9 +63,8 @@ public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull w
             return null;
         
         return new ControlPanel<TParam, TScrapbook, TReturn>(
+            _invoker,
             _invocationHelper,
-            _reInvoke,
-            _scheduleReInvoke,
             functionId,
             f.Status,
             f.Epoch,

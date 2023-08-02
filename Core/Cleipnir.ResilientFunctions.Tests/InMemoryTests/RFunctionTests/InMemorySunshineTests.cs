@@ -134,7 +134,9 @@ public class InMemorySunshineTests
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam = new Synced<string>();
-        returned = await registration.ReInvoke("id1", expectedEpoch: 0);
+        var controlPanel = await registration.ControlPanels.For("id1");
+        controlPanel.ShouldNotBeNull();
+        returned = await controlPanel.ReInvoke();
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
         
@@ -146,7 +148,9 @@ public class InMemorySunshineTests
         returned.ShouldBe(toReturn);
         
         syncedParam = new Synced<string>();
-        await registration.ScheduleReInvoke("id2", expectedEpoch: 0);
+        controlPanel = await registration.ControlPanels.For("id2");
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.ScheduleReInvoke();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         returned = await registration.Invoke("id2", "hello universe");
@@ -283,7 +287,8 @@ public class InMemorySunshineTests
 
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        returned = await registration.ReInvoke("id1", expectedEpoch: 0);
+        var controlPanel = await registration.ControlPanel.For("id1").ShouldNotBeNullAsync();
+        returned = await controlPanel.ReInvoke();
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
         syncedScrapbook.Value.ShouldNotBeNull();
@@ -299,7 +304,8 @@ public class InMemorySunshineTests
         
         syncedParam = new Synced<string>();
         syncedScrapbook = new Synced<Scrapbook>();
-        await registration.ScheduleReInvoke("id2", expectedEpoch: 0);
+        controlPanel = await registration.ControlPanel.For("id2").ShouldNotBeNullAsync();
+        await controlPanel.ScheduleReInvoke();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         syncedScrapbook.Value.ShouldNotBeNull();

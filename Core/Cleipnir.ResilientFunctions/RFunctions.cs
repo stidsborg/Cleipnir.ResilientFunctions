@@ -389,15 +389,12 @@ public class RFunctions : IDisposable
 
             var controlPanels = new ControlPanels<TParam, TScrapbook, TReturn>(
                 functionTypeId,
-                invocationHelper,
-                rFuncInvoker.ReInvoke,
-                rFuncInvoker.ScheduleReInvoke
+                rFuncInvoker,
+                invocationHelper
             );
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
-                rFuncInvoker.ReInvoke,
                 rFuncInvoker.ScheduleInvoke,
-                rFuncInvoker.ScheduleReInvoke,
                 controlPanels,
                 new EventSourceWriters(functionTypeId, _functionStore.EventStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
@@ -544,9 +541,8 @@ public class RFunctions : IDisposable
 
             var controlPanels = new ControlPanels<TParam, TScrapbook>(
                 functionTypeId,
-                invocationHelper,
-                rActionInvoker.ReInvoke,
-                rActionInvoker.ScheduleReInvoke
+                rActionInvoker,
+                invocationHelper
             );
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,

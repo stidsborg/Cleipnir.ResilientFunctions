@@ -151,8 +151,9 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
-        await rFunc.ScheduleReInvoke(functionInstanceId.Value, expectedEpoch: 0);
-        
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        await controlPanel.ScheduleReInvoke();
+
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
@@ -206,8 +207,8 @@ public abstract class ScheduleReInvocationTests
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
 
-        controlPanel = await rFunc.ControlPanel.For(functionInstanceId);
-        await rFunc.ScheduleReInvoke(functionInstanceId.Value, controlPanel!.Epoch);
+        controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        await controlPanel.ScheduleReInvoke();
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)

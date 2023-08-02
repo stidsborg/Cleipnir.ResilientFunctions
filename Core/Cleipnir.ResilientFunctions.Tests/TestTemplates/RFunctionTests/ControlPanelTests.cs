@@ -89,7 +89,7 @@ public abstract class ControlPanelTests
         await store.IncrementEpoch(functionId).ShouldBeTrueAsync();
         await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.SaveChanges());
 
-        await controlPanel.Delete();
+        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.Delete());
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -114,9 +114,13 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
 
-        await rFunc.ReInvoke(functionInstanceId.Value, expectedEpoch: 0); //bump epoch
+        { //bump epoch
+            var tempControlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+            await tempControlPanel.SaveChanges();
+        }
 
-        await controlPanel.Delete();
+        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.Delete());
+        
         await store.GetFunction(functionId).ShouldNotBeNullAsync();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

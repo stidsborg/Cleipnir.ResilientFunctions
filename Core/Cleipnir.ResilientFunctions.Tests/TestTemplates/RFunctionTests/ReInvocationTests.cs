@@ -291,8 +291,9 @@ public abstract class ReInvocationTests
         var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Scrapbook.Value = -1;
         await controlPanel.SaveChanges();
-        
-        var returned = await rFunc.ReInvoke(functionInstanceId.Value, expectedEpoch: 1);
+
+        await controlPanel.Refresh();
+        var returned = await controlPanel.ReInvoke();
         returned.ShouldBe("something");
         
         var function = await store.GetFunction(functionId);
@@ -341,7 +342,8 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
-        await rFunc.ReInvoke(functionInstanceId.Value, expectedEpoch: 0);
+        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        await controlPanel.ReInvoke();
 
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
@@ -392,7 +394,7 @@ public abstract class ReInvocationTests
         await controlPanel.SaveChanges();
         
         controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
-        var result = await rFunc.ReInvoke(functionInstanceId.Value, expectedEpoch: controlPanel.Epoch); 
+        var result = await controlPanel.ReInvoke(); 
         result.ShouldBe("something");
 
         var function = await store.GetFunction(functionId);

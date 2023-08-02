@@ -8,16 +8,14 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
+    private readonly Invoker<TParam, TScrapbook, Unit> _invoker;
     private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
-    private readonly RAction.ReInvoke _reInvoke;
-    private readonly RAction.ScheduleReInvoke _scheduleReInvoke;
 
     private bool _changed;
     
     internal ControlPanel(
+        Invoker<TParam, TScrapbook, Unit> invoker,
         InvocationHelper<TParam, TScrapbook, Unit> invocationHelper,
-        RAction.ReInvoke reInvoke,
-        RAction.ScheduleReInvoke scheduleReInvoke,
         FunctionId functionId, 
         Status status, 
         int epoch,
@@ -27,9 +25,8 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         DateTime? postponedUntil, 
         PreviouslyThrownException? previouslyThrownException)
     {
+        _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _reInvoke = reInvoke;
-        _scheduleReInvoke = scheduleReInvoke;
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
@@ -160,14 +157,14 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         if (_changed)
             await SaveChanges();
 
-        await _reInvoke(FunctionId.InstanceId.Value, Epoch);   
+        await _invoker.ReInvoke(FunctionId.InstanceId.Value, Epoch);
     }
     public async Task ScheduleReInvoke()
     {
         if (_changed)
             await SaveChanges();
         
-        await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
+        await _invoker.ScheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
     }
 
     public async Task Refresh()
@@ -192,16 +189,13 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
 
 public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
+    private readonly Invoker<TParam, TScrapbook, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
-    private readonly RFunc.ReInvoke<TReturn> _reInvoke;
-    private readonly RFunc.ScheduleReInvoke _scheduleReInvoke;
-
     private bool _changed;
 
     internal ControlPanel(
+        Invoker<TParam, TScrapbook, TReturn> invoker, 
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
-        RFunc.ReInvoke<TReturn> reInvoke,
-        RFunc.ScheduleReInvoke scheduleReInvoke,
         FunctionId functionId, 
         Status status, 
         int epoch,
@@ -212,9 +206,8 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         DateTime? postponedUntil, 
         PreviouslyThrownException? previouslyThrownException)
     {
+        _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _reInvoke = reInvoke;
-        _scheduleReInvoke = scheduleReInvoke;
         FunctionId = functionId;
         Status = status;
         Epoch = epoch;
@@ -350,14 +343,14 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         if (_changed)
             await SaveChanges();
 
-        return await _reInvoke(FunctionId.InstanceId.Value, Epoch);   
+        return await _invoker.ReInvoke(FunctionId.InstanceId.Value, Epoch);   
     }
     public async Task ScheduleReInvoke()
     {
         if (_changed)
             await SaveChanges();
 
-        await _scheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
+        await _invoker.ScheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
     }
     
     public async Task Refresh()
