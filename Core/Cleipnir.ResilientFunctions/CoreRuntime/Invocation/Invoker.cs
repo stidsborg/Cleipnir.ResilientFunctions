@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -34,10 +35,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
         _utilities = utilities;
     }
 
-    public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
+    public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null, IEnumerable<EventAndIdempotencyKey>? events = null)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
+        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook, events);
         if (!created) return await WaitForFunctionResult(functionId);
         using var _ = disposables;
 
@@ -53,10 +54,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook)
+    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events = null)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
+        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook, events);
         if (!created) return;
 
         _ = Task.Run(async () =>
@@ -165,7 +166,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _invocationHelper.WaitForFunctionResult(functionId);
 
-    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook)
+    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -174,7 +175,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             scrapbook ??= new TScrapbook();
             _invocationHelper.InitializeScrapbook(functionId, param, scrapbook, epoch: 0);
 
-            var (persisted, runningFunction) = await _invocationHelper.PersistFunctionInStore(functionId, param, scrapbook);
+            var (persisted, runningFunction) = await _invocationHelper.PersistFunctionInStore(functionId, param, scrapbook, events);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch: 0));
             

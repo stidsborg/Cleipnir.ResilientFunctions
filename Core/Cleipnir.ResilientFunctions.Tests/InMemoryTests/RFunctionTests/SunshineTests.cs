@@ -11,7 +11,15 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
     [TestMethod]
     public override Task SunshineScenarioFunc()
         => SunshineScenarioFunc(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
-        
+    
+    [TestMethod]
+    public override Task SunshineScenarioFuncWithInitialEvents()
+        => SunshineScenarioFuncWithInitialEvents(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task SunshineScenarioActionWithInitialEvents()
+        => SunshineScenarioActionWithInitialEvents(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
     [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook()
         => SunshineScenarioFuncWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());

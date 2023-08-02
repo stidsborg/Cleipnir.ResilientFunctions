@@ -10,6 +10,14 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
         => SunshineScenarioFunc(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task SunshineScenarioFuncWithInitialEvents()
+        => SunshineScenarioFuncWithInitialEvents(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task SunshineScenarioActionWithInitialEvents()
+        => SunshineScenarioActionWithInitialEvents(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook() 
         => SunshineScenarioFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
 

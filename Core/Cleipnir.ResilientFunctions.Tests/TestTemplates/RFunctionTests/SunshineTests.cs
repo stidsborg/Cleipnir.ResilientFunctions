@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -50,6 +51,97 @@ public abstract class SunshineTests
         var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
         storedResult.ShouldBe("HELLO");
             
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task SunshineScenarioFuncWithInitialEvents();
+    public async Task SunshineScenarioFuncWithInitialEvents(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = nameof(SunshineScenarioFuncWithInitialEvents).ToFunctionTypeId();
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        var rFunc = rFunctions
+            .RegisterFunc(
+                functionTypeId,
+                async (string _, Context context) =>
+                {
+                    var eventSource = await context.EventSource;
+                    eventSource.Existing.Count().ShouldBe(2);
+                    return string.Join(" ", eventSource.Existing.OfType<string>());
+                }
+            ).Invoke;
+
+        var result = await rFunc(
+            "hello",
+            "hello",
+            events: new EventAndIdempotencyKey[] { new("Hello"), new("World") }
+        );
+        result.ShouldBe("Hello World");
+            
+        var storedFunction = await store.GetFunction(
+            new FunctionId(
+                functionTypeId, 
+                "hello".ToFunctionInstanceId()
+            )
+        );
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Succeeded);
+        storedFunction.Result.ShouldNotBeNull();
+        var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
+        storedResult.ShouldBe("Hello World");
+
+        var events = await store.EventStore.GetEvents(new FunctionId(functionTypeId, "hello".ToFunctionInstanceId())).ToListAsync();
+        events.Count.ShouldBe(2);
+        events[0].DefaultDeserialize().ShouldBe("Hello");
+        events[1].DefaultDeserialize().ShouldBe("World");
+            
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task SunshineScenarioActionWithInitialEvents();
+    public async Task SunshineScenarioActionWithInitialEvents(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = nameof(SunshineScenarioActionWithInitialEvents).ToFunctionTypeId();
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        var rAction = rFunctions
+            .RegisterAction(
+                functionTypeId,
+                async (string _, Context context) =>
+                {
+                    var eventSource = await context.EventSource;
+                    eventSource.Existing.Count().ShouldBe(2);
+                    eventSource.Existing.ToList()[0].ShouldBe("Hello");
+                    eventSource.Existing.ToList()[1].ShouldBe("World");
+                }
+            ).Invoke;
+
+        await rAction(
+            "hello",
+            "hello",
+            events: new EventAndIdempotencyKey[] { new("Hello"), new("World") }
+        );
+
+        var storedFunction = await store.GetFunction(
+            new FunctionId(
+                functionTypeId, 
+                "hello".ToFunctionInstanceId()
+            )
+        );
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Succeeded);
+
+        var events = await store.EventStore.GetEvents(new FunctionId(functionTypeId, "hello".ToFunctionInstanceId())).ToListAsync();
+        events.Count.ShouldBe(2);
+        events[0].DefaultDeserialize().ShouldBe("Hello");
+        events[1].DefaultDeserialize().ShouldBe("World");
+        
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
         

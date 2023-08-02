@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 
@@ -6,11 +7,19 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class RAction
 {
-    public delegate Task Invoke<in TParam, in TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
-        where TParam : notnull where TScrapbook : RScrapbook, new();
+    public delegate Task Invoke<in TParam, in TScrapbook>(
+        string functionInstanceId, 
+        TParam param, 
+        TScrapbook? scrapbook = null, 
+        IEnumerable<EventAndIdempotencyKey>? events = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new();
 
-    public delegate Task Schedule<in TParam, TScrapbook>(string functionInstanceId, TParam param, TScrapbook? scrapbook = null) 
-        where TParam : notnull where TScrapbook : RScrapbook, new();
+    public delegate Task Schedule<in TParam, TScrapbook>(
+        string functionInstanceId, 
+        TParam param, 
+        TScrapbook? scrapbook = null, 
+        IEnumerable<EventAndIdempotencyKey>? events = null
+    ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
 public class RAction<TParam> where TParam : notnull
