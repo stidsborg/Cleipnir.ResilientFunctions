@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public class Context
+public class Context : IDisposable
 {
     public FunctionId FunctionId { get; }
 
@@ -32,4 +32,10 @@ public class Context
         _eventSourceFactory = eventSourceFactory;
         Utilities = utilities;
     }
+
+    public void Dispose()
+    {
+        lock (_sync)
+            _eventSource?.Dispose();
+    } 
 }

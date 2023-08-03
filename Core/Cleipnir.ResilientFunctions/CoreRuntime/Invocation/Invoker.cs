@@ -184,10 +184,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 functionId,
                 ScheduleReInvoke
             );
+            var context = new Context(functionId, InvocationMode.Direct, eventSourceFactory, _utilities);
+            disposables.Add(context);
+            
             return new PreparedInvocation(
                 persisted,
                 scrapbook,
-                new Context(functionId, InvocationMode.Direct, eventSourceFactory, _utilities),
+                context,
                 Disposable.Combine(disposables)
             );
         }
@@ -207,12 +210,19 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
+            var context = new Context(
+                functionId, 
+                InvocationMode.Retry,
+                _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke), 
+                _utilities
+            );
+            disposables.Add(context);
 
             return new PreparedReInvocation(
                 _inner,
                 param,
                 scrapbook,
-                new Context(functionId, InvocationMode.Retry, _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke), _utilities),
+                context,
                 epoch,
                 Disposable.Combine(disposables)
             );
