@@ -136,5 +136,3 @@ public class EventSource : IReactiveChain<object>, IDisposable
     public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null) 
         => _source.Subscribe(onNext, onCompletion, onError, subscriptionGroupId);
 }
-
-public record EventAndIdempotencyKey(object Event, string? IdempotencyKey = null);
