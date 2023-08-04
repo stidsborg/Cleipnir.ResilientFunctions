@@ -36,6 +36,6 @@ public class Context : IDisposable
     public void Dispose()
     {
         lock (_sync)
-            _eventSource?.Dispose();
+            _eventSource?.Result.Dispose();
     } 
 }
