@@ -794,6 +794,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
         var existingEvents = await controlPanel.Events;
         existingEvents.Count().ShouldBe(2);
         existingEvents.Replace(new []{ "hello to you", "hello from me" });
