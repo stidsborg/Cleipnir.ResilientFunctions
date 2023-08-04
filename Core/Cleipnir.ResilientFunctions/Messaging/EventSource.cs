@@ -47,14 +47,21 @@ public class EventSource : IReactiveChain<object>, IDisposable
         TimeoutProvider = timeoutProvider;
         _eventSerializer = eventSerializer ?? DefaultSerializer.Instance;
         _pullFrequency = pullFrequency ?? TimeSpan.FromMilliseconds(250);
-        _source = new Source(timeoutProvider);
+        _source = new Source(
+            timeoutProvider, 
+            onNewSubscription: () =>
+            {
+                if (_source?.HasActiveSubscriptions ?? false)
+                    _ = DeliverOutstandingEvents(deliverDespiteNoActiveSubscriptions: false);
+            } 
+        );
     }
 
     public async Task Initialize()
     {
         _eventsSubscription = await _eventStore.SubscribeToEvents(_functionId);
         
-        await DeliverOutstandingEvents();
+        await DeliverOutstandingEvents(deliverDespiteNoActiveSubscriptions: true);
         
         _ = Task.Run(async () =>
         {
@@ -62,16 +69,19 @@ public class EventSource : IReactiveChain<object>, IDisposable
             {
                 await Task.Delay(_pullFrequency);
                 if (_disposed) return;
-                await DeliverOutstandingEvents();
+                await DeliverOutstandingEvents(deliverDespiteNoActiveSubscriptions: false);
             }
         });
     }
 
-    private async Task DeliverOutstandingEvents()
+    private async Task DeliverOutstandingEvents(bool deliverDespiteNoActiveSubscriptions)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(EventSource));
 
+        if (!deliverDespiteNoActiveSubscriptions && !_source.HasActiveSubscriptions)
+            return;
+        
         int prevDeliverOutstandingEventsIteration; 
         lock (_sync)
             prevDeliverOutstandingEventsIteration = _deliverOutstandingEventsIteration;
@@ -125,7 +135,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
         await Sync();
     }
 
-    public Task Sync() => DeliverOutstandingEvents();
+    public Task Sync() => DeliverOutstandingEvents(deliverDespiteNoActiveSubscriptions: true);
 
     public void Dispose()
     {

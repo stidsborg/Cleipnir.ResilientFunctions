@@ -19,9 +19,20 @@ public class Source : ISource
     private int _nextSubscriptionId;
     private bool _completed;
 
+    private readonly Action? _onNewSubscription;
+
     private readonly ITimeoutProvider _timeoutProvider;
     private readonly EmittedEvents _emittedEvents = new();
     private readonly object _sync = new();
+
+    public bool HasActiveSubscriptions
+    {
+        get
+        {
+            lock (_sync)
+                return _subscriptionGroups.Count > 0;
+        }
+    }
 
     public IEnumerable<object> Existing
     {
@@ -38,10 +49,14 @@ public class Source : ISource
             return toReturn;
         }
     }
-
-
-
+    
     public Source(ITimeoutProvider timeoutProvider) => _timeoutProvider = timeoutProvider;
+
+    public Source(ITimeoutProvider timeoutProvider, Action onNewSubscription)
+    {
+        _timeoutProvider = timeoutProvider;
+        _onNewSubscription = onNewSubscription;
+    }
 
     public ISubscription Subscribe(
         Action<object> onNext, 
@@ -49,12 +64,12 @@ public class Source : ISource
         Action<Exception> onError, 
         int? subscriptionGroupId = null)
     {
+        ISubscription subscription;
+        
         lock (_sync)
         {
             if (subscriptionGroupId != null)
-                return
-                    _subscriptionGroups[subscriptionGroupId.Value]
-                        .AddSubscription(onNext, onCompletion, onError);
+                return _subscriptionGroups[subscriptionGroupId.Value].AddSubscription(onNext, onCompletion, onError);
             
             var chosenSubscriptionGroupId = _nextSubscriptionId++;
             var subscriptionGroup =
@@ -70,8 +85,11 @@ public class Source : ISource
                     }
                 );
             _subscriptionGroups[chosenSubscriptionGroupId] = subscriptionGroup;
-            return subscriptionGroup.AddSubscription(onNext, onCompletion, onError);
+            subscription = subscriptionGroup.AddSubscription(onNext, onCompletion, onError);
         }
+        
+        _onNewSubscription?.Invoke();
+        return subscription;
     }
     
     public void SignalNext(object toEmit)
