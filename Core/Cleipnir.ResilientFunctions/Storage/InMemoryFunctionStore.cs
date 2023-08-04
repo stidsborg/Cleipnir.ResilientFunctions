@@ -37,7 +37,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     
     #region FunctionStore
 
-    public Task<bool> CreateFunction(
+    public virtual Task<bool> CreateFunction(
         FunctionId functionId,
         StoredParameter param,
         StoredScrapbook storedScrapbook,
@@ -70,7 +70,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
+    public virtual Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
     {
         lock (_sync)
         {
@@ -84,7 +84,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public virtual Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
@@ -102,7 +102,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public virtual Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
@@ -118,7 +118,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public virtual Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         lock (_sync)
             return _states
@@ -132,7 +132,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .ToTask();
     }
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public virtual Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
     {
         lock (_sync)
             return _states
@@ -152,7 +152,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .ToTask();
     }
     
-    public Task<bool> SetFunctionState(
+    public virtual Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
         StoredParameter storedParameter,
@@ -196,7 +196,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> SaveScrapbookForExecutingFunction( 
+    public virtual Task<bool> SaveScrapbookForExecutingFunction( 
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
@@ -213,7 +213,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, bool suspended, int expectedEpoch)
+    public virtual Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, bool suspended, int expectedEpoch)
     {
         lock (_sync)
         {
@@ -242,7 +242,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -259,7 +259,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -276,7 +276,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
     
-    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -298,7 +298,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -315,7 +315,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<StoredFunction?> GetFunction(FunctionId functionId)
+    public virtual Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)
         {
@@ -341,7 +341,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
     
-    public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+    public virtual Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
     {
         lock (_sync)
         {
@@ -384,13 +384,13 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     
     #region EventStore
 
-    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public virtual Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
         => AppendEvents(functionId, new[] { storedEvent });
 
-    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public virtual Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public virtual Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         lock (_sync)
         {
@@ -409,7 +409,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task Truncate(FunctionId functionId)
+    public virtual Task Truncate(FunctionId functionId)
     {
         lock (_sync)
             _events[functionId] = new List<StoredEvent>();
@@ -417,7 +417,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         return Task.CompletedTask;
     }
 
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
+    public virtual Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
     {
         lock (_sync)
         {
@@ -428,7 +428,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+    public virtual Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
     {
         var disposed = false;
         var skip = 0;
