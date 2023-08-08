@@ -21,7 +21,8 @@ public abstract class InitialInvocationFailedTests
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
 
         var flag = new SyncedFlag();
@@ -48,7 +49,8 @@ public abstract class InitialInvocationFailedTests
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
 
         var flag = new SyncedFlag();
@@ -78,7 +80,8 @@ public abstract class InitialInvocationFailedTests
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
 
         var flag = new SyncedFlag();
@@ -111,7 +114,8 @@ public abstract class InitialInvocationFailedTests
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
 
         var flag = new SyncedFlag();

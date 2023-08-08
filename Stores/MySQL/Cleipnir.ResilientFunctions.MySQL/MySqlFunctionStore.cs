@@ -88,7 +88,8 @@ public class MySqlFunctionStore : IFunctionStore
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration)
+        long leaseExpiration,
+        long? postponeUntil)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         MySqlTransaction? transaction = null;

@@ -24,7 +24,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -61,7 +62,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -100,7 +102,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -132,7 +135,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -158,7 +162,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
         
@@ -177,7 +182,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -222,7 +228,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -266,7 +273,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -300,7 +308,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -322,7 +331,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
         var events = await eventStore.GetEvents(functionId);
@@ -339,7 +349,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 
@@ -386,7 +397,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 

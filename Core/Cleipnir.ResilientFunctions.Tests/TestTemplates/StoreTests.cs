@@ -32,7 +32,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => 
@@ -89,7 +90,8 @@ public abstract class StoreTests
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store
@@ -129,7 +131,8 @@ public abstract class StoreTests
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(
@@ -166,7 +169,8 @@ public abstract class StoreTests
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
@@ -198,7 +202,8 @@ public abstract class StoreTests
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
         
         await store
@@ -228,7 +233,8 @@ public abstract class StoreTests
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
@@ -236,7 +242,8 @@ public abstract class StoreTests
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeFalseAsync();
     }
     
@@ -258,7 +265,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -299,7 +307,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -340,7 +349,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -384,7 +394,8 @@ public abstract class StoreTests
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         );
 
         await BusyWait.Until(() => store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).Any());
@@ -407,7 +418,8 @@ public abstract class StoreTests
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: 0
+            leaseExpiration: 0,
+            postponeUntil: null
         );
         
         await store.CreateFunction(
@@ -415,7 +427,8 @@ public abstract class StoreTests
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: 2
+            leaseExpiration: 2,
+            postponeUntil: null
         );
 
         await BusyWait.Until(() => store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1).Any());
@@ -438,7 +451,8 @@ public abstract class StoreTests
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
@@ -459,7 +473,8 @@ public abstract class StoreTests
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
@@ -482,7 +497,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         storedScrapbook = storedScrapbook with { ScrapbookJson = new Scrapbook() { State = "completed" }.ToJson()};
@@ -513,7 +529,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         storedScrapbook = storedScrapbook with { ScrapbookJson = new Scrapbook() { State = "completed" }.ToJson()};
@@ -549,7 +566,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -573,7 +591,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -600,7 +619,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var storedException = new StoredException(
@@ -643,7 +663,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -681,7 +702,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var event1 = new StoredEvent(
@@ -747,7 +769,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -792,7 +815,8 @@ public abstract class StoreTests
             storedParameter,
             storedScrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(
@@ -824,7 +848,8 @@ public abstract class StoreTests
                 new StoredEvent("Hello".ToJson(), EventType: typeof(string).SimpleQualifiedName()),
                 new StoredEvent("World".ToJson(), EventType: typeof(string).SimpleQualifiedName())
             },
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var events = await store.EventStore.GetEvents(functionId).ToListAsync();

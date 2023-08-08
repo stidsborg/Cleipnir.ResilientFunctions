@@ -38,7 +38,8 @@ public class SuspensionTest
                 storedParameter,
                 storedScrapbook,
                 storedEvents: null,
-                leaseExpiration: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks,
+                postponeUntil: null
             );
             await store.SuspendFunction(
                 functionId,

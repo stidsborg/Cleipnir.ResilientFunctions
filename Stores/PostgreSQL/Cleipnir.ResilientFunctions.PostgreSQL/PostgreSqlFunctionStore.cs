@@ -112,7 +112,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration)
+        long leaseExpiration,
+        long? postponeUntil)
     {
         await using var conn = await CreateConnection();
         NpgsqlTransaction? transaction = null;

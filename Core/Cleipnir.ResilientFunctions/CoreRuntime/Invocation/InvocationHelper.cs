@@ -52,6 +52,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 storedParameter,
                 storedScrapbook,
                 storedEvents,
+                postponeUntil: null,
                 leaseExpiration: DateTime.UtcNow.Ticks + (2 * _settings.SignOfLifeFrequency.Ticks)
             );
 

@@ -27,8 +27,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration
-    ) => _inner.CreateFunction(functionId, param, storedScrapbook, storedEvents, leaseExpiration);
+        long leaseExpiration,
+        long? postponeUntil
+    ) => _inner.CreateFunction(functionId, param, storedScrapbook, storedEvents, leaseExpiration, postponeUntil);
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);

@@ -35,7 +35,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -62,7 +63,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -90,7 +92,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(FunctionId);
@@ -124,7 +127,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(FunctionId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
@@ -144,7 +148,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(FunctionId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
@@ -163,7 +168,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
@@ -193,7 +199,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var scrapbook = new TestScrapbook { Note = "something is still something" };
@@ -220,7 +227,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         await store.DeleteFunction(FunctionId).ShouldBeTrueAsync();
@@ -244,7 +252,8 @@ public abstract class StoreCrudTests
             Param,
             new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
@@ -265,7 +274,8 @@ public abstract class StoreCrudTests
             Param,
             Scrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = new StoredParameter(
@@ -305,7 +315,8 @@ public abstract class StoreCrudTests
             Param,
             Scrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = new StoredParameter(
@@ -339,7 +350,8 @@ public abstract class StoreCrudTests
             Param,
             Scrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
         
         var updatedStoredScrapbook = new StoredScrapbook(
@@ -373,7 +385,8 @@ public abstract class StoreCrudTests
             Param,
             Scrapbook,
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,

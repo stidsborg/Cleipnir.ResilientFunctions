@@ -39,7 +39,8 @@ public static class MixingTest
                 storedParameter,
                 storedScrapbook,
                 storedEvents: null,
-                leaseExpiration: DateTime.UtcNow.Ticks
+                leaseExpiration: DateTime.UtcNow.Ticks,
+                postponeUntil: null
             );
             if (i % 2 == 0)
                 await store.PostponeFunction(

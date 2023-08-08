@@ -88,7 +88,8 @@ public class SerializationTests
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         ).ShouldBeTrueAsync();
         
         using var rFunctions = new RFunctions(

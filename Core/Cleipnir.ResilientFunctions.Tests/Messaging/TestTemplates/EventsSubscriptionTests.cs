@@ -23,7 +23,8 @@ public abstract class EventSubscriptionTests
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
         );
         var eventStore = functionStore.EventStore;
 

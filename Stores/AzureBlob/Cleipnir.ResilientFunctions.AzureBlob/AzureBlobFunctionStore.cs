@@ -41,7 +41,8 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredParameter param, 
         StoredScrapbook scrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration)
+        long leaseExpiration,
+        long? postponeUntil)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);

@@ -116,7 +116,8 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration)
+        long leaseExpiration,
+        long? postponeUntil)
     {
         await using var conn = await _connFunc();
         SqlTransaction? transaction = null;

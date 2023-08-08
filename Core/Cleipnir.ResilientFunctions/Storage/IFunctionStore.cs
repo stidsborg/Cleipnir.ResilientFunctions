@@ -18,7 +18,8 @@ public interface IFunctionStore
         StoredParameter param,
         StoredScrapbook storedScrapbook,
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration
+        long leaseExpiration,
+        long? postponeUntil
     );
     
     Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);

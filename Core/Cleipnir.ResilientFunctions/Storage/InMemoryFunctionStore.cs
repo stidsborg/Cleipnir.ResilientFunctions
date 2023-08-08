@@ -42,7 +42,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         StoredParameter param,
         StoredScrapbook storedScrapbook,
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration)
+        long leaseExpiration,
+        long? postponeUntil)
     {
         lock (_sync)
         {
@@ -58,7 +59,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 Epoch = 0,
                 Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),
-                PostponeUntil = null,
+                PostponeUntil = postponeUntil,
                 LeaseExpiration = leaseExpiration
             };
 

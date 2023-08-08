@@ -40,7 +40,8 @@ public class CrashableFunctionStore : IFunctionStore
         StoredParameter param,
         StoredScrapbook storedScrapbook,
         IEnumerable<StoredEvent>? storedEvents,
-        long leaseExpiration
+        long leaseExpiration,
+        long? postponeUntil
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
@@ -48,7 +49,8 @@ public class CrashableFunctionStore : IFunctionStore
             param,
             storedScrapbook,
             storedEvents,
-            leaseExpiration
+            leaseExpiration,
+            postponeUntil
         );
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
