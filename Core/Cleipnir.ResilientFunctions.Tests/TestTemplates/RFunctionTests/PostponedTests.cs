@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -721,10 +720,6 @@ public abstract class PostponedTests
             });
 
         await BusyWait.UntilAsync(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
-        //await Task.Delay(5_000);
-
-        //var pfs = await store.GetPostponedFunctions(functionTypeId.Value, expiresBefore: DateTime.Now.Add(TimeSpan.FromHours(1)).Ticks).ToListAsync();
-        //await invokedFlag.WaitForRaised(maxWaitMs: 1_000_000);
         syncedParam.Value.ShouldBe("hello");
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
