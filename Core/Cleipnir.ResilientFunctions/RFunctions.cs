@@ -376,7 +376,8 @@ public class RFunctions : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                settingsWithDefaults.PostponedCheckFrequency
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -528,7 +529,8 @@ public class RFunctions : IDisposable
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                settingsWithDefaults.PostponedCheckFrequency
             );
             
             WatchDogsFactory.CreateAndStart(

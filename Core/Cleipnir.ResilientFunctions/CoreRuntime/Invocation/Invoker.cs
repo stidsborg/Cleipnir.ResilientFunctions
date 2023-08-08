@@ -20,19 +20,22 @@ public class Invoker<TParam, TScrapbook, TReturn>
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Utilities _utilities;
+    private readonly TimeSpan _postponedCheckFrequency;
 
     internal Invoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Utilities utilities)
+        Utilities utilities,
+        TimeSpan postponedCheckFrequency)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _utilities = utilities;
+        _postponedCheckFrequency = postponedCheckFrequency;
     }
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null, IEnumerable<EventAndIdempotencyKey>? events = null)
@@ -258,6 +261,8 @@ public class Invoker<TParam, TScrapbook, TReturn>
     private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
     {
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
+        if (delay >= _postponedCheckFrequency) return;
+        
         await Task.Delay(delay);
         using var suppressedFlow = ExecutionContext.SuppressFlow();
         _ = ScheduleReInvoke(functionId.InstanceId.ToString(), expectedEpoch);
