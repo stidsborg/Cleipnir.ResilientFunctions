@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
@@ -9,7 +9,7 @@ public class RScrapbook
 {
     private Func<Task>? OnSave { get; set; }
     private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
-    public Dictionary<string, string> StateDictionary { get; set; } = new(); //allows for state accessible from middleware etc
+    public ConcurrentDictionary<string, string> StateDictionary { get; set; } = new(); //allows for state accessible from middleware etc
     
     private bool _initialized;
 
