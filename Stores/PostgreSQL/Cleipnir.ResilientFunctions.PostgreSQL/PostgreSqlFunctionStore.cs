@@ -125,9 +125,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration)
+                (function_type_id, function_instance_id, status, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration, postponed_until)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn, transaction)
         {
@@ -135,11 +135,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
+                new() {Value = (int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                 new() {Value = param.ParamJson},
                 new() {Value = param.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = leaseExpiration}
+                new() {Value = leaseExpiration},
+                new () {Value = postponeUntil == null ? DBNull.Value : postponeUntil.Value}
             }
         };
 

@@ -51,4 +51,12 @@ public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
     [TestMethod]
     public override Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp()
         => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ScheduleAtActionIsCompletedAfterDelay()
+        => ScheduleAtActionIsCompletedAfterDelay(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ScheduleAtFuncIsCompletedAfterDelay()
+        => ScheduleAtActionIsCompletedAfterDelay(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

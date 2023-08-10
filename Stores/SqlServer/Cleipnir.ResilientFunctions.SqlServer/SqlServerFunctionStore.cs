@@ -137,14 +137,16 @@ public class SqlServerFunctionStore : IFunctionStore
                     ScrapbookJson, ScrapbookType, 
                     Status,
                     Epoch, 
-                    LeaseExpiration)
+                    LeaseExpiration,
+                    PostponedUntil)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
                     @ScrapbookJson, @ScrapbookType,
-                    {(int) Status.Executing},
+                    {(int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                     0, 
-                    @LeaseExpiration
+                    @LeaseExpiration,
+                    @PostponeUntil
                 )";
 
             await using var command = transaction == null
@@ -157,7 +159,8 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ParamType", param.ParamType);
             command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
             command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
-            command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);            
+            command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
+            command.Parameters.AddWithValue("@PostponeUntil", postponeUntil == null ? DBNull.Value : postponeUntil.Value);
 
             await command.ExecuteNonQueryAsync();
         }

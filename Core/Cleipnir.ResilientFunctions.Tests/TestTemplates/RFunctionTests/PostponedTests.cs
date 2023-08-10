@@ -728,4 +728,98 @@ public abstract class PostponedTests
     {
         public int Value { get; set; }
     }
+    
+    public abstract Task ScheduleAtActionIsCompletedAfterDelay();
+    protected async Task ScheduleAtActionIsCompletedAfterDelay(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var flag = new SyncedFlag();
+
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                signOfLifeFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
+            )
+        );
+        var rAction = rFunctions
+            .RegisterAction(
+                functionId.TypeId,
+                (string _) =>
+                {
+                    flag.Raise();
+                });
+
+        await rAction.ScheduleAt(
+            functionId.InstanceId.ToString(),
+            "param",
+            delayUntil: DateTime.UtcNow.AddSeconds(1)
+        );
+
+        var sf = await store.GetFunction(functionId).ShouldNotBeNullAsync();
+        sf.Status.ShouldBe(Status.Postponed);
+
+        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        controlPanel.ShouldNotBeNull();
+        await BusyWait.Until(async () =>
+            {
+                await controlPanel.Refresh();
+                return controlPanel.Status == Status.Succeeded;
+            });
+
+        flag.IsRaised.ShouldBeTrue();
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+    public abstract Task ScheduleAtFuncIsCompletedAfterDelay();
+    protected async Task ScheduleAtFuncIsCompletedAfterDelay(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var flag = new SyncedFlag();
+
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                signOfLifeFrequency: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
+            )
+        );
+        var rFunc = rFunctions
+            .RegisterFunc(
+                functionId.TypeId,
+                (string _) =>
+                {
+                    flag.Raise();
+                    return "ok";
+                });
+
+        await rFunc.ScheduleAt(
+            functionId.InstanceId.ToString(),
+            "param",
+            delayUntil: DateTime.UtcNow.AddSeconds(1)
+        );
+
+        var sf = await store.GetFunction(functionId).ShouldNotBeNullAsync();
+        sf.Status.ShouldBe(Status.Postponed);
+
+        var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId);
+        controlPanel.ShouldNotBeNull();
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+        flag.IsRaised.ShouldBeTrue();
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
 }

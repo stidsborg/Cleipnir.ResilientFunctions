@@ -55,7 +55,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 FunctionId = functionId,
                 Param = param,
                 Scrapbook = storedScrapbook,
-                Status = Status.Executing,
+                Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,
                 Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),

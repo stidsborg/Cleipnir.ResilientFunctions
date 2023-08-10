@@ -49,4 +49,12 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
     [TestMethod]
     public override Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp()
         => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task ScheduleAtActionIsCompletedAfterDelay()
+        => ScheduleAtActionIsCompletedAfterDelay(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ScheduleAtFuncIsCompletedAfterDelay()
+        => ScheduleAtFuncIsCompletedAfterDelay(Sql.AutoCreateAndInitializeStore());
 }

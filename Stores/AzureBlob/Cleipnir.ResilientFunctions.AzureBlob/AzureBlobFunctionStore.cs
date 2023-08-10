@@ -68,10 +68,10 @@ public class AzureBlobFunctionStore : IFunctionStore
                 {
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
-                        Status.Executing, 
+                        postponeUntil == null ? Status.Executing : Status.Postponed, 
                         Epoch: 0, 
                         leaseExpiration,
-                        PostponedUntil: null
+                        PostponedUntil: postponeUntil
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { IfNoneMatch = new ETag("*") }
                 }

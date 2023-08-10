@@ -98,11 +98,13 @@ public class MySqlFunctionStore : IFunctionStore
             transaction = await conn.BeginTransactionAsync();
             await _eventStore.AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
         }
+
+        var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until)
             VALUES
-                (?, ?, ?, ?, ?, ?, {(int) Status.Executing}, 0, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?)";
         await using var command = new MySqlCommand(sql, conn, transaction)
         {
             Parameters =
@@ -113,7 +115,8 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = param.ParamType},
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
-                new() {Value = leaseExpiration}
+                new() {Value = leaseExpiration},
+                new() {Value = postponeUntil}
             }
         };
 

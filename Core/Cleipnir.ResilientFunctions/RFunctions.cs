@@ -396,6 +396,7 @@ public class RFunctions : IDisposable
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
+                rFuncInvoker.ScheduleAt,
                 controlPanels,
                 new EventSourceWriters(functionTypeId, _functionStore.EventStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
@@ -549,6 +550,7 @@ public class RFunctions : IDisposable
             var registration = new RAction<TParam, TScrapbook>(
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
+                rActionInvoker.ScheduleAt,
                 controlPanels,
                 new EventSourceWriters(functionTypeId, _functionStore.EventStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke)
             );

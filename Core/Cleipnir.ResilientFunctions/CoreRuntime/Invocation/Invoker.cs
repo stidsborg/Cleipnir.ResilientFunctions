@@ -81,6 +81,29 @@ public class Invoker<TParam, TScrapbook, TReturn>
             finally{ disposables.Dispose(); }
         });
     }
+    
+    public async Task ScheduleAt(string instanceId, TParam param, DateTime scheduleAt, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events = null)
+    {
+        if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
+        {
+            await ScheduleInvoke(instanceId, param, scrapbook, events);
+            return;
+        }
+        
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (created, disposable) = await _invocationHelper.PersistFunctionInStore(
+            functionId,
+            param,
+            scrapbook ?? new TScrapbook(),
+            scheduleAt,
+            events
+        );
+
+        if (!created) return;
+        using var _ = disposable;
+
+        await ScheduleSleepAndThenReInvoke(functionId, scheduleAt, expectedEpoch: 0);
+    }
 
     public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
     {
@@ -178,7 +201,14 @@ public class Invoker<TParam, TScrapbook, TReturn>
             scrapbook ??= new TScrapbook();
             _invocationHelper.InitializeScrapbook(functionId, param, scrapbook, epoch: 0);
 
-            var (persisted, runningFunction) = await _invocationHelper.PersistFunctionInStore(functionId, param, scrapbook, events);
+            var (persisted, runningFunction) = 
+                await _invocationHelper.PersistFunctionInStore(
+                    functionId, 
+                    param, 
+                    scrapbook,
+                    scheduleAt: null,
+                    events
+                );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch: 0));
             
@@ -247,7 +277,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
         {
             case PersistResultReturn.Success:
                 if (result.Outcome == Outcome.Postpone)
-                    _ = SleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
+                    _ = ScheduleSleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
                 InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
                 return;
             case PersistResultReturn.ScheduleReInvocation:
@@ -258,7 +288,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
         }
     }
     
-    private async Task SleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
+    private async Task ScheduleSleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
     {
         var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
         if (delay >= _postponedCheckFrequency) return;

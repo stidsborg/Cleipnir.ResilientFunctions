@@ -32,7 +32,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         _functionStore = functionStore;
     }
 
-    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(FunctionId functionId, TParam param, TScrapbook scrapbook, IEnumerable<EventAndIdempotencyKey>? events)
+    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
+        FunctionId functionId, 
+        TParam param, 
+        TScrapbook scrapbook,
+        DateTime? scheduleAt,
+        IEnumerable<EventAndIdempotencyKey>? events)
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -52,7 +57,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 storedParameter,
                 storedScrapbook,
                 storedEvents,
-                postponeUntil: null,
+                postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: DateTime.UtcNow.Ticks + (2 * _settings.SignOfLifeFrequency.Ticks)
             );
 
