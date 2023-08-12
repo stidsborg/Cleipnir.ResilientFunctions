@@ -17,6 +17,10 @@ public class TimeoutStoreTests : TestTemplates.TimeoutStoreTests
         => ExistingTimeoutCanUpdatedSuccessfully(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 
     [TestMethod]
+    public override Task OverwriteFalseDoesNotAffectExistingTimeout()
+        => OverwriteFalseDoesNotAffectExistingTimeout(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+
+    [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
         => TimeoutStoreCanBeInitializedMultipleTimes(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 }

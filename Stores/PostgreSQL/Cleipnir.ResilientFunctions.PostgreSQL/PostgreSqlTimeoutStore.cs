@@ -47,7 +47,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         return conn;
     }
     
-    public async Task UpsertTimeout(StoredTimeout storedTimeout)
+    public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
@@ -58,6 +58,14 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
                 ($1, $2, $3, $4) 
             ON CONFLICT (function_type_id, function_instance_id, timeout_id) 
             DO UPDATE SET expires = EXCLUDED.expires";
+        
+        if (!overwrite)
+            sql = @$"
+                INSERT INTO {_tablePrefix}rfunctions_timeouts 
+                    (function_type_id, function_instance_id, timeout_id, expires)
+                VALUES
+                    ($1, $2, $3, $4) 
+                ON CONFLICT DO NOTHING";
         
         await using var command = new NpgsqlCommand(sql, conn)
         {

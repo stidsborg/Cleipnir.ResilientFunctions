@@ -17,7 +17,7 @@ public class AzureBlobTimeoutStore : ITimeoutStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public async Task UpsertTimeout(StoredTimeout storedTimeout)
+    public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         var blobName = functionId.GetTimeoutBlobName(timeoutId);
@@ -31,7 +31,8 @@ public class AzureBlobTimeoutStore : ITimeoutStore
                 {
                     { "FunctionType", functionId.TypeId.Value }, 
                     { "TimeoutExpires", expiry.ToString() }
-                } 
+                }, 
+                Conditions = overwrite ? null : new BlobRequestConditions { IfNoneMatch = new ETag("*") }
             }
         );
     }

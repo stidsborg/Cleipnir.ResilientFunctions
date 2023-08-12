@@ -38,7 +38,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task UpsertTimeout(StoredTimeout storedTimeout)
+    public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
@@ -49,6 +49,13 @@ public class MySqlTimeoutStore : ITimeoutStore
                 (?, ?, ?, ?) 
            ON DUPLICATE KEY UPDATE
                 expires = ?";
+        
+        if (!overwrite)
+            sql = @$"
+                INSERT IGNORE INTO {_tablePrefix}rfunctions_timeouts 
+                    (function_type_id, function_instance_id, timeout_id, expires)
+                VALUES
+                    (?, ?, ?, ?)";
         
         await using var command = new MySqlCommand(sql, conn)
         {

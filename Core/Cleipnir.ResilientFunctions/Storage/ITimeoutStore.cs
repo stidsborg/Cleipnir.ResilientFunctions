@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public interface ITimeoutStore
 {
     Task Initialize();
-    Task UpsertTimeout(StoredTimeout storedTimeout);
+    Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite);
     Task RemoveTimeout(FunctionId functionId, string timeoutId);
     Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore);
 }

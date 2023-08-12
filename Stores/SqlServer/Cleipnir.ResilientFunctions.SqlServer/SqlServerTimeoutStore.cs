@@ -45,7 +45,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task UpsertTimeout(StoredTimeout storedTimeout)
+    public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
@@ -58,7 +58,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
             BEGIN
                 UPDATE {_tablePrefix}RFunctions_Timeouts
                 SET Expires = @Expiry
-                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId = @TimeoutId
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId = @TimeoutId AND @Overwrite = 1
             END
             ELSE
             BEGIN                
@@ -72,6 +72,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         command.Parameters.AddWithValue("@Expiry", expiry);
+        command.Parameters.AddWithValue("@Overwrite", overwrite ? 1 : 2);
         await command.ExecuteNonQueryAsync();
     }
 

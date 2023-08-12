@@ -13,12 +13,13 @@ public class InMemoryTimeoutStore : ITimeoutStore
     
     public Task Initialize() => Task.CompletedTask;
 
-    public Task UpsertTimeout(StoredTimeout storedTimeout)
+    public Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var ((functionTypeId, functionInstanceId), timeoutId, expiry) = storedTimeout;
         var key = new Key(functionTypeId.Value, functionInstanceId.Value, timeoutId);
         lock (_sync)
-            _timeouts[key] = expiry;
+            if (!_timeouts.ContainsKey(key) || overwrite)
+                _timeouts[key] = expiry;
 
         return Task.CompletedTask;
     }
