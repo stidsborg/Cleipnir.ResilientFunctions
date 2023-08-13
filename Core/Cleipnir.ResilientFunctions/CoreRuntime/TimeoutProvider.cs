@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
@@ -14,20 +15,21 @@ public interface ITimeoutProvider
     Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false);
     Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false);
     Task CancelTimeout(string timeoutId);
+    Task<List<TimeoutEvent>> PendingTimeouts();
 }
 
 public class TimeoutProvider : ITimeoutProvider
 {
     private readonly ITimeoutStore _timeoutStore;
     
-    private readonly EventSourceWriter _eventSourceWriter;
+    private readonly EventSourceWriter? _eventSourceWriter;
     private readonly TimeSpan _timeoutCheckFrequency;
     private readonly HashSet<string> _localTimeouts = new();
     private readonly object _sync = new();
 
     private readonly FunctionId _functionId;
 
-    public TimeoutProvider(FunctionId functionId, ITimeoutStore timeoutStore, EventSourceWriter eventSourceWriter, TimeSpan timeoutCheckFrequency)
+    public TimeoutProvider(FunctionId functionId, ITimeoutStore timeoutStore, EventSourceWriter? eventSourceWriter, TimeSpan timeoutCheckFrequency)
     {
         _timeoutStore = timeoutStore;
         _eventSourceWriter = eventSourceWriter;
@@ -44,6 +46,8 @@ public class TimeoutProvider : ITimeoutProvider
 
     private async Task RegisterLocalTimeout(string timeoutId, DateTime expiresAt)
     {
+        if (_eventSourceWriter == null) return;
+        
         var expiresIn = expiresAt - DateTime.UtcNow; 
         if (expiresIn > _timeoutCheckFrequency) return;
 
@@ -72,5 +76,16 @@ public class TimeoutProvider : ITimeoutProvider
             _localTimeouts.Remove(timeoutId); 
         
         await _timeoutStore.RemoveTimeout(_functionId, timeoutId);   
+    }
+
+    public async Task<List<TimeoutEvent>> PendingTimeouts()
+    {
+        var timeouts = await _timeoutStore
+            .GetTimeouts(_functionId.TypeId.ToString(), expiresBefore: long.MaxValue);
+
+        return timeouts
+            .Where(t => t.FunctionId == _functionId)
+            .Select(t => new TimeoutEvent(t.TimeoutId, Expiration: new DateTime(t.Expiry).ToUniversalTime()))
+            .ToList();
     }
 }

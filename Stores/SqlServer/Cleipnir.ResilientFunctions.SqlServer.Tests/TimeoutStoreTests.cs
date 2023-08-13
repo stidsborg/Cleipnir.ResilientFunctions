@@ -20,6 +20,10 @@ public class TimeoutStoreTests : ResilientFunctions.Tests.TestTemplates.TimeoutS
         => TimeoutStoreCanBeInitializedMultipleTimes(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
     
     [TestMethod]
+    public override Task RegisteredTimeoutIsReturnedFromTimeoutProvider()
+        => RegisteredTimeoutIsReturnedFromTimeoutProvider(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+    
+    [TestMethod]
     public override Task OverwriteFalseDoesNotAffectExistingTimeout()
         => OverwriteFalseDoesNotAffectExistingTimeout(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
 }

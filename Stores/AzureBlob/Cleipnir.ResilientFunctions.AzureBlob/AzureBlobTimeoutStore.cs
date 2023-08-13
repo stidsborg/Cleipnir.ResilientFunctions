@@ -23,18 +23,26 @@ public class AzureBlobTimeoutStore : ITimeoutStore
         var blobName = functionId.GetTimeoutBlobName(timeoutId);
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
-        await blobClient.UploadAsync(
-            content: new BinaryData(expiry.ToString()),
-            options: new BlobUploadOptions
-            {
-                Tags = new Dictionary<string, string>
+        try
+        {
+            await blobClient.UploadAsync(
+                content: new BinaryData(expiry.ToString()),
+                options: new BlobUploadOptions
                 {
-                    { "FunctionType", functionId.TypeId.Value }, 
-                    { "TimeoutExpires", expiry.ToString() }
-                }, 
-                Conditions = overwrite ? null : new BlobRequestConditions { IfNoneMatch = new ETag("*") }
-            }
-        );
+                    Tags = new Dictionary<string, string>
+                    {
+                        { "FunctionType", functionId.TypeId.Value },
+                        { "TimeoutExpires", expiry.ToString() }
+                    },
+                    Conditions = overwrite ? null : new BlobRequestConditions { IfNoneMatch = new ETag("*") }
+                }
+            );
+        } catch (RequestFailedException e)
+        {
+            if (e.ErrorCode == "BlobAlreadyExists") return;
+            
+            throw;
+        }
     }
 
     public async Task RemoveTimeout(FunctionId functionId, string timeoutId)

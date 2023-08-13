@@ -467,4 +467,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     
     public async Task<ExistingEvents> GetExistingEvents(FunctionId functionId) 
         => new ExistingEvents(await GetEvents(functionId));
+
+    public ITimeoutProvider CreateTimeoutProvider(FunctionId functionId)
+        => new TimeoutProvider(
+            functionId,
+            _functionStore.TimeoutStore,
+            eventSourceWriter: null,
+            timeoutCheckFrequency: TimeSpan.Zero
+        );
 }

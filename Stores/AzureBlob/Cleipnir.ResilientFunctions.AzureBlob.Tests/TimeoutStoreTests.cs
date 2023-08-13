@@ -20,6 +20,10 @@ public class TimeoutStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => OverwriteFalseDoesNotAffectExistingTimeout(FunctionStoreFactory.FunctionStore.TimeoutStore.ToTask());
 
     [TestMethod]
+    public override Task RegisteredTimeoutIsReturnedFromTimeoutProvider()
+        => RegisteredTimeoutIsReturnedFromTimeoutProvider(FunctionStoreFactory.FunctionStore.TimeoutStore.ToTask());
+
+    [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
         => TimeoutStoreCanBeInitializedMultipleTimes(FunctionStoreFactory.FunctionStore.TimeoutStore.ToTask());
 }

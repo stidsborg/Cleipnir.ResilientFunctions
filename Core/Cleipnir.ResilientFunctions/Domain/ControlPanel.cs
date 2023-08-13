@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -46,6 +47,8 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
 
+    public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
+    
     private TParam _param;
     public TParam Param
     {
@@ -224,11 +227,12 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
-    public long SignOfLifeFrequency { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
     
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
+
+    public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
 
     private TParam _param;
     public TParam Param
