@@ -359,21 +359,36 @@ public class MySqlFunctionStore : IFunctionStore
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ?";
-        
-        var command = new MySqlCommand(sql, conn, transaction)
-        {
-            Parameters =
+
+        var command = transaction == null
+            ? new MySqlCommand(sql, conn)
             {
-                new() { Value = storedParameter.ParamJson },
-                new() { Value = storedParameter.ParamType },
-                new() { Value = storedScrapbook.ScrapbookJson },
-                new() { Value = storedScrapbook.ScrapbookType },
-                new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
+                Parameters =
+                {
+                    new() { Value = storedParameter.ParamJson },
+                    new() { Value = storedParameter.ParamType },
+                    new() { Value = storedScrapbook.ScrapbookJson },
+                    new() { Value = storedScrapbook.ScrapbookType },
+                    new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedEpoch },
+                }
             }
-        };
+            : new MySqlCommand(sql, conn, transaction)
+            {
+                Parameters =
+                {
+                    new() { Value = storedParameter.ParamJson },
+                    new() { Value = storedParameter.ParamType },
+                    new() { Value = storedScrapbook.ScrapbookJson },
+                    new() { Value = storedScrapbook.ScrapbookType },
+                    new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedEpoch },
+                }
+            };
         await using var _ = command;
         var affectedRows = await command.ExecuteNonQueryAsync();
         if (affectedRows == 0 || transaction == null)
@@ -384,7 +399,7 @@ public class MySqlFunctionStore : IFunctionStore
         if (affectedRows != existingCount)
             return false;
         
-        await _eventStore.AppendEvents(functionId, storedEvents!, existingCount, conn, transaction);
+        await _eventStore.AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
 
         await transaction.CommitAsync();
         return true;
