@@ -113,4 +113,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
         => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
+        => FunctionStatusAndEpochCanBeSuccessfullyFetched(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

@@ -131,6 +131,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<SuspensionResult>(new TimeoutException())
             : _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, expectedEpoch, complementaryState);
 
+    public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+        => _crashed
+            ? Task.FromException<StatusAndEpoch?>(new TimeoutException())
+            : _inner.GetFunctionStatus(functionId);
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _crashed
             ? Task.FromException<StoredFunction?>(new TimeoutException())

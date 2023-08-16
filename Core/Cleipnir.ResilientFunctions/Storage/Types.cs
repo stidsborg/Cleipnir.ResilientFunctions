@@ -32,6 +32,7 @@ public record StoredResult(string? ResultJson, string? ResultType)
 public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record ReplaceEvents(IEnumerable<StoredEvent> Events, int ExistingCount);
+public record StatusAndEpoch(Status Status, int Epoch);
 
 internal static class StorageTypeExtensions
 {

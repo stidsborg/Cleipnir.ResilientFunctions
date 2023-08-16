@@ -121,4 +121,8 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
     [TestMethod]
     public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
         => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(FunctionStore.CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
+        => FunctionStatusAndEpochCanBeSuccessfullyFetched(FunctionStore.CastTo<IFunctionStore>().ToTask());
 }

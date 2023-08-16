@@ -80,6 +80,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, expectedEpoch, complementaryState);
 
+    public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+        => _inner.GetFunctionStatus(functionId);
+
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _inner.GetFunction(functionId);
 

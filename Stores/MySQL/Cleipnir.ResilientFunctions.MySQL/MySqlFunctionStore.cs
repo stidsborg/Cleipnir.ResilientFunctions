@@ -500,6 +500,34 @@ public class MySqlFunctionStore : IFunctionStore
             : SuspensionResult.EventCountMismatch;
     }
 
+    public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        var sql = $@"
+            SELECT status, epoch
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = ? AND function_instance_id = ?;";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters = { 
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        
+        while (await reader.ReadAsync())
+        {
+            return new StatusAndEpoch(
+                Status: (Status) reader.GetInt32(0),
+                Epoch: reader.GetInt32(1)
+            );
+        }
+
+        return null;
+    }
+
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

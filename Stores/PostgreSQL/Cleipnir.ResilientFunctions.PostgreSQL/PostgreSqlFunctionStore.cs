@@ -522,6 +522,33 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 : SuspensionResult.EventCountMismatch;
     }
 
+    public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            SELECT status, epoch
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = $1 AND function_instance_id = $2;";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters = { 
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            return new StatusAndEpoch(
+                (Status) reader.GetInt32(0),
+                Epoch: reader.GetInt32(1)
+            );
+        }
+
+        return null;
+    }
+
     public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateConnection();

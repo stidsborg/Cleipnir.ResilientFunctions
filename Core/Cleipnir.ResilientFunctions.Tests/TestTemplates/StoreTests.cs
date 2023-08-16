@@ -857,4 +857,40 @@ public abstract class StoreTests
         events[0].DefaultDeserialize().ShouldBe("Hello");
         events[1].DefaultDeserialize().ShouldBe("World");
     }
+    
+    public abstract Task FunctionStatusAndEpochCanBeSuccessfullyFetched();
+    public async Task FunctionStatusAndEpochCanBeSuccessfullyFetched(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new Scrapbook { State = "initial" }.ToJson(), typeof(Scrapbook).SimpleQualifiedName());
+        await store.CreateFunction(
+            functionId,
+            storedParameter,
+            storedScrapbook,
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
+        ).ShouldBeTrueAsync();
+
+        await store.SetFunctionState(
+            functionId,
+            Status.Succeeded,
+            storedParameter,
+            storedScrapbook,
+            new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
+            storedException: null,
+            postponeUntil: null,
+            events: null,
+            expectedEpoch: 0
+        ).ShouldBeTrueAsync();
+
+        await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
+
+        var (status, epoch) = await store.GetFunctionStatus(functionId).ShouldNotBeNullAsync();
+        status.ShouldBe(Status.Succeeded);
+        epoch.ShouldBe(1);
+    }
 }

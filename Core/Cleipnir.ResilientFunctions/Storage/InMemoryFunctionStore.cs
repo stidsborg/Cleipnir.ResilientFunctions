@@ -299,6 +299,18 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
+    public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId))
+                return Task.FromResult(default(StatusAndEpoch));
+
+            var state = _states[functionId];
+            return ((StatusAndEpoch?) new StatusAndEpoch(state.Status, state.Epoch)).ToTask();
+        }
+    }
+
     public virtual Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         lock (_sync)

@@ -673,6 +673,14 @@ public class AzureBlobFunctionStore : IFunctionStore
         return SuspensionResult.Success;
     }
 
+    public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+    {
+        var sf = await GetFunction(functionId);
+        if (sf == null) return null;
+        
+        return new StatusAndEpoch(sf.Status, sf.Epoch);
+    }
+
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         var blobName = functionId.GetStateBlobName();

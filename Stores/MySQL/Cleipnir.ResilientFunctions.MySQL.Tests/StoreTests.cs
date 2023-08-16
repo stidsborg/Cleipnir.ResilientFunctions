@@ -102,4 +102,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
         => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
+        => FunctionStatusAndEpochCanBeSuccessfullyFetched(Sql.AutoCreateAndInitializeStore());
 }
