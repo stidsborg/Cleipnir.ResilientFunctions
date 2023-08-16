@@ -25,7 +25,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
             CREATE TABLE {_tablePrefix}RFunctions_Timeouts (
                 FunctionTypeId NVARCHAR(255),
                 FunctionInstanceId NVARCHAR(255),
-                TimeoutId VARCHAR(255),
+                TimeoutId NVARCHAR(255),
                 Expires BIGINT,          
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId, TimeoutId)
             );";
