@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
@@ -15,6 +13,7 @@ public class EventSourceWriter
     private readonly IEventStore _eventStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
+    private static Status[] SuspendedOrPostponed { get; } = { Status.Suspended, Status.Postponed }; 
 
     public EventSourceWriter(FunctionId functionId, IEventStore eventStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
     {
@@ -38,7 +37,7 @@ public class EventSourceWriter
             await _scheduleReInvocation(
                 _functionId.InstanceId.Value,
                 expectedEpoch: epoch!.Value,
-                expectedStatuses: Status.Suspended //todo add Status.Suspending
+                expectedStatuses: SuspendedOrPostponed
             );
     }
 
@@ -58,7 +57,7 @@ public class EventSourceWriter
             await _scheduleReInvocation(
                 _functionId.InstanceId.Value,
                 expectedEpoch: epoch!.Value,
-                expectedStatuses: Status.Suspended //todo add Status.Suspending here
+                expectedStatuses: SuspendedOrPostponed
             );
     } 
 
