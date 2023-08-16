@@ -803,6 +803,9 @@ public abstract class ControlPanelTests
         await controlPanel.ReInvoke();
 
         syncedList.ShouldNotBeNull();
+        if (syncedList.Count != 2)
+            throw new Exception("Excepted only 2 events - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'")));
+        
         syncedList.Count.ShouldBe(2);
         syncedList[0].ShouldBe("hello to you");
         syncedList[1].ShouldBe("hello from me");
