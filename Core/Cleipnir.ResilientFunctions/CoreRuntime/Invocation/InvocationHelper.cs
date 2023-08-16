@@ -435,7 +435,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     {
         async Task<EventSource> CreateNewEventSource()
         {
-            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore.EventStore, Serializer, scheduleReInvocation);
+            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
             var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutCheckFrequency); 
             var eventSource = new EventSource(
                 functionId,

@@ -29,4 +29,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
         => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
+    public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
+        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(Sql.AutoCreateAndInitializeStore());
 }

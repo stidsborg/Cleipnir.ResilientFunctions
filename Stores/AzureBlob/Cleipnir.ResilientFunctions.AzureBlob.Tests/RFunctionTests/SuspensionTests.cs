@@ -19,6 +19,10 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
         => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
+    public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
+        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(FunctionStoreFactory.FunctionStoreTask);
+
+    [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(FunctionStoreFactory.FunctionStoreTask);
     

@@ -39,7 +39,7 @@ internal static class WatchDogsFactory
 
         var eventSourceWriters = new EventSourceWriters(
             functionTypeId,
-            functionStore.EventStore,
+            functionStore,
             settings.Serializer,
             scheduleReInvocation: (id, epoch, status) => reInvoke(id, epoch, status)
         );

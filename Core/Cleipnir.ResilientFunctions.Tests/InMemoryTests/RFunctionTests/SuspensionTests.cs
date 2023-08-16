@@ -23,6 +23,12 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         );
 
     [TestMethod]
+    public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
+        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(
+            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+        );
+
+    [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(
             new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()

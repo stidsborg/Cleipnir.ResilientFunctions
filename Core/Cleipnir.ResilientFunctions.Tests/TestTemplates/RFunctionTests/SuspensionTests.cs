@@ -111,6 +111,47 @@ public abstract class SuspensionTests
         await BusyWait.UntilAsync(() => invocations == 2);
     }
     
+    public abstract Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource();
+    protected async Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var invocations = 0;
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            Result<string>(string _) =>
+            {
+                if (invocations == 0)
+                {
+                    invocations++;
+                    return Postpone.For(TimeSpan.FromHours(1));
+                }
+
+                invocations++;
+                return Result.SucceedWithValue("completed");
+            });
+
+        await Should.ThrowAsync<FunctionInvocationPostponedException>(
+            () => rFunc.Invoke(functionInstanceId.Value, "hello world")
+        );
+
+        await Task.Delay(250);
+
+        var eventSourceWriter = rFunc.EventSourceWriters.For(functionInstanceId); 
+        await eventSourceWriter.AppendEvent("hello multiverse");
+
+        await BusyWait.UntilAsync(() => invocations == 2);
+    }
+    
     public abstract Task EligibleSuspendedFunctionIsPickedUpByWatchdog();
     protected async Task EligibleSuspendedFunctionIsPickedUpByWatchdog(Task<IFunctionStore> storeTask)
     {

@@ -29,7 +29,7 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -63,7 +63,7 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -97,7 +97,7 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -138,7 +138,7 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -181,7 +181,7 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -218,7 +218,7 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
@@ -267,12 +267,12 @@ public abstract class EventSourcesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore.EventStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
             functionStore.EventStore,
             new EventSourceWriter(
-                functionId, functionStore.EventStore, 
+                functionId, functionStore, 
                 new ExceptionThrowingEventSerializer(typeof(int)), 
                 scheduleReInvocation: (_, _, _) => Task.CompletedTask
             ),

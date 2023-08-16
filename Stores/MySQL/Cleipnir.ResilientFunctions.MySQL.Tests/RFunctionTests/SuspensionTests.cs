@@ -18,6 +18,10 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
         => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(Sql.AutoCreateAndInitializeStore());
 
     [TestMethod]
+    public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
+        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(Sql.AutoCreateAndInitializeStore());
     
