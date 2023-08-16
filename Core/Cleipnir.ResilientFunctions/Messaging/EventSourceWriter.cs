@@ -38,7 +38,7 @@ public class EventSourceWriter
             await _scheduleReInvocation(
                 _functionId.InstanceId.Value,
                 expectedEpoch: epoch!.Value,
-                expectedStatus: Status.Suspended
+                expectedStatuses: Status.Suspended //todo add Status.Suspending
             );
     }
 
@@ -58,7 +58,7 @@ public class EventSourceWriter
             await _scheduleReInvocation(
                 _functionId.InstanceId.Value,
                 expectedEpoch: epoch!.Value,
-                expectedStatus: Status.Suspended
+                expectedStatuses: Status.Suspended //todo add Status.Suspending here
             );
     } 
 

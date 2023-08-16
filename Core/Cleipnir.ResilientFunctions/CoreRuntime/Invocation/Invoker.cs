@@ -123,10 +123,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
     
-    public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch, Status expectedStatus)
+    public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch, params Status[] expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
         using var _ = disposables;
 
         Result<TReturn> result;
@@ -165,10 +165,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
         });
     }
     
-    public async Task ScheduleReInvoke(string instanceId, int expectedEpoch, Status expectedStatus)
+    public async Task ScheduleReInvoke(string instanceId, int expectedEpoch, params Status[] expectedStatuses)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
+        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
 
         _ = Task.Run(async () =>
         {
@@ -234,13 +234,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
     }
     private record PreparedInvocation(bool Persisted, TScrapbook Scrapbook, Context Context, IDisposable Disposables);
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch, Status? expectedStatus = null)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch, Status[]? expectedStatuses = null)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
             var (param, epoch, scrapbook, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatus);
+                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
             var context = new Context(
