@@ -287,19 +287,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}"] = exceptionStackTrace;
             stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
         }
-
-        if (status == Status.Suspended)
-        {
-            var epoch = incrementEpoch ? expectedEpoch + 1 : expectedEpoch;
-            if (incrementEpoch)
-                stateDictionary["SuspendedAtEpoch"] = epoch.ToString();
-            else
-                stateDictionary["SuspendedAtEpoch"] = expectedEpoch.ToString();
-            
-            if (forceSetSuspendedTagIfSuspended)
-                await _eventStore.ForceSetSuspendedAtEpochTag(functionId, epoch, leaseId: null);
-        }
-
+        
         var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
 
         try
@@ -399,13 +387,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     exceptionStackTrace;
                 stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
             }
-
-            if (status == Status.Suspended)
-            {
-                stateDictionary[nameof(StoredFunction.SuspendedAtEpoch)] = (expectedEpoch + 1).ToString();
-                await _eventStore.ForceSetSuspendedAtEpochTag(functionId, epoch: expectedEpoch + 1, leaseId: eventsLeaseId);
-            }
-
+            
             var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
             await stateBlobClient.UploadAsync(
                 new BinaryData(content),
@@ -650,25 +632,58 @@ public class AzureBlobFunctionStore : IFunctionStore
 
     public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
-        var suspensionResult = await _eventStore.SetSuspendedAtEpochTag(functionId, expectedEpoch, expectedEventCount);
-        if (suspensionResult is SuspensionResult.ConcurrentStateModification or SuspensionResult.EventCountMismatch)
-            return suspensionResult;
-
-        var success = await SetFunctionStateWithoutEvents(
+        var success = await PostponeFunction(
             functionId,
-            Status.Suspended,
-            complimentaryState.StoredParameter,
-            complimentaryState.StoredScrapbook,
-            storedResult: new StoredResult(ResultJson: default, ResultType: default),
-            storedException: null,
-            postponeUntil: null,
-            expectedEpoch: expectedEpoch,
-            incrementEpoch: false,
-            forceSetSuspendedTagIfSuspended: false
+            postponeUntil: DateTime.UtcNow.AddMinutes(1).Ticks,
+            _: string.Empty,
+            expectedEpoch,
+            complimentaryState
         );
-
         if (!success)
             return SuspensionResult.ConcurrentStateModification;
+
+        var events = await EventStore.GetEvents(functionId);
+        if (events.Count() != expectedEventCount)
+            return SuspensionResult.EventCountMismatch;
+
+        var blobName = functionId.GetStateBlobName();
+        var blobClient = _blobContainerClient.GetBlobClient(blobName);
+        
+        var ((paramJson, paramType), (_, scrapbookType)) = complimentaryState;
+        
+        var content = SimpleDictionaryMarshaller.Serialize(
+            new Dictionary<string, string?>
+            {
+                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", paramType },
+                { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+            }
+        );
+
+        try
+        {
+            await blobClient.UploadAsync( 
+                new BinaryData(content),
+                new BlobUploadOptions
+                {
+                    Tags = new RfTags(
+                        functionId.TypeId.Value, 
+                        Status.Suspended, 
+                        Epoch: expectedEpoch, 
+                        LeaseExpiration: DateTime.UtcNow.Ticks,
+                        PostponedUntil: null
+                    ).ToDictionary(),
+                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
+                }
+            );    
+        } catch (RequestFailedException e)
+        {
+            if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
+                throw;
+
+            return SuspensionResult.ConcurrentStateModification;
+        }
         
         return SuspensionResult.Success;
     }
@@ -755,11 +770,6 @@ public class AzureBlobFunctionStore : IFunctionStore
             );
         }
 
-        var suspendedAtEpoch =
-            dictionary.ContainsKey(nameof(StoredFunction.SuspendedAtEpoch))
-                ? int.Parse(dictionary[nameof(StoredFunction.SuspendedAtEpoch)]!)
-                : default(int?);
-
         return new StoredFunction(
             functionId,
             storedParameter,
@@ -767,8 +777,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             rfTags.Status,
             storedResult,
             Exception: storedException,
-            PostponedUntil: rfTags.PostponedUntil,  
-            SuspendedAtEpoch: suspendedAtEpoch,
+            PostponedUntil: rfTags.PostponedUntil,
             Epoch: rfTags.Epoch,
             LeaseExpiration: rfTags.LeaseExpiration
         );

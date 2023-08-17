@@ -65,7 +65,6 @@ public class SqlServerFunctionStore : IFunctionStore
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
                 LeaseExpiration BIGINT NOT NULL,
-                SuspendedAtEpoch INT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
             CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
@@ -75,11 +74,7 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
                 ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
                 INCLUDE (Epoch)
-                WHERE Status = {(int)Status.Postponed};
-            CREATE INDEX {_tablePrefix}RFunctions_idx_Suspended
-                ON {_tablePrefix}RFunctions (FunctionTypeId, FunctionInstanceId)
-                INCLUDE (Epoch)
-                WHERE Status = {(int)Status.Suspended};";
+                WHERE Status = {(int)Status.Postponed};";
 
         await using var command = new SqlCommand(sql, conn);
         try
@@ -313,7 +308,6 @@ public class SqlServerFunctionStore : IFunctionStore
                 ResultJson = @ResultJson, ResultType = @ResultType,
                 ExceptionJson = @ExceptionJson,
                 PostponedUntil = @PostponedUntil,
-                SuspendedAtEpoch = @SuspendedAtEpoch,
                 Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
@@ -330,7 +324,6 @@ public class SqlServerFunctionStore : IFunctionStore
         var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
         command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@PostponedUntil", postponeUntil ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@SuspendedAtEpoch", status == Status.Suspended ? expectedEpoch + 1 : DBNull.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -387,7 +380,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET ParamJson = @ParamJson, ParamType = @ParamType, ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType, SuspendedAtEpoch = @SuspendedAtEpoch, Epoch = Epoch + 1
+            SET ParamJson = @ParamJson, ParamType = @ParamType, ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType, Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(sql, conn, transaction);
@@ -395,7 +388,6 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
         command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
         command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
-        command.Parameters.AddWithValue("@SuspendedAtEpoch", suspended ? expectedEpoch + 1 : DBNull.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -467,14 +459,13 @@ public class SqlServerFunctionStore : IFunctionStore
             
             var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Suspended}, SuspendedAtEpoch = @SuspendedAtEpoch, ScrapbookJson = @ScrapbookJson
+            SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson
             WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
             AND FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
 
             await using var command = new SqlCommand(sql, conn, transaction);
-            command.Parameters.AddWithValue("@SuspendedAtEpoch", expectedEpoch);
             command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
@@ -562,7 +553,6 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultJson, ResultType,
                     ExceptionJson,
                     PostponedUntil,
-                    SuspendedAtEpoch,
                     Epoch, 
                     LeaseExpiration
             FROM {_tablePrefix}RFunctions
@@ -590,9 +580,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
-                var suspendedAtEpoch = reader.IsDBNull(9) ? default(int?) : reader.GetInt32(9);
-                var epoch = reader.GetInt32(10);
-                var leaseExpiration = reader.GetInt64(11);
+                var epoch = reader.GetInt32(9);
+                var leaseExpiration = reader.GetInt64(10);
 
                 return new StoredFunction(
                     functionId,
@@ -602,7 +591,6 @@ public class SqlServerFunctionStore : IFunctionStore
                     new StoredResult(resultJson, resultType),
                     storedException,
                     postponedUntil,
-                    suspendedAtEpoch,
                     epoch,
                     leaseExpiration
                 );

@@ -60,7 +60,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type VARCHAR(255) NULL,
                 exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
-                suspended_at_epoch INT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 lease_expiration BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
@@ -74,11 +73,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ON {_tablePrefix}rfunctions(function_type_id, postponed_until, function_instance_id)
             INCLUDE (epoch)
             WHERE status = {(int) Status.Postponed};
-
-            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_suspended
-            ON {_tablePrefix}rfunctions(function_type_id, function_instance_id)
-            INCLUDE (epoch)
-            WHERE status = {(int) Status.Suspended};
             ";
 
         await using var command = new NpgsqlCommand(sql, conn);
@@ -299,12 +293,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 scrapbook_json = $4, scrapbook_type = $5, 
                 result_json = $6, result_type = $7, 
                 exception_json = $8, postponed_until = $9,
-                suspended_at_epoch = $10,
                 epoch = epoch + 1
             WHERE 
-                function_type_id = $11 AND 
-                function_instance_id = $12 AND 
-                epoch = $13";
+                function_type_id = $10 AND 
+                function_instance_id = $11 AND 
+                epoch = $12";
         await using var command = new NpgsqlCommand(sql, conn, transaction)
         {
             Parameters =
@@ -318,7 +311,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
-                new() {Value = status == Status.Suspended ? expectedEpoch + 1 : DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -388,8 +380,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, suspended_at_epoch = $5, epoch = epoch + 1
-            WHERE function_type_id = $6 AND function_instance_id = $7 AND epoch = $8";
+            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, epoch = epoch + 1
+            WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
         
         var command = new NpgsqlCommand(sql, conn, transaction)
         {
@@ -399,7 +391,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = storedParameter.ParamType },
                 new() { Value = storedScrapbook.ScrapbookJson },
                 new() { Value = storedScrapbook.ScrapbookType },
-                new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -487,17 +478,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, suspended_at_epoch = $1, scrapbook_json = $2
+            SET status = {(int) Status.Suspended}, scrapbook_json = $1
             WHERE             
-                function_type_id = $3 AND 
-                function_instance_id = $4 AND 
-                epoch = $5 AND
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $6 AND function_instance_id = $7) = $8";
+                function_type_id = $2 AND 
+                function_instance_id = $3 AND 
+                epoch = $4 AND
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $5 AND function_instance_id = $6) = $7";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = expectedEventCount },
                 new() { Value = scrapbookJson },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
@@ -589,7 +579,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_type,
                 exception_json,
                 postponed_until,
-                suspended_at_epoch,
                 epoch, 
                 lease_expiration
             FROM {_tablePrefix}rfunctions
@@ -609,7 +598,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasException = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
-            var suspendedAtEpoch = !await reader.IsDBNullAsync(9);
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
@@ -621,9 +609,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ),
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(7)),
                 postponedUntil ? reader.GetInt64(8) : null,
-                suspendedAtEpoch ? reader.GetInt32(9) : null,
-                Epoch: reader.GetInt32(10),
-                LeaseExpiration: reader.GetInt64(11)
+                Epoch: reader.GetInt32(9),
+                LeaseExpiration: reader.GetInt64(10)
             );
         }
 

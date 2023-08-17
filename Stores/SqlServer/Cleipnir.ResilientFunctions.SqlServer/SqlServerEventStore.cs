@@ -62,7 +62,7 @@ public class SqlServerEventStore : IEventStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public async Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
     {
         await using var conn = await CreateConnection();
         await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -92,10 +92,10 @@ public class SqlServerEventStore : IEventStore
         return await GetSuspensionStatus(functionId);
     }
 
-    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public async Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         await using var conn = await CreateConnection();
         await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
@@ -238,11 +238,11 @@ public class SqlServerEventStore : IEventStore
         return conn;
     }
     
-    private async Task<SuspensionStatus> GetSuspensionStatus(FunctionId functionId)
+    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
-            SELECT SuspendedAtEpoch, Status
+            SELECT Epoch, Status
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         await using var command = new SqlCommand(sql, conn);
@@ -252,9 +252,9 @@ public class SqlServerEventStore : IEventStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var epoch = reader.IsDBNull(0) ? default(int?) : reader.GetInt32(0);
+            var epoch = reader.GetInt32(0);
             var status = (Status) reader.GetInt32(1);
-            return new SuspensionStatus(Suspended: status == Status.Suspended, Epoch: epoch);
+            return new FunctionStatus(status, epoch);
         }
         
         throw new ConcurrentModificationException(functionId);

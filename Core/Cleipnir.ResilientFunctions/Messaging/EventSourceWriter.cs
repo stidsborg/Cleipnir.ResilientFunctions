@@ -52,7 +52,7 @@ public class EventSourceWriter
 
     public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
     {
-        var (suspended, epoch) = await _eventStore.AppendEvents(
+        var (status, epoch) = await _eventStore.AppendEvents(
             _functionId,
             storedEvents: events.Select(eventAndIdempotencyKey =>
             {
@@ -62,10 +62,10 @@ public class EventSourceWriter
             })
         );
 
-        if (suspended)
+        if (status is Status.Suspended or Status.Postponed)
             await _scheduleReInvocation(
                 _functionId.InstanceId.Value,
-                expectedEpoch: epoch!.Value,
+                expectedEpoch: epoch,
                 expectedStatuses: SuspendedOrPostponed
             );
     } 

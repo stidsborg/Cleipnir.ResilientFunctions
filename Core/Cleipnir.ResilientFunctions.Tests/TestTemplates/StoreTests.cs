@@ -795,11 +795,11 @@ public abstract class StoreTests
 
         await Task.Delay(500);
 
-        var suspensionStatus = await store.EventStore.AppendEvents(
+        var functionStatus = await store.EventStore.AppendEvents(
             functionId,
             storedEvents: new[] { new StoredEvent("hello world".ToJson(), EventType: typeof(string).SimpleQualifiedName()) }
         );
-        suspensionStatus.Suspended.ShouldBeTrue();
+        functionStatus.Status.ShouldBe(Status.Suspended);
     }
     
     public abstract Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch();

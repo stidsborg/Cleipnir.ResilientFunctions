@@ -13,7 +13,6 @@ public record StoredFunction(
     StoredResult Result,
     StoredException? Exception,
     long? PostponedUntil,
-    int? SuspendedAtEpoch,
     int Epoch,
     long LeaseExpiration
 );

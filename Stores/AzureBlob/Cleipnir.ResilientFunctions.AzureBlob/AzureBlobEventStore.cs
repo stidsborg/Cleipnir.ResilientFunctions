@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Text;
+﻿using System.Text;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -8,7 +7,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
@@ -23,13 +21,13 @@ public class AzureBlobEventStore : IEventStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
         => AppendEvents(functionId, storedEvents: new[] { storedEvent });
 
-    public Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public async Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         var marshalledString = SimpleMarshaller.Serialize(storedEvents
             .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
@@ -186,7 +184,7 @@ public class AzureBlobEventStore : IEventStore
         return Task.FromResult(subscription);
     }
 
-    private async Task<SuspensionStatus> AppendOrCreate(FunctionId functionId, string marshalledString)
+    private async Task<FunctionStatus> AppendOrCreate(FunctionId functionId, string marshalledString)
     {
         var eventsBlobName = functionId.GetEventsBlobName();
         var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
@@ -205,13 +203,21 @@ public class AzureBlobEventStore : IEventStore
         
         try
         {
-            var tags = await eventsBlobClient.GetTagsAsync().SelectAsync(r => r.Value.Tags);
-            var success = tags.TryGetValue("suspended_at_epoch", out var epochStr);
-            if (!success)
-                return new SuspensionStatus(Suspended: false, Epoch: default);
+            var blobName = functionId.GetStateBlobName();
+            var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
-            var suspendedAtEpoch = int.Parse(epochStr!);
-            return new SuspensionStatus(Suspended: true, suspendedAtEpoch);
+            RfTags rfTags;
+            try
+            {
+                var blobTags = await blobClient.GetTagsAsync();
+                rfTags = RfTags.ConvertFrom(blobTags.Value.Tags);
+                return new FunctionStatus(rfTags.Status, rfTags.Epoch);
+            }
+            catch (RequestFailedException exception)
+            {
+                if (exception.Status == 404) throw new ConcurrentModificationException(functionId);
+                throw;
+            }
         }
         catch (RequestFailedException e)
         {
@@ -219,73 +225,6 @@ public class AzureBlobEventStore : IEventStore
             throw new ConcurrentModificationException(functionId);
         }
     }
-
-    internal async Task<SuspensionResult> SetSuspendedAtEpochTag(FunctionId functionId, int expectedEpoch, int expectedEventCount)
-    {
-        var eventsBlobName = functionId.GetEventsBlobName();
-        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
-        
-        var eventCount = await GetEvents(functionId).SelectAsync(e => e.Count());
-        if (expectedEventCount != eventCount)
-            return SuspensionResult.EventCountMismatch;
-        
-        var tagsResponse = await GetTags(functionId);
-        
-        var tags = tagsResponse!.Value.Tags;
-        var suspendedAtEpoch = tags.ContainsKey("suspended_at_epoch")
-            ? int.Parse(tags["suspended_at_epoch"])
-            : default(int?);
-        
-        if (suspendedAtEpoch.HasValue && suspendedAtEpoch.Value > expectedEpoch) 
-            return SuspensionResult.ConcurrentStateModification;
-        
-        try
-        {
-            await eventsBlobClient.SetTagsAsync(
-                new Dictionary<string, string> { { "suspended_at_epoch", expectedEpoch.ToString() } },
-                new BlobRequestConditions { IfMatch = tagsResponse.GetRawResponse().Headers.ETag }
-            );
-            return SuspensionResult.Success;
-        }
-        catch (RequestFailedException e)
-        {
-            if (e.ErrorCode != "BlobNotFound") 
-                return SuspensionResult.ConcurrentStateModification;
-            
-            await eventsBlobClient.CreateIfNotExistsAsync();
-            return await SetSuspendedAtEpochTag(functionId, expectedEpoch, expectedEventCount);
-        }
-    }
-
-    internal async Task ForceSetSuspendedAtEpochTag(FunctionId functionId, int epoch, string? leaseId)
-    {
-        var eventsBlobName = functionId.GetEventsBlobName();
-        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
-        try
-        {
-            await eventsBlobClient.SetTagsAsync(
-                new Dictionary<string, string> { { "suspended_at_epoch", epoch.ToString() } },
-                leaseId == null ? new BlobRequestConditions() : new BlobRequestConditions { LeaseId = leaseId }
-            );
-        }
-        catch (RequestFailedException e)
-        {
-            if (e.ErrorCode != "BlobNotFound")
-                throw;
-            
-            await eventsBlobClient.CreateIfNotExistsAsync();
-            await ForceSetSuspendedAtEpochTag(functionId, epoch, leaseId);
-        }
-    }
-
-    private async Task<Response<GetBlobTagResult>?> GetTags(FunctionId functionId)
-    {
-        var eventsBlobName = functionId.GetEventsBlobName();
-        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
-        
-        return await eventsBlobClient.GetTagsAsync();
-    }
-
-
+    
     internal readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset, ETag? ETag);
 }

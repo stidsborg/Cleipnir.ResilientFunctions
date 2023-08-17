@@ -8,9 +8,9 @@ public interface IEventStore
 {
     Task Initialize();
 
-    Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent);
-    Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null);
-    Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);
+    Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent);
+    Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null);
+    Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents);
     
     Task Truncate(FunctionId functionId);
 

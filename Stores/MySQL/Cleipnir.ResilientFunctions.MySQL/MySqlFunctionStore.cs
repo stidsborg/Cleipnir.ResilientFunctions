@@ -50,7 +50,6 @@ public class MySqlFunctionStore : IFunctionStore
                 result_type VARCHAR(255) NULL,
                 exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
-                suspended_at_epoch INT NULL,
                 epoch INT NOT NULL,
                 lease_expiration BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
@@ -271,7 +270,6 @@ public class MySqlFunctionStore : IFunctionStore
                 scrapbook_json = ?, scrapbook_type = ?, 
                 result_json = ?, result_type = ?, 
                 exception_json = ?, postponed_until = ?,
-                suspended_at_epoch = ?,
                 epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
@@ -290,7 +288,6 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
                 new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
-                new() {Value = status == Status.Suspended ? expectedEpoch + 1 : DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -354,7 +351,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, suspended_at_epoch = ?, epoch = epoch + 1
+            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -369,7 +366,6 @@ public class MySqlFunctionStore : IFunctionStore
                     new() { Value = storedParameter.ParamType },
                     new() { Value = storedScrapbook.ScrapbookJson },
                     new() { Value = storedScrapbook.ScrapbookType },
-                    new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
                     new() { Value = functionId.TypeId.Value },
                     new() { Value = functionId.InstanceId.Value },
                     new() { Value = expectedEpoch },
@@ -383,7 +379,6 @@ public class MySqlFunctionStore : IFunctionStore
                     new() { Value = storedParameter.ParamType },
                     new() { Value = storedScrapbook.ScrapbookJson },
                     new() { Value = storedScrapbook.ScrapbookType },
-                    new() { Value = suspended ? expectedEpoch + 1 : DBNull.Value },
                     new() { Value = functionId.TypeId.Value },
                     new() { Value = functionId.InstanceId.Value },
                     new() { Value = expectedEpoch },
@@ -466,7 +461,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, suspended_at_epoch = ?, scrapbook_json = ?
+            SET status = {(int) Status.Suspended}, scrapbook_json = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -477,7 +472,6 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = expectedEpoch},
                 new() {Value = scrapbookJson},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
@@ -569,7 +563,6 @@ public class MySqlFunctionStore : IFunctionStore
                 result_type,
                 exception_json,
                 postponed_until,
-                suspended_at_epoch,
                 epoch, 
                 lease_expiration
             FROM {_tablePrefix}rfunctions
@@ -592,7 +585,6 @@ public class MySqlFunctionStore : IFunctionStore
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(7))
                 : null;
             var postponedUntil = !await reader.IsDBNullAsync(8);
-            var suspendedAtEpoch = !await reader.IsDBNullAsync(9);
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
@@ -604,9 +596,8 @@ public class MySqlFunctionStore : IFunctionStore
                 ),
                 storedException,
                 postponedUntil ? reader.GetInt64(8) : null,
-                suspendedAtEpoch ? reader.GetInt32(9) : null,
-                Epoch: reader.GetInt32(10),
-                LeaseExpiration: reader.GetInt64(11)
+                Epoch: reader.GetInt32(9),
+                LeaseExpiration: reader.GetInt64(10)
             );
         }
 

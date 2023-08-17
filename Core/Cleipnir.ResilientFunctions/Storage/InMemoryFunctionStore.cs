@@ -191,7 +191,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.PostponeUntil = postponeUntil;
 
             state.Epoch += 1;
-            state.SuspendedAtEpoch = status == Status.Suspended ? state.Epoch : default(int?);
 
             return true.ToTask();
         }
@@ -237,7 +236,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Scrapbook = storedScrapbook;
             
             state.Epoch += 1;
-            state.SuspendedAtEpoch = suspended ? state.Epoch : default(int?);
 
             return true.ToTask();
         }
@@ -292,7 +290,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 return SuspensionResult.EventCountMismatch.ToTask();
                 
             state.Status = Status.Suspended;
-            state.SuspendedAtEpoch = expectedEpoch;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             
             return SuspensionResult.Success.ToTask();
@@ -345,7 +342,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                     state.Result,
                     state.Exception,
                     state.PostponeUntil,
-                    state.SuspendedAtEpoch,
                     state.Epoch,
                     state.LeaseExpiration
                 )
@@ -391,19 +387,18 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
         public long LeaseExpiration { get; set; }
-        public int? SuspendedAtEpoch { get; set; }
     }
     #endregion
     
     #region EventStore
 
-    public virtual Task<SuspensionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public virtual Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
         => AppendEvents(functionId, new[] { storedEvent });
 
-    public virtual Task<SuspensionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
+    public virtual Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
         => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
 
-    public virtual Task<SuspensionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public virtual Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
     {
         lock (_sync)
         {
@@ -416,9 +411,9 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                     events.All(e => e.IdempotencyKey != storedEvent.IdempotencyKey))
                     events.Add(storedEvent);
 
-            return _states[functionId].Status == Status.Suspended
-                ? Task.FromResult(new SuspensionStatus(Suspended: true, Epoch: _states[functionId].Epoch))
-                : Task.FromResult(new SuspensionStatus(Suspended: false, Epoch: null));
+            return Task.FromResult(
+                new FunctionStatus(_states[functionId].Status, Epoch: _states[functionId].Epoch)
+            );
         }
     }
 
