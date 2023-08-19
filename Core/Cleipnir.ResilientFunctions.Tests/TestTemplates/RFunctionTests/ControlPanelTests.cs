@@ -771,11 +771,13 @@ public abstract class ControlPanelTests
         using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
+        var invocationCount = new SyncedCounter();
         var syncedList = new SyncedList<string>();
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
+                invocationCount.Increment();
                 using var eventSource = await context.EventSource;
                 if (first)
                 {
@@ -801,12 +803,14 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
-
+        
         (await controlPanel.Events).Count().ShouldBe(2);
         
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
-            throw new Exception("Excepted only 2 events - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'")));
+            throw new Exception(
+                $"Excepted only 2 events (invocation count: {invocationCount.Current}) - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'"))
+            );
         
         syncedList.Count.ShouldBe(2);
         syncedList[0].ShouldBe("hello to you");
