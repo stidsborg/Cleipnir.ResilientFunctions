@@ -136,4 +136,12 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
 
         return storedEvents;
     }
+
+    public async Task DropUnderlyingTable()
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_timeouts;";
+        var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
 }

@@ -127,4 +127,12 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private Task<MySqlConnection> CreateConnection() => DatabaseHelper.CreateOpenConnection(_connectionString);
+
+    public async Task DropUnderlyingTable()
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_timeouts";
+        await using var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
 }

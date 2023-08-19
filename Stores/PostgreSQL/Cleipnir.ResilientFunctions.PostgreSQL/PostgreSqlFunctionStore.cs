@@ -83,6 +83,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _postgresSqlUnderlyingRegister.DropUnderlyingTable();
         await _eventStore.DropUnderlyingTable();
+        await _timeoutStore.DropUnderlyingTable();
         
         await using var conn = await CreateConnection();
         var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";

@@ -87,6 +87,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _underlyingRegister.DropUnderlyingTable();
         await _eventStore.DropUnderlyingTable();
+        await _timeoutStore.DropUnderlyingTable();
         
         await using var conn = await _connFunc();
         var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions";

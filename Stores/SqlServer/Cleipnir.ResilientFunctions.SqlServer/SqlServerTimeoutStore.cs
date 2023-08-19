@@ -40,7 +40,15 @@ public class SqlServerTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}RFunctions_Timeouts";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions_Timeouts";
+        var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+    
+    public async Task DropUnderlyingTable()
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Timeouts;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }

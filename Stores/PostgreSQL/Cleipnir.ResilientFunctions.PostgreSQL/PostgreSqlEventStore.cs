@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;

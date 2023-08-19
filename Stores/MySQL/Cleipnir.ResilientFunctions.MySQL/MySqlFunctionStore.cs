@@ -64,6 +64,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await _eventStore.DropUnderlyingTable();
         await _mySqlUnderlyingRegister.DropUnderlyingTable();
+        await _timeoutStore.DropUnderlyingTable();
 
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";
