@@ -235,4 +235,14 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         var count = (long?) await command.ExecuteScalarAsync();
         return count > 0;
     }
+
+    public async Task TruncateTable()
+    {
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions_register";
+        var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
 }

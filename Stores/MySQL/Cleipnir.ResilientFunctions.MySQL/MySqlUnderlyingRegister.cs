@@ -199,9 +199,17 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_register";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_register";
         
         await using var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task TruncateTable()
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions_register";
+        var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 }

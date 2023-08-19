@@ -76,6 +76,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await _eventStore.TruncateTable();
         await _timeoutStore.TruncateTable();
+        await _mySqlUnderlyingRegister.TruncateTable();
         
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions";
