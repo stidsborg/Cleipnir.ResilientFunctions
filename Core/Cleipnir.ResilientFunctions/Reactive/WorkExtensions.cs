@@ -9,7 +9,7 @@ public static class WorkExtensions
 {
     public static async Task DoAtLeastOnce(this EventSource eventSource, string workId, Func<Task> work)
     {
-        if (eventSource.Existing.OfType<WorkCompleted>().Any(workStarted => workStarted.WorkId == workId))
+        if (eventSource.Existing.OfType<WorkCompleted>().Any(workCompleted => workCompleted.WorkId == workId))
             return;
         
         await work();
@@ -23,7 +23,7 @@ public static class WorkExtensions
         if (eventSource.Existing.OfType<WorkStarted>().Any(workStarted => workStarted.WorkId == workId))
             throw new InvalidOperationException($"Work '{workId}' started but not completed previously");
 
-        await eventSource.AppendEvent(new WorkStarted(workId), idempotencyKey: "");
+        await eventSource.AppendEvent(new WorkStarted(workId));
         await work();
         await eventSource.AppendEvent(new WorkCompleted(workId));
     }
@@ -48,7 +48,7 @@ public static class WorkExtensions
         var completedWork = eventSource
             .Existing
             .OfType<WorkCompleted>()
-            .FirstOrDefault(workStarted => workStarted.WorkId == workId);
+            .FirstOrDefault(workCompleted => workCompleted.WorkId == workId);
         
         if (completedWork != null)
             return ((WorkWithResultCompleted<TResult>) completedWork).Result;
@@ -56,7 +56,7 @@ public static class WorkExtensions
         if (eventSource.Existing.OfType<WorkStarted>().Any(workStarted => workStarted.WorkId == workId))
             throw new InvalidOperationException($"Work '{workId}' started but not completed previously");   
 
-        await eventSource.AppendEvent(new WorkStarted(workId), idempotencyKey: "");
+        await eventSource.AppendEvent(new WorkStarted(workId));
         var result = await work();
         await eventSource.AppendEvent(new WorkWithResultCompleted<TResult>(workId, result));
 
