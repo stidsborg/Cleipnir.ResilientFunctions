@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive;
 
@@ -9,7 +10,7 @@ namespace ConsoleApp.Engagement;
 
 public static class EngagementSaga
 {
-    public static async Task Start(StartCustomerEngagement startEngagement, Context context)
+    public static async Task Start(StartCustomerEngagement startEngagement, RScrapbook scrapbook, Context context)
     {
         var (candidateEmail, nextEngagementTime) = startEngagement;
         var es = await context.EventSource;
@@ -39,7 +40,7 @@ public static class EngagementSaga
             // if accepted notify hr and complete the flow
             if (es.Existing.OfType<EngagementAccepted>().Any())
             {
-                await es.DoAtLeastOnce(workId: "NotifyHR", () => NotifyHR(candidateEmail));
+                await scrapbook.DoAtLeastOnce(workId: "NotifyHR", work: () => NotifyHR(candidateEmail));
                 await es.CancelTimeoutEvent(timeoutId: i.ToString());
                 
                 return;

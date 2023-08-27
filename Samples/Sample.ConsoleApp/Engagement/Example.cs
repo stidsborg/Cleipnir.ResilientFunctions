@@ -22,7 +22,8 @@ public static class Example
         var rAction = functions
             .RegisterAction(
              "EngagementSaga",
-             (StartCustomerEngagement startCustomerEngagement, Context context) => EngagementSaga.Start(startCustomerEngagement, context)
+             (StartCustomerEngagement startCustomerEngagement, RScrapbook scrapbook, Context context) 
+                 => EngagementSaga.Start(startCustomerEngagement, scrapbook, context)
             );
 
         const string customerEmail = "peter@gmail.com";
