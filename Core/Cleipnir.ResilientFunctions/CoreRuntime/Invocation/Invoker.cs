@@ -190,7 +190,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     }
     
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
-        => await _invocationHelper.WaitForFunctionResult(functionId);
+        => await _invocationHelper.WaitForFunctionResult(functionId, allowPostponeAndSuspended: false);
 
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events)
     {

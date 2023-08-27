@@ -187,7 +187,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         _events = null;
     }
 
-    public async Task WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
+    public async Task WaitForCompletion(bool allowPostponeAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponeAndSuspended);
 }
 
 public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
@@ -376,5 +376,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         _events = null;
     }
     
-    public async Task<TReturn> WaitForCompletion() => await _invocationHelper.WaitForFunctionResult(FunctionId);
+    public async Task<TReturn> WaitForCompletion(bool allowPostponeAndSuspended = false) 
+        => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponeAndSuspended);
 }

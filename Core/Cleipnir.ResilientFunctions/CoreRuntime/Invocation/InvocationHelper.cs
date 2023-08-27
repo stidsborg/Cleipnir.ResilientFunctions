@@ -71,7 +71,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult(FunctionId functionId) 
+    public async Task<TReturn> WaitForFunctionResult(FunctionId functionId, bool allowPostponeAndSuspended) 
     {
         while (true)
         {
@@ -90,9 +90,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                             ? default! 
                             : storedFunction.Result.Deserialize<TReturn>(Serializer)!;
                 case Status.Failed:
+                    if (allowPostponeAndSuspended) { await Task.Delay(250); continue;}
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
                     throw new PreviousFunctionInvocationException(functionId, error);
                 case Status.Postponed:
+                    if (allowPostponeAndSuspended) { await Task.Delay(250); continue;}
                     throw new FunctionInvocationPostponedException(
                         functionId,
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
