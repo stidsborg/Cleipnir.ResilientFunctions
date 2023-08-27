@@ -777,10 +777,10 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                invocationCount.Increment();
                 using var eventSource = await context.EventSource;
                 if (first)
                 {
+                    invocationCount.Increment();
                     first = false;
                     await eventSource.AppendEvent("hello world", idempotencyKey: "1");
                     await eventSource.AppendEvent("hello universe", idempotencyKey: "2");
