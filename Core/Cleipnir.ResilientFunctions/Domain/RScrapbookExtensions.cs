@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -138,6 +139,49 @@ public static class RScrapbookExtensions
         return result;
     }
     
+    public static async Task<T> DoAtMostOnce<T>(
+        this RScrapbook scrapbook, 
+        string workId, 
+        Func<Task<T>> work, 
+        bool flushCompletedStatusImmediately = true)
+    {
+        {
+            using var _ = await scrapbook.Lock();
+            if (scrapbook.StateDictionary.ContainsKey(workId))
+            {
+                var (status, previousResult) = JsonSerializer.Deserialize<WorkStatusAndResult<T>>(scrapbook.StateDictionary[workId]);
+
+                if (status == WorkStatus.Completed) return previousResult!;
+                if (status == WorkStatus.Started)
+                    throw new InvalidOperationException($"Previous work '{workId}' was started but not completed");
+            }
+
+            scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
+                new WorkStatusAndResult<T>
+                {
+                    Status = WorkStatus.Started,
+                    Result = default!
+                });
+            await scrapbook.Save();
+        }
+        
+        var result = await work();
+        
+        using var __ = await scrapbook.Lock();
+
+        scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
+            new WorkStatusAndResult<T>
+            {
+                Status = WorkStatus.Completed,
+                Result = result
+            });
+        
+        if (flushCompletedStatusImmediately)
+            await scrapbook.Save();
+
+        return result;
+    }
+    
     public static async Task DoAtLeastOnce(
         this RScrapbook scrapbook, 
         string workId, 
@@ -195,6 +239,46 @@ public static class RScrapbookExtensions
         
         using var __ = await scrapbook.Lock();
         scrapbook.StateDictionary[workId] = $"{WorkStatus.Completed},{result}";
+        if (flushCompletedStatusImmediately)
+            await scrapbook.Save();
+
+        return result;
+    }
+    
+    public static async Task<T> DoAtLeastOnce<T>(
+        this RScrapbook scrapbook, 
+        string workId, 
+        Func<Task<T>> work, 
+        bool flushCompletedStatusImmediately = true)
+    {
+        {
+            using var _ = await scrapbook.Lock();
+            if (scrapbook.StateDictionary.ContainsKey(workId))
+            {
+                var (status, previousResult) = JsonSerializer.Deserialize<WorkStatusAndResult<T>>(scrapbook.StateDictionary[workId]);
+
+                if (status == WorkStatus.Completed) return previousResult!;
+            }
+
+            scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
+                new WorkStatusAndResult<T>
+                {
+                    Status = WorkStatus.Started,
+                    Result = default!
+                });
+        }
+        
+        var result = await work();
+        
+        using var __ = await scrapbook.Lock();
+
+        scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
+            new WorkStatusAndResult<T>
+            {
+                Status = WorkStatus.Completed,
+                Result = result
+            });
+        
         if (flushCompletedStatusImmediately)
             await scrapbook.Save();
 

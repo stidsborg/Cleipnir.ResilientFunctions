@@ -93,6 +93,48 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         result.ShouldBe("hello world");
     }
     
+    public abstract Task AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted();
+    public async Task AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var rFunctions = new RFunctions(store);
+        var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            async Task<Person>(string param, Scrapbook scrapbook) =>
+            {
+                return await scrapbook
+                    .DoAtLeastOnce(
+                        workId: "someId",
+                        work: () =>
+                        {
+                            counter.Increment();
+                            if (counter.Current == 1)
+                                throw new PostponeInvocationException(1);
+                            
+                            return new Person("Peter", 32).ToTask();
+                        }
+                    );
+            });
+
+        _ = rFunc.Schedule(functionInstanceId.ToString(), "hello");
+
+        await BusyWait.Until(() =>
+            store.GetFunction(functionId)
+                .SelectAsync(sf => sf?.Status == Status.Succeeded)
+        );
+
+        counter.Current.ShouldBe(2);
+
+        var result = await rFunc.Invoke(functionId.ToString(), "hello");
+        result.ShouldBe(new Person("Peter", 32));
+    }
+
+    private record Person(string Name, int Age);
+    
     public abstract Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource();
     public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(Task<IFunctionStore> storeTask)
     {

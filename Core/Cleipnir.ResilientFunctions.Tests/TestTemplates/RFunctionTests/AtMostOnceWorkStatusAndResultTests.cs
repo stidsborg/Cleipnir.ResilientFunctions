@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -84,6 +85,45 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         counter.Current.ShouldBe(1);
     }
+    
+    public abstract Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes();
+    public async Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
+    {
+        var store = await functionStoreTask;
+        using var rFunctions = new RFunctions(store);
+        var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, Scrapbook scrapbook) =>
+            {
+                await scrapbook
+                    .DoAtMostOnce(
+                        workId: "someId",
+                        work: () =>
+                        {
+                            counter.Increment();
+                            if (counter.Current != 0)
+                                throw new PostponeInvocationException(1);
+
+                            return new Person("Peter", 32).ToTask();
+                        }
+                    );
+            });
+
+        await rAction.Schedule(functionInstanceId.ToString(), "hello");
+
+        await BusyWait.Until(() =>
+            store.GetFunction(functionId)
+                .SelectAsync(sf => sf?.Status == Status.Failed)
+        );
+        
+        counter.Current.ShouldBe(1);
+    }
+
+    private record Person(string Name, int Age);
     
     public abstract Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource();
     public async Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Task<IFunctionStore> functionStoreTask)
@@ -190,6 +230,41 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         var splitValue = value.Split(",");
         splitValue[0].ShouldBe(WorkStatus.Completed.ToString());
         splitValue[1].ShouldBe("hello world");
+    }
+    
+    public abstract Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes();
+    public async Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
+    {
+        var store = await functionStoreTask;
+        using var rFunctions = new RFunctions(store);
+        var counter = new SyncedCounter();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task(string param, Scrapbook scrapbook) =>
+            {
+                await scrapbook
+                    .DoAtMostOnce(
+                        workId: "someId",
+                        work: () => { counter.Increment(); return new Person("Peter", 32).ToTask(); }
+                    );
+            });
+
+        await rAction.Invoke(functionInstanceId.ToString(), "hello");
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId.ToString());
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.ReInvoke();
+
+        counter.Current.ShouldBe(1);
+        await controlPanel.Refresh();
+
+        var value = controlPanel.Scrapbook.StateDictionary["someId"];
+        var deserialized = JsonSerializer.Deserialize<WorkStatusAndResult<Person>>(value);
+        deserialized.Status.ShouldBe(WorkStatus.Completed);
+        deserialized.Result.ShouldBe(new Person("Peter", 32));
     }
     
     public abstract Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource();

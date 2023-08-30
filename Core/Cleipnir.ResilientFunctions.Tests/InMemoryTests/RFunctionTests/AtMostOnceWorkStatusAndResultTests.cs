@@ -15,6 +15,10 @@ public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Te
         => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes()
+        => AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
     public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
         => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Utils.CreateInMemoryFunctionStoreTask());
 
@@ -25,6 +29,10 @@ public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Te
     [TestMethod]
     public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
         => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes()
+        => CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()

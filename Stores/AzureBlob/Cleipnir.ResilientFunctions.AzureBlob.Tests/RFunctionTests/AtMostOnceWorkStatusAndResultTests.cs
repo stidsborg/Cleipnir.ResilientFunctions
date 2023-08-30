@@ -33,4 +33,12 @@ public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Te
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
         => ReferencingGetOnlyPropertyThrowsException(FunctionStoreFactory.FunctionStoreTask);
+    
+    [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes()
+        => AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
+
+    [TestMethod]
+    public override Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes()
+        => CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
 }
