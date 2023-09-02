@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -799,7 +800,9 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Succeeded);
         var existingEvents = await controlPanel.Events;
         existingEvents.Count().ShouldBe(2);
-        existingEvents.Replace(new []{ "hello to you", "hello from me" });
+        existingEvents.Clear();
+        existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello to you", "1"));
+        existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello from me", "2"));
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
