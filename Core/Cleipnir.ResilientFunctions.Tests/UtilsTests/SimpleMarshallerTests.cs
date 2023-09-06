@@ -1,7 +1,8 @@
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.AzureBlob.Tests;
+namespace Cleipnir.ResilientFunctions.Tests.UtilsTests;
 
 [TestClass]
 public class SimpleMarshallerTests

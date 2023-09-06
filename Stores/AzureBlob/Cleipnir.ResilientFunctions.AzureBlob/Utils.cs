@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Cleipnir.ResilientFunctions.Utils;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;

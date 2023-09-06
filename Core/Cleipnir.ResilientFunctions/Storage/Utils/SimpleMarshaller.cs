@@ -1,6 +1,7 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 
-namespace Cleipnir.ResilientFunctions.AzureBlob;
+namespace Cleipnir.ResilientFunctions.Storage.Utils;
 
 public static class SimpleMarshaller
 {
