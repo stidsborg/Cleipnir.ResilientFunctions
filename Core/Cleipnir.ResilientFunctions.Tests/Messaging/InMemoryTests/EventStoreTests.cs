@@ -18,6 +18,10 @@ public class EventStoreTests :  TestTemplates.EventStoreTests
         => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
+    public override Task EventsCanBeReplaced()
+        => EventsCanBeReplaced(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()); 
+
+    [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 

@@ -92,6 +92,47 @@ public abstract class EventStoreTests
         events[3].IdempotencyKey.ShouldBeNull();
     }
     
+    public abstract Task EventsCanBeReplaced();
+    protected async Task EventsCanBeReplaced(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null
+        );
+        var eventStore = functionStore.EventStore;
+
+        const string msg1 = "hello here";
+        const string msg2 = "hello world";
+        const string msg3 = "hello universe";
+        const string msg4 = "hello multiverse";
+        
+        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+
+        await eventStore
+            .GetEvents(functionId)
+            .SelectAsync(events => events.Count())
+            .ShouldBeAsync(2);
+        
+        var storedEvent3 = new StoredEvent(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
+        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
+        await eventStore.Replace(functionId, new []{storedEvent3, storedEvent4});
+        
+        var events = (await eventStore.GetEvents(functionId)).ToList();
+        events.Count.ShouldBe(2);
+        events[0].DefaultDeserialize().ShouldBe(msg3);
+        events[0].IdempotencyKey.ShouldBe("3");
+        events[1].DefaultDeserialize().ShouldBe(msg4);
+        events[1].IdempotencyKey.ShouldBeNull();
+    }
+    
     public abstract Task SkippedMessagesAreNotFetched();
     protected async Task SkippedMessagesAreNotFetched(Task<IFunctionStore> functionStoreTask)
     {

@@ -15,6 +15,10 @@ public class EventStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Test
         => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Sql.AutoCreateAndInitializeStore());
     
     [TestMethod]
+    public override Task EventsCanBeReplaced()
+        => EventsCanBeReplaced(Sql.AutoCreateAndInitializeStore());
+    
+    [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(Sql.AutoCreateAndInitializeStore());
     

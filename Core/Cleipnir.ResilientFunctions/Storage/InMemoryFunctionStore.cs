@@ -425,6 +425,14 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         return Task.CompletedTask;
     }
 
+    public Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        lock (_sync)
+            _events[functionId] = storedEvents.ToList();
+
+        return Task.CompletedTask;
+    }
+
     public virtual Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
     {
         lock (_sync)

@@ -12,7 +12,11 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
     [TestMethod]
     public override Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain()
         => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Sql.AutoCreateAndInitializeStore());
-    
+
+    [TestMethod]
+    public override Task EventsCanBeReplaced()
+        => EventsCanBeReplaced(Sql.AutoCreateAndInitializeStore());
+
     [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(Sql.AutoCreateAndInitializeStore());

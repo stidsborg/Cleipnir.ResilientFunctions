@@ -18,6 +18,10 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
         => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(FunctionStoreFactory.FunctionStoreTask);
     
     [TestMethod]
+    public override Task EventsCanBeReplaced()
+        => EventsCanBeReplaced(FunctionStoreFactory.FunctionStoreTask);
+    
+    [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(FunctionStoreFactory.FunctionStoreTask);
 

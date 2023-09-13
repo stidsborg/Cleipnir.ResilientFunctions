@@ -168,6 +168,17 @@ public class SqlServerEventStore : IEventStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         return await command.ExecuteNonQueryAsync();
     }
+    
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await CreateConnection();
+        await using var transaction = conn.BeginTransaction();
+
+        await Truncate(functionId, conn, transaction);
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+
+        await transaction.CommitAsync();
+    }
 
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
         => InnerGetEvents(functionId, skip: 0)

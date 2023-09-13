@@ -196,6 +196,17 @@ public class PostgreSqlEventStore : IEventStore
         await Truncate(functionId, conn, transaction: null);
     }
 
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await CreateConnection();
+        await using var transaction = await conn.BeginTransactionAsync();
+        
+        await Truncate(functionId, conn, transaction);
+        await AppendEvents(functionId, storedEvents, conn, transaction);
+
+        await transaction.CommitAsync();
+    }
+
     internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
     {
         var sql = @$"    

@@ -65,6 +65,21 @@ public class AzureBlobEventStore : IEventStore
             .DeleteIfExistsAsync();
     }
 
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        var blobName = functionId.GetEventsBlobName();
+        var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
+        await blobClient.CreateAsync();
+        
+        var marshalledString = SimpleMarshaller.Serialize(storedEvents
+            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+            .ToArray()
+        );
+        
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
+        await blobClient.AppendBlockAsync(ms);
+    }
+
     internal async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, string leaseId)
     {
         var blobName = functionId.GetEventsBlobName();

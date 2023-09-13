@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -226,6 +225,17 @@ public class MySqlEventStore : IEventStore
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows;
+    }
+    
+    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var transaction = await conn.BeginTransactionAsync();
+
+        await Truncate(functionId, conn, transaction);
+        await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
+
+        await transaction.CommitAsync();
     }
     
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
