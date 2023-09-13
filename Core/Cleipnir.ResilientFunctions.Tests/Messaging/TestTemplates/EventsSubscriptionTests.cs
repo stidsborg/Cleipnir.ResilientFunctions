@@ -28,7 +28,7 @@ public abstract class EventSubscriptionTests
         );
         var eventStore = functionStore.EventStore;
 
-        var subscription = await eventStore.SubscribeToEvents(functionId);
+        var subscription = eventStore.SubscribeToEvents(functionId);
 
         var events = await subscription.Pull();
         events.ShouldBeEmpty();

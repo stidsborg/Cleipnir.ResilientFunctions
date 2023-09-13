@@ -69,10 +69,8 @@ public class ReactiveIntegrationTests
         public int EventSubscriptionPulls = 0;
         public volatile bool IsDisposed = false;
         
-        public override async Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+        public override EventsSubscription SubscribeToEvents(FunctionId functionId)
         {
-            await Task.CompletedTask;
-
             return new EventsSubscription(
                 async () =>
                 {

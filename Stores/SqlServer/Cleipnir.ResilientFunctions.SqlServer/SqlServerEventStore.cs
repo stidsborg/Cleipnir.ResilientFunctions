@@ -201,7 +201,7 @@ public class SqlServerEventStore : IEventStore
         return storedEvents;
     }
 
-    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+    public EventsSubscription SubscribeToEvents(FunctionId functionId)
     {
         var sync = new object();
         var disposed = false;
@@ -228,7 +228,7 @@ public class SqlServerEventStore : IEventStore
             }
         );
         
-        return Task.FromResult(subscription);
+        return subscription;
     }
 
     private async Task<SqlConnection> CreateConnection()

@@ -262,13 +262,12 @@ public class MySqlEventStore : IEventStore
         return storedEvents;
     }
     
-    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+    public EventsSubscription SubscribeToEvents(FunctionId functionId)
     {
         var sync = new object();
         var skip = 0;
         var disposed = false;
-
-
+        
         var subscription = new EventsSubscription(
             pullEvents: async () =>
             {
@@ -289,7 +288,7 @@ public class MySqlEventStore : IEventStore
             }
         );
 
-        return Task.FromResult(subscription);
+        return subscription;
     }
     
     private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)

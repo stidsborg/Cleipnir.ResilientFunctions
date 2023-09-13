@@ -247,7 +247,7 @@ public class PostgreSqlEventStore : IEventStore
         return storedEvents;
     }
 
-    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+    public EventsSubscription SubscribeToEvents(FunctionId functionId)
     {
         var sync = new object();
         var disposed = false;
@@ -273,8 +273,8 @@ public class PostgreSqlEventStore : IEventStore
                 return ValueTask.CompletedTask;
             }
         );
-        
-        return Task.FromResult(subscription);
+
+        return subscription;
     }
     
     private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)

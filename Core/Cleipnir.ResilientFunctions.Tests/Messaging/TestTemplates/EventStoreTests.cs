@@ -354,7 +354,7 @@ public abstract class EventStoreTests
         );
         var eventStore = functionStore.EventStore;
 
-        var subscription = await eventStore.SubscribeToEvents(functionId);
+        var subscription = eventStore.SubscribeToEvents(functionId);
         
         var event1 = new StoredEvent(
             "hello world".ToJson(),
@@ -402,7 +402,7 @@ public abstract class EventStoreTests
         );
         var eventStore = functionStore.EventStore;
 
-        var subscription = await eventStore.SubscribeToEvents(functionId);
+        var subscription = eventStore.SubscribeToEvents(functionId);
         
         var event1 = new StoredEvent(
             "hello world".ToJson(),

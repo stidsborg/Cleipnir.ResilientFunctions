@@ -32,6 +32,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
             var databaseName = Storage.DatabaseHelper.GetDatabaseName(ConnectionString);
 
             using var conn = new SqlConnection(connectionStringWithoutDatabase);
+            conn.Open();
             conn.Execute($"DROP DATABASE IF EXISTS {databaseName}");
             conn.Execute($"CREATE DATABASE {databaseName}");
         }

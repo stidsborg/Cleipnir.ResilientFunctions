@@ -155,7 +155,7 @@ public class AzureBlobEventStore : IEventStore
         );
     }
 
-    public Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+    public EventsSubscription SubscribeToEvents(FunctionId functionId)
     {
         var sync = new object();
         var offset = 0;
@@ -182,7 +182,7 @@ public class AzureBlobEventStore : IEventStore
             }
         );
 
-        return Task.FromResult(subscription);
+        return subscription;
     }
 
     private async Task<FunctionStatus> AppendOrCreate(FunctionId functionId, string marshalledString)

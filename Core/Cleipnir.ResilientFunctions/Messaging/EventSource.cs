@@ -59,7 +59,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
 
     public async Task Initialize()
     {
-        _eventsSubscription = await _eventStore.SubscribeToEvents(_functionId);
+        _eventsSubscription = _eventStore.SubscribeToEvents(_functionId);
         
         await DeliverOutstandingEvents(deliverDespiteNoActiveSubscriptions: true);
         

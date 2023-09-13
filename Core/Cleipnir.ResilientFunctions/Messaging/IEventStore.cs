@@ -15,5 +15,5 @@ public interface IEventStore
     Task Truncate(FunctionId functionId);
 
     Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId);
-    Task<EventsSubscription> SubscribeToEvents(FunctionId functionId);
+    EventsSubscription SubscribeToEvents(FunctionId functionId);
 }

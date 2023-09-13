@@ -436,7 +436,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public virtual Task<EventsSubscription> SubscribeToEvents(FunctionId functionId)
+    public virtual EventsSubscription SubscribeToEvents(FunctionId functionId)
     {
         var disposed = false;
         var skip = 0;
@@ -468,7 +468,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             }
         );
 
-        return Task.FromResult(subscription);
+        return subscription;
     }
 
     #endregion
