@@ -10,53 +10,53 @@ public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
 {
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
-        => PostponedFuncIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PostponedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
-        => PostponedActionIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
-        => PostponedActionIsCompletedAfterInMemoryTimeout(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PostponedActionIsCompletedAfterInMemoryTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
-        => PostponedActionIsCompletedByWatchDogAfterCrash(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PostponedActionIsCompletedByWatchDogAfterCrash(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedAction()
-        => ThrownPostponeExceptionResultsInPostponedAction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ThrownPostponeExceptionResultsInPostponedAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFunc()
-        => ThrownPostponeExceptionResultsInPostponedFunc(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ThrownPostponeExceptionResultsInPostponedFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp()
-        => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleAtActionIsCompletedAfterDelay()
-        => ScheduleAtActionIsCompletedAfterDelay(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ScheduleAtActionIsCompletedAfterDelay(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleAtFuncIsCompletedAfterDelay()
-        => ScheduleAtActionIsCompletedAfterDelay(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ScheduleAtActionIsCompletedAfterDelay(FunctionStoreFactory.Create());
 }

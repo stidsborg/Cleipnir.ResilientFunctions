@@ -22,5 +22,5 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
         => FuncWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
 
     private Task<IFunctionStore> CreateInMemoryStore() 
-        => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
+        => FunctionStoreFactory.Create();
 }

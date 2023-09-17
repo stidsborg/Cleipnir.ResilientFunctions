@@ -10,111 +10,111 @@ public class StoreTests : TestTemplates.StoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest() 
-        => SunshineScenarioTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SunshineScenarioTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-        => SignOfLifeIsUpdatedWhenAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SignOfLifeIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SignOfLifeIsNotUpdatedWhenNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected()
-        => BecomeLeaderSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => BecomeLeaderSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
-        => BecomeLeaderFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => BecomeLeaderFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
-        => CreatingTheSameFunctionTwiceReturnsFalse(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => CreatingTheSameFunctionTwiceReturnsFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut()
         => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut()
         => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task PostponeFunctionFailsWhenEpochIsNotAsExpected()
         => PostponeFunctionFailsWhenEpochIsNotAsExpected(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
         => InitializeCanBeInvokedMultipleTimesSuccessfully(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency()
         => CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task OnlyEligibleCrashedFunctionsAreReturnedFromStore()
-        => OnlyEligibleCrashedFunctionsAreReturnedFromStore(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => OnlyEligibleCrashedFunctionsAreReturnedFromStore(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task IncrementEpochSucceedsWhenEpochIsAsExpected()
-        => IncrementEpochSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => IncrementEpochSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task IncrementEpochFailsWhenEpochIsNotAsExpected()
-        => IncrementEpochFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => IncrementEpochFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
-        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
-        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingFunctionSucceeds()
-        => DeletingExistingFunctionSucceeds(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => DeletingExistingFunctionSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected()
-        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FailFunctionSucceedsWhenEpochIsAsExpected()
-        => FailFunctionSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FailFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SetFunctionStateSucceedsWhenEpochIsAsExpected()
-        => SetFunctionStateSucceedsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SetFunctionStateSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected()
-        => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
-        => ExecutingFunctionCanBeSuspendedSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExecutingFunctionCanBeSuspendedSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
-        => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
-        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
-        => FunctionStatusAndEpochCanBeSuccessfullyFetched(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FunctionStatusAndEpochCanBeSuccessfullyFetched(FunctionStoreFactory.Create());
 }

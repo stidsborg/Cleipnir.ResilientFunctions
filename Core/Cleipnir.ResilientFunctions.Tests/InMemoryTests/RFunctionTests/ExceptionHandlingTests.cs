@@ -11,24 +11,24 @@ public class ExceptionHandlingTests : Cleipnir.ResilientFunctions.Tests.TestTemp
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFunc()
         => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFunc(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook()
         => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
     
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction()
         => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook()
         => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 }

@@ -43,5 +43,5 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ScheduleReInvocationThroughRFunctionsSunshine(CreateInMemoryStore());
 
     private Task<IFunctionStore> CreateInMemoryStore() 
-        => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
+        => FunctionStoreFactory.Create();
 }

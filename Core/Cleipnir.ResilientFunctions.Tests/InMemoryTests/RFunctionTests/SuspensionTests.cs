@@ -10,39 +10,39 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
 {
     [TestMethod]
     public override Task ActionCanBeSuspended()
-        => ActionCanBeSuspended(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ActionCanBeSuspended(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeSuspended()
-        => FunctionCanBeSuspended(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FunctionCanBeSuspended(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded()
         => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
         => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag()
         => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
         => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 }

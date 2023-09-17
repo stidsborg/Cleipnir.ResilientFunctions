@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -13,23 +12,23 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
     {
         [TestMethod]
         public override Task SunshineScenario()
-            => SunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+            => SunshineScenario(FunctionStoreFactory.Create());
 
         [TestMethod]
         public override Task ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected()
             => ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected(
-                new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+                FunctionStoreFactory.Create()
             );
 
         [TestMethod]
         public override Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration()
             => ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(
-                new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+                FunctionStoreFactory.Create()
             );
 
         [TestMethod]
         public override Task ChangesToStateDictionaryArePersisted()
-            => ChangesToStateDictionaryArePersisted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+            => ChangesToStateDictionaryArePersisted(FunctionStoreFactory.Create());
         
         [TestMethod]
         public async Task NewLockIsNotGrantedWhileScrapbookIsAlreadyLocked()

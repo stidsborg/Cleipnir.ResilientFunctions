@@ -10,5 +10,5 @@ public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
 {
     [TestMethod]
     public override Task ExpiredTimeoutIsAddedToEventSource()
-        => ExpiredTimeoutIsAddedToEventSource(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExpiredTimeoutIsAddedToEventSource(FunctionStoreFactory.Create());
 }

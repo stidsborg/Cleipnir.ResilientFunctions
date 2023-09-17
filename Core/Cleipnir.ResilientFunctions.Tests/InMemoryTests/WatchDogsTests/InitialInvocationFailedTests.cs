@@ -24,5 +24,5 @@ public class InitialInvocationFailedTests : Cleipnir.ResilientFunctions.Tests.Te
     public override Task CreatedFuncWithScrapbookIsCompletedByWatchdog()
         => CreatedFuncWithScrapbookIsCompletedByWatchdog(CreateStore());
 
-    private Task<IFunctionStore> CreateStore() => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
+    private Task<IFunctionStore> CreateStore() => FunctionStoreFactory.Create();
 }

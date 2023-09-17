@@ -10,33 +10,33 @@ public class FailedTests : TestTemplates.RFunctionTests.FailedTests
 {
     [TestMethod]
     public override Task ExceptionThrowingFuncIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExceptionThrowingActionIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PassingInNullParameterResultsInArgumentNullException()
-        => PassingInNullParameterResultsInException(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => PassingInNullParameterResultsInException(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 }

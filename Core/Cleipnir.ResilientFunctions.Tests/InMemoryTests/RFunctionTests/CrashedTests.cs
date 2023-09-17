@@ -10,21 +10,21 @@ public class CrashedTests : TestTemplates.RFunctionTests.CrashedTests
 {
     [TestMethod]
     public override Task NonCompletedFuncIsCompletedByWatchDog()
-        => NonCompletedFuncIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => NonCompletedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonCompletedActionIsCompletedByWatchDog()
-        => NonCompletedActionIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => NonCompletedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task CrashedActionReInvocationModeShouldBeRetry()
-        => CrashedActionReInvocationModeShouldBeRetry(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => CrashedActionReInvocationModeShouldBeRetry(FunctionStoreFactory.Create());
 }

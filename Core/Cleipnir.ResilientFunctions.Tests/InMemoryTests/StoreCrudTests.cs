@@ -10,61 +10,61 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
 {
     [TestMethod]
     public override Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
-        => FunctionCanBeCreatedWithASingleParameterSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FunctionCanBeCreatedWithASingleParameterSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeCreatedWithTwoParametersSuccessfully()
-        => FunctionCanBeCreatedWithTwoParametersSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FunctionCanBeCreatedWithTwoParametersSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully()
-        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FetchingNonExistingFunctionReturnsNull()
-        => FetchingNonExistingFunctionReturnsNull(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FetchingNonExistingFunctionReturnsNull(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenCurrentEpochMatches()
-        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent()
-        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UpdateScrapbookSunshineScenario()
-        => UpdateScrapbookSunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => UpdateScrapbookSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
-        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingFunctionCanBeDeleted()
-        => ExistingFunctionCanBeDeleted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonExistingFunctionCanBeDeleted()
-        => NonExistingFunctionCanBeDeleted(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());    
+        => NonExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());    
 
     [TestMethod]
     public override Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected()
-        => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction()
-        => ParameterAndScrapbookCanBeUpdatedOnExistingFunction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ParameterAndScrapbookCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterCanBeUpdatedOnExistingFunction()
-        => ParameterCanBeUpdatedOnExistingFunction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ParameterCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScrapbookCanBeUpdatedOnExistingFunction()
-        => ScrapbookCanBeUpdatedOnExistingFunction(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ScrapbookCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch()
-        => ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(FunctionStoreFactory.Create());
 }

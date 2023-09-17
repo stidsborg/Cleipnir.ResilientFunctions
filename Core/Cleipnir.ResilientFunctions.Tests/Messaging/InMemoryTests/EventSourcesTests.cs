@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.InMemoryTests;
@@ -10,33 +11,33 @@ public class EventSourcesTests : TestTemplates.EventSourcesTests
 {
     [TestMethod]
     public override Task EventSourcesSunshineScenario() 
-        => EventSourcesSunshineScenario(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventSourcesSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
-        => ExistingEventsShouldBeSameAsAllAfterEmit(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExistingEventsShouldBeSameAsAllAfterEmit(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
-        => SecondEventWithExistingIdempotencyKeyIsIgnored(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SecondEventWithExistingIdempotencyKeyIsIgnored(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
-        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSourcesSunshineScenarioUsingEventStore()
-        => EventSourcesSunshineScenarioUsingEventStore(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventSourcesSunshineScenarioUsingEventStore(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore()
         => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
         => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(
-            new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()
+            FunctionStoreFactory.Create()
         );
 }

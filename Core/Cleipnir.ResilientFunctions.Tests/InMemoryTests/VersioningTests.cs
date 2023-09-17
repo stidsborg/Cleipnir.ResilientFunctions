@@ -29,5 +29,5 @@ public class VersioningTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
         => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(CreateInMemoryFunctionStore());
 
     private static Task<IFunctionStore> CreateInMemoryFunctionStore()
-        => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
+        => FunctionStoreFactory.Create();
 }

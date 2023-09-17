@@ -2,6 +2,7 @@
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.InMemoryTests;
@@ -11,53 +12,53 @@ public class EventStoreTests :  TestTemplates.EventStoreTests
 {
     [TestMethod]
     public override Task AppendedMessagesCanBeFetchedAgain()
-        => AppendedMessagesCanBeFetchedAgain(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => AppendedMessagesCanBeFetchedAgain(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain()
-        => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventsCanBeReplaced()
-        => EventsCanBeReplaced(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask()); 
+        => EventsCanBeReplaced(FunctionStoreFactory.Create()); 
 
     [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
-        => SkippedMessagesAreNotFetched(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SkippedMessagesAreNotFetched(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TruncatedEventSourceContainsNoEvents()
-        => TruncatedEventSourceContainsNoEvents(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => TruncatedEventSourceContainsNoEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NoExistingEventSourceCanBeTruncated()
-        => NoExistingEventSourceCanBeTruncated(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => NoExistingEventSourceCanBeTruncated(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => ExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExistingEventSourceCanBeReplacedWithProvidedEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FetchNonExistingEventsSucceeds()
-        => FetchNonExistingEventsSucceeds(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => FetchNonExistingEventsSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSubscriptionPublishesAppendedEvents()
-        => EventSubscriptionPublishesAppendedEvents(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventSubscriptionPublishesAppendedEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys()
-        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(FunctionStoreFactory.Create());
 }
