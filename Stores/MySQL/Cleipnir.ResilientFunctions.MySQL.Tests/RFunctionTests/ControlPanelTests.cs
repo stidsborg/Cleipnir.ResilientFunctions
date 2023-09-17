@@ -120,4 +120,8 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced()
         => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(Sql.AutoCreateAndInitializeStore());
+
+    [TestMethod]
+    public override Task ExistingEventsCanBeReplaced()
+        => ExistingEventsCanBeReplaced(Sql.AutoCreateAndInitializeStore());
 }

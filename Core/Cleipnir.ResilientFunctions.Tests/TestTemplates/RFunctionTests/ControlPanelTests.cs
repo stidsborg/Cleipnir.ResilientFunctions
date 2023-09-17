@@ -1005,4 +1005,46 @@ public abstract class ControlPanelTests
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task ExistingEventsCanBeReplaced();
+    protected async Task ExistingEventsCanBeReplaced(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task(string param, RScrapbook _, Context context) => Task.CompletedTask
+        );
+
+        await rAction.Invoke(
+            functionInstanceId.Value,
+            param: "param",
+            events: new[] { new EventAndIdempotencyKey("hello world", IdempotencyKey: "first") }
+        );
+        
+        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var existingEvents = await controlPanel.Events;
+        var (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();
+        @event.ShouldBe("hello world");
+        idempotencyKey.ShouldBe("first");
+
+        existingEvents.Clear();
+        existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello universe", IdempotencyKey: "second"));
+
+        await existingEvents.SaveChanges();
+
+        await controlPanel.Refresh();
+
+        existingEvents = await controlPanel.Events;
+        (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();
+        @event.ShouldBe("hello universe");
+        idempotencyKey.ShouldBe("second");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
 }
