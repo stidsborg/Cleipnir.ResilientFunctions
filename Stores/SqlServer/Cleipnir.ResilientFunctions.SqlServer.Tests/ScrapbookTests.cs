@@ -8,17 +8,17 @@ public class ScrapbookTests : ResilientFunctions.Tests.TestTemplates.ScrapbookTe
 {
     [TestMethod]
     public override Task SunshineScenario()
-        => SunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override async Task ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected()
-        => await ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => await ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration()
-        => ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Sql.AutoCreateAndInitializeStore());
+        => ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ChangesToStateDictionaryArePersisted()
-        => ChangesToStateDictionaryArePersisted(Sql.AutoCreateAndInitializeStore());
+        => ChangesToStateDictionaryArePersisted(FunctionStoreFactory.Create());
 }

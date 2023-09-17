@@ -72,20 +72,6 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
                 .Replace('8', 'i')
                 .Replace('9', 'j');
 
-        public static async Task<IEventStore> CreateAndInitializeEventStore(
-            [CallerFilePath] string sourceFilePath = "",
-            [CallerMemberName] string callMemberName = "")
-        {
-            var sourceFileName = sourceFilePath
-                .Split(new[] {"\\", "/"}, StringSplitOptions.None)
-                .Last()
-                .Replace(".cs", "");
-            var store = new SqlServerEventStore(ConnectionString, $"{sourceFileName}_{callMemberName}");
-            await store.DropUnderlyingTable();
-            await store.Initialize();
-            return store;
-        }
-
         public static Task<IFunctionStore> AutoCreateAndInitializeStore(
             [CallerFilePath] string sourceFilePath = "",
             [CallerMemberName] string callMemberName = ""

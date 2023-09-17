@@ -8,61 +8,61 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
 {
     [TestMethod]
     public override Task FunctionCanBeCreatedWithASingleParameterSuccessfully()
-        => FunctionCanBeCreatedWithASingleParameterSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeCreatedWithASingleParameterSuccessfully(FunctionStoreFactory.Create());
         
     [TestMethod]
     public override Task FunctionCanBeCreatedWithTwoParametersSuccessfully()
-        => FunctionCanBeCreatedWithTwoParametersSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeCreatedWithTwoParametersSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully()
-        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FetchingNonExistingFunctionReturnsNull()
-        => FetchingNonExistingFunctionReturnsNull(Sql.AutoCreateAndInitializeStore());
+        => FetchingNonExistingFunctionReturnsNull(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenCurrentEpochMatches()
-        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent()
-        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UpdateScrapbookSunshineScenario()
-        => UpdateScrapbookSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => UpdateScrapbookSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
-        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingFunctionCanBeDeleted()
-        => ExistingFunctionCanBeDeleted(Sql.AutoCreateAndInitializeStore());
+        => ExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonExistingFunctionCanBeDeleted()
-        => NonExistingFunctionCanBeDeleted(Sql.AutoCreateAndInitializeStore());
+        => NonExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected()
-        => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction()
-        => ParameterAndScrapbookCanBeUpdatedOnExistingFunction(Sql.AutoCreateAndInitializeStore());
+        => ParameterAndScrapbookCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterCanBeUpdatedOnExistingFunction()
-        => ParameterCanBeUpdatedOnExistingFunction(Sql.AutoCreateAndInitializeStore());
+        => ParameterCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScrapbookCanBeUpdatedOnExistingFunction()
-        => ScrapbookCanBeUpdatedOnExistingFunction(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch()
-        => ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(Sql.AutoCreateAndInitializeStore());
+        => ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(FunctionStoreFactory.Create());
 }

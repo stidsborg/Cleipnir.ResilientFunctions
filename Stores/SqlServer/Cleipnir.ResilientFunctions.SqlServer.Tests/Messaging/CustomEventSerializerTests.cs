@@ -8,5 +8,5 @@ public class CustomEventSerializerTests : Cleipnir.ResilientFunctions.Tests.Mess
 {
     [TestMethod]
     public override Task CustomEventSerializerIsUsedWhenSpecified()
-        => CustomEventSerializerIsUsedWhenSpecified(Sql.AutoCreateAndInitializeStore());
+        => CustomEventSerializerIsUsedWhenSpecified(FunctionStoreFactory.Create());
 }

@@ -8,29 +8,29 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
 {
     [TestMethod]
     public override Task ActionCanBeSuspended()
-        => ActionCanBeSuspended(Sql.AutoCreateAndInitializeStore());
+        => ActionCanBeSuspended(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeSuspended()
-        => FunctionCanBeSuspended(Sql.AutoCreateAndInitializeStore());
+        => FunctionCanBeSuspended(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded()
-        => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(Sql.AutoCreateAndInitializeStore());
+        => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
-        => EligibleSuspendedFunctionIsPickedUpByWatchdog(Sql.AutoCreateAndInitializeStore());
+        => EligibleSuspendedFunctionIsPickedUpByWatchdog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag()
-        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(Sql.AutoCreateAndInitializeStore());
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
-        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(Sql.AutoCreateAndInitializeStore());
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
-        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(Sql.AutoCreateAndInitializeStore());
+        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(FunctionStoreFactory.Create());
 }

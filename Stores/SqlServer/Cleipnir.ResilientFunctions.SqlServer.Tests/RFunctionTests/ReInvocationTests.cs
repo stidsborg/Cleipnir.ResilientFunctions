@@ -8,35 +8,35 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()
-        => ActionReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => ActionReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ActionWithScrapbookReInvocationSunshineScenario()
-        => ActionWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => ActionWithScrapbookReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario()
-        => UpdatedParameterIsPassedInOnReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => UpdatedParameterIsPassedInOnReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario()
-        => UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction()
-        => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc()
-        => ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(Sql.AutoCreateAndInitializeStore());
+        => ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
-        => FuncReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => FuncReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task FuncWithScrapbookReInvocationSunshineScenario()
-        => FuncWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => FuncWithScrapbookReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
-        => ReInvocationFailsWhenTheFunctionDoesNotExist(Sql.AutoCreateAndInitializeStore());
+        => ReInvocationFailsWhenTheFunctionDoesNotExist(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ReInvocationThroughRFunctionsSunshine()
-        => ReInvocationThroughRFunctionsSunshine(Sql.AutoCreateAndInitializeStore());
+        => ReInvocationThroughRFunctionsSunshine(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ScheduleReInvocationThroughRFunctionsSunshine()
-        => ScheduleReInvocationThroughRFunctionsSunshine(Sql.AutoCreateAndInitializeStore());
+        => ScheduleReInvocationThroughRFunctionsSunshine(FunctionStoreFactory.Create());
 }
