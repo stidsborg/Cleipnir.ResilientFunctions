@@ -9,7 +9,7 @@ public class
 {
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(FunctionStoreFactory.FunctionStoreTask);
+        => ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted()
@@ -23,5 +23,5 @@ public class
 
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(FunctionStoreFactory.FunctionStoreTask);
+        => ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(FunctionStoreFactory.Create());
 }

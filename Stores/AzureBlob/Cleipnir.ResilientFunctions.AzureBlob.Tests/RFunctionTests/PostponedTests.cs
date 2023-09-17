@@ -8,53 +8,53 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
 {
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
-        => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
-        => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
-        => PostponedActionIsCompletedAfterInMemoryTimeout(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedActionIsCompletedAfterInMemoryTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
-        => PostponedActionIsCompletedByWatchDogAfterCrash(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedActionIsCompletedByWatchDogAfterCrash(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedAction()
-        => ThrownPostponeExceptionResultsInPostponedAction(FunctionStoreFactory.FunctionStoreTask);
+        => ThrownPostponeExceptionResultsInPostponedAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(FunctionStoreFactory.FunctionStoreTask);
+        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFunc()
-        => ThrownPostponeExceptionResultsInPostponedFunc(FunctionStoreFactory.FunctionStoreTask);
+        => ThrownPostponeExceptionResultsInPostponedFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(FunctionStoreFactory.FunctionStoreTask);
+        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp()
-        => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(FunctionStoreFactory.FunctionStoreTask);
+        => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ScheduleAtActionIsCompletedAfterDelay()
-        => ScheduleAtActionIsCompletedAfterDelay(FunctionStoreFactory.FunctionStoreTask);
+        => ScheduleAtActionIsCompletedAfterDelay(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleAtFuncIsCompletedAfterDelay()
-        => ScheduleAtFuncIsCompletedAfterDelay(FunctionStoreFactory.FunctionStoreTask);
+        => ScheduleAtFuncIsCompletedAfterDelay(FunctionStoreFactory.Create());
 }

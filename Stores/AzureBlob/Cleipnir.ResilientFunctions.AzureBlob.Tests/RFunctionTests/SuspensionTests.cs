@@ -8,29 +8,29 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
 {
     [TestMethod]
     public override Task ActionCanBeSuspended()
-        => ActionCanBeSuspended(FunctionStoreFactory.FunctionStoreTask);
+        => ActionCanBeSuspended(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeSuspended()
-        => FunctionCanBeSuspended(FunctionStoreFactory.FunctionStoreTask);
+        => FunctionCanBeSuspended(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded()
-        => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(FunctionStoreFactory.FunctionStoreTask);
+        => DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
-        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(FunctionStoreFactory.FunctionStoreTask);
+        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
-        => EligibleSuspendedFunctionIsPickedUpByWatchdog(FunctionStoreFactory.FunctionStoreTask);
+        => EligibleSuspendedFunctionIsPickedUpByWatchdog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag()
-        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(FunctionStoreFactory.FunctionStoreTask);
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
-        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(FunctionStoreFactory.FunctionStoreTask);
+        => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(FunctionStoreFactory.Create());
 }

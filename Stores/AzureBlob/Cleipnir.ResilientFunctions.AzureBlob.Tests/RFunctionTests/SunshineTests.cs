@@ -8,41 +8,41 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
 {
     [TestMethod]
     public override Task SunshineScenarioFunc() 
-        => SunshineScenarioFunc(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioFuncWithInitialEvents()
-        => SunshineScenarioFuncWithInitialEvents(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioFuncWithInitialEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioActionWithInitialEvents()
-        => SunshineScenarioActionWithInitialEvents(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioActionWithInitialEvents(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook() 
-        => SunshineScenarioFuncWithScrapbook(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioAction() 
-        => SunshineScenarioAction(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioActionWithScrapbook() 
-        => SunshineScenarioActionWithScrapbook(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioActionWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFunc()
-        => SunshineScenarioNullReturningFunc(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioNullReturningFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFuncWithScrapbook()
-        => SunshineScenarioNullReturningFuncWithScrapbook(FunctionStoreFactory.FunctionStoreTask);
+        => SunshineScenarioNullReturningFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully()
-        => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(FunctionStoreFactory.FunctionStoreTask);
+        => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task InvocationModeShouldBeDirectInSunshineScenario()
-        => InvocationModeShouldBeDirectInSunshineScenario(FunctionStoreFactory.FunctionStoreTask);
+        => InvocationModeShouldBeDirectInSunshineScenario(FunctionStoreFactory.Create());
 }

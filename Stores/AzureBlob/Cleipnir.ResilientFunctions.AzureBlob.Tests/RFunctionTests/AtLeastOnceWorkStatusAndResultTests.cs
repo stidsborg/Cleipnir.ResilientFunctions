@@ -8,33 +8,33 @@ public class AtLeastOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.T
 {
     [TestMethod]
     public override Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted()
-        => AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.FunctionStoreTask);
+        => AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted()
-        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.FunctionStoreTask);
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource()
-        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(FunctionStoreFactory.FunctionStoreTask);
+        => AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes()
-        => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
+        => CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.FunctionStoreTask);
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
-        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(FunctionStoreFactory.FunctionStoreTask);
+        => CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
-        => ReferencingGetOnlyPropertyThrowsException(FunctionStoreFactory.FunctionStoreTask);
+        => ReferencingGetOnlyPropertyThrowsException(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted()
-        => AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.FunctionStoreTask);
+        => AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted(FunctionStoreFactory.Create());
 }

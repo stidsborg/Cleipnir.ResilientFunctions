@@ -8,29 +8,29 @@ public class EventSourcesTests : ResilientFunctions.Tests.Messaging.TestTemplate
 {
     [TestMethod]
     public override Task EventSourcesSunshineScenario() 
-        => EventSourcesSunshineScenario(FunctionStoreFactory.FunctionStoreTask);
+        => EventSourcesSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
-        => ExistingEventsShouldBeSameAsAllAfterEmit(FunctionStoreFactory.FunctionStoreTask);
+        => ExistingEventsShouldBeSameAsAllAfterEmit(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
-        => SecondEventWithExistingIdempotencyKeyIsIgnored(FunctionStoreFactory.FunctionStoreTask);
+        => SecondEventWithExistingIdempotencyKeyIsIgnored(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
-        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.FunctionStoreTask);
+        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSourcesSunshineScenarioUsingEventStore()
-        => EventSourcesSunshineScenarioUsingEventStore(FunctionStoreFactory.FunctionStoreTask);
+        => EventSourcesSunshineScenarioUsingEventStore(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore()
-        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(FunctionStoreFactory.FunctionStoreTask);
+        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
-        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(FunctionStoreFactory.FunctionStoreTask);
+        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(FunctionStoreFactory.Create());
 }

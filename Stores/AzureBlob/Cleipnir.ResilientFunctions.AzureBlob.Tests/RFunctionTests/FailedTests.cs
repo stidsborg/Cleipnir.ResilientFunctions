@@ -8,32 +8,32 @@ public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests
 {
     [TestMethod]
     public override Task ExceptionThrowingFuncIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => ExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     public override Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => ExceptionThrowingActionIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PassingInNullParameterResultsInArgumentNullException()
-        => PassingInNullParameterResultsInException(FunctionStoreFactory.FunctionStoreTask);
+        => PassingInNullParameterResultsInException(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.FunctionStoreTask);
+        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 }
