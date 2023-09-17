@@ -8,21 +8,21 @@ public class TimeoutStoreTests : ResilientFunctions.Tests.TestTemplates.TimeoutS
 {
     [TestMethod]
     public override Task TimeoutCanBeCreatedFetchedAndRemoveSuccessfully()
-        => TimeoutCanBeCreatedFetchedAndRemoveSuccessfully(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+        => TimeoutCanBeCreatedFetchedAndRemoveSuccessfully(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 
     [TestMethod]
     public override Task ExistingTimeoutCanUpdatedSuccessfully()
-        => ExistingTimeoutCanUpdatedSuccessfully(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+        => ExistingTimeoutCanUpdatedSuccessfully(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 
     [TestMethod]
     public override Task OverwriteFalseDoesNotAffectExistingTimeout()
-        => OverwriteFalseDoesNotAffectExistingTimeout(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+        => OverwriteFalseDoesNotAffectExistingTimeout(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 
     [TestMethod]
     public override Task RegisteredTimeoutIsReturnedFromTimeoutProvider()
-        => RegisteredTimeoutIsReturnedFromTimeoutProvider(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+        => RegisteredTimeoutIsReturnedFromTimeoutProvider(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 
     [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
-        => TimeoutStoreCanBeInitializedMultipleTimes(Sql.AutoCreateAndInitializeStore().SelectAsync(s => s.TimeoutStore));
+        => TimeoutStoreCanBeInitializedMultipleTimes(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 }

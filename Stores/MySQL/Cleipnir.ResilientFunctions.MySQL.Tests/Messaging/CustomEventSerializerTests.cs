@@ -7,5 +7,5 @@ public class CustomEventSerializerTests : ResilientFunctions.Tests.Messaging.Tes
 {
     [TestMethod]
     public override Task CustomEventSerializerIsUsedWhenSpecified()
-        => CustomEventSerializerIsUsedWhenSpecified(Sql.AutoCreateAndInitializeStore());
+        => CustomEventSerializerIsUsedWhenSpecified(FunctionStoreFactory.Create());
 }

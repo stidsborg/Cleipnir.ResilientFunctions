@@ -7,103 +7,103 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest() 
-        => SunshineScenarioTest(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-        => SignOfLifeIsUpdatedWhenAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected() 
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SignOfLifeIsNotUpdatedWhenNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected() 
-        => BecomeLeaderSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => BecomeLeaderSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task BecomeLeaderFailsWhenEpochIsNotAsExpected()
-        => BecomeLeaderFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => BecomeLeaderFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
-        => CreatingTheSameFunctionTwiceReturnsFalse(Sql.AutoCreateAndInitializeStore());
+        => CreatingTheSameFunctionTwiceReturnsFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut()
-        => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Sql.AutoCreateAndInitializeStore());
+        => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut()
-        => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Sql.AutoCreateAndInitializeStore());
+        => FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponeFunctionFailsWhenEpochIsNotAsExpected()
-        => PostponeFunctionFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => PostponeFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
-        => InitializeCanBeInvokedMultipleTimesSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => InitializeCanBeInvokedMultipleTimesSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency()
         => CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(
-            Sql.AutoCreateAndInitializeStore()
+            FunctionStoreFactory.Create()
         );
 
     [TestMethod]
     public override Task OnlyEligibleCrashedFunctionsAreReturnedFromStore()
-        => OnlyEligibleCrashedFunctionsAreReturnedFromStore(Sql.AutoCreateAndInitializeStore());
+        => OnlyEligibleCrashedFunctionsAreReturnedFromStore(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task IncrementEpochSucceedsWhenEpochIsAsExpected()
-        => IncrementEpochSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => IncrementEpochSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task IncrementEpochFailsWhenEpochIsNotAsExpected()
-        => IncrementEpochFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => IncrementEpochFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
-        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
-        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingFunctionSucceeds()
-        => DeletingExistingFunctionSucceeds(Sql.AutoCreateAndInitializeStore());
+        => DeletingExistingFunctionSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected()
-        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FailFunctionSucceedsWhenEpochIsAsExpected()
-        => FailFunctionSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => FailFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SetFunctionStateSucceedsWhenEpochIsAsExpected()
-        => SetFunctionStateSucceedsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SetFunctionStateSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected()
-        => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(Sql.AutoCreateAndInitializeStore());
+        => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
-        => ExecutingFunctionCanBeSuspendedSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => ExecutingFunctionCanBeSuspendedSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
-        => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(Sql.AutoCreateAndInitializeStore());
+        => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
-        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(Sql.AutoCreateAndInitializeStore());
+        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
-        => FunctionStatusAndEpochCanBeSuccessfullyFetched(Sql.AutoCreateAndInitializeStore());
+        => FunctionStatusAndEpochCanBeSuccessfullyFetched(FunctionStoreFactory.Create());
 }

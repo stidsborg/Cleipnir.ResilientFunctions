@@ -53,20 +53,6 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
             await store.Initialize();
             return store;
         }
-        
-        public static async Task<IEventStore> CreateAndInitializeEventStore(
-            [CallerFilePath] string sourceFilePath = "",
-            [CallerMemberName] string callMemberName = "")
-        {
-            var sourceFileName = sourceFilePath
-                .Split(new[] {"\\", "/"}, StringSplitOptions.None)
-                .Last()
-                .Replace(".cs", "");
-            var store = new MySqlEventStore(ConnectionString);
-            await store.DropUnderlyingTable();
-            await store.Initialize();
-            return store;
-        }
 
         public static Task<IFunctionStore> AutoCreateAndInitializeStore(
             [CallerFilePath] string sourceFilePath = "",

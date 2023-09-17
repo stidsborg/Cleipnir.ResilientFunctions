@@ -7,5 +7,5 @@ public class EventsSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messagi
 {
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()
-        => EventsSubscriptionSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => EventsSubscriptionSunshineScenario(FunctionStoreFactory.Create());
 }

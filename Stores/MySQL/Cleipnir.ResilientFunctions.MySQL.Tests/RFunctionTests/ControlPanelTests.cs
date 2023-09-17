@@ -7,121 +7,121 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     [TestMethod]
     public override Task ExistingActionCanBeDeletedFromControlPanel()
-        => ExistingActionCanBeDeletedFromControlPanel(Sql.AutoCreateAndInitializeStore());
+        => ExistingActionCanBeDeletedFromControlPanel(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingFunctionCanBeDeletedFromControlPanel()
-        => ExistingFunctionCanBeDeletedFromControlPanel(Sql.AutoCreateAndInitializeStore());
+        => ExistingFunctionCanBeDeletedFromControlPanel(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingActionWithHigherEpochReturnsFalse()
-        => DeletingExistingActionWithHigherEpochReturnsFalse(Sql.AutoCreateAndInitializeStore());
+        => DeletingExistingActionWithHigherEpochReturnsFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingFuncWithHigherEpochReturnsFalse()
-        => DeletingExistingFuncWithHigherEpochReturnsFalse(Sql.AutoCreateAndInitializeStore());
+        => DeletingExistingFuncWithHigherEpochReturnsFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponingExistingActionFromControlPanelSucceeds()
-        => PostponingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => PostponingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponingExistingFunctionFromControlPanelSucceeds()
-        => PostponingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => PostponingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FailingExistingActionFromControlPanelSucceeds()
-        => FailingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => FailingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FailingExistingFunctionFromControlPanelSucceeds()
-        => FailingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => FailingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SucceedingExistingActionFromControlPanelSucceeds()
-        => SucceedingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => SucceedingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SucceedingExistingFunctionFromControlPanelSucceeds()
-        => SucceedingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => SucceedingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReInvokingExistingActionFromControlPanelSucceeds()
-        => ReInvokingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => ReInvokingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReInvokingExistingFunctionFromControlPanelSucceeds()
-        => ReinvokingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => ReinvokingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleReInvokingExistingActionFromControlPanelSucceeds()
-        => ScheduleReInvokingExistingActionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => ScheduleReInvokingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds()
-        => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Sql.AutoCreateAndInitializeStore());
+        => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected()
-        => ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected()
-        => ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(Sql.AutoCreateAndInitializeStore());
+        => ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds()
-        => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(Sql.AutoCreateAndInitializeStore());
+        => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task WaitingForExistingActionFromControlPanelToCompleteSucceeds()
-        => WaitingForExistingActionFromControlPanelToCompleteSucceeds(Sql.AutoCreateAndInitializeStore());
+        => WaitingForExistingActionFromControlPanelToCompleteSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task LastSignOfLifeIsUpdatedForExecutingFunc()
-        => LastSignOfLifeIsUpdatedForExecutingFunc(Sql.AutoCreateAndInitializeStore());
+        => LastSignOfLifeIsUpdatedForExecutingFunc(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task LastSignOfLifeIsUpdatedForExecutingAction()
-        => LastSignOfLifeIsUpdatedForExecutingAction(Sql.AutoCreateAndInitializeStore());
+        => LastSignOfLifeIsUpdatedForExecutingAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook()
-        => ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook(Sql.AutoCreateAndInitializeStore());
+        => ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook()
-        => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(Sql.AutoCreateAndInitializeStore());
+        => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents()
-        => ControlPanelsExistingEventsContainsPreviouslyAddedEvents(Sql.AutoCreateAndInitializeStore());
+        => ControlPanelsExistingEventsContainsPreviouslyAddedEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsCanBeReplacedUsingControlPanel()
-        => ExistingEventsCanBeReplacedUsingControlPanel(Sql.AutoCreateAndInitializeStore());
+        => ExistingEventsCanBeReplacedUsingControlPanel(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation()
-        => ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(Sql.AutoCreateAndInitializeStore());
+        => ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges()
-        => ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(Sql.AutoCreateAndInitializeStore());
+        => ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced()
-        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced(Sql.AutoCreateAndInitializeStore());
+        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed()
-        => ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed(Sql.AutoCreateAndInitializeStore());
+        => ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced()
-        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(Sql.AutoCreateAndInitializeStore());
+        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsCanBeReplaced()
-        => ExistingEventsCanBeReplaced(Sql.AutoCreateAndInitializeStore());
+        => ExistingEventsCanBeReplaced(FunctionStoreFactory.Create());
 }
