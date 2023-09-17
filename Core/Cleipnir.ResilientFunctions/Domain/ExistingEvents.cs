@@ -47,7 +47,7 @@ public class ExistingEvents : IEnumerable<object>
     {
         var storedEvents = _events.Select(eventAndIdempotencyKey =>
         {
-            var (json, type) = _serializer.SerializeEvent(eventAndIdempotencyKey);
+            var (json, type) = _serializer.SerializeEvent(eventAndIdempotencyKey.Event);
             return new StoredEvent(json, type, eventAndIdempotencyKey.IdempotencyKey);
         });
 
