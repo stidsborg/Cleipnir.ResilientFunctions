@@ -8,41 +8,41 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
 {
     [TestMethod]
     public override Task SunshineScenarioFunc() 
-        => SunshineScenarioFunc(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioFuncWithInitialEvents()
-        => SunshineScenarioFuncWithInitialEvents(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioFuncWithInitialEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioActionWithInitialEvents()
-        => SunshineScenarioActionWithInitialEvents(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioActionWithInitialEvents(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook() 
-        => SunshineScenarioFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioAction() 
-        => SunshineScenarioAction(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioActionWithScrapbook() 
-        => SunshineScenarioActionWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioActionWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFunc()
-        => SunshineScenarioNullReturningFunc(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioNullReturningFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFuncWithScrapbook()
-        => SunshineScenarioNullReturningFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => SunshineScenarioNullReturningFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully()
-        => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(Sql.AutoCreateAndInitializeStore());
+        => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task InvocationModeShouldBeDirectInSunshineScenario()
-        => InvocationModeShouldBeDirectInSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => InvocationModeShouldBeDirectInSunshineScenario(FunctionStoreFactory.Create());
 }

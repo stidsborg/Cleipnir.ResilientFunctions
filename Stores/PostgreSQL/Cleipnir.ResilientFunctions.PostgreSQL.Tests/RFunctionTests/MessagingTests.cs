@@ -8,13 +8,13 @@ public class MessagingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RF
 {
     [TestMethod]
     public override Task FunctionCompletesAfterAwaitedMessageIsReceived()
-        => FunctionCompletesAfterAwaitedMessageIsReceived(Sql.AutoCreateAndInitializeStore());
+        => FunctionCompletesAfterAwaitedMessageIsReceived(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist()
-        => FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist(Sql.AutoCreateAndInitializeStore());
+        => FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TimeoutEventCausesSuspendedFunctionToBeReInvoked()
-        => TimeoutEventCausesSuspendedFunctionToBeReInvoked(Sql.AutoCreateAndInitializeStore());
+        => TimeoutEventCausesSuspendedFunctionToBeReInvoked(FunctionStoreFactory.Create());
 }

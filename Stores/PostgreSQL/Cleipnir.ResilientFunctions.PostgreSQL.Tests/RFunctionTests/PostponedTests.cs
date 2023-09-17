@@ -8,53 +8,53 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
 {
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
-        => PostponedFuncIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
-        => PostponedActionIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
-        => PostponedActionIsCompletedAfterInMemoryTimeout(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedAfterInMemoryTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
-        => PostponedActionIsCompletedByWatchDogAfterCrash(Sql.AutoCreateAndInitializeStore());
+        => PostponedActionIsCompletedByWatchDogAfterCrash(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedAction()
-        => ThrownPostponeExceptionResultsInPostponedAction(Sql.AutoCreateAndInitializeStore());
+        => ThrownPostponeExceptionResultsInPostponedAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFunc()
-        => ThrownPostponeExceptionResultsInPostponedFunc(Sql.AutoCreateAndInitializeStore());
+        => ThrownPostponeExceptionResultsInPostponedFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(Sql.AutoCreateAndInitializeStore());
+        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp()
-        => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(Sql.AutoCreateAndInitializeStore());
+        => ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ScheduleAtActionIsCompletedAfterDelay()
-        => ScheduleAtActionIsCompletedAfterDelay(Sql.AutoCreateAndInitializeStore());
+        => ScheduleAtActionIsCompletedAfterDelay(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduleAtFuncIsCompletedAfterDelay()
-        => ScheduleAtFuncIsCompletedAfterDelay(Sql.AutoCreateAndInitializeStore());
+        => ScheduleAtFuncIsCompletedAfterDelay(FunctionStoreFactory.Create());
 }

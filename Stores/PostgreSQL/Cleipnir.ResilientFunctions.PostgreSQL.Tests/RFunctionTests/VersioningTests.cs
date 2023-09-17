@@ -8,21 +8,21 @@ public class VersioningTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
 {
     [TestMethod]
     public override Task NonExistingParameterTypeResultsInFailedFunction()
-        => NonExistingParameterTypeResultsInFailedFunction(Sql.AutoCreateAndInitializeStore());
+        => NonExistingParameterTypeResultsInFailedFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown()
-        => WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Sql.AutoCreateAndInitializeStore());
+        => WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown()
-        => WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Sql.AutoCreateAndInitializeStore());
+        => WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype()
-        => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(Sql.AutoCreateAndInitializeStore());
+        => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ReturnTypeCanBeParentTypeOfActualReturnedValue()
-        => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(Sql.AutoCreateAndInitializeStore());
+        => RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(FunctionStoreFactory.Create());
 }

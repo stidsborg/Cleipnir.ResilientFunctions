@@ -8,14 +8,14 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()
-        => ActionReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => ActionReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ActionWithScrapbookReInvocationSunshineScenario()
-        => ActionWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => ActionWithScrapbookReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
-        => FuncReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => FuncReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task FuncWithScrapbookReInvocationSunshineScenario()
-        => FuncWithScrapbookReInvocationSunshineScenario(Sql.AutoCreateAndInitializeStore());
+        => FuncWithScrapbookReInvocationSunshineScenario(FunctionStoreFactory.Create());
 }
