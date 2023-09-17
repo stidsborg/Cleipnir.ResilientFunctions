@@ -11,6 +11,7 @@
       <ProjectReference Include="..\..\Core\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj" />
       <ProjectReference Include="..\..\Core\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
       <ProjectReference Include="..\..\Stores\PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL\Cleipnir.ResilientFunctions.PostgreSQL.csproj" />
+      <ProjectReference Include="..\..\Stores\Redis\Cleipnir.ResilientFunctions.Redis\Cleipnir.ResilientFunctions.Redis.csproj" />
       <ProjectReference Include="..\..\Stores\SqlServer\Cleipnir.ResilientFunctions.SqlServer\Cleipnir.ResilientFunctions.SqlServer.csproj" />
     </ItemGroup>
 

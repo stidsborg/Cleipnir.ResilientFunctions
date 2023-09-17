@@ -27,3 +27,11 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: "Pa55word!"
+
+  redis:
+    image: redis:latest
+    deploy:
+      replicas: 1
+    ports:
+     - "6379:6379"
+    tty: true
