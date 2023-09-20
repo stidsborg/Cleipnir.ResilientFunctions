@@ -675,7 +675,6 @@ public abstract class StoreTests
             new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
             storedException: null,
             postponeUntil: null,
-            events: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 
@@ -720,6 +719,19 @@ public abstract class StoreTests
             functionId,
             new[] { event1, event2 }
         );
+
+        await eventStore.Replace(
+            functionId,
+            new[]
+            {
+                new StoredEvent(
+                    "hello everyone".ToJson(),
+                    EventType: typeof(string).SimpleQualifiedName(),
+                    IdempotencyKey: "idempotency_key_1"
+                ),
+            },
+            expectedEventCount: 2
+        ).ShouldBeTrueAsync();
         
         await store.SetFunctionState(
             functionId,
@@ -729,16 +741,6 @@ public abstract class StoreTests
             new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
             storedException: null,
             postponeUntil: null,
-            events: new ReplaceEvents(
-                Events: new[] {
-                    new StoredEvent(
-                        "hello everyone".ToJson(),
-                        EventType: typeof(string).SimpleQualifiedName(),
-                        IdempotencyKey: "idempotency_key_1"
-                    ),
-                }, 
-                ExistingCount: 2
-            ),
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 
@@ -883,7 +885,6 @@ public abstract class StoreTests
             new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
             storedException: null,
             postponeUntil: null,
-            events: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 

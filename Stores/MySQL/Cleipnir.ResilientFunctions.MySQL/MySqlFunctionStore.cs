@@ -257,14 +257,10 @@ public class MySqlFunctionStore : IFunctionStore
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents? events,
         int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        await using var transaction = events != null
-            ? await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead)
-            : default;    
-        
+      
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = ?, 
@@ -277,7 +273,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ?";
-        await using var command = new MySqlCommand(sql, conn, transaction)
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -297,17 +293,7 @@ public class MySqlFunctionStore : IFunctionStore
         };
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0 || transaction == null) 
-            return affectedRows == 1;
-
-        var (storedEvents, existingCount) = events!;
-        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
-        if (affectedRows != existingCount)
-            return false;
-        await _eventStore.AppendEvents(functionId, storedEvents, await _eventStore.GetNumberOfEvents(functionId), conn, transaction);
-
-        await transaction.CommitAsync();
-        return true;
+        return affectedRows == 1;
     }
 
     public async Task<bool> SaveScrapbookForExecutingFunction( 
@@ -342,15 +328,11 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
-        ReplaceEvents? events,
         bool suspended,
         int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        await using var transaction = events != null
-            ? await conn.BeginTransactionAsync()
-            : null;
-        
+      
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, epoch = epoch + 1
@@ -359,47 +341,23 @@ public class MySqlFunctionStore : IFunctionStore
                 function_instance_id = ? AND 
                 epoch = ?";
 
-        var command = transaction == null
-            ? new MySqlCommand(sql, conn)
+        var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                Parameters =
-                {
-                    new() { Value = storedParameter.ParamJson },
-                    new() { Value = storedParameter.ParamType },
-                    new() { Value = storedScrapbook.ScrapbookJson },
-                    new() { Value = storedScrapbook.ScrapbookType },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                }
+                new() { Value = storedParameter.ParamJson },
+                new() { Value = storedParameter.ParamType },
+                new() { Value = storedScrapbook.ScrapbookJson },
+                new() { Value = storedScrapbook.ScrapbookType },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
             }
-            : new MySqlCommand(sql, conn, transaction)
-            {
-                Parameters =
-                {
-                    new() { Value = storedParameter.ParamJson },
-                    new() { Value = storedParameter.ParamType },
-                    new() { Value = storedScrapbook.ScrapbookJson },
-                    new() { Value = storedScrapbook.ScrapbookType },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                }
-            };
+        };
+            
         await using var _ = command;
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0 || transaction == null)
-            return affectedRows == 1;
-
-        var (storedEvents, existingCount) = events!;
-        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
-        if (affectedRows != existingCount)
-            return false;
-        
-        await _eventStore.AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
-
-        await transaction.CommitAsync();
-        return true;
+        return affectedRows == 1;
     }
 
     public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)

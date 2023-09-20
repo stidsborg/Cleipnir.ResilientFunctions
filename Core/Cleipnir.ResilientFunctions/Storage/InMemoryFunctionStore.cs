@@ -161,7 +161,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         StoredResult storedResult,
         StoredException? storedException,
         long? postponeUntil,
-        ReplaceEvents? events,
         int expectedEpoch)
     {
         lock (_sync)
@@ -172,16 +171,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
-            if (events != null)
-            {
-                var expectedCount = events.ExistingCount;
-                if (expectedCount == 0 && !_events.ContainsKey(functionId) && _events[functionId].Count > 0)
-                    return false.ToTask();
-                if (_events[functionId].Count != expectedCount)
-                    return false.ToTask();
-
-                _events[functionId] = events.Events.ToList();
-            }
 
             state.Status = status;
             state.Param = storedParameter;
@@ -213,24 +202,13 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public virtual Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, ReplaceEvents? events, bool suspended, int expectedEpoch)
+    public virtual Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, bool suspended, int expectedEpoch)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(functionId)) return false.ToTask();
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
-
-            if (events != null)
-            {
-                var expectedCount = events.ExistingCount;
-                if (expectedCount == 0 && !_events.ContainsKey(functionId) && _events[functionId].Count > 0)
-                    return false.ToTask();
-                if (_events[functionId].Count != expectedCount)
-                    return false.ToTask();
-
-                _events[functionId] = events.Events.ToList();
-            }
             
             state.Param = storedParameter;
             state.Scrapbook = storedScrapbook;

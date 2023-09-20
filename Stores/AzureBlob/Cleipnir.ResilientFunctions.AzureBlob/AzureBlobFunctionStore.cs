@@ -220,34 +220,20 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents? events,
         int expectedEpoch)
     {
-        if (events != null)
-            return await SetFunctionStateWithEvents(
-                functionId,
-                status,
-                storedParameter,
-                storedScrapbook,
-                storedResult,
-                storedException,
-                postponeUntil,
-                events,
-                expectedEpoch
-            );
-        else
-            return await SetFunctionStateWithoutEvents(
-                functionId,
-                status,
-                storedParameter,
-                storedScrapbook,
-                storedResult,
-                storedException,
-                postponeUntil,
-                expectedEpoch,
-                incrementEpoch: true,
-                forceSetSuspendedTagIfSuspended: true
-            );
+        return await SetFunctionStateWithoutEvents(
+            functionId,
+            status,
+            storedParameter,
+            storedScrapbook,
+            storedResult,
+            storedException,
+            postponeUntil,
+            expectedEpoch,
+            incrementEpoch: true,
+            forceSetSuspendedTagIfSuspended: true
+        );
     }
 
     private async Task<bool> SetFunctionStateWithoutEvents(
@@ -472,7 +458,6 @@ public class AzureBlobFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter storedParameter, 
         StoredScrapbook storedScrapbook, 
-        ReplaceEvents? events, 
         bool suspended,
         int expectedEpoch)
     {
@@ -488,7 +473,6 @@ public class AzureBlobFunctionStore : IFunctionStore
             storedFunction.Result,
             storedFunction.Exception,
             storedFunction.PostponedUntil,
-            events,
             expectedEpoch
         );
     }

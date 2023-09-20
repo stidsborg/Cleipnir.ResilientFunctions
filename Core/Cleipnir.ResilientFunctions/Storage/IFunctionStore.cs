@@ -38,7 +38,6 @@ public interface IFunctionStore
         StoredResult storedResult,
         StoredException? storedException,
         long? postponeUntil,
-        ReplaceEvents? events,
         int expectedEpoch
     );
 
@@ -53,7 +52,6 @@ public interface IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
-        ReplaceEvents? events, //todo remove
         bool suspended,
         int expectedEpoch
     );

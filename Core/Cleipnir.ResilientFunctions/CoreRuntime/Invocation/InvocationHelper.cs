@@ -300,7 +300,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         TScrapbook scrapbook,
         DateTime? postponeUntil,
         Exception? exception,
-        ExistingEvents? existingEvents,
         int expectedEpoch
     )
     {
@@ -313,19 +312,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedResult: StoredResult.Null,
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
-            existingEvents == null 
-                ? null 
-                : new ReplaceEvents(
-                    Events: existingEvents
-                        .EventsWithIdempotencyKeys
-                        .Select(e =>
-                        {
-                            var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
-                            return new StoredEvent(json, type, e.IdempotencyKey);
-                        })
-                        .ToList(), 
-                    existingEvents.ExistingCount
-                  ),
             expectedEpoch
         );
     }
@@ -351,19 +337,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
-            existingEvents == null 
-                ? null 
-                : new ReplaceEvents(
-                    Events: existingEvents
-                        .EventsWithIdempotencyKeys
-                        .Select(e =>
-                        {
-                            var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
-                            return new StoredEvent(json, type, e.IdempotencyKey);
-                        })
-                        .ToList(), 
-                    existingEvents.ExistingCount
-                ),
             expectedEpoch
         );
     }
@@ -380,7 +353,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
-            events: null,
             suspended,
             expectedEpoch
         );

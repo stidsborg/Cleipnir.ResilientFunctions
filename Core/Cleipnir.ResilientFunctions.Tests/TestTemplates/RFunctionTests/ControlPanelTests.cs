@@ -937,8 +937,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed();
-    protected async Task ConcurrentModificationOfExistingEventsCausesExceptionOnSucceed(Task<IFunctionStore> storeTask)
+    public abstract Task ConcurrentModificationOfExistingEventsCausesExceptionOnSave();
+    protected async Task ConcurrentModificationOfExistingEventsCausesExceptionOnSave(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -965,7 +965,7 @@ public abstract class ControlPanelTests
         existingEvents.Add("hej verden");
         existingEvents.Add("hej univers");
 
-        await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.Succeed());
+        await Should.ThrowAsync<ConcurrentModificationException>(() => existingEvents.SaveChanges(verifyNoChangesBeforeSave: true));
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

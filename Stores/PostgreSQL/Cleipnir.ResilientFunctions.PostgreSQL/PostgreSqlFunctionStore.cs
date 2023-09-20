@@ -279,15 +279,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents? events,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
-        await using var transaction =
-            events != null
-                ? await conn.BeginTransactionAsync(IsolationLevel.Serializable)
-                : null;
-        
+       
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = $1,
@@ -300,7 +295,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 function_type_id = $10 AND 
                 function_instance_id = $11 AND 
                 epoch = $12";
-        await using var command = new NpgsqlCommand(sql, conn, transaction)
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -320,23 +315,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0 || transaction == null)
-            return affectedRows == 1;
-
-        var (storedEvents, existingCount) = events!;
-        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
-        if (affectedRows != existingCount)
-            return false;
-
-        await _eventStore.AppendEvents(
-            functionId,
-            storedEvents!,
-            conn,
-            transaction
-        );
-
-        await transaction.CommitAsync();
-        return true;
+        return affectedRows == 1;
     }
 
     public async Task<bool> SaveScrapbookForExecutingFunction( 
@@ -371,21 +350,17 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
-        ReplaceEvents? events,
         bool suspended,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = events != null
-            ? await conn.BeginTransactionAsync(IsolationLevel.Serializable)
-            : null;
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, epoch = epoch + 1
             WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
         
-        var command = new NpgsqlCommand(sql, conn, transaction)
+        var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -401,23 +376,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         await using var _ = command;
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0 || transaction == null)
-            return affectedRows == 1;
-
-        var (storedEvents, existingCount) = events!;
-        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
-        if (affectedRows != existingCount)
-            return false;
-
-        await _eventStore.AppendEvents(
-            functionId,
-            storedEvents!,
-            conn,
-            transaction
-        );
-        await transaction.CommitAsync();
-        
-        return true;
+        return affectedRows == 1;
     }
 
     public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)

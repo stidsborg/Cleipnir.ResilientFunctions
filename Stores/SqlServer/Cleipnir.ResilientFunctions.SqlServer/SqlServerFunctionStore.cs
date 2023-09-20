@@ -292,14 +292,10 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents? events,
         int expectedEpoch)
     {
         await using var conn = await _connFunc();
-        await using var transaction = events != null
-            ? conn.BeginTransaction(IsolationLevel.RepeatableRead)
-            : null;
-        
+    
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET
@@ -314,7 +310,7 @@ public class SqlServerFunctionStore : IFunctionStore
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
         
-        await using var command = new SqlCommand(sql, conn, transaction);
+        await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Status", (int) status);
         command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
         command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
@@ -330,17 +326,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0 || transaction == null)
-            return affectedRows > 0;
-
-        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
-        var (storedEvents, existingCount) = events!;
-        if (existingCount != affectedRows)
-            return false;
-        
-        await _eventStore.AppendEvents(functionId, storedEvents, conn, transaction);
-        await transaction.CommitAsync();
-        return true;
+        return affectedRows > 0;
     }
 
     public async Task<bool> SaveScrapbookForExecutingFunction( 
@@ -370,21 +356,17 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
-        ReplaceEvents? events,
         bool suspended,
         int expectedEpoch)
     {
         await using var conn = await _connFunc();
-        await using var transaction = events != null
-            ? conn.BeginTransaction(IsolationLevel.RepeatableRead)
-            : default;
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET ParamJson = @ParamJson, ParamType = @ParamType, ScrapbookJson = @ScrapbookJson, ScrapbookType = @ScrapbookType, Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
-        await using var command = new SqlCommand(sql, conn, transaction);
+        await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
         command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
         command.Parameters.AddWithValue("@ScrapbookJson", storedScrapbook.ScrapbookJson);
@@ -394,17 +376,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0 || transaction == null)
-            return affectedRows > 0;
-
-        var (storedEvents, existingCount) = events!;
-        affectedRows = await _eventStore.Truncate(functionId, conn, transaction);
-        if (affectedRows != existingCount)
-            return false;
-
-        await _eventStore.AppendEvents(functionId, storedEvents!, conn, transaction);
-        await transaction.CommitAsync();
-        return true;
+        return affectedRows > 0;
     }
 
     public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)

@@ -86,7 +86,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Succeeded, Param, Scrapbook, postponeUntil: null, exception: null, 
-            existingEvents: _events == null ? null : await _events,
             Epoch
         );
 
@@ -102,7 +101,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Postponed, Param, Scrapbook, until, exception: null,
-            existingEvents: _events == null ? null : await _events,
             Epoch
         );
 
@@ -122,7 +120,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception,
-            existingEvents: _events == null ? null : await _events,
             Epoch
         );
 
