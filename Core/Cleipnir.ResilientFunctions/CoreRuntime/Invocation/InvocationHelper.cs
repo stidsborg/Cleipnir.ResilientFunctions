@@ -371,8 +371,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public async Task<bool> SaveControlPanelChanges(
         FunctionId functionId, 
         TParam param, 
-        TScrapbook scrapbook, 
-        ExistingEvents? existingEvents,
+        TScrapbook scrapbook,
         bool suspended,
         int expectedEpoch)
     {
@@ -381,19 +380,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
-            existingEvents == null 
-                ? null 
-                : new ReplaceEvents(
-                    Events: existingEvents
-                        .EventsWithIdempotencyKeys
-                        .Select(e =>
-                        {
-                            var (json, type) = _settings.Serializer.SerializeEvent(e.Event);
-                            return new StoredEvent(json, type, e.IdempotencyKey);
-                        })
-                        .ToList(), 
-                    existingEvents.ExistingCount
-                ),
+            events: null,
             suspended,
             expectedEpoch
         );

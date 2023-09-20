@@ -140,7 +140,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     {
         var success = await _invocationHelper.SaveControlPanelChanges(
             FunctionId, Param, Scrapbook,
-            existingEvents: _events == null ? null : await _events,
             suspended: Status == Status.Suspended,
             Epoch
         );
@@ -327,7 +326,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     {
         var success = await _invocationHelper.SaveControlPanelChanges(
             FunctionId, Param, Scrapbook,
-            existingEvents: _events == null ? null : await _events,
             suspended: Status == Status.Suspended,
             Epoch
         );

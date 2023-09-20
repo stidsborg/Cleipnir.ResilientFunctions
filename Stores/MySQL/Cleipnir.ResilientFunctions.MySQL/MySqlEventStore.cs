@@ -191,15 +191,20 @@ public class MySqlEventStore : IEventStore
     public async Task<long> GetNumberOfEvents(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
-        await using var command = new MySqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-            }
-        };
+        return await GetNumberOfEvents(functionId, conn, transaction: null);
+    }
+
+    private async Task<long> GetNumberOfEvents(FunctionId functionId, MySqlConnection conn, MySqlTransaction? transaction)
+    {
+        var sql = $"SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
+        await using var command =
+            transaction == null
+                ? new MySqlCommand(sql, conn)
+                : new MySqlCommand(sql, conn, transaction);
+        
+        command.Parameters.Add(new() {Value = functionId.TypeId.Value});
+        command.Parameters.Add(new() {Value = functionId.InstanceId.Value});
+        
         return (long) (await command.ExecuteScalarAsync())!;
     }
 
@@ -227,15 +232,23 @@ public class MySqlEventStore : IEventStore
         return affectedRows;
     }
     
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var transaction = await conn.BeginTransactionAsync();
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
 
+        if (expectedEventCount != null)
+        {
+            var count = await GetNumberOfEvents(functionId, conn, transaction);
+            if (count != expectedEventCount)
+                return false;
+        }
+        
         await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
 
         await transaction.CommitAsync();
+        return true;
     }
     
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)

@@ -425,12 +425,25 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         return Task.CompletedTask;
     }
 
-    public Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
     {
         lock (_sync)
-            _events[functionId] = storedEvents.ToList();
+        {
+            if (expectedEventCount == null)
+            {
+                _events[functionId] = storedEvents.ToList();
+                return true.ToTask();
+            }
+                
+            var success = _events.TryGetValue(functionId, out var existingEvents);
+            if (!success) return false.ToTask();
 
-        return Task.CompletedTask;
+            if (existingEvents == null || existingEvents.Count != expectedEventCount)
+                return false.ToTask();
+            
+            _events[functionId] = storedEvents.ToList();
+            return true.ToTask();
+        }
     }
 
     public virtual Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)

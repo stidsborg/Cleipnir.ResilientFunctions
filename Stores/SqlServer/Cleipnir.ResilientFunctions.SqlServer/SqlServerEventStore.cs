@@ -169,22 +169,44 @@ public class SqlServerEventStore : IEventStore
         return await command.ExecuteNonQueryAsync();
     }
     
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = conn.BeginTransaction();
+        await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
 
+        if (expectedEventCount != null)
+        {
+            var count = await GetEventsCount(functionId, conn, transaction);
+            if (count != expectedEventCount.Value)
+                return false;
+        }
+        
         await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, conn, transaction);
 
         await transaction.CommitAsync();
+        return true;
     }
 
+    private async Task<long> GetEventsCount(FunctionId functionId, SqlConnection conn, SqlTransaction transaction)
+    {
+        var sql = @$"    
+            SELECT COALESCE(MAX(position), -1) + 1 
+            FROM {_tablePrefix}RFunctions_Events
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+        
+        await using var command = new SqlCommand(sql, conn, transaction);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        
+        var count = (int) await command.ExecuteScalarAsync();
+        return count;
+    }
+    
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
         => InnerGetEvents(functionId, skip: 0)
             .SelectAsync(events => (IEnumerable<StoredEvent>) events);
-        
-
+    
     private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();

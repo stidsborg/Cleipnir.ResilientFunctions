@@ -65,11 +65,40 @@ public class AzureBlobEventStore : IEventStore
             .DeleteIfExistsAsync();
     }
 
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
     {
         var blobName = functionId.GetEventsBlobName();
         var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
-        await blobClient.CreateAsync();
+
+        if (expectedEventCount != null)
+        {
+            BlobLeaseClient? eventsLeaseClient = null;
+            
+            try
+            {
+                var eventsBlobName = functionId.GetEventsBlobName();
+                var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+                await eventsBlobClient.CreateIfNotExistsAsync();
+            
+                eventsLeaseClient = eventsBlobClient.GetBlobLeaseClient();
+                var eventsLeaseResponse = await eventsLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite events lease
+                var eventsLeaseId = eventsLeaseResponse.Value.LeaseId;
+
+                var (existingEvents, _, _) = await InnerGetEvents(functionId, offset: 0, leaseId: eventsLeaseId);
+                if (expectedEventCount != existingEvents.Count)
+                    return false;
+
+                await Replace(functionId, storedEvents, eventsLeaseId);
+                return true;
+            }
+            finally
+            {
+                if (eventsLeaseClient != null)
+                    await eventsLeaseClient.ReleaseAsync();
+            }
+        }
+
+        await blobClient.CreateAsync(); //overwrites existing blob with empty file
         
         var marshalledString = SimpleMarshaller.Serialize(storedEvents
             .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
@@ -78,6 +107,7 @@ public class AzureBlobEventStore : IEventStore
         
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
         await blobClient.AppendBlockAsync(ms);
+        return true;
     }
 
     internal async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, string leaseId)

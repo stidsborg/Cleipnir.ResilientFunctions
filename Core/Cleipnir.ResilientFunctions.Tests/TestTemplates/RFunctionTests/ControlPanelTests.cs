@@ -803,6 +803,8 @@ public abstract class ControlPanelTests
         existingEvents.Clear();
         existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello to you", "1"));
         existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello from me", "2"));
+        await existingEvents.SaveChanges(verifyNoChangesBeforeSave: true);
+        
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
@@ -891,8 +893,8 @@ public abstract class ControlPanelTests
         existingEvents.Clear();
         existingEvents.Add("hej verden");
         existingEvents.Add("hej univers");
-
-        await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.SaveChanges());
+        
+        await Should.ThrowAsync<ConcurrentModificationException>(() => existingEvents.SaveChanges(verifyNoChangesBeforeSave: true));
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

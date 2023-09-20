@@ -196,17 +196,45 @@ public class PostgreSqlEventStore : IEventStore
         await Truncate(functionId, conn, transaction: null);
     }
 
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync();
+        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        if (expectedEventCount != null)
+        {
+            var existingCount = await GetEventsCount(functionId, conn, transaction);
+            if (existingCount != expectedEventCount)
+                return false;
+        }
         
         await Truncate(functionId, conn, transaction);
         await AppendEvents(functionId, storedEvents, conn, transaction);
 
         await transaction.CommitAsync();
+        return true;
     }
 
+    private async Task<int> GetEventsCount(FunctionId functionId, NpgsqlConnection conn, NpgsqlTransaction transaction)
+    {
+        var sql = @$"    
+            SELECT (COALESCE(MAX(position), -1) + 1) 
+            FROM {_tablePrefix}rfunctions_events 
+            WHERE function_type_id = $1 AND function_instance_id = $2";
+        
+        await using var command = new NpgsqlCommand(sql, conn, transaction)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+        
+        var count = (int) await command.ExecuteScalarAsync();
+        return count;
+    }
+    
     internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
     {
         var sql = @$"    

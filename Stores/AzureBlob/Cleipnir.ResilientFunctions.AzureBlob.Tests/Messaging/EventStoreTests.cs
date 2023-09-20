@@ -1,7 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Azure.Storage.Blobs;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob.Tests.Messaging;
@@ -20,7 +17,15 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
     [TestMethod]
     public override Task EventsCanBeReplaced()
         => EventsCanBeReplaced(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task EventsAreReplacedWhenCountIsAsExpected()
+        => EventsAreReplacedWhenCountIsAsExpected(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EventsAreNotReplacedWhenCountIsNotAsExpected()
+        => EventsAreNotReplacedWhenCountIsNotAsExpected(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(FunctionStoreFactory.Create());

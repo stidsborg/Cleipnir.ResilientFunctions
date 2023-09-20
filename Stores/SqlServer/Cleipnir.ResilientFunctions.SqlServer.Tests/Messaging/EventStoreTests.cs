@@ -17,7 +17,15 @@ public class EventStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Test
     [TestMethod]
     public override Task EventsCanBeReplaced()
         => EventsCanBeReplaced(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task EventsAreReplacedWhenCountIsAsExpected()
+        => EventsAreReplacedWhenCountIsAsExpected(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EventsAreNotReplacedWhenCountIsNotAsExpected()
+        => EventsAreNotReplacedWhenCountIsNotAsExpected(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(FunctionStoreFactory.Create());

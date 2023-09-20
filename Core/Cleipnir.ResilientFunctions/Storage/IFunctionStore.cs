@@ -53,7 +53,7 @@ public interface IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
-        ReplaceEvents? events,
+        ReplaceEvents? events, //todo remove
         bool suspended,
         int expectedEpoch
     );
