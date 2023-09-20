@@ -458,7 +458,6 @@ public class AzureBlobFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter storedParameter, 
         StoredScrapbook storedScrapbook, 
-        bool suspended,
         int expectedEpoch)
     {
         var storedFunction = await GetFunction(functionId);

@@ -328,7 +328,6 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
-        bool suspended,
         int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

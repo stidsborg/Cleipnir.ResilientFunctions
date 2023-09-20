@@ -345,7 +345,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId, 
         TParam param, 
         TScrapbook scrapbook,
-        bool suspended,
         int expectedEpoch)
     {
         var serializer = _settings.Serializer;
@@ -353,7 +352,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedParameter: serializer.SerializeParameter(param),
             storedScrapbook: serializer.SerializeScrapbook(scrapbook),
-            suspended,
             expectedEpoch
         );
     }

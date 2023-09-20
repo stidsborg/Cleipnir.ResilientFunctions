@@ -231,8 +231,10 @@ public class PostgreSqlEventStore : IEventStore
             }
         };
         
-        var count = (int) await command.ExecuteScalarAsync();
-        return count;
+        var count = (int?) await command.ExecuteScalarAsync();
+        ArgumentNullException.ThrowIfNull(count);
+        
+        return count.Value;
     }
     
     internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)

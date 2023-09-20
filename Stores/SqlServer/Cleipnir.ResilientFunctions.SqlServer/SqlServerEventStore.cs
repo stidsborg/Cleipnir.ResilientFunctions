@@ -199,8 +199,10 @@ public class SqlServerEventStore : IEventStore
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         
-        var count = (int) await command.ExecuteScalarAsync();
-        return count;
+        var count = (int?) await command.ExecuteScalarAsync();
+        ArgumentNullException.ThrowIfNull(count);
+        
+        return count.Value;
     }
     
     public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)

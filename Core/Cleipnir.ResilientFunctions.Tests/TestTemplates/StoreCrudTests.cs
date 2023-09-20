@@ -292,7 +292,6 @@ public abstract class StoreCrudTests
             FunctionId,
             updatedStoredParameter,
             updatedStoredScrapbook,
-            suspended: false,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
@@ -327,7 +326,6 @@ public abstract class StoreCrudTests
             FunctionId,
             updatedStoredParameter,
             storedScrapbook: Scrapbook,
-            suspended: false,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
@@ -361,7 +359,6 @@ public abstract class StoreCrudTests
             FunctionId,
             storedParameter: Param,
             updatedStoredScrapbook,
-            suspended: false,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
@@ -404,7 +401,6 @@ public abstract class StoreCrudTests
             FunctionId,
             updatedStoredParameter,
             updatedStoredScrapbook,
-            suspended: false,
             expectedEpoch: 0
         ).ShouldBeFalseAsync();
         

@@ -52,7 +52,6 @@ public interface IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
-        bool suspended,
         int expectedEpoch
     );
 

@@ -135,12 +135,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(
-            FunctionId, Param, Scrapbook,
-            suspended: Status == Status.Suspended,
-            Epoch
-        );
-        
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         
@@ -321,12 +316,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(
-            FunctionId, Param, Scrapbook,
-            suspended: Status == Status.Suspended,
-            Epoch
-        );
-        
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         

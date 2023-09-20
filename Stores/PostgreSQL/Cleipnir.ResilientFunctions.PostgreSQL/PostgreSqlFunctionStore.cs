@@ -350,7 +350,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter, StoredScrapbook storedScrapbook,
-        bool suspended,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
