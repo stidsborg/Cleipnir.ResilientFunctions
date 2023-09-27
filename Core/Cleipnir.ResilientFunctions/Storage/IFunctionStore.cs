@@ -30,17 +30,6 @@ public interface IFunctionStore
     Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
 
-    Task<bool> SetFunctionState(
-        FunctionId functionId,
-        Status status,
-        StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook,
-        StoredResult storedResult,
-        StoredException? storedException,
-        long? postponeUntil,
-        int expectedEpoch
-    );
-
     Task<bool> SaveScrapbookForExecutingFunction(
         FunctionId functionId,
         string scrapbookJson,
@@ -52,6 +41,17 @@ public interface IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
+        int expectedEpoch
+    );
+    
+    Task<bool> SetFunctionState(
+        FunctionId functionId,
+        Status status,
+        StoredParameter storedParameter,
+        StoredScrapbook storedScrapbook,
+        StoredResult storedResult,
+        StoredException? storedException,
+        long? postponeUntil,
         int expectedEpoch
     );
 
