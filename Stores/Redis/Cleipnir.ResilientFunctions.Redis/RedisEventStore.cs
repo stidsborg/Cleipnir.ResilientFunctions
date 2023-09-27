@@ -74,21 +74,47 @@ public class RedisEventStore : IEventStore
     public async Task Truncate(FunctionId functionId) 
         => await _redis.GetDatabase().KeyDeleteAsync(GetEventsKeyName(functionId));
 
-    public async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
     {
         var db = _redis.GetDatabase();
-        var transaction = db.CreateTransaction();
-        var key = GetEventsKeyName(functionId);
-        _ = transaction.KeyDeleteAsync(key);
+        var serializedEvents = storedEvents
+            .Select(se => SimpleMarshaller.Serialize(se.EventJson, se.EventType, se.IdempotencyKey))
+            .Select(s => new RedisValue(s))
+            .ToArray();
+        
+        if (expectedEventCount == null)
+        {
+            var transaction = db.CreateTransaction();
+            var key = GetEventsKeyName(functionId);
+            _ = transaction.KeyDeleteAsync(key);
 
-        _ = transaction.ListRightPushAsync(key, values: 
-            storedEvents
-                .Select(se => SimpleMarshaller.Serialize(se.EventJson, se.EventType, se.IdempotencyKey))
-                .Select(s => new RedisValue(s))
-                .ToArray()
+            _ = transaction.ListRightPushAsync(key, serializedEvents);
+
+            await transaction.ExecuteAsync();   
+            return true;
+        }
+
+        const string script = @"                                   
+            local length = redis.call('LLEN', KEYS[1])
+            if length ~= tonumber(ARGV[1]) then return false end
+
+            redis.call('DEL', KEYS[1])
+
+            -- https://groups.google.com/g/redis-db/c/EXQIunaJkEY
+            for i=2, #ARGV do -- #ARGV is the size of the table
+              redis.call('RPUSH', KEYS[1], ARGV[i])              
+            end           
+
+            return true";
+        
+        var result = await _redis.GetDatabase().ScriptEvaluateAsync(
+            script,
+            keys: new RedisKey[] { GetEventsKeyName(functionId) },
+            values: new RedisValue[] { expectedEventCount.Value }.Concat(serializedEvents).ToArray()
+                
         );
-
-        await transaction.ExecuteAsync();
+        var success = (int)result!;
+        return success > 0;
     }
 
     public async Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)

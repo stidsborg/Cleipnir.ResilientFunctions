@@ -36,6 +36,12 @@ public class RedisFunctionStore : IFunctionStore
         long leaseExpiration, 
         long? postponeUntil)
     {
+        if (storedEvents != null)
+            await EventStore.AppendEvents(functionId, storedEvents);
+
+        leaseExpiration = RoundToMilliSecondPrecision(leaseExpiration); //due to Redis representing scores as floating point numbers
+        postponeUntil = postponeUntil == null ? null : RoundToMilliSecondPrecision(postponeUntil.Value);
+        
         const string script = @"
             local success = redis.call('HSETNX', KEYS[1], 'Epoch', ARGV[1])
             if success == 0 then return false end
@@ -71,12 +77,12 @@ public class RedisFunctionStore : IFunctionStore
                 postponeUntil ?? -1L,
                 leaseExpiration,
                 leaseExpiration,
-                $"{initialEpoch},{functionId.InstanceId}",
+                $"0,{leaseExpiration},{functionId.InstanceId}",
                 postponeUntil ?? -1L,
-                $"{initialEpoch},{functionId.InstanceId}",
+                $"0,{postponeUntil},{functionId.InstanceId}",
             }
         );
-
+        
         return (bool)result;
     }
 
@@ -129,6 +135,7 @@ public class RedisFunctionStore : IFunctionStore
             return true
         ";
 
+        leaseExpiration = RoundToMilliSecondPrecision(leaseExpiration);
         var newEpoch = expectedEpoch + 1;
         
         var result = await _redis.GetDatabase().ScriptEvaluateAsync(
@@ -196,12 +203,13 @@ public class RedisFunctionStore : IFunctionStore
                     var splitValue = sse.Element.ToString().Split(',', count: 2);
                     var score = (long)sse.Score;
                     return new StoredExecutingFunction(
-                        InstanceId: splitValue[1],
+                        InstanceId: splitValue[2],
                         Epoch: int.Parse(splitValue[0]),
-                        score
+                        LeaseExpiration: score * 1000
                     );
                 }
-            );
+            )
+            .Where(sef => sef.LeaseExpiration <= leaseExpiresBefore);
 
         return epochAndInstanceIdPairs;
     }
@@ -215,7 +223,6 @@ public class RedisFunctionStore : IFunctionStore
         FunctionId functionId, Status status, StoredParameter storedParameter,
         StoredScrapbook storedScrapbook, StoredResult storedResult, StoredException? storedException, 
         long? postponeUntil,
-        ReplaceEvents? events, 
         int expectedEpoch)
     {
         
@@ -254,8 +261,6 @@ public class RedisFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter storedParameter, 
         StoredScrapbook storedScrapbook, 
-        ReplaceEvents? events, 
-        bool suspended, 
         int expectedEpoch)
     {
         throw new NotImplementedException();
@@ -520,5 +525,11 @@ public class RedisFunctionStore : IFunctionStore
             dict[nameof(StoredException.ExceptionType)] ?? throw new SerializationException($"Unable to deserialize exception state for '{functionId}'")
         );
     }
-        
+
+
+    private static long RoundToMilliSecondPrecision(long ticks)
+    {
+        const long nsPerSecond = 10000000;
+        return ticks / (nsPerSecond * 1000);
+    }
 }

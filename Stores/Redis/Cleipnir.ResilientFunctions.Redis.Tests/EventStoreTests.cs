@@ -16,6 +16,14 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
         => EventsCanBeReplaced(FunctionStoreFactory.FunctionStoreTask);
 
     [TestMethod]
+    public override Task EventsAreReplacedWhenCountIsAsExpected()
+        => EventsAreReplacedWhenCountIsAsExpected(FunctionStoreFactory.FunctionStoreTask);
+    
+    [TestMethod]
+    public override Task EventsAreNotReplacedWhenCountIsNotAsExpected()
+        => EventsAreNotReplacedWhenCountIsNotAsExpected(FunctionStoreFactory.FunctionStoreTask);
+
+    [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(FunctionStoreFactory.FunctionStoreTask);
 
