@@ -41,6 +41,7 @@ public interface IFunctionStore
         FunctionId functionId,
         StoredParameter storedParameter,
         StoredScrapbook storedScrapbook,
+        StoredResult storedResult,
         int expectedEpoch
     );
     

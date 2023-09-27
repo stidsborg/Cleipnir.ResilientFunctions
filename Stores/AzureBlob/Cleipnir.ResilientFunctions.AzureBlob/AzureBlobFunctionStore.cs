@@ -458,6 +458,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter storedParameter, 
         StoredScrapbook storedScrapbook, 
+        StoredResult storedResult,
         int expectedEpoch)
     {
         var storedFunction = await GetFunction(functionId);
@@ -469,7 +470,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             storedFunction.Status,
             storedParameter,
             storedScrapbook,
-            storedFunction.Result,
+            storedResult,
             storedFunction.Exception,
             storedFunction.PostponedUntil,
             expectedEpoch

@@ -349,15 +349,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetParameters(
         FunctionId functionId,
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook,
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = $1, param_type = $2, scrapbook_json = $3, scrapbook_type = $4, epoch = epoch + 1
-            WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
+            SET param_json = $1, param_type = $2, 
+                scrapbook_json = $3, scrapbook_type = $4, 
+                result_json = $5, result_type = $6,
+                epoch = epoch + 1
+            WHERE function_type_id = $7 AND function_instance_id = $8 AND epoch = $9";
         
         var command = new NpgsqlCommand(sql, conn)
         {
@@ -367,6 +370,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = storedParameter.ParamType },
                 new() { Value = storedScrapbook.ScrapbookJson },
                 new() { Value = storedScrapbook.ScrapbookType },
+                new() { Value = storedResult.ResultJson ?? (object) DBNull.Value },
+                new() { Value = storedResult.ResultType ?? (object) DBNull.Value },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },

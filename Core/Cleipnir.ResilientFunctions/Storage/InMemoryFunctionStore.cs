@@ -202,7 +202,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public virtual Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, int expectedEpoch)
+    public virtual Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, int expectedEpoch)
     {
         lock (_sync)
         {
@@ -212,6 +212,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             
             state.Param = storedParameter;
             state.Scrapbook = storedScrapbook;
+            state.Result = storedResult;
             
             state.Epoch += 1;
 

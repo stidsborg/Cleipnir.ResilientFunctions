@@ -327,14 +327,17 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetParameters(
         FunctionId functionId,
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook,
+        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult,
         int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
       
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = ?, param_type = ?, scrapbook_json = ?, scrapbook_type = ?, epoch = epoch + 1
+            SET param_json = ?, param_type = ?, 
+                scrapbook_json = ?, scrapbook_type = ?, 
+                result_json = ?, result_type = ?,
+                epoch = epoch + 1
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -348,6 +351,8 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = storedParameter.ParamType },
                 new() { Value = storedScrapbook.ScrapbookJson },
                 new() { Value = storedScrapbook.ScrapbookType },
+                new() { Value = storedResult.ResultJson },
+                new() { Value = storedResult.ResultType },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },

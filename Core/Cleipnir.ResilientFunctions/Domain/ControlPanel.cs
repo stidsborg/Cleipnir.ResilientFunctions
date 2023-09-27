@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
@@ -135,7 +136,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, @return: default, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         
@@ -316,7 +317,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, Result, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         

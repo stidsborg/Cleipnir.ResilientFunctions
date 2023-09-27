@@ -1049,4 +1049,36 @@ public abstract class ControlPanelTests
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task SaveChangesPersistsChangedResult();
+    protected async Task SaveChangesPersistsChangedResult(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rAction = rFunctions.RegisterFunc<string, string>(
+            functionTypeId,
+            inner: param => param
+        );
+
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
+
+        {
+            var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+            controlPanel.Result.ShouldBe("param");
+            controlPanel.Result = "changed";
+            await controlPanel.SaveChanges();
+        }
+        
+        {
+            var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+            controlPanel.Result.ShouldBe("changed");
+        }
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
 }
