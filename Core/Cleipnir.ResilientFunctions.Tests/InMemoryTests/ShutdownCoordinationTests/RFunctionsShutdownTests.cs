@@ -99,7 +99,8 @@ public class RFunctionsShutdownTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -150,13 +151,15 @@ public class RFunctionsShutdownTests
             storedScrapbook,
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             scrapbookJson: storedScrapbook.ScrapbookJson,
+            timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
              new ComplimentaryState.SetResult()
         ).ShouldBeTrueAsync();

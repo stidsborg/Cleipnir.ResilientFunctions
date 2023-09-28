@@ -38,12 +38,14 @@ public static class PostponedTest
                 storedScrapbook,
                 storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks,
-                postponeUntil: null
+                postponeUntil: null,
+                timestamp: DateTime.UtcNow.Ticks
             );
             await store.PostponeFunction(
                 functionId,
                 postponeUntil: start.Ticks,
                 scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
+                timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
                 complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
             );

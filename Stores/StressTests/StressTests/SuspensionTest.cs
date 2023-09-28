@@ -39,12 +39,14 @@ public class SuspensionTest
                 storedScrapbook,
                 storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks,
-                postponeUntil: null
+                postponeUntil: null,
+                timestamp: DateTime.UtcNow.Ticks
             );
             await store.SuspendFunction(
                 functionId,
                 expectedEventCount: 1,
                 scrapbookJson: new RScrapbook().ToJson(),
+                timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
                 complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
             );

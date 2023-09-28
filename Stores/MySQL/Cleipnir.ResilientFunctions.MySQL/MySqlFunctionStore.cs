@@ -52,6 +52,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL,
                 lease_expiration BIGINT NOT NULL,
+                timestamp BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -90,7 +91,8 @@ public class MySqlFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
-        long? postponeUntil)
+        long? postponeUntil,
+        long timestamp)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         MySqlTransaction? transaction = null;
@@ -103,9 +105,9 @@ public class MySqlFunctionStore : IFunctionStore
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
-                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?, ?)";
         await using var command = new MySqlCommand(sql, conn, transaction)
         {
             Parameters =
@@ -117,7 +119,8 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedScrapbook.ScrapbookJson},
                 new() {Value = storedScrapbook.ScrapbookType},
                 new() {Value = leaseExpiration},
-                new() {Value = postponeUntil}
+                new() {Value = postponeUntil},
+                new() {Value = timestamp}
             }
         };
 
@@ -364,12 +367,12 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Succeeded}, result_json = ?, result_type = ?, scrapbook_json = ?
+            SET status = {(int) Status.Succeeded}, result_json = ?, result_type = ?, scrapbook_json = ?, timestamp = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -382,6 +385,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = result?.ResultJson ?? (object) DBNull.Value},
                 new() {Value = result?.ResultType ?? (object) DBNull.Value},
                 new() {Value = scrapbookJson},
+                new() {Value = timestamp},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -392,12 +396,12 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = ?, scrapbook_json = ?
+            SET status = {(int) Status.Postponed}, postponed_until = ?, scrapbook_json = ?, timestamp = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -409,6 +413,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() {Value = postponeUntil},
                 new() {Value = scrapbookJson},
+                new() {Value = timestamp},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -419,13 +424,13 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, scrapbook_json = ?
+            SET status = {(int) Status.Suspended}, scrapbook_json = ?, timestamp = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -437,6 +442,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = scrapbookJson},
+                new() {Value = timestamp},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -486,12 +492,12 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, exception_json = ?, scrapbook_json = ?
+            SET status = {(int) Status.Failed}, exception_json = ?, scrapbook_json = ?, timestamp = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -503,6 +509,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() {Value = JsonSerializer.Serialize(storedException)},
                 new() {Value = scrapbookJson},
+                new() {Value = timestamp},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -528,7 +535,8 @@ public class MySqlFunctionStore : IFunctionStore
                 exception_json,
                 postponed_until,
                 epoch, 
-                lease_expiration
+                lease_expiration,
+                timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(sql, conn)
@@ -561,7 +569,8 @@ public class MySqlFunctionStore : IFunctionStore
                 storedException,
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
-                LeaseExpiration: reader.GetInt64(10)
+                LeaseExpiration: reader.GetInt64(10),
+                Timestamp: reader.GetInt64(11)
             );
         }
 

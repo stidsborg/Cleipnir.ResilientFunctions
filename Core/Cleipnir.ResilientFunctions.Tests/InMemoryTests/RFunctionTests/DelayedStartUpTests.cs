@@ -25,7 +25,8 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -54,7 +55,8 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -80,12 +82,14 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
             functionId,
             postponeUntil: 0,
             scrapbookJson: new RScrapbook().ToJson(),
+            timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             default
         ).ShouldBeTrueAsync();
@@ -117,12 +121,14 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
             functionId,
             postponeUntil: 0,
             scrapbookJson: new RScrapbook().ToJson(),
+            timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             default
         );

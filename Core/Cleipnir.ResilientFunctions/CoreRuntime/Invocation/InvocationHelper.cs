@@ -52,13 +52,15 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     return new StoredEvent(json, type, @event.IdempotencyKey);
                 }).ToList();
 
+            var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(
                 functionId,
                 storedParameter,
                 storedScrapbook,
                 storedEvents,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
-                leaseExpiration: DateTime.UtcNow.Ticks + (2 * _settings.SignOfLifeFrequency.Ticks)
+                leaseExpiration: utcNowTicks + (2 * _settings.SignOfLifeFrequency.Ticks),
+                timestamp: utcNowTicks
             );
 
             if (!created) runningFunction.Dispose();
@@ -138,6 +140,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedException,
             storedScrapbook.ScrapbookJson,
+            timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
             complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
         );
@@ -163,6 +166,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
                     scrapbookJson: complementaryState.StoredScrapbook.ScrapbookJson,
+                    timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
                 );
@@ -174,6 +178,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
+                    timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
                 );
@@ -185,6 +190,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     storedException: Serializer.SerializeException(result.Fail!),
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
+                    timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
                 );
@@ -196,6 +202,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     functionId,
                     result.Suspend!.ExpectedEventCount,
                     Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
+                    timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
                 );
@@ -276,6 +283,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedException: Serializer.SerializeException(e),
                 scrapbookJson: sf.Scrapbook.ScrapbookJson,
+                timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: epoch,
                 complementaryState: new ComplimentaryState.SetResult(sf.Parameter, sf.Scrapbook)
             );

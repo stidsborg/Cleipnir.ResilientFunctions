@@ -65,6 +65,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
                 LeaseExpiration BIGINT NOT NULL,
+                Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
             CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
@@ -113,7 +114,8 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
-        long? postponeUntil)
+        long? postponeUntil,
+        long timestamp)
     {
         await using var conn = await _connFunc();
         SqlTransaction? transaction = null;
@@ -134,7 +136,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     Status,
                     Epoch, 
                     LeaseExpiration,
-                    PostponedUntil)
+                    PostponedUntil,
+                    Timestamp)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
@@ -142,7 +145,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     {(int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                     0, 
                     @LeaseExpiration,
-                    @PostponeUntil
+                    @PostponeUntil,
+                    @Timestamp
                 )";
 
             await using var command = transaction == null
@@ -157,6 +161,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@ScrapbookType", storedScrapbook.ScrapbookType);
             command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
             command.Parameters.AddWithValue("@PostponeUntil", postponeUntil == null ? DBNull.Value : postponeUntil.Value);
+            command.Parameters.AddWithValue("@Timestamp", timestamp);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -383,13 +388,19 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> SucceedFunction(
+        FunctionId functionId, 
+        StoredResult result, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         await using var conn = await _connFunc();
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, ScrapbookJson = @ScrapbookJson
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
@@ -398,6 +409,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ResultJson", result.ResultJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@ResultType", result.ResultType ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -406,13 +418,19 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> PostponeFunction(
+        FunctionId functionId, 
+        long postponeUntil, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         await using var conn = await _connFunc();
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, ScrapbookJson = @ScrapbookJson
+            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
@@ -420,6 +438,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@PostponedUntil", postponeUntil);
         command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -428,7 +447,13 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<SuspensionResult> SuspendFunction(
+        FunctionId functionId, 
+        int expectedEventCount, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         {
             await using var conn = await _connFunc();
@@ -436,7 +461,7 @@ public class SqlServerFunctionStore : IFunctionStore
             
             var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson
+            SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp
             WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
             AND FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
@@ -444,6 +469,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
             await using var command = new SqlCommand(sql, conn, transaction);
             command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+            command.Parameters.AddWithValue("@Timestamp", timestamp);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -498,13 +524,19 @@ public class SqlServerFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> FailFunction(
+        FunctionId functionId, 
+        StoredException storedException, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         await using var conn = await _connFunc();
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, ScrapbookJson = @ScrapbookJson
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, ScrapbookJson = @ScrapbookJson, Timestamp = @timestamp
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
@@ -512,6 +544,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
         command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -531,7 +564,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     ExceptionJson,
                     PostponedUntil,
                     Epoch, 
-                    LeaseExpiration
+                    LeaseExpiration,
+                    Timestamp
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
@@ -559,6 +593,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
                 var epoch = reader.GetInt32(9);
                 var leaseExpiration = reader.GetInt64(10);
+                var timestamp = reader.GetInt64(11);
 
                 return new StoredFunction(
                     functionId,
@@ -569,7 +604,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     storedException,
                     postponedUntil,
                     epoch,
-                    leaseExpiration
+                    leaseExpiration,
+                    timestamp
                 );
             }
         }

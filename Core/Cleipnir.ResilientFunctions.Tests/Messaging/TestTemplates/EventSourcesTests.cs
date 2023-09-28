@@ -27,7 +27,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -61,7 +62,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -95,7 +97,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -136,7 +139,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -179,7 +183,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -216,7 +221,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
@@ -265,7 +271,8 @@ public abstract class EventSourcesTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(

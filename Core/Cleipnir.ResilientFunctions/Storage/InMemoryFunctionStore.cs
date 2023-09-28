@@ -43,7 +43,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         StoredScrapbook storedScrapbook,
         IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
-        long? postponeUntil)
+        long? postponeUntil,
+        long timestamp)
     {
         lock (_sync)
         {
@@ -60,7 +61,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 Exception = null,
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = postponeUntil,
-                LeaseExpiration = leaseExpiration
+                LeaseExpiration = leaseExpiration,
+                Timestamp = timestamp
             };
 
             _events[functionId] = new List<StoredEvent>();
@@ -202,7 +204,12 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public virtual Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, int expectedEpoch)
+    public virtual Task<bool> SetParameters(
+        FunctionId functionId, 
+        StoredParameter storedParameter, 
+        StoredScrapbook storedScrapbook, 
+        StoredResult storedResult, 
+        int expectedEpoch)
     {
         lock (_sync)
         {
@@ -220,7 +227,13 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public virtual Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<bool> SucceedFunction(
+        FunctionId functionId, 
+        StoredResult result, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -232,12 +245,19 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Status = Status.Succeeded;
             state.Result = result;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.Timestamp = timestamp;
 
             return true.ToTask();
         }
     }
 
-    public virtual Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<bool> PostponeFunction(
+        FunctionId functionId, 
+        long postponeUntil, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -249,12 +269,19 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Status = Status.Postponed;
             state.PostponeUntil = postponeUntil;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.Timestamp = timestamp;
 
             return true.ToTask();
         }
     }
     
-    public virtual Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<SuspensionResult> SuspendFunction(
+        FunctionId functionId, 
+        int expectedEventCount, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -270,6 +297,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 
             state.Status = Status.Suspended;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.Timestamp = timestamp;
             
             return SuspensionResult.Success.ToTask();
         }
@@ -287,7 +315,13 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         }
     }
 
-    public virtual Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult _)
+    public virtual Task<bool> FailFunction(
+        FunctionId functionId, 
+        StoredException storedException, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult _)
     {
         lock (_sync)
         {
@@ -299,6 +333,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Status = Status.Failed;
             state.Exception = storedException;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.Timestamp = timestamp;
 
             return true.ToTask();
         }
@@ -322,7 +357,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                     state.Exception,
                     state.PostponeUntil,
                     state.Epoch,
-                    state.LeaseExpiration
+                    state.LeaseExpiration,
+                    state.Timestamp
                 )
                 .ToNullable()
                 .ToTask();
@@ -366,6 +402,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
         public long LeaseExpiration { get; set; }
+        public long Timestamp { get; set; }
     }
     #endregion
     

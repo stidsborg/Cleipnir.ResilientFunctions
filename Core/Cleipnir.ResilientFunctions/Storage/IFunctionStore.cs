@@ -19,7 +19,8 @@ public interface IFunctionStore
         StoredScrapbook storedScrapbook,
         IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
-        long? postponeUntil
+        long? postponeUntil,
+        long timestamp
     );
     
     Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);
@@ -56,10 +57,41 @@ public interface IFunctionStore
         int expectedEpoch
     );
 
-    Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState);
-    Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState);
-    Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState);
-    Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState);
+    Task<bool> SucceedFunction(
+        FunctionId functionId, 
+        StoredResult result, 
+        string scrapbookJson, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult complementaryState
+    );
+    
+    Task<bool> PostponeFunction(
+        FunctionId functionId, 
+        long postponeUntil, 
+        string scrapbookJson,
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult complementaryState
+    );
+    
+    Task<bool> FailFunction(
+        FunctionId functionId, 
+        StoredException storedException, 
+        string scrapbookJson, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult complementaryState
+    );
+    
+    Task<SuspensionResult> SuspendFunction(
+        FunctionId functionId, 
+        int expectedEventCount, 
+        string scrapbookJson, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState.SetResult complementaryState
+    );
 
     Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId);
     Task<StoredFunction?> GetFunction(FunctionId functionId);

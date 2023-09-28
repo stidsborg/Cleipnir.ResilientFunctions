@@ -43,7 +43,8 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredScrapbook scrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
-        long? postponeUntil)
+        long? postponeUntil,
+        long timestamp)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -57,7 +58,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", param.ParamType },
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", param.ParamJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbook.ScrapbookType },
-                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbook.ScrapbookJson },
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbook.ScrapbookJson }
             }
         );
 
@@ -72,7 +73,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         postponeUntil == null ? Status.Executing : Status.Postponed, 
                         Epoch: 0, 
                         leaseExpiration,
-                        PostponedUntil: postponeUntil
+                        PostponedUntil: postponeUntil,
+                        timestamp
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { IfNoneMatch = new ETag("*") }
                 }
@@ -126,7 +128,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Executing, 
                         Epoch: expectedEpoch + 1, 
                         LeaseExpiration: leaseExpiration, 
-                        PostponedUntil: null
+                        PostponedUntil: null,
+                        Timestamp: DateTime.UtcNow.Ticks
                     ),
                     expectedEpoch
                 );
@@ -149,7 +152,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         try
         {
             await blobClient.SetRfTags(
-                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, leaseExpiration, PostponedUntil: null),
+                new RfTags(functionId.TypeId.Value, Status.Executing, Epoch: expectedEpoch, leaseExpiration, Timestamp: DateTime.UtcNow.Ticks, PostponedUntil: null),
                 expectedEpoch
             );
         } catch (RequestFailedException e)
@@ -173,12 +176,9 @@ public class AzureBlobFunctionStore : IFunctionStore
         await foreach (var executingBlob in executingBlobs)
         {
             var (_, _, instanceName, _) = Utils.SplitIntoParts(executingBlob.BlobName);
-            var rfTags = RfTags.ConvertFrom(executingBlob.Tags);
-            var storedExecutingFunction = new StoredExecutingFunction(
-                instanceName,
-                rfTags.Epoch,
-                rfTags.LeaseExpiration
-            );
+            var epoch = int.Parse(executingBlob.Tags["Epoch"]);
+            var leaseExpiration = long.Parse(executingBlob.Tags["LeaseExpiration"]);
+            var storedExecutingFunction = new StoredExecutingFunction(instanceName, epoch, leaseExpiration);
             
             executingFunctions.Add(storedExecutingFunction);
         }
@@ -289,6 +289,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         status,
                         Epoch: incrementEpoch ? expectedEpoch + 1 : expectedEpoch,
                         LeaseExpiration: DateTime.UtcNow.Ticks,
+                        Timestamp: DateTime.UtcNow.Ticks,
                         PostponedUntil: postponeUntil
                     ).ToDictionary()
                 }
@@ -386,7 +387,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         status,
                         Epoch: expectedEpoch + 1,
                         LeaseExpiration: DateTime.UtcNow.Ticks,
-                        PostponedUntil: postponeUntil
+                        PostponedUntil: postponeUntil,
+                        Timestamp: DateTime.UtcNow.Ticks
                     ).ToDictionary()
                 }
             );
@@ -435,7 +437,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Executing, 
                         expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks + 2 * signOfLifeFrequency,
-                        PostponedUntil: null
+                        PostponedUntil: null,
+                        Timestamp: DateTime.UtcNow.Ticks
                     ).ToDictionary()
                 }
             );
@@ -477,7 +480,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         );
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string _, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string _, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -508,7 +511,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Succeeded, 
                         Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks, 
-                        PostponedUntil: null
+                        PostponedUntil: null,
+                        timestamp
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
@@ -524,7 +528,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string _, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string _, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -552,7 +556,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Postponed, 
                         Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
-                        postponeUntil
+                        postponeUntil,
+                        timestamp
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
@@ -568,7 +573,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string _, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string _, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -599,7 +604,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Failed, 
                         Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
-                        PostponedUntil: null
+                        PostponedUntil: null,
+                        timestamp
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
@@ -615,12 +621,13 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
         var success = await PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddMinutes(1).Ticks,
             _: string.Empty,
+            timestamp,
             expectedEpoch,
             complimentaryState
         );
@@ -657,7 +664,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                         Status.Suspended, 
                         Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
-                        PostponedUntil: null
+                        PostponedUntil: null,
+                        timestamp
                     ).ToDictionary(),
                     Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
@@ -764,7 +772,8 @@ public class AzureBlobFunctionStore : IFunctionStore
             Exception: storedException,
             PostponedUntil: rfTags.PostponedUntil,
             Epoch: rfTags.Epoch,
-            LeaseExpiration: rfTags.LeaseExpiration
+            LeaseExpiration: rfTags.LeaseExpiration,
+            Timestamp: rfTags.Timestamp
         );
     }
 

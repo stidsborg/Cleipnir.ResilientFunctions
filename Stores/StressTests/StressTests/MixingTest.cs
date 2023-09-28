@@ -40,13 +40,15 @@ public static class MixingTest
                 storedScrapbook,
                 storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks,
-                postponeUntil: null
+                postponeUntil: null,
+                timestamp: DateTime.UtcNow.Ticks
             );
             if (i % 2 == 0)
                 await store.PostponeFunction(
                     functionId,
                     postponeUntil: start.Ticks,
                     scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
+                    timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch: 0,
                     complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
                 );

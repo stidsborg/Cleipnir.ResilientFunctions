@@ -25,7 +25,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -63,7 +64,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -103,7 +105,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -148,7 +151,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -193,7 +197,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -238,7 +243,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -271,7 +277,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -298,7 +305,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
         
@@ -318,7 +326,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -364,7 +373,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -409,7 +419,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -444,7 +455,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -467,7 +479,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
         var events = await eventStore.GetEvents(functionId);
@@ -485,7 +498,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 
@@ -533,7 +547,8 @@ public abstract class EventStoreTests
             Test.SimpleStoredScrapbook, 
             storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
         );
         var eventStore = functionStore.EventStore;
 

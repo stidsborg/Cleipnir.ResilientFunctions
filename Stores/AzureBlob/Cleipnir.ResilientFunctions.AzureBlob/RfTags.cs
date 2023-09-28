@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
-public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long LeaseExpiration, long? PostponedUntil)
+public readonly record struct RfTags(string FunctionType, Status Status, int Epoch, long LeaseExpiration, long? PostponedUntil, long Timestamp)
 {
     public Dictionary<string, string> ToDictionary()
     {
@@ -13,7 +13,8 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             { nameof(FunctionType), FunctionType },
             { nameof(Status), ((int) Status).ToString() },
             { nameof(Epoch), Epoch.ToString() },
-            { nameof(LeaseExpiration), LeaseExpiration.ToString() }
+            { nameof(LeaseExpiration), LeaseExpiration.ToString() },
+            { nameof(Timestamp), Timestamp.ToString() }
         };  
         
         if (PostponedUntil != null)
@@ -30,7 +31,8 @@ public readonly record struct RfTags(string FunctionType, Status Status, int Epo
             LeaseExpiration: long.Parse(tags[nameof(LeaseExpiration)]),
             PostponedUntil: tags.ContainsKey(nameof(PostponedUntil)) 
                 ? long.Parse(tags[nameof(PostponedUntil)]) 
-                : default(long?)
+                : default(long?),
+            Timestamp: long.Parse(tags[nameof(Timestamp)])
         );
 }
 
@@ -48,8 +50,9 @@ public static class RfTagsExtensions
         var postponedUntil = tags.ContainsKey("PostponedUntil")
             ? long.Parse(tags["PostponedUntil"])
             : default;
+        var timestamp = long.Parse(tags["Timestamp"]);
 
-        return new RfTags(functionType, status, epoch, leaseExpiration, postponedUntil);
+        return new RfTags(functionType, status, epoch, leaseExpiration, postponedUntil, timestamp);
     }
 
     public static Task SetRfTags(this BlobClient client, RfTags rfTags) 

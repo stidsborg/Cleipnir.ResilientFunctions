@@ -28,8 +28,9 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
-        long? postponeUntil
-    ) => _inner.CreateFunction(functionId, param, storedScrapbook, storedEvents, leaseExpiration, postponeUntil);
+        long? postponeUntil,
+        long timestamp
+    ) => _inner.CreateFunction(functionId, param, storedScrapbook, storedEvents, leaseExpiration, postponeUntil, timestamp);
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
@@ -67,17 +68,17 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, int expectedEpoch)
         => _inner.SetParameters(functionId, storedParameter, storedScrapbook, storedResult, expectedEpoch);
 
-    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
-        => _inner.SucceedFunction(functionId, result, scrapbookJson, expectedEpoch, complementaryState);
+    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+        => _inner.SucceedFunction(functionId, result, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
-    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
-        => _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, expectedEpoch, complementaryState);
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+        => _inner.PostponeFunction(functionId, postponeUntil, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
-    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
-        => _inner.FailFunction(functionId, storedException, scrapbookJson, expectedEpoch, complementaryState);
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+        => _inner.FailFunction(functionId, storedException, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
-    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
-        => _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, expectedEpoch, complementaryState);
+    public Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+        => _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _inner.GetFunctionStatus(functionId);

@@ -14,14 +14,13 @@ public record StoredFunction(
     StoredException? Exception,
     long? PostponedUntil,
     int Epoch,
-    long LeaseExpiration
+    long LeaseExpiration,
+    long Timestamp
 );
 
-public record StoredFunctionStatus(FunctionId FunctionId, Status Status, int Epoch);
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, long LeaseExpiration);
 public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);
-public record StoredEligibleSuspendedFunction(FunctionInstanceId InstanceId, int Epoch);
 
 public record StoredParameter(string ParamJson, string ParamType);
 public record StoredResult(string? ResultJson, string? ResultType)
