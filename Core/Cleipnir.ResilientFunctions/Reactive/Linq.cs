@@ -313,36 +313,27 @@ public static class Linq
         _ = tcs.Task.ContinueWith(_ => subscription.Dispose());
         return tcs.Task;
     }
-    public static async Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s)
+    public static Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s)
     {
-        var tcs = new TaskCompletionSource<T>();
-        var eventEmitted = false;
-        var emittedEvent = default(T);
+        var valueOrException = default(ValueOrException<T>);
         
-        var subscription = s.Subscribe(
-            onNext: t =>
-            {
-                eventEmitted = true;
-                emittedEvent = t;
-            },
-            onCompletion: () =>
-            {
-                if (!eventEmitted)
-                    tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
-                else
-                    tcs.TrySetResult(emittedEvent!);
-            },
-            onError: e => tcs.TrySetException(e)
+        using var subscription = s.Subscribe(
+            onNext: t => valueOrException ??= new ValueOrException<T>(t, Exception: null),
+            onCompletion: () => {},
+            onError: exception => valueOrException ??= new ValueOrException<T>(Value: default, exception)
         );
         
         var delivered = subscription.DeliverExisting();
-
-        if (!eventEmitted)
-            throw new SuspendInvocationException(delivered);
-
-        tcs.TrySetResult(emittedEvent!);
-        return await tcs.Task;
+        
+        if (valueOrException == null)
+            return Task.FromException<T>(new SuspendInvocationException(delivered));
+        
+        return valueOrException.Exception != null 
+            ? Task.FromException<T>(valueOrException.Exception) 
+            : Task.FromResult<T>(valueOrException.Value!);
     }
+
+    private record ValueOrException<T>(T? Value, Exception? Exception);
     
     public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().SuspendUntilNext();
