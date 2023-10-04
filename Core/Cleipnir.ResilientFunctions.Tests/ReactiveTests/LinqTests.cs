@@ -71,6 +71,16 @@ public class LinqTests
     }
     
     [TestMethod]
+    public async Task NextOperatorWithSuspensionThrowsExceptionWhenNothingIsSignaled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        await Should.ThrowAsync<SuspendInvocationException>(
+            () => source.OfType<int>().SuspendUntilNext()
+        );
+    }
+    
+    [TestMethod]
     public async Task NextOperatorWithSuspensionAndTimeoutThrowsExceptionWhenNothingIsSignaled()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
