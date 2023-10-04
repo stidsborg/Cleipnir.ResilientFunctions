@@ -51,9 +51,33 @@ public class LinqTests
 
         var nextOrSuspend = source.OfType<int>().SuspendUntilNext(TimeSpan.FromMilliseconds(250));
         source.SignalNext(1);
+        source.SignalNext(2);
         nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
         
         nextOrSuspend.Result.ShouldBe(1);
+    }
+    
+    [TestMethod]
+    public void NextOperatorWithSuspensionEmitsFirstValue()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        source.SignalNext(1);
+        source.SignalNext(2);
+        var nextOrSuspend = source.OfType<int>().SuspendUntilNext();
+        
+        nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
+        nextOrSuspend.Result.ShouldBe(1);
+    }
+    
+    [TestMethod]
+    public async Task NextOperatorWithSuspensionThrowsExceptionWhenNothingIsSignaled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        await Should.ThrowAsync<SuspendInvocationException>(
+            () => source.OfType<int>().SuspendUntilNext()
+        );
     }
     
     [TestMethod]
