@@ -475,4 +475,28 @@ public class LinqTests
         var existing = source.Chunk(2).PullExisting();
         existing.Count.ShouldBe(1);
     }
+
+    [TestMethod]
+    public void StreamUnsubscribesToFutureEventsAfterDeliverExistingInvocation()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var emitted = 0;
+
+        source.SignalNext("hello");
+        
+        var subscription = source
+            .Subscribe(
+                onNext: _ => emitted++,
+                onError: _ => { },
+                onCompletion: () => { }
+            );
+
+        subscription.DeliverExisting();
+        
+        emitted.ShouldBe(1);
+
+        source.SignalNext("world");
+        
+        emitted.ShouldBe(1);
+    }
 }
