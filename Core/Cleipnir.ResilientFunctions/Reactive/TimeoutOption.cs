@@ -14,6 +14,8 @@ public record TimeoutOption<T>(bool TimedOut, T? Value)
             : Value!;
 }
 
+public record TimeoutOption(bool TimedOut);
+
 public static class TimeoutOptionExtensions
 {
     public static async Task<T> EnsureNoTimeout<T>(this Task<TimeoutOption<T>> timeoutOption)

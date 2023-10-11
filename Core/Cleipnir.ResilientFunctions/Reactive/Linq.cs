@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -167,12 +169,27 @@ public static class Linq
         
         subscription.DeliverExistingAndFuture();
 
-        tcs.Task.ContinueWith(
-            _ => subscription.Dispose(),
-            TaskContinuationOptions.ExecuteSynchronously
-        );
+        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
             
         return tcs.Task;
+    }
+    
+    public static bool TryLast<T>(this IReactiveChain<T> s, out T? last)
+        => TryLast(s, out last, out _);
+    public static bool TryLast<T>(this IReactiveChain<T> s, out T? last, out int totalEventSourceCount)
+    {
+        var completed = false;
+        var latest = default(T);
+        using var subscription = s.Subscribe(
+            onNext: t => latest = t,
+            onCompletion: () => completed = true,
+            onError: _ => { }
+        );
+
+        totalEventSourceCount = subscription.DeliverExisting();
+
+        last = completed ? latest : default;
+        return completed;
     }
 
     public static Task<List<T>> ToList<T>(this IReactiveChain<T> s)
@@ -186,6 +203,8 @@ public static class Linq
         );
         subscription.DeliverExistingAndFuture();
 
+        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
+        
         return tcs.Task;
     }
 
@@ -193,18 +212,33 @@ public static class Linq
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();
-        var subscription = s.Subscribe(
+        using var subscription = s.Subscribe(
             onNext: t => list.Add(t),
             onCompletion: () => tcs.TrySetResult(list),
             onError: e => tcs.TrySetException(e)
         );
+        
         subscription.DeliverExisting();
-        subscription.Dispose();
 
         return list;
     }
+    
+    public static Task Completion<T>(this IReactiveChain<T> s)
+    {
+        var tcs = new TaskCompletionSource();
+        var subscription = s.Subscribe(
+            onNext: _ => { },
+            onCompletion: () => tcs.TrySetResult(),
+            onError: e => tcs.TrySetException(e)
+        );
+        
+        subscription.DeliverExistingAndFuture();
+        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
+        return tcs.Task;
+    }
 
     // ** NEXT RELATED OPERATORS ** //
+    
     public static async Task<T> Next<T>(this IReactiveChain<T> s) => await s.Take(1).Last();
     public static Task<T> Next<T>(this IReactiveChain<T> s, int maxWaitMs)
         => s.Next(TimeSpan.FromMilliseconds(maxWaitMs));
@@ -250,90 +284,50 @@ public static class Linq
     public static bool TryNextOfType<T>(this IReactiveChain<object> s, out T? next, out int totalEventSourceCount)
         => s.OfType<T>().TryNext(out next, out totalEventSourceCount);
     
-    public static Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, TimeSpan waitBeforeSuspension)
+    public static async Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s, TimeSpan waitBeforeSuspension)
     {
-        var tcs = new TaskCompletionSource<T>();
-        var sync = new object();
-        var waitForNextElapsed = false;
-        var completed = false;
+        var (hasValue, value, hasException, exception, hasCompleted, _, _, _) = PullNext(s);
+        if (hasException)
+            throw exception!;
+        if (hasValue)
+            return value!;
+        if (hasCompleted)
+            throw new NoResultException("No event was emitted before the stream completed");
         
-        var subscription = s.Subscribe(
-            onNext: t =>
-            {
-                lock (sync)
-                {
-                    if (waitForNextElapsed || completed) return;
-                    completed = true;
-                }
-
-                tcs.TrySetResult(t);
-            },
-            onCompletion: () =>
-            {
-                lock (sync)
-                {
-                    if (waitForNextElapsed || completed) return;
-                    completed = true;
-                }
-                
-                tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
-            },
-            onError: e =>
-            {
-                lock (sync)
-                {
-                    if (waitForNextElapsed || completed) return;
-                    completed = true;
-                }
-                
-                tcs.TrySetException(e);
-            });
-
+        var tcs = new TaskCompletionSource();
+        using var subscription = s.Subscribe(
+            onNext: _ => tcs.TrySetResult(),
+            onCompletion: () => tcs.TrySetResult(),
+            onError: _ => tcs.TrySetResult()
+        );
         subscription.DeliverExistingAndFuture();
 
-        _ = Task.Delay(waitBeforeSuspension).ContinueWith(_ =>
-        {
-            lock (sync)
-            {
-                if (completed) return;
-                waitForNextElapsed = true;
-            }
+        var cts = new CancellationTokenSource();
+        var delayTask = Task.Delay(waitBeforeSuspension, cts.Token);
 
-            subscription.Dispose();
+        await Task.WhenAny(tcs.Task, delayTask);
 
-            SuspendUntilNext(s).ContinueWith(task =>
-            {
-                if (task.IsCompletedSuccessfully)
-                    tcs.TrySetResult(task.Result);
-                else
-                    tcs.TrySetException(task.Exception!.InnerException!);
-            });
-        });
-        
-        _ = tcs.Task.ContinueWith(_ => subscription.Dispose());
-        return tcs.Task;
+        if (!delayTask.IsCompleted)
+            cts.Cancel();
+
+        return await SuspendUntilNext(s);
     }
     public static Task<T> SuspendUntilNext<T>(this IReactiveChain<T> s)
     {
-        var valueOrException = default(ValueOrException<T>);
+        var tcs = new TaskCompletionSource<T>();
+        var (hasValue, value, hasException, exception, hasCompleted, _, _, emittedFromSource) = PullNext(s);
         
-        using var subscription = s.Subscribe(
-            onNext: t => valueOrException ??= new ValueOrException<T>(t, Exception: null),
-            onCompletion: () => {},
-            onError: exception => valueOrException ??= new ValueOrException<T>(Value: default, exception)
-        );
-        
-        var delivered = subscription.DeliverExisting();
-        
-        if (valueOrException == null)
-            return Task.FromException<T>(new SuspendInvocationException(delivered));
-        
-        return valueOrException.Exception != null 
-            ? Task.FromException<T>(valueOrException.Exception) 
-            : Task.FromResult<T>(valueOrException.Value!);
-    }
+        if (hasValue)
+            tcs.SetResult(value!);
+        else if (hasException)
+            tcs.SetException(exception!);
+        else if (hasCompleted)
+            tcs.SetException(new NoResultException("No event was emitted before the stream completed"));
+        else
+            tcs.SetException(new SuspendInvocationException(emittedFromSource));
 
-    private record ValueOrException<T>(T? Value, Exception? Exception);
+        return tcs.Task;
+    }
     
     public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().SuspendUntilNext();
@@ -344,51 +338,18 @@ public static class Linq
         => SuspendUntilNext(s, timeoutEventId, expiresAt: DateTime.UtcNow.Add(expiresIn));
     public static async Task<TimeoutOption<T>> SuspendUntilNext<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime expiresAt)
     {
-        var tcs = new TaskCompletionSource<TimeoutOption<T>>();
+        var (hasValue, value, hasException, exception, _, timeoutOccured, timeoutProvider, emittedFromSource) = PullNext(s, timeoutEventId);
+
+        if (timeoutOccured)
+            return new TimeoutOption<T>(TimedOut: true, Value: default);
+        if (hasValue)
+            return new TimeoutOption<T>(TimedOut: false, value);
+        if (hasException)
+            throw exception!;
         
-        ISubscription? subscription = null;
-        ISubscription? timeoutSubscription = null;
-
-        expiresAt = expiresAt.ToUniversalTime();
+        await timeoutProvider.RegisterTimeout(timeoutEventId, expiresAt);
         
-        subscription = s.Subscribe(
-            onNext: t =>
-            {
-                // ReSharper disable once AccessToModifiedClosure
-                subscription?.Dispose();
-                // ReSharper disable once AccessToModifiedClosure
-                timeoutSubscription?.Dispose();
-
-                tcs.TrySetResult(new TimeoutOption<T>(TimedOut: false, t));
-            },
-            onCompletion: () => { },
-            onError: e => tcs.TrySetException(e)
-        );
-
-        timeoutSubscription = subscription
-            .Source
-            .OfType<TimeoutEvent>()
-            .Where(t => t.TimeoutId == timeoutEventId)
-            .Subscribe(
-                onNext: _ =>
-                {
-                    subscription.Dispose();
-                    // ReSharper disable once AccessToModifiedClosure
-                    timeoutSubscription?.Dispose();
-
-                    tcs.TrySetResult(new TimeoutOption<T>(true, default!));
-                },
-                onCompletion: () => {},
-                onError: _ => {},
-                subscription.SubscriptionGroupId
-            );
-        
-        var delivered = subscription.DeliverExisting();
-
-        if (tcs.Task.IsCompleted) return await tcs.Task;
-        
-        await subscription.TimeoutProvider.RegisterTimeout(timeoutEventId, expiresAt);
-        throw new SuspendInvocationException(delivered);
+        throw new SuspendInvocationException(emittedFromSource);
     }
 
     public static async Task SuspendUntil(this EventSource s, string timeoutEventId, DateTime resumeAt)
@@ -411,20 +372,248 @@ public static class Linq
 
     public static Task SuspendFor(this EventSource s, string timeoutEventId, TimeSpan resumeAfter)
         => s.SuspendUntil(timeoutEventId, DateTime.UtcNow.Add(resumeAfter));
-
-    public static Task Completion<T>(this IReactiveChain<T> s)
+    
+    /* SUSPEND_UNTIL_COMPLETION */
+    
+    public static Task SuspendUntilCompletion<T>(this IReactiveChain<T> s)
     {
+        var (_, _, hasException, exception, hasCompleted, _, _, emittedFromSource) = PullLast(s);
         var tcs = new TaskCompletionSource();
-        var subscription = s.Subscribe(
+        if (hasException)
+            tcs.SetException(exception!);
+        else if (hasCompleted)
+            tcs.SetResult();
+        else
+            tcs.SetException(new SuspendInvocationException(emittedFromSource));
+        
+        return tcs.Task;
+    }
+
+    public static async Task SuspendUntilCompletion<T>(this IReactiveChain<T> s, TimeSpan waitBeforeSuspension)
+    {
+        var (_, _, hasException, exception, hasCompleted, _, _, _) = PullLast(s);
+        if (hasCompleted)
+            return;
+        if (hasException)
+            throw exception!;
+
+        var tcs = new TaskCompletionSource();
+        using var cts = new CancellationTokenSource();
+        using var delayTask = Task.Delay(waitBeforeSuspension, cts.Token);
+
+        using var subscription = s.Subscribe(
             onNext: _ => { },
             onCompletion: () => tcs.TrySetResult(),
-            onError: e => tcs.TrySetException(e)
+            onError: e => tcs.SetException(e)
+        );
+        subscription.DeliverExistingAndFuture();
+        
+        await Task.WhenAny(tcs.Task, delayTask);
+        
+        cts.Cancel();
+        await SuspendUntilCompletion(s); //suspend or throw potential exception
+    }
+
+    public static async Task<TimeoutOption> SuspendUntilCompletion<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime timeoutAt)
+    {
+        var (hasValue, _, hasException, exception, _, timeoutOccured, timeoutProvider, emittedFromSource) = PullLast(s, timeoutEventId);
+
+        if (timeoutOccured)
+            return new TimeoutOption(TimedOut: true);
+        if (hasValue)
+            return new TimeoutOption(TimedOut: false);
+        if (hasException)
+            throw exception!;
+        
+        await timeoutProvider.RegisterTimeout(timeoutEventId, timeoutAt);
+        
+        throw new SuspendInvocationException(emittedFromSource);
+    }
+
+    public static Task<TimeoutOption> SuspendUntilCompletion<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan timeoutIn) 
+        => SuspendUntilCompletion(s, timeoutEventId, DateTime.UtcNow.Add(timeoutIn));
+    
+    
+    /* SUSPEND_UNTIL_LAST */
+    public static Task<T> SuspendUntilLast<T>(this IReactiveChain<T> s)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var (hasValue, value, hasException, exception, hasCompleted, _, _, emittedFromSource) = PullLast(s);
+        if (hasException)
+            tcs.SetException(exception!);
+        else if (hasValue && hasCompleted)
+            tcs.SetResult(value!);
+        else if (hasCompleted)
+            tcs.SetException(new NoResultException("No event was emitted before the stream completed"));
+        else
+            tcs.SetException(new SuspendInvocationException(emittedFromSource));
+
+        return tcs.Task;
+    }
+    
+    public static async Task<T> SuspendUntilLast<T>(this IReactiveChain<T> s, TimeSpan waitBeforeSuspension)
+    {
+        var (hasValue, value, hasException, exception, hasCompleted, _, _, _) = PullLast(s);
+        if (hasException)
+            throw exception!;
+        if (hasCompleted && !hasValue)
+            return await SuspendUntilLast(s);
+        if (hasCompleted && hasValue)
+            return value!;
+
+        var tcs = new TaskCompletionSource();
+        using var cts = new CancellationTokenSource();
+        using var delayTask = Task.Delay(waitBeforeSuspension, cts.Token);
+
+        using var subscription = s.Subscribe(
+            onNext: _ => { },
+            onCompletion: () => tcs.TrySetResult(),
+            onError: e => tcs.SetException(e)
         );
         
         subscription.DeliverExistingAndFuture();
-        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
-        return tcs.Task;
+        
+        await Task.WhenAny(tcs.Task, delayTask);
+        
+        cts.Cancel();
+        return await SuspendUntilLast(s); //suspend or throw potential exception
     }
+    
+    public static async Task<TimeoutOption<T>> SuspendUntilLast<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime timeoutAt)
+    {
+        var (hasValue, value, hasException, exception, hasCompleted, timeoutOccured, timeoutProvider, emittedFromSource) = PullLast(s, timeoutEventId);
+
+        if (hasException)
+            throw exception!;
+        if (timeoutOccured)
+            return new TimeoutOption<T>(TimedOut: true, Value: default);
+        if (hasValue && hasCompleted)
+            return new TimeoutOption<T>(TimedOut: false, Value: value!);
+        if (!hasValue && hasCompleted)
+            throw new NoResultException("No event was emitted before the stream completed");
+        
+        await timeoutProvider.RegisterTimeout(timeoutEventId, timeoutAt);
+        
+        throw new SuspendInvocationException(emittedFromSource);
+    }
+
+    public static Task<TimeoutOption<T>> SuspendUntilLast<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan timeoutIn) 
+        => SuspendUntilLast(s, timeoutEventId, DateTime.UtcNow.Add(timeoutIn));
+    
+    
+    /* PULL HELPER METHODS */
+    private static PullResult<T> PullNext<T>(this IReactiveChain<T> s, string? timeoutEventId = null)
+    {
+        var voe = new PullResult<T>(
+            HasValue: false,
+            Value: default,
+            HasException: false,
+            Exception: null,
+            HasCompleted: false,
+            TimeoutOccured: false,
+            TimeoutProvider: default!,
+            EmittedFromSource: 0
+        );
+        
+        using var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                if (voe is { HasValue: false, HasException: false, TimeoutOccured: false })
+                    voe = voe with { HasValue = true, Value = t };
+            },
+            onCompletion: () => voe = voe with { HasCompleted = true },
+            onError: exception =>
+            {
+                if (voe is { HasValue: false, HasException: false, TimeoutOccured: false })
+                    voe = voe with { HasException = true, Exception = exception };
+            }
+        );
+
+        ISubscription? timeoutSubscription = null;
+        if (timeoutEventId != null)
+            timeoutSubscription = subscription.Source
+                .OfType<TimeoutEvent>()
+                .Where(t => t.TimeoutId == timeoutEventId)
+                .Take(1)
+                .Subscribe(
+                    onNext: t =>
+                    {
+                        if (voe is { HasValue: false, HasException: false, TimeoutOccured: false })
+                            voe = voe with { TimeoutOccured = true };
+                    },
+                    onCompletion: () => { },
+                    onError: _ => { },
+                    subscriptionGroupId: subscription.SubscriptionGroupId
+                );
+        
+        var emittedFromSource = subscription.DeliverExisting();
+
+        timeoutSubscription?.Dispose();
+        
+        return voe with { EmittedFromSource = emittedFromSource, TimeoutProvider = subscription.TimeoutProvider };
+    }
+    
+    private static PullResult<T> PullLast<T>(this IReactiveChain<T> s, string? timeoutEventId = null)
+    {
+        T? latestEmitted = default;
+        var hasEmitted = false;
+        
+        var voe = new PullResult<T>(
+            HasValue: false,
+            Value: default,
+            HasException: false,
+            Exception: null,
+            HasCompleted: false,
+            TimeoutOccured: false,
+            TimeoutProvider: default!,
+            EmittedFromSource: 0
+        );
+        
+        using var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                hasEmitted = true;
+                latestEmitted = t;
+            },
+            onCompletion: () =>
+            {
+                if (!voe.TimeoutOccured)
+                    voe = voe with { HasCompleted = true };
+            },
+            onError: exception =>
+            {
+                if (!voe.TimeoutOccured)
+                    voe = voe with { HasException = true, Exception = exception };
+            });
+
+        ISubscription? timeoutSubscription = null;
+        if (timeoutEventId != null)
+            timeoutSubscription = subscription
+                .Source
+                .OfType<TimeoutEvent>()
+                .Where(t => t.TimeoutId == timeoutEventId)
+                .Take(1)
+                .Subscribe(
+                    onNext: _ =>
+                    {
+                        if (voe is { HasCompleted: false, HasException: false })
+                            voe = voe with { TimeoutOccured = true };
+                    },
+                    onError: _ => {},
+                    onCompletion: () => {},
+                    subscriptionGroupId: subscription.SubscriptionGroupId
+                );
+        
+        var emittedFromSource = subscription.DeliverExisting();
+        timeoutSubscription?.Dispose();
+
+        if (voe is { HasException: false, TimeoutOccured: false } && hasEmitted)
+            voe = voe with { HasValue = true, Value = latestEmitted };
+        
+        return voe with { EmittedFromSource = emittedFromSource, TimeoutProvider = subscription.TimeoutProvider };
+    }
+
+    private record struct PullResult<T>(bool HasValue, T? Value, bool HasException, Exception? Exception, bool HasCompleted, bool TimeoutOccured, ITimeoutProvider TimeoutProvider, int EmittedFromSource);
     
     #endregion
 }
