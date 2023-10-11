@@ -404,7 +404,7 @@ public class Source : ISource
             public int SubscriptionGroupId => _subscriptionGroup._subscriptionGroupId;
             public void DeliverExistingAndFuture() => _subscriptionGroup.DeliverExistingAndFuture();
             public int DeliverExisting() => _subscriptionGroup.DeliverExisting();
-            public void Dispose() => _subscriptionGroup.Unsubscribe(this);
+            public void Dispose() => _subscriptionGroup.Unsubscribe(subscription: this);
         }
     }
 }
