@@ -399,18 +399,29 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public void TryLastReturnsFalseOnNonNonCompletedStream()
+    public void TryLastReturnsNonCompletedStreamOnNonCompletedStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hallo");
 
         var success = source.OfType<int>().TryLast(out var next, out var totalEventSourceCount);
-        success.ShouldBeFalse();
+        success.ShouldBe(TryLastOutcome.NonCompletedStream);
         totalEventSourceCount.ShouldBe(1);
     }
     
     [TestMethod]
-    public void TryLastReturnsTrueOnCompletedStream()
+    public void TryLastReturnsSteamCompletedWithoutValueOnNonEmittingCompletedStream()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hallo");
+
+        var success = source.Take(1).OfType<int>().TryLast(out var next, out var totalEventSourceCount);
+        success.ShouldBe(TryLastOutcome.SteamCompletedWithoutValue);
+        totalEventSourceCount.ShouldBe(1);
+    }
+    
+    [TestMethod]
+    public void TryLastReturnsStreamCompletedWithValueOnCompletedStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hallo");
@@ -418,8 +429,32 @@ public class LeafOperatorsTests
 
         var success = source.OfType<int>().Take(1).TryLast(out var next, out var totalEventSourceCount);
 
-        success.ShouldBeTrue();
+        success.ShouldBe(TryLastOutcome.StreamCompletedWithValue);
         next.ShouldBe(2);
+        totalEventSourceCount.ShouldBe(2);
+    }
+    
+    [TestMethod]
+    public void TryCompletesReturnsFalseOnNonNonCompletedStream()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hallo");
+
+        var success = source.OfType<int>().TryCompletes(out var totalEventSourceCount);
+        success.ShouldBeFalse();
+        totalEventSourceCount.ShouldBe(1);
+    }
+    
+    [TestMethod]
+    public void TryCompletesReturnsTrueOnCompletedStream()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hallo");
+        source.SignalNext(2);
+
+        var success = source.OfType<int>().Take(1).TryCompletes(out var totalEventSourceCount);
+
+        success.ShouldBeTrue();
         totalEventSourceCount.ShouldBe(2);
     }
 

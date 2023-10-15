@@ -174,21 +174,39 @@ public static class Linq
         return tcs.Task;
     }
     
-    public static bool TryLast<T>(this IReactiveChain<T> s, out T? last)
+    public static TryLastOutcome TryLast<T>(this IReactiveChain<T> s, out T? last)
         => TryLast(s, out last, out _);
-    public static bool TryLast<T>(this IReactiveChain<T> s, out T? last, out int totalEventSourceCount)
+    public static TryLastOutcome TryLast<T>(this IReactiveChain<T> s, out T? last, out int totalEventSourceCount) 
+    {
+        var (hasValue, value, _, _, hasCompleted, _, _, emittedFromSource) = PullLast(s);
+
+        if (hasValue)
+        {
+            last = value;
+            totalEventSourceCount = emittedFromSource;
+            return TryLastOutcome.StreamCompletedWithValue;
+        }
+
+        last = default;
+        totalEventSourceCount = emittedFromSource;
+        return hasCompleted 
+            ? TryLastOutcome.SteamCompletedWithoutValue 
+            : TryLastOutcome.NonCompletedStream;
+    }
+    
+    public static bool TryCompletes<T>(this IReactiveChain<T> s)
+        => TryCompletes(s, out _);
+    public static bool TryCompletes<T>(this IReactiveChain<T> s, out int totalEventSourceCount)
     {
         var completed = false;
-        var latest = default(T);
         using var subscription = s.Subscribe(
-            onNext: t => latest = t,
+            onNext: _ => { },
             onCompletion: () => completed = true,
             onError: _ => { }
         );
 
         totalEventSourceCount = subscription.DeliverExisting();
-
-        last = completed ? latest : default;
+        
         return completed;
     }
 
