@@ -31,7 +31,7 @@ public abstract class EventSubscriptionTests
 
         var subscription = eventStore.SubscribeToEvents(functionId);
 
-        var events = await subscription.Pull();
+        var events = await subscription.PullNewEvents();
         events.ShouldBeEmpty();
         
         await eventStore.AppendEvent(
@@ -40,14 +40,14 @@ public abstract class EventSubscriptionTests
             eventType: typeof(string).SimpleQualifiedName()
         );
 
-        events = await subscription.Pull();
+        events = await subscription.PullNewEvents();
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
             .DeserializeEvent(events[0].EventJson, events[0].EventType)
             .ShouldBe("hello world");
         
-        events = await subscription.Pull();
+        events = await subscription.PullNewEvents();
         events.ShouldBeEmpty();
         
         await eventStore.AppendEvent(
@@ -56,7 +56,7 @@ public abstract class EventSubscriptionTests
             eventType: typeof(string).SimpleQualifiedName()
         );
 
-        events = await subscription.Pull();
+        events = await subscription.PullNewEvents();
         events.Count.ShouldBe(1);
         
         DefaultSerializer
@@ -72,7 +72,7 @@ public abstract class EventSubscriptionTests
             eventType: typeof(string).SimpleQualifiedName()
         );
 
-        events = await subscription.Pull();
+        events = await subscription.PullNewEvents();
         events.ShouldBeEmpty();
     }
 }

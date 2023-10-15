@@ -512,7 +512,7 @@ public abstract class EventStoreTests
         );
         await eventStore.AppendEvent(functionId, event1);
 
-        var newEvents = await subscription.Pull();
+        var newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
         var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
@@ -526,14 +526,14 @@ public abstract class EventStoreTests
         );
         await eventStore.AppendEvent(functionId, event2);
         
-        newEvents = await subscription.Pull();
+        newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);
         storedEvent = newEvents[0];
         @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
         @event.ShouldBe("hello universe");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
 
-        await subscription.Pull().SelectAsync(l => l.Count).ShouldBeAsync(0);
+        await subscription.PullNewEvents().SelectAsync(l => l.Count).ShouldBeAsync(0);
     }
     
     public abstract Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys();
@@ -561,7 +561,7 @@ public abstract class EventStoreTests
         );
         await eventStore.AppendEvent(functionId, event1);
 
-        var newEvents = await subscription.Pull();
+        var newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
         var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
@@ -575,10 +575,10 @@ public abstract class EventStoreTests
         );
         await eventStore.AppendEvent(functionId, event2);
         
-        newEvents = await subscription.Pull();
+        newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(0);
         
-        newEvents = await subscription.Pull();
+        newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(0);
     }
 }

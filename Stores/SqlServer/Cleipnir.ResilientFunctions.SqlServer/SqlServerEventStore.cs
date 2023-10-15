@@ -243,7 +243,7 @@ public class SqlServerEventStore : IEventStore
         var skip = 0;
 
         var subscription = new EventsSubscription(
-            pullEvents: async () =>
+            pullNewEvents: async () =>
             {
                 lock (sync)
                     if (disposed)

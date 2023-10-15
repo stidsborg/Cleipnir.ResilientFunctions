@@ -6,19 +6,19 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public sealed class EventsSubscription : IAsyncDisposable
 {
-    private readonly Func<Task<IReadOnlyList<StoredEvent>>> _pullEvents;
+    private readonly Func<Task<IReadOnlyList<StoredEvent>>> _pullNewEvents;
     private readonly Func<ValueTask> _dispose;
     private bool _disposed;
 
     private readonly object _sync = new();
 
-    public EventsSubscription(Func<Task<IReadOnlyList<StoredEvent>>> pullEvents, Func<ValueTask> dispose)
+    public EventsSubscription(Func<Task<IReadOnlyList<StoredEvent>>> pullNewEvents, Func<ValueTask> dispose)
     {
-        _pullEvents = pullEvents;
+        _pullNewEvents = pullNewEvents;
         _dispose = dispose;
     }
 
-    public Task<IReadOnlyList<StoredEvent>> Pull() => _pullEvents();
+    public Task<IReadOnlyList<StoredEvent>> PullNewEvents() => _pullNewEvents();
 
     public ValueTask DisposeAsync()
     {

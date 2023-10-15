@@ -479,7 +479,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
         var skip = 0;
 
         var subscription = new EventsSubscription(
-            pullEvents: () =>
+            pullNewEvents: () =>
             {
                 List<StoredEvent>? events;
 

@@ -208,7 +208,7 @@ public class AzureBlobEventStore : IEventStore
         var idempotencyKeys = new HashSet<string>();
         
         var subscription = new EventsSubscription(
-            pullEvents: async () =>
+            pullNewEvents: async () =>
             {
                 lock (sync)
                     if (disposed)

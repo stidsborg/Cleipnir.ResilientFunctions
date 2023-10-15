@@ -97,7 +97,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
         
         try
         {
-            var storedEvents = await _eventsSubscription!.Pull();
+            var storedEvents = await _eventsSubscription!.PullNewEvents();
             foreach (var storedEvent in storedEvents)
             {
                 if (storedEvent.IdempotencyKey != null)

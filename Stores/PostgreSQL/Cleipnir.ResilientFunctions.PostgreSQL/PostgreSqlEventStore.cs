@@ -295,7 +295,7 @@ public class PostgreSqlEventStore : IEventStore
         var skip = 0;
 
         var subscription = new EventsSubscription(
-            async () =>
+            pullNewEvents: async () =>
             {
                 lock (sync)
                     if (disposed)

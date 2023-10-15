@@ -292,7 +292,7 @@ public class MySqlEventStore : IEventStore
         var disposed = false;
         
         var subscription = new EventsSubscription(
-            pullEvents: async () =>
+            pullNewEvents: async () =>
             {
                 lock (sync)
                     if (disposed)
