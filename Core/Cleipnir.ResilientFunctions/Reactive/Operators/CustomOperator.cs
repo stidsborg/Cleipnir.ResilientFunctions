@@ -33,9 +33,9 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 
     private class Subscription : ISubscription
     {
-        private readonly Action<TOut> _onNext;
-        private readonly Action _onCompletion;
-        private readonly Action<Exception> _onError;
+        private readonly Action<TOut> _signalNext;
+        private readonly Action _signalCompletion;
+        private readonly Action<Exception> _signalError;
 
         private readonly ISubscription _innerSubscription;
         private bool _completed;
@@ -55,13 +55,13 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             int? subscriptionGroupId)
         {
             HandleCompletion = handleCompletion;
-            _onNext = onNext;
-            _onCompletion = onCompletion;
-            _onError = onError;
+            _signalNext = onNext;
+            _signalCompletion = onCompletion;
+            _signalError = onError;
 
             Operator = operatorFactory();
             
-            _innerSubscription = inner.Subscribe(SignalNext, SignalCompletion, SignalError, subscriptionGroupId);
+            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError, subscriptionGroupId);
         }
 
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
@@ -69,7 +69,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         public void DeliverExistingAndFuture() => _innerSubscription.DeliverExistingAndFuture();
         public int DeliverExisting() => _innerSubscription.DeliverExisting();
 
-        private void SignalNext(TIn next)
+        private void OnNext(TIn next)
         {
             if (_completed) return;
             
@@ -77,23 +77,23 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             {
                 Operator(
                     next, 
-                    _onNext, 
-                    signalCompletion: () => { SignalCompletion(); Dispose(); }, 
-                    signalException: exception => { SignalError(exception); Dispose(); });
+                    _signalNext, 
+                    signalCompletion: () => { OnCompletion(); Dispose(); }, 
+                    signalException: exception => { OnError(exception); Dispose(); });
             }
             catch (Exception exception)
             {
-                SignalError(exception);
+                OnError(exception);
             }
         }
 
-        private void SignalError(Exception exception)
+        private void OnError(Exception exception)
         {
             _completed = true;
-            _onError(exception);   
+            _signalError(exception);   
         }
         
-        private void SignalCompletion()
+        private void OnCompletion()
         {
             if (!_completed)
             {
@@ -103,18 +103,18 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
                 try
                 {
                     HandleCompletion?.Invoke(
-                        _onNext,
-                        signalException: exception => { SignalError(exception); Dispose(); }
+                        _signalNext,
+                        signalException: exception => { OnError(exception); Dispose(); }
                     );
                 }
                 catch (Exception exception)
                 {
-                    SignalError(exception);
+                    OnError(exception);
                 }
             }
             
             _completed = true;
-            _onCompletion();
+            _signalCompletion();
         }
 
         public void Dispose() => _innerSubscription.Dispose();
