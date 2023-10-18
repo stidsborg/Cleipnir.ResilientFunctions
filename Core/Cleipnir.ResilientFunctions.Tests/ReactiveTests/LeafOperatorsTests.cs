@@ -265,6 +265,52 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
+    public void LastsOperatorReturnsAllEmitsBeforeCompletion()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var lastsTask = source.Take(3).Lasts();
+        
+        source.SignalNext(1);
+        lastsTask.IsCompleted.ShouldBeFalse();
+        source.SignalNext(2);
+        lastsTask.IsCompleted.ShouldBeFalse();
+        source.SignalNext(3);
+        lastsTask.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext(4);
+        lastsTask.IsCompletedSuccessfully.ShouldBeTrue();
+
+        var emits = lastsTask.Result;
+        emits.Count.ShouldBe(3);
+        emits[0].ShouldBe(1);
+        emits[1].ShouldBe(2);
+        emits[2].ShouldBe(3);
+    }
+    
+    [TestMethod]
+    public void LastsWithCountOperatorReturnsAllEmitsAtReachedCount()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var lastsTask = source.Lasts(count: 3);
+        
+        source.SignalNext(1);
+        lastsTask.IsCompleted.ShouldBeFalse();
+        source.SignalNext(2);
+        lastsTask.IsCompleted.ShouldBeFalse();
+        source.SignalNext(3);
+        lastsTask.IsCompleted.ShouldBeFalse();
+        source.SignalNext(4);
+        lastsTask.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+
+        var emits = lastsTask.Result;
+        emits.Count.ShouldBe(3);
+        emits[0].ShouldBe(2);
+        emits[1].ShouldBe(3);
+        emits[2].ShouldBe(4);
+    }
+    
+    [TestMethod]
     public async Task LastOperatorWithSuspensionAndTimeoutEventReturnTimeoutOptionWithoutValueWhenTimeoutEventIsSignalled()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
@@ -467,7 +513,7 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
-        var existing = source.Chunk(2).PullExisting();
+        var existing = source.Chunk(2).Existing();
         existing.Count.ShouldBe(0);
     }
     
@@ -477,7 +523,7 @@ public class LeafOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
         source.SignalNext("world");
-        var existing = source.PullExisting();
+        var existing = source.Existing();
         existing.Count.ShouldBe(2);
         existing[0].ShouldBe("hello");
         existing[1].ShouldBe("world");

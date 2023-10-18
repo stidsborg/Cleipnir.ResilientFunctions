@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
@@ -98,18 +99,12 @@ public static class Linq
         return s.WithOperator<T, T>(
             () =>
             {
-                var completed = false; 
-               
                 return (next, notify, complete, _) =>
                 {
-                    if (completed) return;
                     if (!predicate(next))
                         notify(next);
                     else
-                    {
                         complete();
-                        completed = true;
-                    }
                 };
             });
     }
@@ -133,6 +128,22 @@ public static class Linq
             });
     }
     
+    public static IReactiveChain<T> SkipUntil<T>(this IReactiveChain<T> s, Func<T, bool> predicate)
+    {
+        return s.WithOperator<T, T>(
+            () =>
+            {
+                var emitting = false;
+                return (next, notify, _, _) =>
+                {
+                    emitting = emitting || predicate(next);
+
+                    if (emitting)
+                        notify(next);
+                };
+            });
+    }
+    
     public static IReactiveChain<List<T>> Buffer<T>(this IReactiveChain<T> s, int bufferSize) 
         => new BufferOperator<T>(s, bufferSize);
 
@@ -144,7 +155,21 @@ public static class Linq
     #endregion
 
     #region Leaf operators
+    public static List<T> Existing<T>(this IReactiveChain<T> s)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var list = new List<T>();
+        using var subscription = s.Subscribe(
+            onNext: t => list.Add(t),
+            onCompletion: () => tcs.TrySetResult(list),
+            onError: e => tcs.TrySetException(e)
+        );
+        
+        subscription.DeliverExisting();
 
+        return list;
+    }
+    
     public static Task<T> Last<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource<T>();
@@ -164,6 +189,45 @@ public static class Linq
                 else
                     tcs.TrySetResult(emittedEvent!);
             },
+            onError: e => tcs.TrySetException(e)
+        );
+        
+        subscription.DeliverExistingAndFuture();
+
+        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
+            
+        return tcs.Task;
+    }
+    
+    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var list = new List<T>();
+        var subscription = s.Subscribe(
+            onNext: t => list.Add(t),
+            onCompletion: () => tcs.TrySetResult(list),
+            onError: e => tcs.TrySetException(e)
+        );
+        subscription.DeliverExistingAndFuture();
+
+        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
+        
+        return tcs.Task;
+    }
+    
+    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s, int count)
+    {
+        var tcs = new TaskCompletionSource<List<T>>();
+        var emits = new LinkedList<T>();
+        
+        var subscription = s.Subscribe(
+            onNext: t =>
+            {
+                emits.AddLast(t);
+                if (emits.Count > count)
+                    emits.RemoveFirst();
+            },
+            onCompletion: () => tcs.TrySetResult(emits.ToList()),
             onError: e => tcs.TrySetException(e)
         );
         
@@ -208,37 +272,6 @@ public static class Linq
         totalEventSourceCount = subscription.DeliverExisting();
         
         return completed;
-    }
-
-    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s)
-    {
-        var tcs = new TaskCompletionSource<List<T>>();
-        var list = new List<T>();
-        var subscription = s.Subscribe(
-            onNext: t => list.Add(t),
-            onCompletion: () => tcs.TrySetResult(list),
-            onError: e => tcs.TrySetException(e)
-        );
-        subscription.DeliverExistingAndFuture();
-
-        tcs.Task.ContinueWith(_ => subscription.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
-        
-        return tcs.Task;
-    }
-
-    public static List<T> PullExisting<T>(this IReactiveChain<T> s)
-    {
-        var tcs = new TaskCompletionSource<List<T>>();
-        var list = new List<T>();
-        using var subscription = s.Subscribe(
-            onNext: t => list.Add(t),
-            onCompletion: () => tcs.TrySetResult(list),
-            onError: e => tcs.TrySetException(e)
-        );
-        
-        subscription.DeliverExisting();
-
-        return list;
     }
     
     public static Task Completion<T>(this IReactiveChain<T> s)
@@ -517,7 +550,6 @@ public static class Linq
 
     public static Task<TimeoutOption<T>> SuspendUntilLast<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan timeoutIn) 
         => SuspendUntilLast(s, timeoutEventId, DateTime.UtcNow.Add(timeoutIn));
-    
     
     /* PULL HELPER METHODS */
     private static PullResult<T> PullNext<T>(this IReactiveChain<T> s, string? timeoutEventId = null)

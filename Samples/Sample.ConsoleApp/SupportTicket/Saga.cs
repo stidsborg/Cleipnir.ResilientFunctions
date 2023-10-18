@@ -48,7 +48,7 @@ public class Saga
         return eventSource
             .OfTypes<SupportTicketTaken, TimeoutEvent>()
             .Where(e => e.Match(stt => int.Parse(stt.RequestId), t => int.Parse(t.TimeoutId)) == @try)
-            .PullExisting()
+            .Existing()
             .Any();
     }
 }

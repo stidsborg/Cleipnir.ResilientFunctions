@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Reactive;
@@ -10,22 +11,31 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 [TestClass]
 public class InnerOperatorsTests
 {
+    // ** WHERE ** //
     [TestMethod]
-    public void EventsCanBeFilteredByType()
+    public void WhereOperatorFiltersOutEmitsAsPerPredicate()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        var nextStringEmitted = source.OfType<string>().Next();
-        nextStringEmitted.IsCompleted.ShouldBeFalse();
-            
+        
+        var emits = source.OfType<int>().Where(n => n > 2).Lasts();
+        
         source.SignalNext(1);
-        nextStringEmitted.IsCompleted.ShouldBeFalse();
+        source.SignalNext(2);
+        source.SignalNext(3);
+        source.SignalNext(4);
+        emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+        emits.IsCompletedSuccessfully.ShouldBeTrue();
 
-        source.SignalNext("hello");
 
-        nextStringEmitted.IsCompleted.ShouldBeTrue();
-        nextStringEmitted.Result.ShouldBe("hello");
+        var l = emits.Result;
+        l.Count.ShouldBe(2);
+        l[0].ShouldBe(3);
+        l[1].ShouldBe(4);
     }
     
+    // ** TAKE & SKIP ** //
     [TestMethod]
     public void SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
     {
@@ -40,6 +50,115 @@ public class InnerOperatorsTests
         next2.IsCompletedSuccessfully.ShouldBeTrue();
     }
     
+    [TestMethod]
+    public void TakeUntilCompletesAfterPredicateIsMet()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        var emits = source
+            .OfType<int>()
+            .TakeUntil(i => i > 2)
+            .Lasts();
+            
+        source.SignalNext(1);
+        emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(2);
+        emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(3);
+        emits.IsCompletedSuccessfully.ShouldBeTrue();
+
+        var l = emits.Result;
+        l.Count.ShouldBe(2);
+        l[0].ShouldBe(1);
+        l[1].ShouldBe(2);
+    }
+    
+    [TestMethod]
+    public void SkipUntilSkipsUntilPredicateIsMet()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        var emits = source
+            .OfType<int>()
+            .SkipUntil(i => i > 2)
+            .Lasts();
+            
+        source.SignalNext(1);
+        emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(2);
+        emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(3);
+        emits.IsCompleted.ShouldBeFalse();
+
+        source.SignalNext(2);
+        emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+        emits.IsCompletedSuccessfully.ShouldBeTrue();
+        
+        var l = emits.Result;
+        l.Count.ShouldBe(2);
+        l[0].ShouldBe(3);
+        l[1].ShouldBe(2);
+    }
+
+    [TestMethod]
+    public void TakeOperatorCompletesAfterInput()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        
+        var takes = source.Take(2).Lasts();
+        takes.IsCompleted.ShouldBeFalse();    
+
+        source.SignalNext("world");
+        
+        takes.IsCompletedSuccessfully.ShouldBeTrue();
+
+        var emits = takes.Result;
+        emits.Count.ShouldBe(2);
+        emits[0].ShouldBe("hello");
+        emits[1].ShouldBe("world");
+    }
+
+    // *** SCAN *** //
+    [TestMethod]
+    public void ScanOperatorEmitsIntermediaryStateOnEachEmitTakeOperatorCompletesAfterInput()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        source.SignalNext(1);
+        var intermediaryEmits = new List<int>();
+        var lastTask = source
+            .OfType<int>()
+            .Scan(seed: 0, (akk, n) => akk + n)
+            .Select(runningTotal =>
+            {
+                intermediaryEmits.Add(runningTotal);
+                return runningTotal;
+            })
+            .Last();
+        
+        intermediaryEmits.Count.ShouldBe(1);
+        intermediaryEmits[0].ShouldBe(1);
+        lastTask.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(1);
+        intermediaryEmits.Count.ShouldBe(2);
+        intermediaryEmits[1].ShouldBe(2);
+
+        source.SignalCompletion();
+        
+        intermediaryEmits.Count.ShouldBe(2);
+        lastTask.IsCompletedSuccessfully.ShouldBeTrue();
+        lastTask.Result.ShouldBe(2);
+    }
+    
+    // *** MERGE *** //
      
     [TestMethod]
     public void MergeTests()
@@ -57,6 +176,23 @@ public class InnerOperatorsTests
         emits.Count.ShouldBe(2);
         emits[0].ShouldBe("hello");
         emits[1].ShouldBe("HELLO");
+    }
+
+    // *** OF-TYPE(S) *** //
+    [TestMethod]
+    public void EventsCanBeFilteredByType()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var nextStringEmitted = source.OfType<string>().Next();
+        nextStringEmitted.IsCompleted.ShouldBeFalse();
+            
+        source.SignalNext(1);
+        nextStringEmitted.IsCompleted.ShouldBeFalse();
+
+        source.SignalNext("hello");
+
+        nextStringEmitted.IsCompleted.ShouldBeTrue();
+        nextStringEmitted.Result.ShouldBe("hello");
     }
     
     [TestMethod]
@@ -127,6 +263,7 @@ public class InnerOperatorsTests
         }
     }
     
+    // *** BUFFER / CHUNK *** //
     [TestMethod]
     public async Task BufferOperatorTest()
     {

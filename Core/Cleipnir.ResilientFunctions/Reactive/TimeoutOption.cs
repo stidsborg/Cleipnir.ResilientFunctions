@@ -41,7 +41,7 @@ public static class TimeoutOptionExtensions
 
     private static bool DoesEventSourceAlreadyContainTimeoutEvent(EventSource eventSource, string timeoutId)
         => eventSource
-            .PullExisting()
+            .Existing()
             .OfType<TimeoutEvent>()
             .Any(t => t.TimeoutId == timeoutId);
         

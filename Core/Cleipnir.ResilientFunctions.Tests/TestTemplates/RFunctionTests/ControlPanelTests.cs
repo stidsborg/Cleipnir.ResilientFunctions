@@ -788,7 +788,7 @@ public abstract class ControlPanelTests
                 }
                 else
                 {
-                    var existingEvents = eventSource.Select(e => e.ToString()!).PullExisting();
+                    var existingEvents = eventSource.Select(e => e.ToString()!).Existing();
                     syncedList.AddRange(existingEvents);
                 }
             }
