@@ -210,7 +210,7 @@ public static class Linq
         return completed;
     }
 
-    public static Task<List<T>> ToList<T>(this IReactiveChain<T> s)
+    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s)
     {
         var tcs = new TaskCompletionSource<List<T>>();
         var list = new List<T>();

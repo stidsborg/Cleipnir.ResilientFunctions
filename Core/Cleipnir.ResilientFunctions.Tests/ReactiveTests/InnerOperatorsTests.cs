@@ -48,7 +48,7 @@ public class InnerOperatorsTests
 
         var toUpper = source.OfType<string>().Select(s => s.ToUpper());
 
-        var emitsTask = source.Merge(toUpper).Take(2).ToList();
+        var emitsTask = source.Merge(toUpper).Take(2).Lasts();
         
         source.SignalNext("hello");
         
@@ -134,7 +134,7 @@ public class InnerOperatorsTests
         source.SignalNext("hello");
 
         var nextTask = source.Buffer(2).Next();
-        var listTask = source.Buffer(2).ToList();
+        var listTask = source.Buffer(2).Lasts();
         
         nextTask.IsCompleted.ShouldBeFalse();
         listTask.IsCompleted.ShouldBeFalse();

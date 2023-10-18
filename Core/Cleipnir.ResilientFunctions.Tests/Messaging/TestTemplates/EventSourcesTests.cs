@@ -111,7 +111,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
         
-        var task = eventSource.Take(2).ToList();
+        var task = eventSource.Take(2).Lasts();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -153,7 +153,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
 
-        var task = eventSource.Take(2).ToList();
+        var task = eventSource.Take(2).Lasts();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -235,7 +235,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
 
-        var task = eventSource.Take(2).ToList();
+        var task = eventSource.Take(2).Lasts();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -292,7 +292,7 @@ public abstract class EventSourcesTests
         await eventSource.AppendEvent("hello world");
         await Should.ThrowAsync<EventProcessingException>(eventSource.AppendEvent(1));
         await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.Skip(1).Next());
-        Should.Throw<EventProcessingException>(() => eventSource.ToList());
+        Should.Throw<EventProcessingException>(() => eventSource.Lasts());
     }
     
     private class ExceptionThrowingEventSerializer : ISerializer
