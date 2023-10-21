@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace Cleipnir.ResilientFunctions.Reactive.Awaiter
+namespace Cleipnir.ResilientFunctions.Reactive
 {
     public class NoResultException : Exception
     {
-        public NoResultException() { }
-        public NoResultException(string? message) : base(message) { }
+        public static NoResultException NewInstance => new();
+        private NoResultException() : base(message: "No event was emitted before the stream completed") { }
     }
 }

@@ -7,7 +7,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive.Awaiter;
 using Cleipnir.ResilientFunctions.Reactive.Operators;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
@@ -185,7 +184,7 @@ public static class Linq
             onCompletion: () =>
             {
                 if (!eventEmitted)
-                    tcs.TrySetException(new NoResultException("No event was emitted before the stream completed"));
+                    tcs.TrySetException(NoResultException.NewInstance);
                 else
                     tcs.TrySetResult(emittedEvent!);
             },
@@ -343,7 +342,7 @@ public static class Linq
         if (hasValue)
             return value!;
         if (hasCompleted)
-            throw new NoResultException("No event was emitted before the stream completed");
+            throw NoResultException.NewInstance;
         
         var tcs = new TaskCompletionSource();
         using var subscription = s.Subscribe(
@@ -373,7 +372,7 @@ public static class Linq
         else if (hasException)
             tcs.SetException(exception!);
         else if (hasCompleted)
-            tcs.SetException(new NoResultException("No event was emitted before the stream completed"));
+            tcs.SetException(NoResultException.NewInstance);
         else
             tcs.SetException(new SuspendInvocationException(emittedFromSource));
 
@@ -495,7 +494,7 @@ public static class Linq
         else if (hasValue && hasCompleted)
             tcs.SetResult(value!);
         else if (hasCompleted)
-            tcs.SetException(new NoResultException("No event was emitted before the stream completed"));
+            tcs.SetException(NoResultException.NewInstance);
         else
             tcs.SetException(new SuspendInvocationException(emittedFromSource));
 
@@ -541,7 +540,7 @@ public static class Linq
         if (hasValue && hasCompleted)
             return new TimeoutOption<T>(TimedOut: false, Value: value!);
         if (!hasValue && hasCompleted)
-            throw new NoResultException("No event was emitted before the stream completed");
+            throw NoResultException.NewInstance;
         
         await timeoutProvider.RegisterTimeout(timeoutEventId, timeoutAt);
         

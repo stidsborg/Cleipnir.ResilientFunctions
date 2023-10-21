@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Reactive;
-using Cleipnir.ResilientFunctions.Reactive.Awaiter;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 

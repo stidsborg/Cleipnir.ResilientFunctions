@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive;
-using Cleipnir.ResilientFunctions.Reactive.Awaiter;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
