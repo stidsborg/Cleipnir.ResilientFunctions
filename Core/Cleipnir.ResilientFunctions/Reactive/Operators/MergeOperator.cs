@@ -8,17 +8,15 @@ public class MergeOperator<T> : IReactiveChain<T>
 {
     private readonly IReactiveChain<T> _chain1;
     private readonly IReactiveChain<T> _chain2;
-    private readonly bool _completeOnFirstCompletion;
 
-    public MergeOperator(IReactiveChain<T> chain1, IReactiveChain<T> chain2, bool completeOnFirstCompletion)
+    public MergeOperator(IReactiveChain<T> chain1, IReactiveChain<T> chain2)
     {
         _chain1 = chain1;
         _chain2 = chain2;
-        _completeOnFirstCompletion = completeOnFirstCompletion;
     }
 
     public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
-        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, subscriptionGroupId, _completeOnFirstCompletion);
+        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, subscriptionGroupId);
 
     private class Subscription : ISubscription
     {
@@ -34,7 +32,6 @@ public class MergeOperator<T> : IReactiveChain<T>
 
         private readonly object _sync = new();
         private bool _completed;
-        private readonly bool _completeOnFirstCompletion;
 
         public int EmittedFromSource => _subscription1.EmittedFromSource;
         public IReactiveChain<object> Source { get; }
@@ -43,10 +40,8 @@ public class MergeOperator<T> : IReactiveChain<T>
             IReactiveChain<T> inner1,
             IReactiveChain<T> inner2,
             Action<T> onNext, Action onCompletion, Action<Exception> onError,
-            int? subscriptionGroupId,
-            bool completeOnFirstCompletion)
+            int? subscriptionGroupId)
         {
-            _completeOnFirstCompletion = completeOnFirstCompletion;
             
             _onNext = onNext;
             _onCompletion = onCompletion;
@@ -145,10 +140,7 @@ public class MergeOperator<T> : IReactiveChain<T>
                 if (_completed || _subscription1Completed) return;
                 _subscription1Completed = true;
                 
-                if (
-                    !(_subscription1Completed && _subscription2Completed) &&  
-                    !_completeOnFirstCompletion
-                ) return;
+                if (!(_subscription1Completed && _subscription2Completed)) return;
                 
                 _completed = true;
             }
@@ -162,10 +154,7 @@ public class MergeOperator<T> : IReactiveChain<T>
             {
                 if (_subscription2Completed || _completed) return;
                 _subscription2Completed = true;
-                if (
-                    !(_subscription1Completed && _subscription2Completed) &&
-                    !_completeOnFirstCompletion
-                ) return;
+                if (!(_subscription1Completed && _subscription2Completed)) return;
                 
                 _completed = true;
             }

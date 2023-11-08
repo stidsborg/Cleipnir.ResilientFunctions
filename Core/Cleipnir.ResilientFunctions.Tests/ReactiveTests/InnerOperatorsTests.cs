@@ -15,7 +15,35 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 [TestClass]
 public class InnerOperatorsTests
 {
-    // ** WHERE ** //
+    #region Select
+    
+    [TestMethod]
+    public void SelectOperatorProjectsEvent()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        var emits = source
+            .OfType<string>()
+            .Select(s => s.Length)
+            .Completion();
+        
+        source.SignalNext("a");
+        source.SignalNext("ab");
+        source.SignalNext("abc");
+        source.SignalNext("abcd");
+        
+        emits.IsCompleted.ShouldBeFalse();
+        source.SignalCompletion();
+        emits.IsCompletedSuccessfully.ShouldBeTrue();
+        
+        var l = emits.Result;
+        l.SequenceEqual(new[] { 1, 2, 3, 4 }).ShouldBeTrue();
+    }
+    
+    #endregion
+
+    #region Where
+
     [TestMethod]
     public void WhereOperatorFiltersOutEmitsAsPerPredicate()
     {
@@ -31,15 +59,16 @@ public class InnerOperatorsTests
         
         source.SignalCompletion();
         emits.IsCompletedSuccessfully.ShouldBeTrue();
-
-
         var l = emits.Result;
         l.Count.ShouldBe(2);
         l[0].ShouldBe(3);
         l[1].ShouldBe(4);
     }
-    
-    // ** TAKE & SKIP ** //
+
+    #endregion
+
+    #region Take & Skip
+
     [TestMethod]
     public void SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
     {
@@ -129,6 +158,8 @@ public class InnerOperatorsTests
         emits[1].ShouldBe("world");
     }
 
+    #endregion
+
     // *** SCAN *** //
     [TestMethod]
     public void ScanOperatorEmitsIntermediaryStateOnEachEmitTakeOperatorCompletesAfterInput()
@@ -161,9 +192,9 @@ public class InnerOperatorsTests
         lastTask.IsCompletedSuccessfully.ShouldBeTrue();
         lastTask.Result.ShouldBe(2);
     }
-    
-    // *** MERGE *** //
-     
+
+    #region Merge
+
     [TestMethod]
     public void MergeTests()
     {
@@ -181,9 +212,12 @@ public class InnerOperatorsTests
         emits[0].ShouldBe("hello");
         emits[1].ShouldBe("HELLO");
     }
+    
+    #endregion
 
-    // *** OF-TYPE(S) *** //
-    [TestMethod]
+    #region OfTypes
+
+        [TestMethod]
     public void EventsCanBeFilteredByType()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
@@ -266,8 +300,11 @@ public class InnerOperatorsTests
             matched.ShouldBe("25");
         }
     }
-    
-    // *** BUFFER / CHUNK *** //
+
+    #endregion
+
+    #region Buffer / Chunk
+
     [TestMethod]
     public async Task BufferOperatorTest()
     {
@@ -316,4 +353,6 @@ public class InnerOperatorsTests
         emitted.Count.ShouldBe(1);
         emitted[0].ShouldBe("hello");
     }
+
+    #endregion
 }
