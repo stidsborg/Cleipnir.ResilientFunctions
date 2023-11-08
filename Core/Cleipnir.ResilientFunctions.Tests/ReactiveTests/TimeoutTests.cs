@@ -95,6 +95,65 @@ public class TimeoutTests
             timeoutException.Message.Contains(timeoutId).ShouldBeTrue();
         }
     }
+    
+    [TestMethod]
+    public void StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
+    {
+        var timeoutId = "TimeoutId";
+        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
+        
+        var timeoutProviderStub = new TimeoutProviderStub();
+        var source = new Source(timeoutProviderStub);
+
+        var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
+        
+        source.SignalNext("Hello");
+
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        task.Result.ShouldBe("Hello");
+    }
+    
+    [TestMethod]
+    public void StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
+    {
+        var timeoutId = "TimeoutId";
+        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
+        
+        var timeoutProviderStub = new TimeoutProviderStub();
+        var source = new Source(timeoutProviderStub);
+
+        var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
+        
+        source.SignalNext("Hello");
+
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        var option = task.Result;
+        option.HasValue.ShouldBeTrue();
+        option.Value.ShouldBe("Hello");
+    }
+    
+    [TestMethod]
+    public async Task StreamCompletesSuccessfullyWhenEventIsEmittedBeforeTimeoutCausesFailure()
+    {
+        var timeoutId = "TimeoutId";
+        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
+        
+        var timeoutProviderStub = new TimeoutProviderStub();
+        var source = new Source(timeoutProviderStub);
+
+        var task = source.FailOnTimeout(timeoutId, expiresAt).First();
+        
+        await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
+        var (id, expiry) = timeoutProviderStub.Registrations.Single();
+        id.ShouldBe(timeoutId);
+        expiry.ShouldBe(expiresAt);
+        
+        source.SignalNext("Hello");
+
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        var result = await task;
+        result.ShouldBe("Hello");
+    }
 
     private class TimeoutProviderStub : ITimeoutProvider
     {
