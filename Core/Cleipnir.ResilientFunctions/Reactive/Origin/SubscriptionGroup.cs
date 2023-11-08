@@ -45,10 +45,10 @@ internal class SubscriptionGroup
     public void DeliverFutureEvents()
     {
         lock (_sync)
-            if (_status != Status.Created)
-                return; //todo throw exception?
-            else
+            if (_status == Status.Created)
                 _status = Status.Activated;
+            else
+                return;
 
         DeliverOutstandingEvents();
     }
@@ -124,8 +124,7 @@ internal class SubscriptionGroup
 
     public ISubscription AddSubscription(Action<object> onNext, Action onCompletion, Action<Exception> onError)
     {
-        var subscription = new Subscription(onNext, onCompletion, onError, subscriptionGroup: this, _timeoutProvider,
-            _source);
+        var subscription = new Subscription(onNext, onCompletion, onError, subscriptionGroup: this, _timeoutProvider, _source);
         _subscriptions = _subscriptions.Add(subscription);
         return subscription;
     }
