@@ -119,18 +119,11 @@ public class TimeoutTests
         }
 
         public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
-        {
-            throw new NotImplementedException();
-        }
+            => Task.FromException(new Exception("Stub-method invocation"));
 
         public Task CancelTimeout(string timeoutId)
-        {
-            throw new NotImplementedException();
-        }
-
+            => Task.FromException(new Exception("Stub-method invocation"));
         public Task<List<TimeoutEvent>> PendingTimeouts()
-        {
-            throw new NotImplementedException();
-        }
+            => Task.FromException<List<TimeoutEvent>>(new Exception("Stub-method invocation"));
     }
 }
