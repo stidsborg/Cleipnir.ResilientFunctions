@@ -27,17 +27,17 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
-
-        task.IsCompleted.ShouldBeTrue();
-
-        await Should.ThrowAsync<NoResultException>(task);
-        
         await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
         
         var (id, expiry) = timeoutProviderStub.Registrations.Single();
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
+        
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
+
+        task.IsCompleted.ShouldBeTrue();
+
+        await Should.ThrowAsync<NoResultException>(task);
     }
     
     [TestMethod]
