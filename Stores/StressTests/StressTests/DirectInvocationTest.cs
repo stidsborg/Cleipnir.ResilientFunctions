@@ -1,6 +1,8 @@
 ﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
@@ -33,7 +35,7 @@ public class DirectInvocationTest
                     await eventSource.AppendEvent(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();
-                    return await eventSource.NextOfType<string>();
+                    return await eventSource.FirstOfType<string>();
                 }
                 catch (Exception exception)
                 {
@@ -57,7 +59,7 @@ public class DirectInvocationTest
                     await eventSource.AppendEvent(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();
-                    return await eventSource.NextOfType<string>();
+                    return await eventSource.FirstOfType<string>();
                 }
                 catch (Exception exception)
                 {

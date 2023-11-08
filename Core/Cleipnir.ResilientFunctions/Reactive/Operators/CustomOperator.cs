@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
@@ -45,6 +46,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         private bool _handlingCompletion;
         private OnCompletion<TOut>? HandleCompletion { get; }
 
+        public int EmittedFromSource => _innerSubscription.EmittedFromSource;
         public IReactiveChain<object> Source => _innerSubscription.Source;
 
         public Subscription(
@@ -66,8 +68,9 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
         public int SubscriptionGroupId => _innerSubscription.SubscriptionGroupId;
-        public void DeliverExistingAndFuture() => _innerSubscription.DeliverExistingAndFuture();
-        public int DeliverExisting() => _innerSubscription.DeliverExisting();
+        public void DeliverFuture() => _innerSubscription.DeliverFuture();
+        public void DeliverExisting() => _innerSubscription.DeliverExisting();
+        public Task StopDelivering() => _innerSubscription.StopDelivering();
 
         private void OnNext(TIn next)
         {
@@ -95,22 +98,21 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         
         private void OnCompletion()
         {
-            if (!_completed)
-            {
-                if (_handlingCompletion) return;
-                _handlingCompletion = true;
+            if (_completed) return;
+            
+            if (_handlingCompletion) return;
+            _handlingCompletion = true;
                 
-                try
-                {
-                    HandleCompletion?.Invoke(
-                        _signalNext,
-                        signalException: exception => { OnError(exception); Dispose(); }
-                    );
-                }
-                catch (Exception exception)
-                {
-                    OnError(exception);
-                }
+            try
+            {
+                HandleCompletion?.Invoke(
+                    _signalNext,
+                    signalException: exception => { OnError(exception); Dispose(); }
+                );
+            }
+            catch (Exception exception)
+            {
+                OnError(exception);
             }
             
             _completed = true;

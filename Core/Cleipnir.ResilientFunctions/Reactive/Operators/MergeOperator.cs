@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
@@ -7,15 +8,17 @@ public class MergeOperator<T> : IReactiveChain<T>
 {
     private readonly IReactiveChain<T> _chain1;
     private readonly IReactiveChain<T> _chain2;
+    private readonly bool _completeOnFirstCompletion;
 
-    public MergeOperator(IReactiveChain<T> chain1, IReactiveChain<T> chain2)
+    public MergeOperator(IReactiveChain<T> chain1, IReactiveChain<T> chain2, bool completeOnFirstCompletion)
     {
         _chain1 = chain1;
         _chain2 = chain2;
+        _completeOnFirstCompletion = completeOnFirstCompletion;
     }
 
     public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
-        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, subscriptionGroupId);
+        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, subscriptionGroupId, _completeOnFirstCompletion);
 
     private class Subscription : ISubscription
     {
@@ -31,15 +34,20 @@ public class MergeOperator<T> : IReactiveChain<T>
 
         private readonly object _sync = new();
         private bool _completed;
+        private readonly bool _completeOnFirstCompletion;
 
+        public int EmittedFromSource => _subscription1.EmittedFromSource;
         public IReactiveChain<object> Source { get; }
 
         public Subscription(
             IReactiveChain<T> inner1,
             IReactiveChain<T> inner2,
             Action<T> onNext, Action onCompletion, Action<Exception> onError,
-            int? subscriptionGroupId)
+            int? subscriptionGroupId,
+            bool completeOnFirstCompletion)
         {
+            _completeOnFirstCompletion = completeOnFirstCompletion;
+            
             _onNext = onNext;
             _onCompletion = onCompletion;
             _onError = onError;
@@ -78,8 +86,9 @@ public class MergeOperator<T> : IReactiveChain<T>
 
         public ITimeoutProvider TimeoutProvider { get; }
         public int SubscriptionGroupId { get; }
-        public void DeliverExistingAndFuture() => _subscription1.DeliverExistingAndFuture();
-        public int DeliverExisting() => _subscription1.DeliverExisting();
+        public void DeliverFuture() => _subscription1.DeliverFuture();
+        public void DeliverExisting() => _subscription1.DeliverExisting();
+        public Task StopDelivering() => _subscription1.StopDelivering();
 
         private void HandleEither(Either either)
         {
@@ -133,9 +142,14 @@ public class MergeOperator<T> : IReactiveChain<T>
         {
             lock (_sync)
             {
-                if (_subscription1Completed) return;
+                if (_completed || _subscription1Completed) return;
                 _subscription1Completed = true;
-                if (!(_subscription1Completed && _subscription2Completed)) return;
+                
+                if (
+                    !(_subscription1Completed && _subscription2Completed) &&  
+                    !_completeOnFirstCompletion
+                ) return;
+                
                 _completed = true;
             }
 
@@ -146,9 +160,13 @@ public class MergeOperator<T> : IReactiveChain<T>
         {
             lock (_sync)
             {
-                if (_subscription2Completed) return;
+                if (_subscription2Completed || _completed) return;
                 _subscription2Completed = true;
-                if (!(_subscription1Completed && _subscription2Completed)) return;
+                if (
+                    !(_subscription1Completed && _subscription2Completed) &&
+                    !_completeOnFirstCompletion
+                ) return;
+                
                 _completed = true;
             }
 

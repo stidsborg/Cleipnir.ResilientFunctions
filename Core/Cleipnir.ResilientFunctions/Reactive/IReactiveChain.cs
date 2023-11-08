@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 

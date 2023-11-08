@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -44,7 +46,11 @@ public class ReactiveChainSemanticsTests
             subscriptionGroupId: subscription1.SubscriptionGroupId
         );
             
-        var deliverExistingTask = Task.Run(() => subscription1.DeliverExisting());
+        var deliverExistingTask = Task.Run(() =>
+        {
+            subscription1.DeliverExisting();
+            return subscription1.EmittedFromSource;
+        });
         await subscription2OnNextFlag.WaitForRaised();
             
         latest1.ShouldBe("hello");
@@ -83,7 +89,8 @@ public class ReactiveChainSemanticsTests
             subscription1.SubscriptionGroupId
         );
             
-        subscription1.DeliverExistingAndFuture();
+        subscription1.DeliverExisting();
+        subscription1.DeliverFuture();
             
         source.SignalNext("hello");
         subscription1Emits.ShouldBe(1);

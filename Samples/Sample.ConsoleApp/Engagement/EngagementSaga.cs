@@ -5,6 +5,8 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Extensions.Work;
 
 namespace ConsoleApp.Engagement;
 
@@ -35,7 +37,7 @@ public static class EngagementSaga
                         third: t => int.Parse(t.TimeoutId) == i
                     )
                 )
-                .SuspendUntilNext();
+                .SuspendUntilFirst();
             
             // if accepted notify hr and complete the flow
             if (es.Existing.OfType<EngagementAccepted>().Any())
@@ -50,7 +52,7 @@ public static class EngagementSaga
             await es
                 .OfType<TimeoutEvent>()
                 .Where(t => int.Parse(t.TimeoutId) == i)
-                .SuspendUntilNext();
+                .SuspendUntilFirst();
 
             nextEngagementTime += TimeSpan.FromDays(1);
             

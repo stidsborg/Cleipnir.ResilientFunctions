@@ -1,7 +1,6 @@
 using System;
-using System.Runtime.Serialization;
 
-namespace Cleipnir.ResilientFunctions.Reactive
+namespace Cleipnir.ResilientFunctions.Reactive.Utilities
 {
     public class StreamCompletedException : Exception
     {

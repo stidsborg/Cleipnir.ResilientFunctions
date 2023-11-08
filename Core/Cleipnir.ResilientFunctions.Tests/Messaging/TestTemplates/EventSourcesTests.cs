@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -41,7 +42,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
         
-        var task = eventSource.Next();
+        var task = eventSource.First();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -78,11 +79,14 @@ public abstract class EventSourcesTests
 
         await eventSource.AppendEvent("hello world");
 
-        var nextEvent = await eventSource.Next(maxWaitMs: 1_000);
+        var nextEvent = await eventSource.First();
         nextEvent.ShouldBe("hello world");
 
-        var success = eventSource.OfType<string>().TryNext(out var next);
-        success.ShouldBeTrue();
+        var next = eventSource
+            .OfType<string>()
+            .Existing(out var emittedFromSource)
+            .First();
+        
         next.ShouldBe("hello world");
     }
 
@@ -111,7 +115,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
         
-        var task = eventSource.Take(2).Lasts();
+        var task = eventSource.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -153,7 +157,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
 
-        var task = eventSource.Take(2).Lasts();
+        var task = eventSource.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -197,7 +201,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
         
-        var task = eventSource.Next();
+        var task = eventSource.First();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -235,7 +239,7 @@ public abstract class EventSourcesTests
         );
         await eventSource.Initialize();
 
-        var task = eventSource.Take(2).Lasts();
+        var task = eventSource.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
@@ -291,8 +295,8 @@ public abstract class EventSourcesTests
         
         await eventSource.AppendEvent("hello world");
         await Should.ThrowAsync<EventProcessingException>(eventSource.AppendEvent(1));
-        await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.Skip(1).Next());
-        Should.Throw<EventProcessingException>(() => eventSource.Lasts());
+        await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.Skip(1).First());
+        Should.Throw<EventProcessingException>(() => eventSource.ToList());
     }
     
     private class ExceptionThrowingEventSerializer : ISerializer

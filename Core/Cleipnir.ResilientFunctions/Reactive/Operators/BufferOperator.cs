@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
@@ -49,11 +50,13 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             _subscription = inner.Subscribe(OnNext, OnCompletion, OnError, subscriptionGroupId);
         }
 
+        public int EmittedFromSource => _subscription.EmittedFromSource;
         public IReactiveChain<object> Source => _subscription.Source;
         public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;
         public int SubscriptionGroupId => _subscription.SubscriptionGroupId;
-        public void DeliverExistingAndFuture() => _subscription.DeliverExistingAndFuture();
-        public int DeliverExisting() => _subscription.DeliverExisting();
+        public void DeliverFuture() => _subscription.DeliverFuture();
+        public void DeliverExisting() => _subscription.DeliverExisting();
+        public Task StopDelivering() => _subscription.StopDelivering();
 
         private void OnNext(T next)
         {

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 

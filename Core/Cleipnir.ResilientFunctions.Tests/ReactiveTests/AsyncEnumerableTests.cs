@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;

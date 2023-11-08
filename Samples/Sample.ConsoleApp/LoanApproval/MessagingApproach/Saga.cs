@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.LoanApproval.MessagingApproach;
 
@@ -19,7 +20,7 @@ public static class Saga
 
         var outcomesAndTimeout = await eventSource
             .Chunk(3)
-            .SuspendUntilNext();
+            .SuspendUntilFirst();
 
         var outcomes = outcomesAndTimeout
             .TakeWhile(e => e is CreditCheckOutcome)

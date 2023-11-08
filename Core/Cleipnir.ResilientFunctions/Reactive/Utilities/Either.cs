@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Reactive;
+namespace Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 public class Either<T1, T2>
 {

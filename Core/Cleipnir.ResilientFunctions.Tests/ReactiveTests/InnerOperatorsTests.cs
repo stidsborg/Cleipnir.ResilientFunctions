@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Origin;
+using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -17,7 +21,7 @@ public class InnerOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        var emits = source.OfType<int>().Where(n => n > 2).Lasts();
+        var emits = source.OfType<int>().Where(n => n > 2).ToList();
         
         source.SignalNext(1);
         source.SignalNext(2);
@@ -40,8 +44,8 @@ public class InnerOperatorsTests
     public void SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        var next1 = source.Next();
-        var next2 = source.Skip(1).Next();
+        var next1 = source.First();
+        var next2 = source.Skip(1).First();
             
         source.SignalNext("hello");
         next1.IsCompletedSuccessfully.ShouldBeTrue();
@@ -58,7 +62,7 @@ public class InnerOperatorsTests
         var emits = source
             .OfType<int>()
             .TakeUntil(i => i > 2)
-            .Lasts();
+            .ToList();
             
         source.SignalNext(1);
         emits.IsCompleted.ShouldBeFalse();
@@ -83,8 +87,8 @@ public class InnerOperatorsTests
         var emits = source
             .OfType<int>()
             .SkipUntil(i => i > 2)
-            .Lasts();
-            
+            .ToList();
+        
         source.SignalNext(1);
         emits.IsCompleted.ShouldBeFalse();
         
@@ -112,7 +116,7 @@ public class InnerOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
         
-        var takes = source.Take(2).Lasts();
+        var takes = source.Take(2).ToList();
         takes.IsCompleted.ShouldBeFalse();    
 
         source.SignalNext("world");
@@ -167,7 +171,7 @@ public class InnerOperatorsTests
 
         var toUpper = source.OfType<string>().Select(s => s.ToUpper());
 
-        var emitsTask = source.Merge(toUpper).Take(2).Lasts();
+        var emitsTask = source.Merge(toUpper).Take(2).ToList();
         
         source.SignalNext("hello");
         
@@ -183,7 +187,7 @@ public class InnerOperatorsTests
     public void EventsCanBeFilteredByType()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        var nextStringEmitted = source.OfType<string>().Next();
+        var nextStringEmitted = source.OfType<string>().First();
         nextStringEmitted.IsCompleted.ShouldBeFalse();
             
         source.SignalNext(1);
@@ -203,7 +207,7 @@ public class InnerOperatorsTests
         source.SignalNext(2);
         
         {
-            var either = source.OfTypes<string, int>().Next().Result;
+            var either = source.OfTypes<string, int>().First().Result;
             either.ValueSpecified.ShouldBe(Either<string, int>.Value.First);
             either.HasFirst.ShouldBeTrue();
             either.Do(first: s => s.ShouldBe("hello"), second: _ => throw new Exception("Unexpected value"));
@@ -212,7 +216,7 @@ public class InnerOperatorsTests
         }
 
         {
-            var either = source.Skip(1).OfTypes<string, int>().Next().Result;
+            var either = source.Skip(1).OfTypes<string, int>().First().Result;
             either.ValueSpecified.ShouldBe(Either<string, int>.Value.Second);
             either.HasFirst.ShouldBeFalse();
             either.Do(first: _ => throw new Exception("Unexpected value"), second: i => i.ShouldBe(2));
@@ -230,7 +234,7 @@ public class InnerOperatorsTests
         source.SignalNext(25L);
         
         {
-            var either = source.OfTypes<string, int, long>().Next().Result;
+            var either = source.OfTypes<string, int, long>().First().Result;
             either.ValueSpecified.ShouldBe(Either<string, int, long>.Value.First);
             either.HasFirst.ShouldBeTrue();
             either.Do(
@@ -246,7 +250,7 @@ public class InnerOperatorsTests
         }
 
         {
-            var either = source.Skip(2).OfTypes<string, int, long>().Next().Result;
+            var either = source.Skip(2).OfTypes<string, int, long>().First().Result;
             either.ValueSpecified.ShouldBe(Either<string, int, long>.Value.Third);
             either.HasFirst.ShouldBeFalse();
             either.Do(
@@ -270,8 +274,8 @@ public class InnerOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
 
-        var nextTask = source.Buffer(2).Next();
-        var listTask = source.Buffer(2).Lasts();
+        var nextTask = source.Buffer(2).First();
+        var listTask = source.Buffer(2).ToList();
         
         nextTask.IsCompleted.ShouldBeFalse();
         listTask.IsCompleted.ShouldBeFalse();
@@ -304,7 +308,7 @@ public class InnerOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
 
-        var nextTask = source.Buffer(2).Next();
+        var nextTask = source.Buffer(2).First();
         
         source.SignalCompletion();
         nextTask.IsCompletedSuccessfully.ShouldBeTrue();

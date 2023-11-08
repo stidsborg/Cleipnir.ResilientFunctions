@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Origin;
+using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -45,7 +49,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 
             var completed = false;
             var subscription = taken1.Subscribe(_ => { }, () => completed = true, _ => { });
-            subscription.DeliverExistingAndFuture();
+            subscription.DeliverExisting();
+            subscription.DeliverFuture();
 
             completed.ShouldBeTrue();
             

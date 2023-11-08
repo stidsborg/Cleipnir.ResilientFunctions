@@ -2,8 +2,9 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
-namespace Cleipnir.ResilientFunctions.Reactive;
+namespace Cleipnir.ResilientFunctions.Reactive.Extensions.Work;
 
 public static class WorkExtensions
 {

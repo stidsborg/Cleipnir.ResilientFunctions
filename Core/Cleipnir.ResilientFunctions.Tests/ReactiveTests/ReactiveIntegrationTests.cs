@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -54,7 +55,7 @@ public class ReactiveIntegrationTests
                 store.EventSubscriptionPulls.ShouldBe(1);
                 await Task.Delay(100);
                 store.EventSubscriptionPulls.ShouldBe(1);
-                var __ = es.Next();
+                var __ = es.First();
                 await Task.Delay(100);
                 store.EventSubscriptionPulls.ShouldBeGreaterThanOrEqualTo(1);
             });

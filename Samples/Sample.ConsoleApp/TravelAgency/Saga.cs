@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.TravelAgency;
 
@@ -27,7 +29,7 @@ public static class Saga
         );
 
         
-        var first3 = await eventSource.Chunk(3).Next();
+        var first3 = await eventSource.Chunk(3).First();
         if (first3.OfType<TimeoutEvent>().Any())
         {
             await MessageBroker.Send(new BookingFailed(bookingRequest.BookingId));

@@ -1,6 +1,8 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -40,11 +42,12 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             var source = new Source(NoOpTimeoutProvider.Instance);
             source.SignalNext("hello");
             source.SignalNext("world");
-            
-            var success = source.TryNextOfType<int>(out var next, out var totalEventSourceCount);
 
-            success.ShouldBeFalse();
-            totalEventSourceCount.ShouldBe(2);
+            var existing = source
+                .Existing(out var emittedFromSource);
+            
+            existing.Count.ShouldBe(2);;
+            emittedFromSource.ShouldBe(2);
         }
         
         [TestMethod]
@@ -56,11 +59,14 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.SignalNext(2);
             source.SignalNext("world");
 
-            var success = source.TryNextOfType<int>(out var next, out var totalEventSourceCount);
+            var existing = source
+                .OfType<int>()
+                .Existing(out var emittedFromSource);
 
-            success.ShouldBeTrue();
-            next.ShouldBe(1);
-            totalEventSourceCount.ShouldBe(4);
+            existing.Count.ShouldBe(2);
+            existing[0].ShouldBe(1);
+            existing[1].ShouldBe(2);
+            emittedFromSource.ShouldBe(4);
         }
     }
 }

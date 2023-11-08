@@ -1,6 +1,6 @@
 using System;
 
-namespace Cleipnir.ResilientFunctions.Reactive;
+namespace Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 internal class OnEach<T> : IDisposable
 {
@@ -9,7 +9,12 @@ internal class OnEach<T> : IDisposable
     public OnEach(IReactiveChain<T> s, Action<T> onNext, Action onCompletion, Action<Exception> onError) 
         => _subscription = s.Subscribe(onNext, onCompletion, onError);
 
-    public void Start() => _subscription.DeliverExistingAndFuture();
+    public void Start()
+    {
+        _subscription.DeliverExisting();
+        _subscription.DeliverFuture();
+    }
+    
     public void Dispose() => _subscription.Dispose();
 }
 

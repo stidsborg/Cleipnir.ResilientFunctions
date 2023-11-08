@@ -1,4 +1,4 @@
-﻿namespace Cleipnir.ResilientFunctions.Reactive;
+﻿namespace Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 public record WorkStarted(string WorkId);
 public record WorkCompleted(string WorkId);

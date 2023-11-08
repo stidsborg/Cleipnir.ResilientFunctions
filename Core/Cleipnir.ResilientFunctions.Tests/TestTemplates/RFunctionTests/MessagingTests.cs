@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -27,7 +30,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Context context) =>
             {
                 var es = await context.EventSource;
-                return await es.OfType<string>().Next();
+                return await es.OfType<string>().First();
             }
         );
 
@@ -88,13 +91,15 @@ public abstract class MessagingTests
 
                 var timeoutOption = await es
                     .OfType<string>()
-                    .SuspendUntilNext(timeoutEventId: "timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250));
+                    .TakeUntilTimeout("timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250))
+                    .SuspendUntilFirstOrNone();
                 
-                var timeoutEventExists = es
+                var timeoutEvent = es
                     .OfType<TimeoutEvent>()
-                    .TryNext(out var timeoutId);
+                    .Existing()
+                    .SingleOrDefault();
                 
-                return Tuple.Create(timeoutEventExists && timeoutOption.TimedOut, timeoutId?.TimeoutId ?? "");
+                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId ?? "");
             }
         );
 

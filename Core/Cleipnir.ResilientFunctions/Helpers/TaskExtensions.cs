@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Threading.Tasks;
 
@@ -10,6 +9,9 @@ public static class TaskExtensions
     [Pure]
     public static async Task<TOut> SelectAsync<TIn, TOut>(this Task<TIn> task, Func<TIn, TOut> selector)
         => selector(await task);
+    [Pure]
+    public static async Task<T> Flatten<T>(this Task<Task<T>> task)
+        => await await task;
     [Pure]
     public static Task<T> ToTask<T>(this T t) => Task.FromResult(t);
     [Pure]

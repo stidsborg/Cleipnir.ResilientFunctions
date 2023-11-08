@@ -1,6 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Serilog;
 
 namespace Sample.OrderProcessing.Messaging;
@@ -17,16 +18,16 @@ public class OrderProcessor
         using var eventSource = await context.EventSource;
 
         await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
-        await eventSource.NextOfType<FundsReserved>();
+        await eventSource.FirstOfType<FundsReserved>();
 
         await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
-        await eventSource.NextOfType<ProductsShipped>();
+        await eventSource.FirstOfType<ProductsShipped>();
 
         await _messageBroker.Send(new CaptureFunds(order.OrderId, order.CustomerId, scrapbook.TransactionId));
-        await eventSource.NextOfType<FundsCaptured>();
+        await eventSource.FirstOfType<FundsCaptured>();
 
         await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId));
-        await eventSource.NextOfType<OrderConfirmationEmailSent>();
+        await eventSource.FirstOfType<OrderConfirmationEmailSent>();
 
         Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
     }

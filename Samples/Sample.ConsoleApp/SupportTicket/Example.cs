@@ -18,7 +18,7 @@ public static class Example
         );
 
         var registration = functions
-            .RegisterAction<SupportTicketRequest, Saga.Scrapbook>(
+            .RegisterAction<SupportTicketRequest, RScrapbook>(
                 functionTypeId: "SupportTicketSaga",
                 Saga.AcceptSupportTicket
             );

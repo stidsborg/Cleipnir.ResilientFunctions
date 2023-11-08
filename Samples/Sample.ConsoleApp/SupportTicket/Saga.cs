@@ -6,49 +6,38 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.SupportTicket;
 
 public class Saga
 {
-    public static async Task AcceptSupportTicket(SupportTicketRequest request, Scrapbook scrapbook, Context context)
+    public static async Task AcceptSupportTicket(SupportTicketRequest request, RScrapbook scrapbook, Context context)
     {
         var eventSource = await context.EventSource;
         
         var agents = request.CustomerSupportAgents.Length;
-        while (true)
+        for (var i = 0; ; i++)
         {
-            if (!TimeoutOrResponseForTryReceived(eventSource, scrapbook.Try)) //then send email requesting support ticket to be taken
+            if (eventSource.OfType<TakeSupportTicketRequestSent>().Existing().All(r => r.Request != i))
             {
-                var customerSupportAgentEmail = request.CustomerSupportAgents[scrapbook.Try % agents];
-                await MessageBroker.Send(new TakeSupportTicket(request.SupportTicketId, customerSupportAgentEmail, RequestId: scrapbook.Try.ToString()));
-                await eventSource.TimeoutProvider.RegisterTimeout(timeoutId: scrapbook.Try.ToString(), expiresIn: TimeSpan.FromSeconds(5));                
+                var customerSupportAgentEmail = request.CustomerSupportAgents[i  % agents];
+                await MessageBroker.Send(
+                    new TakeSupportTicket(request.SupportTicketId, customerSupportAgentEmail, RequestId: i.ToString())
+                );
+                await eventSource.AppendEvent(new TakeSupportTicketRequestSent(i));
             }
             
-            var either = await eventSource
-                .OfTypes<SupportTicketTaken, TimeoutEvent>()
-                .Where(e => e.Match(stt => int.Parse(stt.RequestId), t => int.Parse(t.TimeoutId)) == scrapbook.Try)
-                .SuspendUntilNext();
+            var supportTicketTakenOption = await eventSource
+                .OfType<SupportTicketTaken>()
+                .Where(t => int.Parse(t.RequestId) == i)
+                .TakeUntilTimeout($"TimeoutId{i}", expiresIn: TimeSpan.FromMinutes(15))
+                .SuspendUntilFirstOrNone();
 
-            if (either.HasFirst)
+            if (supportTicketTakenOption.HasValue)
                 return;
-
-            scrapbook.Try++;
+            
             await scrapbook.Save();
         }
-    }
-
-    public class Scrapbook : RScrapbook
-    {
-        public int Try { get; set; }
-    }
-
-    private static bool TimeoutOrResponseForTryReceived(EventSource eventSource, int @try)
-    {
-        return eventSource
-            .OfTypes<SupportTicketTaken, TimeoutEvent>()
-            .Where(e => e.Match(stt => int.Parse(stt.RequestId), t => int.Parse(t.TimeoutId)) == @try)
-            .Existing()
-            .Any();
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Reactive;
+namespace Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
     {
@@ -34,7 +34,8 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
                 onCompletion: () => AddEventToDictionary(new Event(completed: true, exception: null, next: default!)),
                 onError: exception => AddEventToDictionary(new Event(completed: false, exception, next: default!))
             );
-            _subscription.DeliverExistingAndFuture();
+            _subscription.DeliverExisting();
+            _subscription.DeliverFuture();
 
             cancellationToken.Register(_subscription.Dispose);
         }
