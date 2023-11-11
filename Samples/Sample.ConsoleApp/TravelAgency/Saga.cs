@@ -24,21 +24,24 @@ public static class Saga
                 await MessageBroker.Send(new BookFlight(bookingId, customerId, details));
                 await MessageBroker.Send(new BookHotel(bookingId, customerId, details));
                 await MessageBroker.Send(new RentCar(bookingId, customerId, details));
-                await eventSource.TimeoutProvider.RegisterTimeout("timeout", expiresIn: TimeSpan.FromMinutes(1));
             }
         );
-
         
-        var first3 = await eventSource.Chunk(3).First();
-        if (first3.OfType<TimeoutEvent>().Any())
+        var events = await eventSource
+            .Take(3)
+            .TakeUntilTimeout("TimeoutId", TimeSpan.FromMinutes(1))
+            .SuspendUntilCompletion(maxWait: TimeSpan.FromSeconds(5));
+        
+        if (events.Count != 3)
         {
             await MessageBroker.Send(new BookingFailed(bookingRequest.BookingId));
+            //optionally perform compensating actions
             throw new TimeoutException("All responses were not received within threshold");
         }
         
-        var flightBooking = first3.OfType<FlightBooked>().Single(); 
-        var hotelBooking = first3.OfType<HotelBooked>().Single();
-        var carBooking = first3.OfType<CarRented>().Single();
+        var flightBooking = await eventSource.OfType<FlightBooked>().First();
+        var hotelBooking = await eventSource.OfType<HotelBooked>().First();
+        var carBooking = await eventSource.OfType<CarRented>().First();
 
         await MessageBroker.Send(
             new BookingCompletedSuccessfully(

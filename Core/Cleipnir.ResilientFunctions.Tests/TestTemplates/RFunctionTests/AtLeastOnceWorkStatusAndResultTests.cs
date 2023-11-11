@@ -299,11 +299,11 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
 
     private class Scrapbook : RScrapbook
     {
-        public WorkStatusAndResult<int> WorkStatus { get; set; }
+        public Work<int> WorkStatus { get; set; }
     }
     
     private class ScrapbookGetterOnly : RScrapbook
     {
-        public WorkStatusAndResult<int> WorkStatus { get; } = new();
+        public Work<int> WorkStatus { get; } = new();
     }
 }

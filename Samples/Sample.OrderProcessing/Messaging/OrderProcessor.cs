@@ -21,12 +21,12 @@ public class OrderProcessor
         await eventSource.FirstOfType<FundsReserved>();
 
         await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
-        await eventSource.FirstOfType<ProductsShipped>();
+        var productsShipped = await eventSource.FirstOfType<ProductsShipped>();
 
         await _messageBroker.Send(new CaptureFunds(order.OrderId, order.CustomerId, scrapbook.TransactionId));
         await eventSource.FirstOfType<FundsCaptured>();
 
-        await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId));
+        await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId, productsShipped.TrackAndTraceNumber));
         await eventSource.FirstOfType<OrderConfirmationEmailSent>();
 
         Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");

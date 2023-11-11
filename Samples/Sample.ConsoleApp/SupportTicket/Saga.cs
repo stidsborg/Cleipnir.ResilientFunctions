@@ -19,14 +19,13 @@ public class Saga
         var agents = request.CustomerSupportAgents.Length;
         for (var i = 0; ; i++)
         {
-            if (eventSource.OfType<TakeSupportTicketRequestSent>().Existing().All(r => r.Request != i))
+            await scrapbook.DoAtLeastOnce("SendTakeSupportTicketRequest", async () =>
             {
-                var customerSupportAgentEmail = request.CustomerSupportAgents[i  % agents];
+                var customerSupportAgentEmail = request.CustomerSupportAgents[i % agents];
                 await MessageBroker.Send(
                     new TakeSupportTicket(request.SupportTicketId, customerSupportAgentEmail, RequestId: i.ToString())
                 );
-                await eventSource.AppendEvent(new TakeSupportTicketRequestSent(i));
-            }
+            });
             
             var supportTicketTakenOption = await eventSource
                 .OfType<SupportTicketTaken>()

@@ -265,7 +265,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         await controlPanel.Refresh();
 
         var value = controlPanel.Scrapbook.StateDictionary["someId"];
-        var deserialized = JsonSerializer.Deserialize<WorkStatusAndResult<Person>>(value);
+        var deserialized = JsonSerializer.Deserialize<Work<Person>>(value);
         deserialized.Status.ShouldBe(WorkStatus.Completed);
         deserialized.Result.ShouldBe(new Person("Peter", 32));
     }
@@ -328,11 +328,11 @@ public abstract class AtMostOnceWorkStatusAndResultTests
 
     private class Scrapbook : RScrapbook
     {
-        public WorkStatusAndResult<int> WorkStatus { get; set; }
+        public Work<int> WorkStatus { get; set; }
     }
     
     private class ScrapbookGetterOnly : RScrapbook
     {
-        public WorkStatusAndResult<int> WorkStatus { get; } = new();
+        public Work<int> WorkStatus { get; } = new();
     }
 }

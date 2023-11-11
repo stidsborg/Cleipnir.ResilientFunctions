@@ -10,11 +10,11 @@ using Cleipnir.ResilientFunctions.Reactive.Extensions.Work;
 
 namespace ConsoleApp.Engagement;
 
-public static class EngagementSaga
+public static class EngagementReminderSaga
 {
     public static async Task Start(StartCustomerEngagement startEngagement, RScrapbook scrapbook, Context context)
     {
-        var (candidateEmail, nextEngagementTime) = startEngagement;
+        var (candidateEmail, nextReminderTime) = startEngagement;
         var es = await context.EventSource;
 
         await es.DoAtLeastOnce(
@@ -24,23 +24,23 @@ public static class EngagementSaga
         
         for (var i = 0; i < 10; i++)
         {
-            //register timeout
-            await es.RegisterTimeoutEvent(timeoutId: i.ToString(), nextEngagementTime);
-            
             //wait for candidate reply or timeout
-            await es
-                .OfTypes<EngagementAccepted, EngagementRejected, TimeoutEvent>()
+            var either = await es
+                .OfTypes<EngagementAccepted, EngagementRejected>()
                 .Where(either =>
                     either.Match(
                         first: a => a.Iteration == i,
-                        second: r => r.Iteration == i,
-                        third: t => int.Parse(t.TimeoutId) == i
+                        second: r => r.Iteration == i
                     )
                 )
-                .SuspendUntilFirst();
+                .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
+                .SuspendUntilFirstOrDefault();
+            
+            if (either == null) //timeout
+                continue;
             
             // if accepted notify hr and complete the flow
-            if (es.Existing.OfType<EngagementAccepted>().Any())
+            if (either.Match(ea => true, er => false))
             {
                 await scrapbook.DoAtLeastOnce(workId: "NotifyHR", work: () => NotifyHR(candidateEmail));
                 await es.CancelTimeoutEvent(timeoutId: i.ToString());
@@ -50,16 +50,8 @@ public static class EngagementSaga
 
             //wait for timeout before sending next engagement reminder
             await es
-                .OfType<TimeoutEvent>()
-                .Where(t => int.Parse(t.TimeoutId) == i)
+                .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
                 .SuspendUntilFirst();
-
-            nextEngagementTime += TimeSpan.FromDays(1);
-            
-            await es.DoAtLeastOnce(
-                workId: $"Reminder#{i}",
-                SendEngagementReminder
-            );
         }
 
         throw new Exception("Max number of retries exceeded");

@@ -15,19 +15,13 @@ public static class Saga
         var eventSource = await context.EventSource;
         await MessageBroker.Send(new ApproveTransaction(transaction));
         
-        //await received all approvals or timeout occured
-        await Task.WhenAny(
-            eventSource.Take(3).Last(),
-            Task.Delay(TimeSpan.FromSeconds(2))
-        );
-        
-        var approvals = eventSource
-                .Existing
-                .OfType<FraudDetectorResult>()
-                .Select(r => r.Approved)
-                .ToList();
+        var results = await eventSource
+            .OfType<FraudDetectorResult>()
+            .Take(3)
+            .TakeUntilTimeout("Timeout", TimeSpan.FromSeconds(2))
+            .Completion();
 
-        var approved = approvals.Count >= 2 && approvals.All(approved => approved == true);
+        var approved = results.Count >= 2 && results.All(result => result.Approved);
 
         await scrapbook.DoAtMostOnce(
             "PublishTransactionApproval",

@@ -13,19 +13,11 @@ public static class Saga
         var eventSource = await context.EventSource;
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));
 
-        await eventSource.RegisterTimeoutEvent(
-            timeoutId: "Timeout",
-            expiresAt: loanApplication.Created.AddMinutes(15)
-        );
-
-        var outcomesAndTimeout = await eventSource
-            .Chunk(3)
-            .SuspendUntilFirst();
-
-        var outcomes = outcomesAndTimeout
-            .TakeWhile(e => e is CreditCheckOutcome)
+        var outcomes = await eventSource
             .OfType<CreditCheckOutcome>()
-            .ToList();
+            .Take(3)
+            .TakeUntilTimeout("TimeoutId", expiresAt: loanApplication.Created.AddMinutes(15))
+            .Completion();
 
         if (outcomes.Count < 2)
             await MessageBroker.Send(new LoanApplicationRejected(loanApplication));

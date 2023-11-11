@@ -23,14 +23,14 @@ public class OrderProcessor
 
         await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
 
-        await scrapbook.DoAtMostOnce(
+        var trackAndTrace = await scrapbook.DoAtMostOnce(
             workStatus: s => s.ProductsShippedStatus,
             work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
         );
 
         await _paymentProviderClient.Capture(scrapbook.TransactionId);
 
-        await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
+        await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds, trackAndTrace);
 
         Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
     }
@@ -38,6 +38,6 @@ public class OrderProcessor
     public class Scrapbook : RScrapbook
     {
         public Guid TransactionId { get; set; } = Guid.NewGuid();
-        public WorkStatus ProductsShippedStatus { get; set; }
+        public Work<TrackAndTrace> ProductsShippedStatus { get; set; }
     }
 }

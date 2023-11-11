@@ -111,13 +111,13 @@ public static class RScrapbookExtensions
     
     public static async Task<TResult> DoAtMostOnce<TScrapbook, TResult>(
         this TScrapbook scrapbook, 
-        Expression<Func<TScrapbook, WorkStatusAndResult<TResult>>> workStatus, 
+        Expression<Func<TScrapbook, Work<TResult>>> workStatus, 
         Func<Task<TResult>> work,
         bool flushCompletedStatusImmediately = true) where TScrapbook : RScrapbook
     {
         var getterAndSetter = GetOrCreateGetterAndSetter(workStatus);
-        var getter = (Func<TScrapbook, WorkStatusAndResult<TResult>>)getterAndSetter.Getter;
-        var setter = (Action<TScrapbook, WorkStatusAndResult<TResult>>)getterAndSetter.Setter;
+        var getter = (Func<TScrapbook, Work<TResult>>)getterAndSetter.Getter;
+        var setter = (Action<TScrapbook, Work<TResult>>)getterAndSetter.Setter;
 
         {
             using var _ = await scrapbook.Lock();
@@ -125,14 +125,14 @@ public static class RScrapbookExtensions
             if (workStatusValue.Status == WorkStatus.Completed) return workStatusValue.Result;
             if (workStatusValue.Status == WorkStatus.Started)
                 throw new InvalidOperationException("Previous work was started but not completed");
-            setter(scrapbook, new WorkStatusAndResult<TResult>() { Status = WorkStatus.Started });
+            setter(scrapbook, new Work<TResult>() { Status = WorkStatus.Started });
             await scrapbook.Save(); 
         }
 
         var result = await work();
         
         using var __ = await scrapbook.Lock();
-        setter(scrapbook, new WorkStatusAndResult<TResult> { Status = WorkStatus.Completed, Result = result });
+        setter(scrapbook, new Work<TResult> { Status = WorkStatus.Completed, Result = result });
         if (flushCompletedStatusImmediately) 
             await scrapbook.Save();
 
@@ -149,7 +149,7 @@ public static class RScrapbookExtensions
             using var _ = await scrapbook.Lock();
             if (scrapbook.StateDictionary.ContainsKey(workId))
             {
-                var (status, previousResult) = JsonSerializer.Deserialize<WorkStatusAndResult<T>>(scrapbook.StateDictionary[workId]);
+                var (status, previousResult) = JsonSerializer.Deserialize<Work<T>>(scrapbook.StateDictionary[workId]);
 
                 if (status == WorkStatus.Completed) return previousResult!;
                 if (status == WorkStatus.Started)
@@ -157,7 +157,7 @@ public static class RScrapbookExtensions
             }
 
             scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
-                new WorkStatusAndResult<T>
+                new Work<T>
                 {
                     Status = WorkStatus.Started,
                     Result = default!
@@ -170,7 +170,7 @@ public static class RScrapbookExtensions
         using var __ = await scrapbook.Lock();
 
         scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
-            new WorkStatusAndResult<T>
+            new Work<T>
             {
                 Status = WorkStatus.Completed,
                 Result = result
@@ -255,13 +255,13 @@ public static class RScrapbookExtensions
             using var _ = await scrapbook.Lock();
             if (scrapbook.StateDictionary.ContainsKey(workId))
             {
-                var (status, previousResult) = JsonSerializer.Deserialize<WorkStatusAndResult<T>>(scrapbook.StateDictionary[workId]);
+                var (status, previousResult) = JsonSerializer.Deserialize<Work<T>>(scrapbook.StateDictionary[workId]);
 
                 if (status == WorkStatus.Completed) return previousResult!;
             }
 
             scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
-                new WorkStatusAndResult<T>
+                new Work<T>
                 {
                     Status = WorkStatus.Started,
                     Result = default!
@@ -273,7 +273,7 @@ public static class RScrapbookExtensions
         using var __ = await scrapbook.Lock();
 
         scrapbook.StateDictionary[workId] = JsonSerializer.Serialize(
-            new WorkStatusAndResult<T>
+            new Work<T>
             {
                 Status = WorkStatus.Completed,
                 Result = result
@@ -312,13 +312,13 @@ public static class RScrapbookExtensions
     
     public static async Task<TResult> DoAtLeastOnce<TScrapbook, TResult>(
         this TScrapbook scrapbook, 
-        Expression<Func<TScrapbook, WorkStatusAndResult<TResult>>> workStatus, 
+        Expression<Func<TScrapbook, Work<TResult>>> workStatus, 
         Func<Task<TResult>> work,
         bool flushCompletedStatusImmediately = true) where TScrapbook : RScrapbook
     {
         var getterAndSetter = GetOrCreateGetterAndSetter(workStatus);
-        var getter = (Func<TScrapbook, WorkStatusAndResult<TResult>>)getterAndSetter.Getter;
-        var setter = (Action<TScrapbook, WorkStatusAndResult<TResult>>)getterAndSetter.Setter;
+        var getter = (Func<TScrapbook, Work<TResult>>)getterAndSetter.Getter;
+        var setter = (Action<TScrapbook, Work<TResult>>)getterAndSetter.Setter;
 
         {
             using var _ = await scrapbook.Lock();
@@ -326,13 +326,13 @@ public static class RScrapbookExtensions
             if (workStatusValue.Status == WorkStatus.Completed) 
                 return workStatusValue.Result;
 
-            setter(scrapbook, new WorkStatusAndResult<TResult> { Status = WorkStatus.Started });    
+            setter(scrapbook, new Work<TResult> { Status = WorkStatus.Started });    
         }
         
         var result = await work();
         
         using var __ = await scrapbook.Lock();
-        setter(scrapbook, new WorkStatusAndResult<TResult> { Status = WorkStatus.Completed, Result = result });
+        setter(scrapbook, new Work<TResult> { Status = WorkStatus.Completed, Result = result });
         if (flushCompletedStatusImmediately) await scrapbook.Save();
 
         return result;
@@ -394,7 +394,7 @@ public static class RScrapbookExtensions
         return propInfo;
     }
     
-    private static GetterAndSetter GetOrCreateGetterAndSetter<TScrapbook, TResult>(Expression<Func<TScrapbook, WorkStatusAndResult<TResult>>> property)
+    private static GetterAndSetter GetOrCreateGetterAndSetter<TScrapbook, TResult>(Expression<Func<TScrapbook, Work<TResult>>> property)
     {
         //fast-path
         var existingGetterAndSetter = GetExistingGetterAndSetter(property);
@@ -405,8 +405,8 @@ public static class RScrapbookExtensions
         var propertyInfo = GetPropertyInfoAndValidatePropertyExpression(property);
 
         //generate getter and setter delegates
-        var getter = propertyInfo.GetMethod!.CreateDelegate(typeof(Func<TScrapbook, WorkStatusAndResult<TResult>>));
-        var setter = propertyInfo.SetMethod!.CreateDelegate(typeof(Action<TScrapbook, WorkStatusAndResult<TResult>>));
+        var getter = propertyInfo.GetMethod!.CreateDelegate(typeof(Func<TScrapbook, Work<TResult>>));
+        var setter = propertyInfo.SetMethod!.CreateDelegate(typeof(Action<TScrapbook, Work<TResult>>));
         var getterAndSetter = new GetterAndSetter(getter, setter);
         lock (Sync)
             GetterAndSetters[propertyInfo] = getterAndSetter;
@@ -414,7 +414,7 @@ public static class RScrapbookExtensions
         return getterAndSetter;
     }
     
-    private static GetterAndSetter? GetExistingGetterAndSetter<TScrapbook, TResult>(Expression<Func<TScrapbook, WorkStatusAndResult<TResult>>> propertyLambda)
+    private static GetterAndSetter? GetExistingGetterAndSetter<TScrapbook, TResult>(Expression<Func<TScrapbook, Work<TResult>>> propertyLambda)
     {
         var member = propertyLambda.Body as MemberExpression;
         if (member == null) return null;
@@ -429,19 +429,19 @@ public static class RScrapbookExtensions
         return null;
     }
 
-    private static PropertyInfo GetPropertyInfoAndValidatePropertyExpression<TScrapbook, TResult>(Expression<Func<TScrapbook, WorkStatusAndResult<TResult>>> propertyLambda)
+    private static PropertyInfo GetPropertyInfoAndValidatePropertyExpression<TScrapbook, TResult>(Expression<Func<TScrapbook, Work<TResult>>> propertyLambda)
     {
         var member = propertyLambda.Body as MemberExpression;
         if (member == null)
-            throw new ArgumentException($"Expression '{propertyLambda}' must refer to a property of type {nameof(WorkStatusAndResult<TResult>)}");
+            throw new ArgumentException($"Expression '{propertyLambda}' must refer to a property of type {nameof(Work<TResult>)}");
 
         var propInfo = member.Member as PropertyInfo;
         if (propInfo == null)
-            throw new ArgumentException($"Expression '{propertyLambda}' must refer to a property of type {nameof(WorkStatusAndResult<TResult>)}");
+            throw new ArgumentException($"Expression '{propertyLambda}' must refer to a property of type {nameof(Work<TResult>)}");
         
         var type = typeof(TScrapbook);
         if (type != propInfo.ReflectedType)
-            throw new ArgumentException($"Expression '{propertyLambda}' must refer to a property of type {nameof(WorkStatusAndResult<TResult>)}");
+            throw new ArgumentException($"Expression '{propertyLambda}' must refer to a property of type {nameof(Work<TResult>)}");
         if (propInfo.SetMethod == null)
             throw new ArgumentException($"Expression '{propertyLambda}' must refer to a settable property");
         if (propInfo.GetMethod == null)
