@@ -355,4 +355,32 @@ public class InnerOperatorsTests
     }
 
     #endregion
+
+    #region DistinctBy
+
+    [TestMethod]
+    public async Task DistinctBySuccessfullyFiltersOutDuplicates()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        source.SignalNext("hello");
+
+        var task = source
+            .OfType<string>()
+            .DistinctBy(s => s)
+            .Take(2)
+            .Completion();
+        
+        task.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext("world");
+        
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        var emitted = await task;
+        emitted.Count.ShouldBe(2);
+        emitted[0].ShouldBe("hello");
+        emitted[1].ShouldBe("world");
+    }
+
+    #endregion
 }

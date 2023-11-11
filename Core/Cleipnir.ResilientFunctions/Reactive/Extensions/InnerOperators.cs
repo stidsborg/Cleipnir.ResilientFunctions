@@ -152,4 +152,19 @@ public static class InnerOperators
 
     public static IReactiveChain<T> Merge<T>(this IReactiveChain<T> stream1, IReactiveChain<T> stream2)
         => new MergeOperator<T>(stream1, stream2);
+
+    public static IReactiveChain<T> DistinctBy<T, TKey>(this IReactiveChain<T> s, Func<T, TKey> selector)
+        => s.WithOperator<T, T>(() =>
+        {
+            var observed = new HashSet<TKey>();
+            return (next, notify, completion, exception) =>
+            {
+                var keyValue = selector(next);
+                if (observed.Contains(keyValue))
+                    return;
+                
+                observed.Add(keyValue);
+                notify(next);
+            };
+        });
 }
