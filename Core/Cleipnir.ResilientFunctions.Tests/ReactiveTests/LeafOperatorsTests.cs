@@ -5,9 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
@@ -20,7 +17,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 public class LeafOperatorsTests
 {
     [TestMethod]
-    public void SubscribingMultipleTimes()
+    public void SourceCanBeSubscribedToMultipleTimes()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello");
@@ -44,9 +41,11 @@ public class LeafOperatorsTests
         completed.ShouldBeFalse();
         error.ShouldBeNull();
     }
-    
+
+    #region First(s)
+
     [TestMethod]
-    public void NextOperatorEmitsFirstEmittedEvent()
+    public void FirstOperatorEmitsFirstEmittedEvent()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext(1);
@@ -61,40 +60,7 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public void LastOperatorEmitsLastEmittedEventAfterStreamCompletion()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext(1);
-            
-        var last = source.Last();
-        source.SignalNext(2);
-            
-        last.IsCompleted.ShouldBeFalse();
-        
-        source.SignalCompletion();
-        
-        last.IsCompletedSuccessfully.ShouldBeTrue();
-        last.Result.ShouldBe(2);
-    }
-    
-    [TestMethod]
-    public void CompletionOperatorCompletesAfterStreamCompletion()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-            
-        var completion = source.Completion();
-        completion.IsCompleted.ShouldBeFalse();
-        
-        source.SignalNext("hello");
-        completion.IsCompleted.ShouldBeFalse();
-        
-        source.SignalCompletion();
-
-        completion.IsCompletedSuccessfully.ShouldBeTrue();
-    }
-    
-    [TestMethod]
-    public void NextOperatorWithSuspensionEmitsFirstValue()
+    public void FirstOperatorWithSuspensionEmitsFirstValue()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -107,32 +73,7 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public void LastOperatorWithSuspensionEmitsLastValue()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-
-        source.SignalNext(1);
-        source.SignalNext(2);
-        var lastOrSuspend = source.OfType<int>().Take(2).SuspendUntilLast();
-        
-        lastOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
-        lastOrSuspend.Result.ShouldBe(2);
-    }
-    
-    [TestMethod]
-    public void CompletionOperatorWithSuspensionCompletesImmediatelyOnCompletedStream()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-
-        source.SignalNext(1);
-        source.SignalNext(2);
-        var completionOrSuspend = source.OfType<int>().Take(1).SuspendUntilCompletion();
-        
-        completionOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
-    }
-    
-    [TestMethod]
-    public async Task NextOperatorWithSuspensionAndTimeoutSucceedsWithImmediateSignal()
+    public async Task FirstOperatorWithSuspensionAndTimeoutSucceedsOnImmediateSignal()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -151,7 +92,115 @@ public class LeafOperatorsTests
         
         stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
     }
+
+    [TestMethod]
+    public async Task FirstOperatorWithSuspensionAndTimeoutThrowsTimeoutExceptionWhenNothingIsSignalled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        var nextOrSuspend = source.SuspendUntilFirst(maxWait: TimeSpan.FromMilliseconds(100));
+        
+        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
+    }
     
+    [TestMethod]
+    public async Task FirstOperatorWithSuspensionThrowsSuspensionExceptionWhenNothingIsSignaled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        await Should.ThrowAsync<SuspendInvocationException>(
+            () => source.OfType<int>().SuspendUntilFirst()
+        );
+    }
+    
+    [TestMethod]
+    public async Task FirstOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var timeoutEventId = "TimeoutEventId";
+        var expiresAt = DateTime.UtcNow.AddDays(1);
+        
+        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        
+        var nextOrSuspend = source
+            .OfType<string>()
+            .TakeUntilTimeout(timeoutEventId, expiresAt)
+            .SuspendUntilFirst();
+        
+        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
+    }
+    
+    [TestMethod]
+    public async Task FirstOperatorWithSuspensionAndTimeoutEventReturnTimeoutOptionWithoutValueWhenTimeoutEventIsSignalled()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var timeoutEventId = "TimeoutEventId";
+        var expiresAt = DateTime.UtcNow.AddDays(1);
+        
+        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt));
+        
+        var nextOrSuspend = await source
+            .OfType<string>()
+            .TakeUntilTimeout(timeoutEventId, expiresAt)
+            .SuspendUntilFirstOrNone();
+        
+        nextOrSuspend.HasValue.ShouldBeFalse();
+    }
+    
+    [TestMethod]
+    public async Task FirstOperatorWithSuspensionAndTimeoutEventReturnsValueOnSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        var timeoutEventId = "TimeoutEventId";
+        var expiresAt = DateTime.UtcNow.AddDays(1);
+        
+        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext("hallo");
+        source.SignalNext("world");
+        
+        var nextOrSuspend = await source
+            .OfType<string>()
+            .TakeUntilTimeout(timeoutEventId, expiresAt)
+            .SuspendUntilFirstOrNone();
+        
+        nextOrSuspend.HasValue.ShouldBeTrue();
+        nextOrSuspend.Value.ShouldBe("hallo");
+    }
+    
+    #endregion
+
+    #region Last(s)
+
+    [TestMethod]
+    public void LastOperatorEmitsLastEmittedEventAfterStreamCompletion()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext(1);
+            
+        var last = source.Last();
+        source.SignalNext(2);
+            
+        last.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+        
+        last.IsCompletedSuccessfully.ShouldBeTrue();
+        last.Result.ShouldBe(2);
+    }
+    
+    [TestMethod]
+    public void LastOperatorWithSuspensionEmitsLastValue()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        source.SignalNext(1);
+        source.SignalNext(2);
+        var lastOrSuspend = source.OfType<int>().Take(2).SuspendUntilLast();
+        
+        lastOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
+        lastOrSuspend.Result.ShouldBe(2);
+    }
+
     [TestMethod]
     public async Task LastOperatorWithSuspensionAndTimeoutSucceedsWithImmediateSignal()
     {
@@ -173,38 +222,6 @@ public class LeafOperatorsTests
         nextOrSuspend.Result.ShouldBe(2);
         
         stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
-    }
-    
-    [TestMethod]
-    public async Task CompletionOperatorWithSuspensionAndTimeoutSucceedsWithImmediateSignal()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-
-        var stopWatch = new Stopwatch();
-        stopWatch.Start();
-        
-        var nextOrSuspend = source.SuspendUntilCompletion(maxWait: TimeSpan.FromSeconds(1));
-        source.SignalNext(1);
-        source.SignalNext(2);
-
-        source.SignalCompletion();
-        
-        await nextOrSuspend;
-        stopWatch.Stop();
-        
-        nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
-        
-        stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
-    }
-    
-    [TestMethod]
-    public async Task NextOperatorWithSuspensionAndTimeoutThrowsTimeoutExceptionWhenNothingIsSignalled()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        
-        var nextOrSuspend = source.SuspendUntilFirst(maxWait: TimeSpan.FromMilliseconds(100));
-        
-        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
     }
     
     [TestMethod]
@@ -234,43 +251,6 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public async Task CompletionOperatorWithSuspensionAndTimeoutThrowsTimeoutExceptionWhenNothingIsSignalled()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        
-        var nextOrSuspend = source.SuspendUntilCompletion(maxWait: TimeSpan.FromMilliseconds(100));
-        
-        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
-    }
-    
-    [TestMethod]
-    public async Task NextOperatorWithSuspensionThrowsSuspensionExceptionWhenNothingIsSignaled()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-
-        await Should.ThrowAsync<SuspendInvocationException>(
-            () => source.OfType<int>().SuspendUntilFirst()
-        );
-    }
-    
-    [TestMethod]
-    public async Task NextOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        var timeoutEventId = "TimeoutEventId";
-        var expiresAt = DateTime.UtcNow.AddDays(1);
-        
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
-        
-        var nextOrSuspend = source
-            .OfType<string>()
-            .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilFirst();
-        
-        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
-    }
-    
-    [TestMethod]
     public async Task LastOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
@@ -284,23 +264,6 @@ public class LeafOperatorsTests
             .SuspendUntilLast();
         
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
-    }
-    
-    [TestMethod]
-    public async Task NextOperatorWithSuspensionAndTimeoutEventReturnTimeoutOptionWithoutValueWhenTimeoutEventIsSignalled()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        var timeoutEventId = "TimeoutEventId";
-        var expiresAt = DateTime.UtcNow.AddDays(1);
-        
-        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt));
-        
-        var nextOrSuspend = await source
-            .OfType<string>()
-            .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilFirstOrNone();
-        
-        nextOrSuspend.HasValue.ShouldBeFalse();
     }
     
     [TestMethod]
@@ -366,26 +329,6 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public async Task NextOperatorWithSuspensionAndTimeoutEventReturnsValueOnSignal()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        var timeoutEventId = "TimeoutEventId";
-        var expiresAt = DateTime.UtcNow.AddDays(1);
-        
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
-        source.SignalNext("hallo");
-        source.SignalNext("world");
-        
-        var nextOrSuspend = await source
-            .OfType<string>()
-            .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilFirstOrNone();
-        
-        nextOrSuspend.HasValue.ShouldBeTrue();
-        nextOrSuspend.Value.ShouldBe("hallo");
-    }
-    
-    [TestMethod]
     public async Task LastOperatorWithSuspensionAndTimeoutEventReturnsValueOnSignal()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
@@ -416,6 +359,70 @@ public class LeafOperatorsTests
         );
     }
     
+    #endregion
+    
+    #region Completion
+    
+    [TestMethod]
+    public void CompletionOperatorCompletesAfterStreamCompletion()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+            
+        var completion = source.Completion();
+        completion.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext("hello");
+        completion.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+
+        completion.IsCompletedSuccessfully.ShouldBeTrue();
+    }
+    
+    [TestMethod]
+    public void CompletionOperatorWithSuspensionCompletesImmediatelyOnCompletedStream()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        source.SignalNext(1);
+        source.SignalNext(2);
+        var completionOrSuspend = source.OfType<int>().Take(1).SuspendUntilCompletion();
+        
+        completionOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
+    }
+    
+    [TestMethod]
+    public async Task CompletionOperatorWithSuspensionAndTimeoutSucceedsWithImmediateSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        
+        var nextOrSuspend = source.SuspendUntilCompletion(maxWait: TimeSpan.FromSeconds(1));
+        source.SignalNext(1);
+        source.SignalNext(2);
+
+        source.SignalCompletion();
+        
+        await nextOrSuspend;
+        stopWatch.Stop();
+        
+        nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
+        
+        stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
+    }
+    
+    [TestMethod]
+    public async Task CompletionOperatorWithSuspensionAndTimeoutThrowsSuspensionExceptionWhenNothingIsSignalledWithinMaxWaitDelay()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        var nextOrSuspend = source.SuspendUntilCompletion(maxWait: TimeSpan.FromMilliseconds(100));
+        
+        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
+    }
+    
     [TestMethod]
     public async Task CompletionOperatorWithSuspensionThrowsSuspensionExceptionWhenNothingIsSignaled()
     {
@@ -426,6 +433,10 @@ public class LeafOperatorsTests
         );
     }
     
+    #endregion
+    
+    #region Error Propagation
+
     [TestMethod]
     public void ThrownExceptionInOperatorResultsInNextLeafThrowingSameException()
     {
@@ -465,6 +476,8 @@ public class LeafOperatorsTests
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
     }
 
+    #endregion
+    
     #region TryOperators
 
     [TestMethod]
