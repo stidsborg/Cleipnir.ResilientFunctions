@@ -383,4 +383,43 @@ public class InnerOperatorsTests
     }
 
     #endregion
+    
+    #region WithCallback
+
+    [TestMethod]
+    public void CallbackOperatorIsInvokedOnEachEmit()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        source.SignalNext("hello");
+        source.SignalNext("world");
+
+        var emittedSoFar = new List<string>();
+        var task = source
+            .OfType<string>()
+            .Take(4)
+            .Callback(s => emittedSoFar.Add(s))
+            .Completion();
+        
+        emittedSoFar.Count.ShouldBe(2);
+        emittedSoFar[0].ShouldBe("hello");
+        emittedSoFar[1].ShouldBe("world");
+        
+        task.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext("and");
+        source.SignalNext("universe");
+        
+        emittedSoFar.Count.ShouldBe(4);
+        emittedSoFar[2].ShouldBe("and");
+        emittedSoFar[3].ShouldBe("universe");
+        
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        
+        source.SignalNext("and");
+        source.SignalNext("multiverse");
+        
+        emittedSoFar.Count.ShouldBe(4);
+    }
+
+    #endregion
 }

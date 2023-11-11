@@ -167,4 +167,13 @@ public static class InnerOperators
                 notify(next);
             };
         });
+
+    public static IReactiveChain<T> Callback<T>(this IReactiveChain<T> s, Action<T> action)
+        => s.WithOperator<T, T>( 
+            (next, notify, _, _) =>
+            {
+                action(next);
+                notify(next);
+            }
+        );
 }
