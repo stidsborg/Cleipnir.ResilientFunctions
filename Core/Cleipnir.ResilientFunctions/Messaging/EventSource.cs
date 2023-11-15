@@ -18,7 +18,6 @@ public class EventSource : IReactiveChain<object>, IDisposable
     private readonly TimeSpan _pullFrequency;
     private readonly ISerializer _eventSerializer;
     
-    private readonly HashSet<string> _idempotencyKeys = new();
     private int _deliverOutstandingEventsIteration;
     private EventProcessingException? _thrownException;
     
@@ -101,12 +100,6 @@ public class EventSource : IReactiveChain<object>, IDisposable
             var storedEvents = await _eventsSubscription!.PullNewEvents();
             foreach (var storedEvent in storedEvents)
             {
-                if (storedEvent.IdempotencyKey != null)
-                    if (_idempotencyKeys.Contains(storedEvent.IdempotencyKey))
-                        continue;
-                    else
-                        _idempotencyKeys.Add(storedEvent.IdempotencyKey);
-
                 var deserialized = _eventSerializer
                     .DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
 
