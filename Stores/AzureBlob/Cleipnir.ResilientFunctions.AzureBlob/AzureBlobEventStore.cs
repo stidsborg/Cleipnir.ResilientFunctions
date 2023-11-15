@@ -261,14 +261,14 @@ public class AzureBlobEventStore : IEventStore
             }
             catch (RequestFailedException exception)
             {
-                if (exception.Status == 404) throw new ConcurrentModificationException(functionId);
+                if (exception.Status == 404) throw new ConcurrentModificationException(functionId, exception);
                 throw;
             }
         }
         catch (RequestFailedException e)
         {
             if (e.ErrorCode != "BlobNotFound") throw;
-            throw new ConcurrentModificationException(functionId);
+            throw new ConcurrentModificationException(functionId, e);
         }
     }
     
