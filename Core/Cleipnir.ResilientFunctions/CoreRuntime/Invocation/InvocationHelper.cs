@@ -32,12 +32,20 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         _functionStore = functionStore;
     }
 
+    public IReadOnlyList<StoredEvent>? SerializeEvents(IEnumerable<EventAndIdempotencyKey>? events)
+        => events?.Select(@event =>
+            {
+                var (json, type) = Serializer.SerializeEvent(@event.Event);
+                return new StoredEvent(json, type, @event.IdempotencyKey);
+            })
+            .ToList();
+
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
         FunctionId functionId, 
         TParam param, 
         TScrapbook scrapbook,
         DateTime? scheduleAt,
-        IEnumerable<EventAndIdempotencyKey>? events)
+        IEnumerable<StoredEvent>? storedEvents)
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -45,12 +53,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         {
             var storedParameter = Serializer.SerializeParameter(param);
             var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
-            var storedEvents =
-                events?.Select(@event =>
-                {
-                    var (json, type) = Serializer.SerializeEvent(@event.Event);
-                    return new StoredEvent(json, type, @event.IdempotencyKey);
-                }).ToList();
 
             var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(
@@ -400,26 +402,19 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public Func<Task<EventSource>> CreateAndInitializeEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation)
+    public EventSource CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, IReadOnlyList<StoredEvent>? initialEvents)
     {
-        async Task<EventSource> CreateNewEventSource()
-        {
-            var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
-            var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutCheckFrequency); 
-            var eventSource = new EventSource(
-                functionId,
-                _functionStore.EventStore,
-                eventSourceWriter,
-                timeoutProvider,
-                _settings.EventSourcePullFrequency,
-                _settings.Serializer
-            );
-            await eventSource.Initialize();
-
-            return eventSource;
-        }
-
-        return CreateNewEventSource;
+        var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
+        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutCheckFrequency); 
+        return new EventSource(
+            functionId,
+            initialEvents,
+            _functionStore.EventStore,
+            eventSourceWriter,
+            timeoutProvider,
+            _settings.EventSourcePullFrequency,
+            _settings.Serializer
+        );
     }
 
     public async Task<List<EventAndIdempotencyKey>> GetEvents(FunctionId functionId)

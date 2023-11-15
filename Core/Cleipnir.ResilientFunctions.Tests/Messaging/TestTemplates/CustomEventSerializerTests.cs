@@ -30,13 +30,13 @@ public abstract class CustomEventSerializerTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             eventSerializer
         );
-        await eventSource.Initialize();
         
         await eventSource.AppendEvent("hello world");
         

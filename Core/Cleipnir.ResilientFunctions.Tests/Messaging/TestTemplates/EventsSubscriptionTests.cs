@@ -64,7 +64,7 @@ public abstract class EventSubscriptionTests
             .DeserializeEvent(events[0].EventJson, events[0].EventType)
             .ShouldBe("hello universe");
 
-        await subscription.DisposeAsync();
+        subscription.Dispose();
         
         await eventStore.AppendEvent(
             functionId,
@@ -107,7 +107,7 @@ public abstract class EventSubscriptionTests
             () => functionStore.EventStore.AppendEvent(functionId, storedEvent2)
         );
 
-        await using var subscription = functionStore.EventStore.SubscribeToEvents(functionId);
+        using var subscription = functionStore.EventStore.SubscribeToEvents(functionId);
 
         var newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);

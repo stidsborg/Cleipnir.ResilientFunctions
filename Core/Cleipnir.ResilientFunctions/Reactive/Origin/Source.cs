@@ -6,33 +6,25 @@ using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
 
-public partial class Source : IReactiveChain<object>
+public class Source : IReactiveChain<object>
 {
     private readonly Dictionary<int, SubscriptionGroup> _subscriptionGroups = new();
     private int _nextSubscriptionId;
     private bool _completed;
 
-    private readonly Action? _onNewSubscription;
+    private readonly Action? _onSubscriptionCreated;
+    private readonly Action? _onSubscriptionRemoved;
 
     private readonly ITimeoutProvider _timeoutProvider;
     private readonly EmittedEvents _emittedEvents = new();
     private readonly object _sync = new();
-
-    public bool HasActiveSubscriptions
-    {
-        get
-        {
-            lock (_sync)
-                return _subscriptionGroups.Count > 0;
-        }
-    }
 
     public IEnumerable<object> Existing
     {
         get
         {
             var emittedSoFar = _emittedEvents.GetEvents(0);
-            var toReturn = new List<object>();
+            var toReturn = new List<object>(emittedSoFar.Length);
             foreach (var emittedEvent in emittedSoFar)
             {
                 if (emittedEvent.Event != null)
@@ -45,10 +37,11 @@ public partial class Source : IReactiveChain<object>
     
     public Source(ITimeoutProvider timeoutProvider) => _timeoutProvider = timeoutProvider;
 
-    public Source(ITimeoutProvider timeoutProvider, Action onNewSubscription)
+    public Source(ITimeoutProvider timeoutProvider, Action onSubscriptionCreated, Action onSubscriptionRemoved)
     {
         _timeoutProvider = timeoutProvider;
-        _onNewSubscription = onNewSubscription;
+        _onSubscriptionCreated = onSubscriptionCreated;
+        _onSubscriptionRemoved = onSubscriptionRemoved;
     }
 
     public ISubscription Subscribe(
@@ -73,15 +66,19 @@ public partial class Source : IReactiveChain<object>
                     source: this,
                     unsubscribeToEvents: id =>
                     {
+                        bool success;
                         lock (_sync)
-                            _subscriptionGroups.Remove(id);
+                            success = _subscriptionGroups.Remove(id);
+                        
+                        if (success)
+                            _onSubscriptionRemoved?.Invoke();
                     }
                 );
             _subscriptionGroups[chosenSubscriptionGroupId] = subscriptionGroup;
             subscription = subscriptionGroup.AddSubscription(onNext, onCompletion, onError);
         }
         
-        _onNewSubscription?.Invoke();
+        _onSubscriptionCreated?.Invoke();
         return subscription;
     }
     
@@ -126,7 +123,7 @@ public partial class Source : IReactiveChain<object>
 
         lock (_sync)
         {
-            if (_completed) throw new StreamCompletedException();
+            if (_completed) throw new StreamCompletedException(); //todo stream faulted exception?
             _completed = true;
 
             var emittedEvent = new EmittedEvent(default, completion: false, emittedException: exception);

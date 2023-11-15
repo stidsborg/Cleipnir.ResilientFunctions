@@ -151,7 +151,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             functionTypeId,
             async Task<string>(string param, Context context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
                 return await es
                     .DoAtLeastOnce(
                         workId: "someId",
@@ -262,7 +262,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
                 await es
                     .DoAtLeastOnce(
                         workId: "someId",

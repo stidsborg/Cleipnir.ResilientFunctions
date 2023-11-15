@@ -66,9 +66,9 @@ public abstract class SunshineTests
         var rFunc = rFunctions
             .RegisterFunc(
                 functionTypeId,
-                async (string _, Context context) =>
+                (string _, Context context) =>
                 {
-                    var eventSource = await context.EventSource;
+                    var eventSource = context.EventSource;
                     eventSource.Existing.Count().ShouldBe(2);
                     return string.Join(" ", eventSource.Existing.OfType<string>());
                 }
@@ -113,9 +113,9 @@ public abstract class SunshineTests
         var rAction = rFunctions
             .RegisterAction(
                 functionTypeId,
-                async (string _, Context context) =>
+                (string _, Context context) =>
                 {
-                    var eventSource = await context.EventSource;
+                    var eventSource = context.EventSource;
                     eventSource.Existing.Count().ShouldBe(2);
                     eventSource.Existing.ToList()[0].ShouldBe("Hello");
                     eventSource.Existing.ToList()[1].ShouldBe("World");

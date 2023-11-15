@@ -29,7 +29,7 @@ public class ReactiveIntegrationTests
             functionTypeId,
             inner: async (_, context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
                 await es.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
@@ -51,10 +51,8 @@ public class ReactiveIntegrationTests
             functionTypeId,
             inner: async (_, context) =>
             {
-                var es = await context.EventSource;
-                store.EventSubscriptionPulls.ShouldBe(1);
-                await Task.Delay(100);
-                store.EventSubscriptionPulls.ShouldBe(1);
+                var es = context.EventSource;
+                store.EventSubscriptionPulls.ShouldBe(0);
                 var __ = es.First();
                 await Task.Delay(100);
                 store.EventSubscriptionPulls.ShouldBeGreaterThanOrEqualTo(1);

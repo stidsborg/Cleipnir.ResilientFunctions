@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 
@@ -9,33 +8,18 @@ public class Context : IDisposable
 {
     public FunctionId FunctionId { get; }
 
-    private readonly Func<Task<EventSource>> _eventSourceFactory;
-    private Task<EventSource>? _eventSource;
-    private readonly object _sync = new();
-
-    public Task<EventSource> EventSource
-    {
-        get
-        {
-            lock (_sync)
-                return _eventSource ??= _eventSourceFactory();
-        }
-    }
+    public EventSource EventSource { get; }
+    public Utilities Utilities { get; }
 
     public InvocationMode InvocationMode { get; }
-    public Utilities Utilities { get; }
     
-    public Context(FunctionId functionId, InvocationMode invocationMode, Func<Task<EventSource>> eventSourceFactory, Utilities utilities)
+    public Context(FunctionId functionId, InvocationMode invocationMode, EventSource eventSource, Utilities utilities)
     {
         FunctionId = functionId;
         InvocationMode = invocationMode;
-        _eventSourceFactory = eventSourceFactory;
         Utilities = utilities;
+        EventSource = eventSource;
     }
 
-    public void Dispose()
-    {
-        lock (_sync)
-            _eventSource?.Result.Dispose();
-    } 
+    public void Dispose() => EventSource.Dispose();
 }

@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.LoanApproval.MessagingApproach;
@@ -10,7 +9,7 @@ public static class Saga
 {
     public static async Task ApproveLoan(LoanApplication loanApplication, Context context)
     {
-        var eventSource = await context.EventSource;
+        var eventSource = context.EventSource;
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));
 
         var outcomes = await eventSource

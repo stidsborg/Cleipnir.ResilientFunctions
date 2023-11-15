@@ -89,14 +89,14 @@ public class Invoker<TParam, TScrapbook, TReturn>
             await ScheduleInvoke(instanceId, param, scrapbook, events);
             return;
         }
-        
+
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (created, disposable) = await _invocationHelper.PersistFunctionInStore(
             functionId,
             param,
             scrapbook ?? new TScrapbook(),
             scheduleAt,
-            events
+            storedEvents: _invocationHelper.SerializeEvents(events)
         );
 
         if (!created) return;
@@ -201,21 +201,23 @@ public class Invoker<TParam, TScrapbook, TReturn>
             scrapbook ??= new TScrapbook();
             _invocationHelper.InitializeScrapbook(functionId, param, scrapbook, epoch: 0);
 
+            var storedEvents = _invocationHelper.SerializeEvents(events);
             var (persisted, runningFunction) = 
                 await _invocationHelper.PersistFunctionInStore(
                     functionId, 
                     param, 
                     scrapbook,
                     scheduleAt: null,
-                    events
+                    storedEvents
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch: 0));
             
             success = persisted;
-            var eventSourceFactory = _invocationHelper.CreateAndInitializeEventSource(
+            var eventSourceFactory = _invocationHelper.CreateEventSource(
                 functionId,
-                ScheduleReInvoke
+                ScheduleReInvoke,
+                storedEvents
             );
             var context = new Context(functionId, InvocationMode.Direct, eventSourceFactory, _utilities);
             disposables.Add(context);
@@ -243,10 +245,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
+            var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke, initialEvents: null);
+            await eventSource.Sync();
+            
             var context = new Context(
                 functionId, 
                 InvocationMode.Retry,
-                _invocationHelper.CreateAndInitializeEventSource(functionId, ScheduleReInvoke), 
+                eventSource, 
                 _utilities
             );
             disposables.Add(context);

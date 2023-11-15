@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.FraudDetection.MessagingApproach;
@@ -12,7 +11,7 @@ public static class Saga
 {
     public static async Task StartFraudDetection(Transaction transaction, RScrapbook scrapbook, Context context)
     {
-        var eventSource = await context.EventSource;
+        var eventSource = context.EventSource;
         await MessageBroker.Send(new ApproveTransaction(transaction));
         
         var results = await eventSource

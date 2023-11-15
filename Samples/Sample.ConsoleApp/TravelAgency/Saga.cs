@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
-using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.TravelAgency;
@@ -14,7 +10,7 @@ public static class Saga
 {
     public static async Task BookTravel(BookingRequest bookingRequest, RScrapbook scrapbook, Context context)
     {
-        var eventSource = await context.EventSource;
+        var eventSource = context.EventSource;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
         await scrapbook.DoAtMostOnce(

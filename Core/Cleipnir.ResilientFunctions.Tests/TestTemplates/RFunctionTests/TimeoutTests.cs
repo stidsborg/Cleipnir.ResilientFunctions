@@ -35,7 +35,7 @@ public abstract class TimeoutTests
             functionTypeId,
             inner: async Task (string _, Context context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
                 var timeoutTask = es.OfType<TimeoutEvent>().First();
                 await es.TimeoutProvider.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
                 timeoutTask.IsCompleted.ShouldBeFalse();

@@ -31,7 +31,7 @@ public class DirectInvocationTest
             {
                 try
                 {
-                    var eventSource = await context.EventSource;
+                    var eventSource = context.EventSource;
                     await eventSource.AppendEvent(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();
@@ -55,7 +55,7 @@ public class DirectInvocationTest
             {
                 try
                 {
-                    var eventSource = await context.EventSource;
+                    var eventSource = context.EventSource;
                     await eventSource.AppendEvent(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();

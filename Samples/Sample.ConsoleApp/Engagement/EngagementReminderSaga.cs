@@ -15,7 +15,7 @@ public static class EngagementReminderSaga
     public static async Task Start(StartCustomerEngagement startEngagement, RScrapbook scrapbook, Context context)
     {
         var (candidateEmail, nextReminderTime) = startEngagement;
-        var es = await context.EventSource;
+        var es = context.EventSource;
 
         await es.DoAtLeastOnce(
             workId: "InitialCorrespondence",

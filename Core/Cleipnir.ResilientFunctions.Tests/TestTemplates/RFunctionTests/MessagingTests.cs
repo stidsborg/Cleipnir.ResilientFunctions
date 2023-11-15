@@ -29,7 +29,7 @@ public abstract class MessagingTests
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
             inner: async Task<string> (string _, Context context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
                 return await es.OfType<string>().First();
             }
         );
@@ -59,7 +59,7 @@ public abstract class MessagingTests
             functionId.TypeId,
             inner: async Task<string> (string _, Context context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
                 return await es.SuspendUntilNextOfType<string>();
             }
         );
@@ -87,7 +87,7 @@ public abstract class MessagingTests
             functionId.TypeId,
             inner: async Task<Tuple<bool, string>> (string _, Context context) =>
             {
-                var es = await context.EventSource;
+                var es = context.EventSource;
 
                 var timeoutOption = await es
                     .OfType<string>()

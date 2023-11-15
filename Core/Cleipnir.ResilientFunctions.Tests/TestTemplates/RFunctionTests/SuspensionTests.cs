@@ -207,7 +207,7 @@ public abstract class SuspensionTests
             nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
             async Task<string> (string param, Context context) =>
             {
-                var eventSource = await context.EventSource;
+                var eventSource = context.EventSource;
                 var next = await eventSource.SuspendUntilNextOfType<string>();
                 return next;
             }
@@ -251,7 +251,7 @@ public abstract class SuspensionTests
             functionTypeId,
             async Task<string> (string param, Context context) =>
             {
-                var eventSource = await context.EventSource;
+                var eventSource = context.EventSource;
                 var next = await eventSource.SuspendUntilNextOfType<string>();
                 return next;
             }

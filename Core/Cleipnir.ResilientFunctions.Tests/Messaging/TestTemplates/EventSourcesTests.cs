@@ -34,13 +34,13 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-        await eventSource.Initialize();
         
         var task = eventSource.First();
         
@@ -69,13 +69,13 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-        await eventSource.Initialize();
 
         await eventSource.AppendEvent("hello world");
 
@@ -107,13 +107,13 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-        await eventSource.Initialize();
         
         var task = eventSource.Take(2).ToList();
         
@@ -149,13 +149,13 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-        await eventSource.Initialize();
 
         var task = eventSource.Take(2).ToList();
         
@@ -193,13 +193,13 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-        await eventSource.Initialize();
         
         var task = eventSource.First();
         
@@ -231,13 +231,13 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
-        await eventSource.Initialize();
 
         var task = eventSource.Take(2).ToList();
         
@@ -281,6 +281,7 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
+            initialEvents: null,
             functionStore.EventStore,
             new EventSourceWriter(
                 functionId, functionStore, 
@@ -291,7 +292,6 @@ public abstract class EventSourcesTests
             pullFrequency: null,
             new ExceptionThrowingEventSerializer(typeof(int))
         );
-        await eventSource.Initialize();
         
         await eventSource.AppendEvent("hello world");
         await Should.ThrowAsync<EventProcessingException>(eventSource.AppendEvent(1));

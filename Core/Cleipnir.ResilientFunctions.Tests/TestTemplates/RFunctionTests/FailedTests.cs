@@ -29,8 +29,8 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFunctionTypeId();
-        var functionId = new FunctionId(functionTypeId, PARAM);
+        var functionId = TestFunctionId.Create(callerMemberName);
+        var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             using var rFunctions = new RFunctions
@@ -52,7 +52,7 @@ public abstract class FailedTests
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
+            await Should.ThrowAsync<Exception>(async () => await rFunc(functionInstanceId.ToString(), PARAM));
             await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         }
         {
@@ -80,7 +80,7 @@ public abstract class FailedTests
             var sf = await store.GetFunction(functionId);
             sf.ShouldNotBeNull();
             sf.Status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(async () => await rFunc(PARAM, PARAM));
+            await Should.ThrowAsync<Exception>(async () => await rFunc(functionInstanceId.ToString(), PARAM));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);

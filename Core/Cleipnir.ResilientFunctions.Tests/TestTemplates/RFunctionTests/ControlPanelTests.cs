@@ -746,7 +746,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                using var eventSource = await context.EventSource;
+                using var eventSource = context.EventSource;
                 await eventSource.AppendEvent(param);
             }
         );
@@ -779,7 +779,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                using var eventSource = await context.EventSource;
+                using var eventSource = context.EventSource;
                 if (first)
                 {
                     invocationCount.Increment();
@@ -840,7 +840,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                using var eventSource = await context.EventSource;
+                using var eventSource = context.EventSource;
                 if (first)
                 {
                     first = false;

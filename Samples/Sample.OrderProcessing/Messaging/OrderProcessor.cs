@@ -15,7 +15,7 @@ public class OrderProcessor
     public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-        using var eventSource = await context.EventSource;
+        using var eventSource = context.EventSource;
 
         await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
         await eventSource.FirstOfType<FundsReserved>();

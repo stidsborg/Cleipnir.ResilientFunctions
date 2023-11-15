@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public sealed class EventsSubscription : IAsyncDisposable
+public sealed class EventsSubscription : IDisposable
 {
     private readonly Func<Task<IReadOnlyList<StoredEvent>>> _pullNewEvents;
     private readonly Func<ValueTask> _dispose;
@@ -20,12 +20,12 @@ public sealed class EventsSubscription : IAsyncDisposable
 
     public Task<IReadOnlyList<StoredEvent>> PullNewEvents() => _pullNewEvents();
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         lock (_sync)
-            if (_disposed) return ValueTask.CompletedTask;
+            if (_disposed) return;
             else _disposed = true;
         
-        return _dispose();  
+        _dispose();  
     } 
 }
