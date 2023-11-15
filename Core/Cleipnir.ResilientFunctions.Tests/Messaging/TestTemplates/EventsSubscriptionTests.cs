@@ -75,4 +75,43 @@ public abstract class EventSubscriptionTests
         events = await subscription.PullNewEvents();
         events.ShouldBeEmpty();
     }
+    
+    public abstract Task EventsWithSameIdempotencyKeyAreFilterOut();
+    protected async Task EventsWithSameIdempotencyKeyAreFilterOut(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            Test.SimpleStoredScrapbook, 
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        
+        var storedEvent1 = new StoredEvent(
+            EventJson: "hello".ToJson(),
+            EventType: typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "someIdempotencyKey"
+        );
+        var storedEvent2 = new StoredEvent(
+            EventJson: "world".ToJson(),
+            EventType: typeof(string).SimpleQualifiedName(),
+            IdempotencyKey: "someIdempotencyKey"
+        );
+        await functionStore.EventStore.AppendEvent(functionId, storedEvent1);
+
+        await Safe.Try(
+            () => functionStore.EventStore.AppendEvent(functionId, storedEvent2)
+        );
+
+        await using var subscription = functionStore.EventStore.SubscribeToEvents(functionId);
+
+        var newEvents = await subscription.PullNewEvents();
+        newEvents.Count.ShouldBe(1);
+        newEvents[0].IdempotencyKey.ShouldBe("someIdempotencyKey");
+        newEvents[0].DefaultDeserialize().ShouldBe("hello");
+    }
 }
