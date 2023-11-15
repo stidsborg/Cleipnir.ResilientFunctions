@@ -123,7 +123,7 @@ public class Source : IReactiveChain<object>
 
         lock (_sync)
         {
-            if (_completed) throw new StreamCompletedException(); //todo stream faulted exception?
+            if (_completed) throw new StreamCompletedException();
             _completed = true;
 
             var emittedEvent = new EmittedEvent(default, completion: false, emittedException: exception);
