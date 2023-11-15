@@ -8,9 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MySqlConnector" Version="2.2.5" />
+        <PackageReference Include="MySqlConnector" Version="2.3.0" />
         <PackageReference Include="Npgsql" Version="7.0.6" />
-        <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.2" />
     </ItemGroup>
     
 </Project>
