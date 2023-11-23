@@ -18,6 +18,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     private readonly PostgreSqlEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
+    public IActivityStore ActivityStore => throw new NotImplementedException(); //todo
 
     private readonly PostgreSqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;

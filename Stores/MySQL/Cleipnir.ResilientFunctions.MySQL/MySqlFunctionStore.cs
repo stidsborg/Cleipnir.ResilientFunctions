@@ -16,6 +16,7 @@ public class MySqlFunctionStore : IFunctionStore
 
     private readonly MySqlEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
+    public IActivityStore ActivityStore => throw new NotImplementedException();
     private readonly MySqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     public Utilities Utilities { get; }

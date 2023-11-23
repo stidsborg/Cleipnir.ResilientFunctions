@@ -18,6 +18,7 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     public SignOfLifeTestFunctionStore(SignOfLifeCallback signOfLifeCallback) => _signOfLifeCallback = signOfLifeCallback;
 
     public IEventStore EventStore => _inner.EventStore;
+    public IActivityStore ActivityStore => _inner.ActivityStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
     public Task Initialize() => _inner.Initialize();

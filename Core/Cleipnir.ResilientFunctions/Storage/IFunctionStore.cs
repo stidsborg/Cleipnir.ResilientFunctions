@@ -9,6 +9,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public interface IFunctionStore
 {
     public IEventStore EventStore { get; }
+    public IActivityStore ActivityStore { get; }
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
     public Task Initialize();

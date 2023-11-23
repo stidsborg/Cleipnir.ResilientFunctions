@@ -14,6 +14,7 @@ public class AzureBlobFunctionStore : IFunctionStore
 {
     private readonly AzureBlobEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
+    public IActivityStore ActivityStore => throw new NotImplementedException();
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
     

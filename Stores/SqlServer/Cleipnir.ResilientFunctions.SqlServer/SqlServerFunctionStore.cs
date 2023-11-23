@@ -17,6 +17,9 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly string _tablePrefix;
 
     private readonly SqlServerTimeoutStore _timeoutStore;
+    
+    private readonly SqlServerActivityStore _activityStore;
+    public IActivityStore ActivityStore => _activityStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
 
     private readonly SqlServerEventStore _eventStore;
@@ -31,6 +34,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _eventStore = new SqlServerEventStore(connectionString, tablePrefix);
         _timeoutStore = new SqlServerTimeoutStore(connectionString, tablePrefix);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, tablePrefix);
+        _activityStore = new SqlServerActivityStore(connectionString, tablePrefix);
         Utilities = new Utilities(_underlyingRegister);
     }
     
@@ -48,6 +52,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _underlyingRegister.Initialize();
         await _eventStore.Initialize();
+        await _activityStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
         var sql = @$"    
