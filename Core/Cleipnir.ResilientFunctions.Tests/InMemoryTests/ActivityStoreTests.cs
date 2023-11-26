@@ -1,21 +1,22 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 
 [TestClass]
 public class ActivityStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.ActivityStoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest()
-        => SunshineScenarioTest(FunctionStoreFactory.Create().SelectAsync(f => f.ActivityStore));
+        => SunshineScenarioTest(new InMemoryActivityStore().CastTo<IActivityStore>().ToTask());
 
     [TestMethod]
     public override Task SingleActivityWithResultLifeCycle()
-        => SingleActivityWithResultLifeCycle(FunctionStoreFactory.Create().SelectAsync(f => f.ActivityStore));
+        => SingleActivityWithResultLifeCycle(new InMemoryActivityStore().CastTo<IActivityStore>().ToTask());
 
     [TestMethod]
     public override Task SingleFailingActivityLifeCycle()
-        => SingleFailingActivityLifeCycle(FunctionStoreFactory.Create().SelectAsync(f => f.ActivityStore));
+        => SingleFailingActivityLifeCycle(new InMemoryActivityStore().CastTo<IActivityStore>().ToTask());
 }

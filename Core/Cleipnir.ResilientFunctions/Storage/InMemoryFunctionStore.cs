@@ -20,7 +20,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     private readonly object _sync = new();
 
     public IEventStore EventStore => this;
-    public IActivityStore ActivityStore { get; }
+    public IActivityStore ActivityStore { get; } = new InMemoryActivityStore();
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
     public Utilities Utilities { get; }
     

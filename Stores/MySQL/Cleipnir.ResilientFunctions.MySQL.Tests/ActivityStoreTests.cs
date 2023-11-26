@@ -1,8 +1,7 @@
-﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
+﻿using Cleipnir.ResilientFunctions.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests;
+namespace Cleipnir.ResilientFunctions.MySQL.Tests;
 
 [TestClass]
 public class ActivityStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.ActivityStoreTests

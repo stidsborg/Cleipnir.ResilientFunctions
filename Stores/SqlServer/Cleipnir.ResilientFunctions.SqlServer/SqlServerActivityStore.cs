@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
@@ -22,20 +22,14 @@ public class SqlServerActivityStore : IActivityStore
 
     public async Task Initialize()
     {
-        SHA256.Create()
         await using var conn = await _connFunc();
         var sql = @$"    
             CREATE TABLE {_tablePrefix}Activities (
-                FunctionIdHash NVARCHAR(200) NOT NULL,
-                ActivityId NVARCHAR(200) NOT NULL,
+                Id NVARCHAR(450) PRIMARY KEY,
                 Status INT NOT NULL,
                 Result NVARCHAR(MAX),
-                Exception NVARCHAR(MAX),
-                PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
-            );
-
-            CREATE UNIQUE INDEX Activities_idx
-            ON {_tablePrefix}Activities (FunctionTypeId, FunctionInstanceId, ActivityId);";
+                Exception NVARCHAR(MAX)
+            );";
 
         await using var command = new SqlCommand(sql, conn);
         try
@@ -46,52 +40,47 @@ public class SqlServerActivityStore : IActivityStore
     
     public async Task SetActivityResult(FunctionId functionId, StoredActivity storedActivity)
     {
+        var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
         var sql = $@"
             MERGE INTO {_tablePrefix}Activities
-                USING (VALUES (@FunctionTypeId,@FunctionInstanceId,@ActivityId,@Status,@Result,@Exception)) 
-                AS source (FunctionTypeId,FunctionInstanceId,ActivityId,Status,Result,Exception)
-                ON {_tablePrefix}Activities.FunctionTypeId = source.FunctionTypeId AND 
-                   {_tablePrefix}Activities.FunctionInstanceId = source.FunctionInstanceId AND
-                   {_tablePrefix}Activities.ActivityId = source.ActivityId
+                USING (VALUES (@Id,@Status,@Result,@Exception)) 
+                AS source (Id,Status,Result,Exception)
+                ON {_tablePrefix}Activities.Id = source.Id
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
-                    INSERT (FunctionTypeId, FunctionInstanceId, ActivityId, Status, Result, Exception)
-                    VALUES (source.FunctionTypeId, source.FunctionInstanceId, source.ActivityId, source.Status, source.Result, source.Exception);";
+                    INSERT (Id, Status, Result, Exception)
+                    VALUES (source.Id, source.Status, source.Result, source.Exception);";
         
-        try
-        {
-            await using var command = new SqlCommand(sql, conn);
-            
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@ActivityId", storedActivity.ActivityId);
-            command.Parameters.AddWithValue("@Status", storedActivity.WorkStatus);
-            command.Parameters.AddWithValue("@Result", storedActivity.Result ?? (object) DBNull.Value);
-            command.Parameters.AddWithValue("@Exception", storedActivity.StoredException.ToJson() ?? (object) DBNull.Value);
+        await using var command = new SqlCommand(sql, conn);
+        var escapedId = Escaper.Escape("|", functionTypeId.ToString(), functionInstanceId.ToString(), storedActivity.ActivityId);    
+        command.Parameters.AddWithValue("@Id", escapedId);
+        command.Parameters.AddWithValue("@Status", storedActivity.WorkStatus);
+        command.Parameters.AddWithValue("@Result", storedActivity.Result ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Exception", JsonHelper.ToJson(storedActivity.StoredException) ?? (object) DBNull.Value);
 
-            await command.ExecuteNonQueryAsync();
-        } catch (SqlException exception) when (exception.Number == 2714) {}
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<IEnumerable<StoredActivity>> GetActivityResults(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            SELECT ActivityId, Status, Result, Exception
+            SELECT Id, Status, Result, Exception
             FROM {_tablePrefix}Activities
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        
+            WHERE Id LIKE @IdPrefix";
+
+        var idPrefix = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value);
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
 
         var storedActivities = new List<StoredActivity>();
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
-            var activityId = reader.GetString(0);
+            var id = reader.GetString(0);
+            var activityId = Escaper.Unescape(id, '|', 3)[2];
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? default : reader.GetString(2);
             var exception = reader.IsDBNull(3) ? default : reader.GetString(3);

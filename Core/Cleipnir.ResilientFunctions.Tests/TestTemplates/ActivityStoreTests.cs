@@ -46,7 +46,7 @@ public abstract class ActivityStoreTests
         storedActivities = await store.GetActivityResults(functionId).ToListAsync();
         storedActivities.Count.ShouldBe(2);
         storedActivities[0].ShouldBe(activity1);
-        storedActivities[1].ShouldBe(activity1);
+        storedActivities[1].ShouldBe(activity2);
         
         await store.SetActivityResult(functionId, activity2);
         await store.GetActivityResults(functionId).ToListAsync();
@@ -55,6 +55,63 @@ public abstract class ActivityStoreTests
         storedActivities = await store.GetActivityResults(functionId).ToListAsync();
         storedActivities.Count.ShouldBe(2);
         storedActivities[0].ShouldBe(activity1);
-        storedActivities[1].ShouldBe(activity1);
+        storedActivities[1].ShouldBe(activity2);
+    }
+    
+    public abstract Task SingleActivityWithResultLifeCycle();
+    protected async Task SingleActivityWithResultLifeCycle(Task<IActivityStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var activity = new StoredActivity(
+            "ActivityId1",
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+
+        await store.GetActivityResults(functionId)
+            .SelectAsync(r => r.Any())
+            .ShouldBeFalseAsync();
+        
+        await store.SetActivityResult(functionId, activity);
+        var storedActivity = await store.GetActivityResults(functionId).SelectAsync(r => r.Single());
+        storedActivity.ShouldBe(activity);
+
+        activity = activity with { WorkStatus = WorkStatus.Completed, Result = "Hello World" };
+        await store.SetActivityResult(functionId, activity);
+        storedActivity = await store.GetActivityResults(functionId).SelectAsync(r => r.Single());
+        storedActivity.ShouldBe(activity);
+    }
+    
+    public abstract Task SingleFailingActivityLifeCycle();
+    protected async Task SingleFailingActivityLifeCycle(Task<IActivityStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var storedException = new StoredException(
+            "Some Exception Message",
+            "SomeStackTrace",
+            "Some Exception Type"
+        );
+        var activity = new StoredActivity(
+            "ActivityId1",
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+
+        await store.GetActivityResults(functionId)
+            .SelectAsync(r => r.Any())
+            .ShouldBeFalseAsync();
+        
+        await store.SetActivityResult(functionId, activity);
+        var storedActivity = await store.GetActivityResults(functionId).SelectAsync(r => r.Single());
+        storedActivity.ShouldBe(activity);
+
+        activity = activity with { WorkStatus = WorkStatus.Completed, StoredException = storedException };
+        await store.SetActivityResult(functionId, activity);
+        storedActivity = await store.GetActivityResults(functionId).SelectAsync(r => r.Single());
+        storedActivity.ShouldBe(activity);
     }
 }

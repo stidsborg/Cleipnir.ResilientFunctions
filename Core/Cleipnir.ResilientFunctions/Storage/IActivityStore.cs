@@ -6,6 +6,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface IActivityStore
 {
+    Task Initialize();
     Task SetActivityResult(FunctionId functionId, StoredActivity storedActivity);
     Task<IEnumerable<StoredActivity>> GetActivityResults(FunctionId functionId);
 }

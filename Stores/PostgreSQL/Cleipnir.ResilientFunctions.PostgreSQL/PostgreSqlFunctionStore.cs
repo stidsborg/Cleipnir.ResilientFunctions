@@ -18,7 +18,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     private readonly PostgreSqlEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
-    public IActivityStore ActivityStore => throw new NotImplementedException(); //todo
+    private readonly PostgresActivityStore _activityStore;
+    public IActivityStore ActivityStore => _activityStore;
 
     private readonly PostgreSqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
@@ -30,6 +31,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _eventStore = new PostgreSqlEventStore(connectionString, tablePrefix);
+        _activityStore = new PostgresActivityStore(connectionString, tablePrefix);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, tablePrefix);
         _postgresSqlUnderlyingRegister = new(connectionString, _tablePrefix);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
@@ -46,6 +48,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _postgresSqlUnderlyingRegister.Initialize();
         await _eventStore.Initialize();
+        await _activityStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await CreateConnection();
         var sql = $@"

@@ -10,7 +10,9 @@ public class InMemoryActivityStore : IActivityStore
 {
     private readonly Dictionary<FunctionId, Dictionary<string, StoredActivity>> _activities = new();
     private readonly object _sync = new();
-    
+
+    public Task Initialize() => Task.CompletedTask;
+
     public Task SetActivityResult(FunctionId functionId, StoredActivity storedActivity)
     {
         lock (_sync)
