@@ -32,6 +32,8 @@ public record StoredException(string ExceptionMessage, string? ExceptionStackTra
 public record ReplaceEvents(IEnumerable<StoredEvent> Events, int ExistingCount);
 public record StatusAndEpoch(Status Status, int Epoch);
 
+public record StoredActivity(string ActivityId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
+
 internal static class StorageTypeExtensions
 {
     public static TParam Deserialize<TParam>(this StoredParameter parameter, ISerializer serializer) 

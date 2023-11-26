@@ -17,6 +17,7 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly object _sync = new();
     private readonly Subject<long> _afterPostponeFunctionSubject = new();
     public IEventStore EventStore => _inner.EventStore;
+    public IActivityStore ActivityStore => _inner.ActivityStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
 

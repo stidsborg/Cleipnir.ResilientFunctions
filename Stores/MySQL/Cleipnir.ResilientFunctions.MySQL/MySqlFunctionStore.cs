@@ -3,6 +3,7 @@ using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.PostgreSQL;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
 using static Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
@@ -16,6 +17,8 @@ public class MySqlFunctionStore : IFunctionStore
 
     private readonly MySqlEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
+    private readonly MySqlActivityStore _activityStore;
+    public IActivityStore ActivityStore => _activityStore;
     private readonly MySqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     public Utilities Utilities { get; }
@@ -26,6 +29,7 @@ public class MySqlFunctionStore : IFunctionStore
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _eventStore = new MySqlEventStore(connectionString, tablePrefix);
+        _activityStore = new MySqlActivityStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new(connectionString, _tablePrefix);
         Utilities = new Utilities(_mySqlUnderlyingRegister);
@@ -35,6 +39,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await _mySqlUnderlyingRegister.Initialize();
         await EventStore.Initialize();
+        await ActivityStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
