@@ -94,7 +94,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                             ? default! 
                             : storedFunction.Result.Deserialize<TReturn>(Serializer)!;
                 case Status.Failed:
-                    if (allowPostponeAndSuspended) { await Task.Delay(250); continue;}
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
                     throw new PreviousFunctionInvocationException(functionId, error);
                 case Status.Postponed:
@@ -103,6 +102,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                         functionId,
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
+                case Status.Suspended:
+                    if (allowPostponeAndSuspended) { await Task.Delay(250); continue; }
+                    throw new FunctionInvocationSuspendedException(functionId);
                 default:
                     throw new ArgumentOutOfRangeException(); 
             }
