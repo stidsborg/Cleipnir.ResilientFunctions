@@ -72,7 +72,7 @@ public abstract class DoubleInvocationTests
             (string input) => Suspend.UntilAfter(0).ToResult<string>()
         );
         
-        _ = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));
         
         var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
         await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
@@ -104,7 +104,7 @@ public abstract class DoubleInvocationTests
             (string input) => Postpone.For(100_000).ToResult<string>()
         );
         
-        _ = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));
         
         var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
         await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
@@ -135,8 +135,8 @@ public abstract class DoubleInvocationTests
             functionTypeId,
             (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>()
         );
-        
-        _ = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+
+        await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));
         
         var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
         await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
