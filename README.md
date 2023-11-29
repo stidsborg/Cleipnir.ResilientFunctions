@@ -34,8 +34,8 @@ Out-of-the-box you also get:
 Only three steps needs to be performed to get started.
 
 Firstly, install the relevant nuget package (using either Postgres, SqlServer, MySQL or Azure Blob-storage as persistence layer). I.e.
-```powershell
-Install-Package Cleipnir.ResilientFunctions.PostgreSQL
+```console
+dotnet add package Cleipnir.ResilientFunctions.PostgreSQL
 ```
 
 Secondly, setup the framework:
