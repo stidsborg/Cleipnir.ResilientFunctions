@@ -18,12 +18,12 @@ internal static class Program
         var updateVersion = args[0] == "all" || args[0] == "update_version";
         var pack = args[0] == "all" || args[0] == "pack";
 
-        var root = Path.GetFullPath(@"C:\Repos\Cleipnir.ResilientFunctions");
-        var output = Path.GetFullPath(@".\nugets");
+        var root = $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/RiderProjects/Cleipnir.ResilientFunctions";
+        var output = Path.GetFullPath(@"./nugets");
 
         if (Directory.Exists(output))
             Directory.Delete(output, recursive: true);
-        
+
         Directory.CreateDirectory(output);
 
         Console.WriteLine($"Root path: {root}");
@@ -33,17 +33,21 @@ internal static class Program
         if (updateVersion)
             foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
             {
+                Console.WriteLine("---------------------------------------------------------");
                 Console.WriteLine("Updating package version: " + LeafFolderName(projectPath));
                 Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
                 UpdatePackageVersion(projectPath);
+                Console.WriteLine();
             }
-        
+
         if (pack)
             foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
             {
+                Console.WriteLine("---------------------------------------------------------");
                 Console.WriteLine("Packing nuget package: " + LeafFolderName(projectPath));
                 Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
                 PackProject(Path.GetDirectoryName(projectPath)!, output);
+                Console.WriteLine();
             }
 
         return 0;
@@ -88,7 +92,7 @@ internal static class Program
         p.StartInfo.RedirectStandardOutput = true;
         p.StartInfo.RedirectStandardError = true;
         p.StartInfo.UseShellExecute = false;
-        p.StartInfo.FileName = @"C:\Program Files\dotnet\dotnet.exe";
+        p.StartInfo.FileName = @"/snap/bin/dotnet";
         p.StartInfo.WorkingDirectory = projectPath;
         p.StartInfo.Arguments = $"dotnet pack -c Release /p:ContinuousIntegrationBuild=true -o {outputPath}";
         p.Start();
@@ -100,5 +104,5 @@ internal static class Program
     }
 
     private static string LeafFolderName(string path)
-        => Path.GetDirectoryName(path)!.Split('\\').Last();
+        => Path.GetDirectoryName(path)!.Split('/').Last();
 }
