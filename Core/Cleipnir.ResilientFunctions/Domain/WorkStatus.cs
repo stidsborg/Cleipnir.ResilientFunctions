@@ -4,5 +4,6 @@ public enum WorkStatus
 {
     NotStarted = 0,
     Started = 1,
-    Completed = 2
+    Completed = 2,
+    Failed = 3,
 }
