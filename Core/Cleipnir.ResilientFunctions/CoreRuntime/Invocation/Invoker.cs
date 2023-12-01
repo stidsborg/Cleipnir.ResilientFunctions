@@ -214,12 +214,12 @@ public class Invoker<TParam, TScrapbook, TReturn>
             disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch: 0));
             
             success = persisted;
-            var eventSourceFactory = _invocationHelper.CreateEventSource(
+            var eventSource = _invocationHelper.CreateEventSource(
                 functionId,
                 ScheduleReInvoke,
                 storedEvents
             );
-            var context = new Context(functionId, InvocationMode.Direct, eventSourceFactory, _utilities);
+            var context = new Context(functionId, eventSource, _utilities);
             disposables.Add(context);
             
             return new PreparedInvocation(
@@ -248,12 +248,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke, initialEvents: null);
             await eventSource.Sync();
             
-            var context = new Context(
-                functionId, 
-                InvocationMode.Retry,
-                eventSource, 
-                _utilities
-            );
+            var context = new Context(functionId, eventSource, _utilities);
             disposables.Add(context);
 
             return new PreparedReInvocation(

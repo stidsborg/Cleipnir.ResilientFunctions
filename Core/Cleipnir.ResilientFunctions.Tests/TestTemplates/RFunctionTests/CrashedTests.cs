@@ -252,44 +252,7 @@ public abstract class CrashedTests
         if (unhandledExceptionHandler.ThrownExceptions.Any())
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
-
-    public abstract Task CrashedActionReInvocationModeShouldBeRetry();
-    protected async Task CrashedActionReInvocationModeShouldBeRetry(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        await store.CreateFunction(
-            functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        using var rFunctions = new RFunctions(
-            store, 
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
-            )
-        );
-
-        var syncedInvocationMode = new Synced<InvocationMode>();
-        rFunctions.RegisterAction(
-            functionId.TypeId,
-            (string _, RScrapbook _, Context context) 
-                => syncedInvocationMode.Value = context.InvocationMode
-        );
-
-        await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf!.Status == Status.Succeeded)
-        );
-        syncedInvocationMode.Value.ShouldBe(InvocationMode.Retry);
-    }
-
+    
     private class Scrapbook : RScrapbook
     {
         public int Value { get; set; }

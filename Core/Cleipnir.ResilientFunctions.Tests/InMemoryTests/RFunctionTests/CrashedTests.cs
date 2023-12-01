@@ -23,8 +23,4 @@ public class CrashedTests : TestTemplates.RFunctionTests.CrashedTests
     [TestMethod]
     public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
         => NonCompletedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task CrashedActionReInvocationModeShouldBeRetry()
-        => CrashedActionReInvocationModeShouldBeRetry(FunctionStoreFactory.Create());
 }
