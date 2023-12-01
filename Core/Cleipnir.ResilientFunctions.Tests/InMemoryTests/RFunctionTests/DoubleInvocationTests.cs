@@ -18,9 +18,9 @@ public class DoubleInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTempl
 
     [TestMethod]
     public override Task SecondInvocationFailsOnPostponedFlow()
-        => SecondInvocationFailsOnPostponedFlow(new InMemoryActivityStore().CastTo<IFunctionStore>().ToTask());
+        => SecondInvocationFailsOnPostponedFlow(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task SecondInvocationFailsOnFailedFlow()
-        => SecondInvocationFailsOnFailedFlow(new InMemoryActivityStore().CastTo<IFunctionStore>().ToTask());
+        => SecondInvocationFailsOnFailedFlow(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }
