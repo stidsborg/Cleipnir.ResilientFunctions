@@ -35,6 +35,8 @@ jobs:
 
       - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj
 
+      - run: dotnet test ./Core/Cleipnir.ResilientFunctions.Tests --logger "console;verbosity=detailed"
+
       - run: dotnet test ./Stores/MySQL/Cleipnir.ResilientFunctions.MySQL.Tests --logger "console;verbosity=detailed"
       
       - run: dotnet test ./Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests --logger "console;verbosity=detailed"
