@@ -16,4 +16,6 @@ public interface ISerializer
     TResult DeserializeResult<TResult>(string json, string type);
     JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull;
     object DeserializeEvent(string json, string type);
+    string SerializeActivityResult<TResult>(TResult result);
+    TResult DeserializeActivityResult<TResult>(string json);
 }

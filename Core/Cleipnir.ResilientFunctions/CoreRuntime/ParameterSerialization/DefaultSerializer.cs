@@ -51,4 +51,9 @@ public class DefaultSerializer : ISerializer
         => new(JsonSerializer.Serialize(@event, @event.GetType()), @event.GetType().SimpleQualifiedName());
     public object DeserializeEvent(string json, string type)
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
+
+    public string SerializeActivityResult<TResult>(TResult result)
+        => JsonSerializer.Serialize(result);
+    public TResult DeserializeActivityResult<TResult>(string json)
+        => JsonSerializer.Deserialize<TResult>(json)!;
 }

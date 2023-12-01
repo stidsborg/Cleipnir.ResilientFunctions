@@ -128,4 +128,29 @@ public class ErrorHandlingDecorator : ISerializer
             );
         }
     }
+
+    public string SerializeActivityResult<TResult>(TResult result)
+        => _inner.SerializeActivityResult(result);
+    public TResult DeserializeActivityResult<TResult>(string json)
+    {
+        try
+        {
+            return _inner.DeserializeActivityResult<TResult>(json)
+                   ?? throw new DeserializationException(
+                       $"Deserialized activity result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'", 
+                       new NullReferenceException()
+                   );
+        }
+        catch (DeserializationException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new DeserializationException(
+                $"Deserialized activity result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'",  
+                e
+            );
+        }
+    }
 }

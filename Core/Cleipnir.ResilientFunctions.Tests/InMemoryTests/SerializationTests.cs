@@ -168,5 +168,10 @@ public class SerializationTests
             => _defaultSerializer.SerializeEvent(@event);
         public object DeserializeEvent(string json, string type)
             => _defaultSerializer.DeserializeEvent(json, type);
+
+        public string SerializeActivityResult<TResult>(TResult result)
+            => _defaultSerializer.SerializeActivityResult(result);
+        public TResult DeserializeActivityResult<TResult>(string json)
+            => _defaultSerializer.DeserializeActivityResult<TResult>(json);
     }
 }

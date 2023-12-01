@@ -85,6 +85,11 @@ public class RFuncWithScrapbookRegistrationTests
             => Default.SerializeEvent(@event);
         public object DeserializeEvent(string json, string type)
             => Default.DeserializeEvent(json, type);
+
+        public string SerializeActivityResult<TResult>(TResult result)
+            => Default.SerializeActivityResult(result);
+        public TResult DeserializeActivityResult<TResult>(string json)
+            => Default.DeserializeActivityResult<TResult>(json);
     }
 
     private class Scrapbook : RScrapbook { }
