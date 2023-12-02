@@ -91,7 +91,21 @@ public class PostgresActivityStore : IActivityStore
 
         return functions;
     }
-    
+
+    public async Task DeleteActivityResult(FunctionId functionId, string activityId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = $1";
+        
+        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, activityId);
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters = { new() {Value = id } }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private async Task<NpgsqlConnection> CreateConnection()
     {
         var conn = new NpgsqlConnection(_connectionString);

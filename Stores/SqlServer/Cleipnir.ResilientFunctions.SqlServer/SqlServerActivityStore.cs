@@ -92,7 +92,21 @@ public class SqlServerActivityStore : IActivityStore
 
         return storedActivities;
     }
-    
+
+    public async Task DeleteActivityResult(FunctionId functionId, string activityId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+            DELETE FROM {_tablePrefix}Activities
+            WHERE Id = @Id";
+
+        var id = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value, activityId);
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Id", id);
+        
+        await command.ExecuteNonQueryAsync();
+    }
+
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
     {
         return async () =>

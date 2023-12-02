@@ -19,4 +19,8 @@ public class ActivityStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplate
     [TestMethod]
     public override Task SingleFailingActivityLifeCycle()
         => SingleFailingActivityLifeCycle(new InMemoryActivityStore().CastTo<IActivityStore>().ToTask());
+
+    [TestMethod]
+    public override Task ActivitiesCanBeDeleted()
+        => ActivitiesCanBeDeleted(new InMemoryActivityStore().CastTo<IActivityStore>().ToTask());
 }

@@ -17,4 +17,8 @@ public class ActivityStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplate
     [TestMethod]
     public override Task SingleFailingActivityLifeCycle()
         => SingleFailingActivityLifeCycle(FunctionStoreFactory.Create().SelectAsync(f => f.ActivityStore));
+
+    [TestMethod]
+    public override Task ActivitiesCanBeDeleted()
+        => ActivitiesCanBeDeleted(FunctionStoreFactory.Create().SelectAsync(f => f.ActivityStore));
 }

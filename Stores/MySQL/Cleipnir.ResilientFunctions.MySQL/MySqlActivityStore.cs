@@ -87,6 +87,19 @@ public class MySqlActivityStore : IActivityStore
         return functions;
     }
 
+    public async Task DeleteActivityResult(FunctionId functionId, string activityId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = ?";
+        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, activityId);
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters = { new() { Value = id } }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private async Task<MySqlConnection> CreateConnection()
     {
         var conn = new MySqlConnection(_connectionString);

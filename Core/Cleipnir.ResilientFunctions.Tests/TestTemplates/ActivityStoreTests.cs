@@ -114,4 +114,46 @@ public abstract class ActivityStoreTests
         storedActivity = await store.GetActivityResults(functionId).SelectAsync(r => r.Single());
         storedActivity.ShouldBe(activity);
     }
+    
+    public abstract Task ActivitiesCanBeDeleted();
+    protected async Task ActivitiesCanBeDeleted(Task<IActivityStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var activity1 = new StoredActivity(
+            "ActivityId1",
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+        var activity2 = new StoredActivity(
+            "ActivityId2",
+            WorkStatus.Completed,
+            Result: null,
+            StoredException: null
+        );
+        await store.SetActivityResult(functionId, activity1);
+        await store.SetActivityResult(functionId, activity2);
+
+        await store
+            .GetActivityResults(functionId)
+            .SelectAsync(sas => sas.Count() == 2)
+            .ShouldBeTrueAsync();
+
+        await store.DeleteActivityResult(functionId, activity2.ActivityId);
+        var activityResults = await store.GetActivityResults(functionId).ToListAsync();
+        activityResults.Count.ShouldBe(1);
+        activityResults[0].ActivityId.ShouldBe(activity1.ActivityId);
+
+        await store.DeleteActivityResult(functionId, activity2.ActivityId);
+        activityResults = await store.GetActivityResults(functionId).ToListAsync();
+        activityResults.Count.ShouldBe(1);
+        activityResults[0].ActivityId.ShouldBe(activity1.ActivityId);
+        
+        await store.DeleteActivityResult(functionId, activity1.ActivityId);
+        await store
+            .GetActivityResults(functionId)
+            .SelectAsync(sas => sas.Any())
+            .ShouldBeFalseAsync();
+    }
 }

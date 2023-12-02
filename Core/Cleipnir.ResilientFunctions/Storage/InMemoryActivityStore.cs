@@ -33,4 +33,13 @@ public class InMemoryActivityStore : IActivityStore
                 ? Enumerable.Empty<StoredActivity>().ToTask()
                 : _activities[functionId].Values.ToList().AsEnumerable().ToTask();
     }
+
+    public Task DeleteActivityResult(FunctionId functionId, string activityId)
+    {
+        lock (_sync)
+            if (_activities.ContainsKey(functionId))
+                _activities[functionId].Remove(activityId);
+
+        return Task.CompletedTask;
+    }
 }
