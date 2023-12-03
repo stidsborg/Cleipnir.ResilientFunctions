@@ -47,7 +47,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ControlPanels.For("something").Result!.ScheduleReInvoke();
+        await rFunc.ControlPanel("something").Result!.ScheduleReInvoke();
 
         var functionId = new FunctionId(functionType, "something");
         await BusyWait.Until(
@@ -98,12 +98,12 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, "something"));
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
         
-        await rAction.ControlPanels.For(functionInstanceId).Result!.ScheduleReInvoke();
+        await rAction.ControlPanel(functionInstanceId).Result!.ScheduleReInvoke();
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
@@ -151,7 +151,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
-        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ScheduleReInvoke();
 
         await BusyWait.Until(
@@ -202,12 +202,12 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
         var scrapbookList = new Synced<List<string>>();
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         scrapbookList.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
 
-        controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ScheduleReInvoke();
         
         await BusyWait.Until(

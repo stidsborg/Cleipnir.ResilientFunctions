@@ -220,7 +220,7 @@ public abstract class SuspensionTests
         var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
         await eventSourceWriter.AppendEvent("hello universe");
 
-        var controlPanel = await registration.ControlPanels.For(functionInstanceId);
+        var controlPanel = await registration.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
@@ -264,7 +264,7 @@ public abstract class SuspensionTests
         var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
         await eventSourceWriter.AppendEvent("hello universe");
 
-        var controlPanel = await registration.ControlPanels.For(functionInstanceId);
+        var controlPanel = await registration.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>

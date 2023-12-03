@@ -118,7 +118,7 @@ public abstract class AtLeastOnceWorkStatusTests
 
         await rAction.Schedule(functionInstanceId.ToString(), "hello");
 
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId.ToString());
+        var controlPanel = await rAction.ControlPanel(functionInstanceId.ToString());
         controlPanel.ShouldNotBeNull();
 
         await BusyWait.Until(async () =>
@@ -156,7 +156,7 @@ public abstract class AtLeastOnceWorkStatusTests
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        await rAction.ControlPanels.For(functionInstanceId).Result!.ReInvoke();
+        await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }
@@ -181,7 +181,7 @@ public abstract class AtLeastOnceWorkStatusTests
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        await rAction.ControlPanels.For(functionInstanceId).Result!.ReInvoke();
+        await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }
@@ -209,7 +209,7 @@ public abstract class AtLeastOnceWorkStatusTests
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
 
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
 

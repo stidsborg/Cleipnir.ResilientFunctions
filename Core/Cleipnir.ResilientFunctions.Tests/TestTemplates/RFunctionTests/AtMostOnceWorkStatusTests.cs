@@ -112,7 +112,7 @@ public abstract class AtMostOnceWorkStatusTests
 
         await rAction.Schedule(functionInstanceId.ToString(), "hello");
 
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
@@ -148,7 +148,7 @@ public abstract class AtMostOnceWorkStatusTests
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        await rAction.ControlPanels.For(functionInstanceId).Result!.ReInvoke();
+        await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }
@@ -174,7 +174,7 @@ public abstract class AtMostOnceWorkStatusTests
             });
 
         await rAction.Schedule(functionInstanceId.ToString(), "");
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
 
         await BusyWait.Until(async () =>

@@ -107,7 +107,7 @@ public abstract class MessagingTests
             rFunc.Invoke(functionId.InstanceId.Value, "")
         );
 
-        var controlPanel = await rFunc.ControlPanels.For("instanceId");
+        var controlPanel = await rFunc.ControlPanel("instanceId");
         controlPanel.ShouldNotBeNull();
 
         await BusyWait.Until(async () =>

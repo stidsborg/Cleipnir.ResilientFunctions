@@ -372,7 +372,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.ControlPanels.For(functionId.InstanceId.Value).Result!.ReInvoke()
+                () => rAction.ControlPanel(functionId.InstanceId.Value).Result!.ReInvoke()
             );
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -394,7 +394,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
+            await rAction.ControlPanel(functionId.InstanceId).Result!.ScheduleReInvoke();
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -461,7 +461,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.ControlPanels.For(functionId.InstanceId).Result!.ReInvoke()
+                () => rAction.ControlPanel(functionId.InstanceId).Result!.ReInvoke()
             );
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -483,7 +483,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            await rAction.ControlPanels.For(functionId.InstanceId).Result!.ScheduleReInvoke();
+            await rAction.ControlPanel(functionId.InstanceId).Result!.ScheduleReInvoke();
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -552,7 +552,7 @@ public abstract class PostponedTests
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
-            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
             Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -574,7 +574,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
             await controlPanel.ScheduleReInvoke();
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
@@ -643,7 +643,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
             Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -665,7 +665,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
             await controlPanel.ScheduleReInvoke();
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
@@ -773,7 +773,7 @@ public abstract class PostponedTests
         var sf = await store.GetFunction(functionId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Postponed);
 
-        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await BusyWait.Until(async () =>
             {
@@ -821,7 +821,7 @@ public abstract class PostponedTests
         var sf = await store.GetFunction(functionId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Postponed);
 
-        var controlPanel = await rFunc.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rFunc.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await BusyWait.Until(async () =>
         {

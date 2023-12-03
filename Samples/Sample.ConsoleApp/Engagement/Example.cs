@@ -37,7 +37,7 @@ public static class Example
         await Task.Delay(3_000);
         await eventSourceWriter.AppendEvent(new EngagementAccepted(1));
 
-        var controlPanel = await rAction.ControlPanels.For(customerEmail);
+        var controlPanel = await rAction.ControlPanel(customerEmail);
         await BusyWait.Until(async () =>
             {
                 await controlPanel!.Refresh();

@@ -33,21 +33,24 @@ public static class RAction
 
 public class RAction<TParam> where TParam : notnull
 {
+    private readonly RAction<TParam,RScrapbook> _rAction;
     public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
     public RAction.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }    
-    public ControlPanels<TParam, RScrapbook> ControlPanels { get; }
     public EventSourceWriters EventSourceWriters { get; }
     
     public RAction(RAction<TParam, RScrapbook> rAction)
     {
+        _rAction = rAction;
         Invoke = rAction.Invoke;
         Schedule = rAction.Schedule;
         ScheduleAt = rAction.ScheduleAt;
-
-        ControlPanels = rAction.ControlPanels;
+        
         EventSourceWriters = rAction.EventSourceWriters;
     }
+
+    public Task<ControlPanel<TParam, RScrapbook>?> ControlPanel(FunctionInstanceId functionInstanceId)
+        => _rAction.ControlPanel(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
@@ -69,7 +72,7 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
     public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
     public RAction.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
-    public ControlPanels<TParam, TScrapbook> ControlPanels { get; }
+    private ControlPanels<TParam, TScrapbook> ControlPanels { get; }
     public EventSourceWriters EventSourceWriters { get; }
 
     public RAction(
@@ -85,6 +88,9 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
         ControlPanels = controlPanels;
         EventSourceWriters = eventSourceWriters;
     }
+    
+    public Task<ControlPanel<TParam, TScrapbook>?> ControlPanel(FunctionInstanceId functionInstanceId)
+        => ControlPanels.For(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,

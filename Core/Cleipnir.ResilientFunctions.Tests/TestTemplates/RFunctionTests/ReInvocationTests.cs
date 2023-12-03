@@ -47,7 +47,7 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ControlPanels.For("something").Result!.ReInvoke();
+        await rFunc.ControlPanel("something").Result!.ReInvoke();
         
         syncedParameter.Value.ShouldBe("something");
 
@@ -95,13 +95,13 @@ public abstract class ReInvocationTests
         );
 
         var syncedListFromScrapbook = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
             
         syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
         
-        controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
@@ -148,12 +148,12 @@ public abstract class ReInvocationTests
             rAction.Invoke(functionInstanceId.Value, "something")
         );
         
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = 10;
         await controlPanel.SaveChanges();
        
-        controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
         
         syncedParam.Value.ShouldBe(10);
@@ -196,14 +196,14 @@ public abstract class ReInvocationTests
             rAction.Invoke(functionInstanceId.Value, "something", new ListScrapbook<string>())
         );
 
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = 10;
         (controlPanel.Scrapbook is ListScrapbook<string>).ShouldBeTrue();
         controlPanel.Scrapbook = new ListScrapbook<int>();
         await controlPanel.SaveChanges();
        
-        controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
         
         var (param, scrapbook) = syncedParam.Value!;
@@ -242,7 +242,7 @@ public abstract class ReInvocationTests
         sfScrapbook.Value.ShouldBe(1);
         
         flag.Raise();
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Scrapbook.Value = -1;
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
@@ -288,7 +288,7 @@ public abstract class ReInvocationTests
         sfScrapbook.Value.ShouldBe(1);
         
         flag.Raise();
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Scrapbook.Value = -1;
         await controlPanel.SaveChanges();
 
@@ -342,7 +342,7 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
-        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
 
         var function = await store.GetFunction(functionId);
@@ -389,11 +389,11 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
-        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Scrapbook.List.Clear();
         await controlPanel.SaveChanges();
         
-        controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         var result = await controlPanel.ReInvoke(); 
         result.ShouldBe("something");
 
@@ -429,8 +429,8 @@ public abstract class ReInvocationTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, "");
-        var controlPanel1 = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
-        var controlPanel2 = await rAction.ControlPanels.For(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel1 = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel2 = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel1.Delete();
         
         await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel2.ReInvoke());

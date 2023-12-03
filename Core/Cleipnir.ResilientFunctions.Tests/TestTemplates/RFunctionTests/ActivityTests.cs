@@ -42,7 +42,7 @@ public abstract class ActivityTests
         var activityResults = await store.ActivityStore.GetActivityResults(functionId);
         activityResults.Single(r => r.ActivityId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
-        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -79,7 +79,7 @@ public abstract class ActivityTests
         var activityResults = await store.ActivityStore.GetActivityResults(functionId);
         activityResults.Single(r => r.ActivityId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
-        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -122,7 +122,7 @@ public abstract class ActivityTests
         storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedActivity.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
-        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -167,7 +167,7 @@ public abstract class ActivityTests
         storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedActivity.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
-        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -213,7 +213,7 @@ public abstract class ActivityTests
         storedActivity.StoredException.ShouldNotBeNull();
         storedActivity.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
 
-        var controlPanel = await rAction.ControlPanels.For(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await Should.ThrowAsync<ActivityException>(() => controlPanel.ReInvoke());
         

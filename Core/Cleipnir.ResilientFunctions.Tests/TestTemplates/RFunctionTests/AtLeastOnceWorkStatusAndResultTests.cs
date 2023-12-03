@@ -51,7 +51,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(functionInstanceId);
         controlPanel!.Scrapbook.WorkStatus.Result.ShouldBe(1);
         counter.Current.ShouldBe(2);
     }
@@ -170,7 +170,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
 
         await BusyWait.Until(async () => await store.GetFunction(functionId) != null);
 
-        var controlPanel = await rFunc.ControlPanels.For(functionInstanceId.ToString());
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId.ToString());
         controlPanel.ShouldNotBeNull();
 
         await BusyWait.Until(async () =>
@@ -210,7 +210,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
         await BusyWait.Until(async () => await store.GetFunction(functionId) != null);
-        await rAction.ControlPanels.For(functionInstanceId).Result!.ReInvoke();
+        await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
     }
@@ -236,7 +236,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
         
         await controlPanel.ReInvoke();
@@ -271,7 +271,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        var controlPanel = await rAction.ControlPanels.For(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
         
         await controlPanel.ReInvoke();

@@ -36,17 +36,21 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.Invoke<TParam, RScrapbook, TReturn> Invoke { get; }
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }
-    public ControlPanels<TParam, RScrapbook, TReturn> ControlPanels { get; }
+    private readonly RFunc<TParam, RScrapbook, TReturn> _rFunc; 
     public EventSourceWriters EventSourceWriters { get; }
 
     public RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
     {
+        _rFunc = rFunc;
+        
         Invoke = rFunc.Invoke;
         Schedule = rFunc.Schedule;
         ScheduleAt = rFunc.ScheduleAt;
-        ControlPanels = rFunc.ControlPanel;
         EventSourceWriters = rFunc.EventSourceWriters;
     }
+
+    public Task<ControlPanel<TParam, RScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
+        => _rFunc.ControlPanel(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
@@ -68,7 +72,7 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public RFunc.Invoke<TParam, TScrapbook, TReturn> Invoke { get; }
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
-    public ControlPanels<TParam, TScrapbook, TReturn> ControlPanel { get; }
+    private ControlPanels<TParam, TScrapbook, TReturn> ControlPanels { get; }
     public EventSourceWriters EventSourceWriters { get; }
 
     public RFunc(
@@ -82,10 +86,13 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
         Schedule = schedule;
         ScheduleAt = scheduleAt;
 
-        ControlPanel = controlPanel;
+        ControlPanels = controlPanel;
         EventSourceWriters = eventSourceWriters;
     }
 
+    public Task<ControlPanel<TParam, TScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
+        => ControlPanels.For(functionInstanceId);
+    
     public Task ScheduleIn(
         string functionInstanceId,
         TParam param,
