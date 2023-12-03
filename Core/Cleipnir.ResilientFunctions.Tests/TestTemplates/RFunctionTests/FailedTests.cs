@@ -61,8 +61,8 @@ public abstract class FailedTests
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.FromMilliseconds(2),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = rFunctions.RegisterFunc(
@@ -73,7 +73,7 @@ public abstract class FailedTests
                     return s.ToUpper().ToTask();
                 }
             ).Invoke;
-            await Task.Delay(100);
+            await Task.Delay(250);
             
             flag.Position.ShouldBe(Lowered);
             
@@ -130,8 +130,8 @@ public abstract class FailedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.FromMilliseconds(2),
-                        postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                        signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
+                        postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                     )
                 );
             var rAction = rFunctions.RegisterAction(functionTypeId,
@@ -142,7 +142,7 @@ public abstract class FailedTests
                 }
             ).Invoke;
                 
-            await Task.Delay(100);
+            await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
             var functionId = new FunctionId(functionTypeId, PARAM.ToFunctionInstanceId());
@@ -163,7 +163,8 @@ public abstract class FailedTests
     public async Task ExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             using var rFunctions = new RFunctions
@@ -182,7 +183,7 @@ public abstract class FailedTests
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<Exception>(nonCompletingRFunctions(PARAM, PARAM));
+            await Should.ThrowAsync<Exception>(nonCompletingRFunctions(functionInstanceId.ToString(), PARAM));
         }
         {
             var flag = new SyncedFlag();
@@ -190,8 +191,8 @@ public abstract class FailedTests
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.FromMilliseconds(2),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                    signOfLifeFrequency: TimeSpan.FromMilliseconds(100),
+                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = rFunctions
@@ -200,14 +201,13 @@ public abstract class FailedTests
                     inner: (string _) => flag.Raise()
                 )
                 .Invoke;
-            await Task.Delay(100);
+            await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var functionId = new FunctionId(functionTypeId, PARAM.ToFunctionInstanceId());
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(rFunc(PARAM, PARAM));
+            await Should.ThrowAsync<Exception>(rFunc(functionInstanceId.ToString(), PARAM));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -257,7 +257,8 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFunctionTypeId();
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
@@ -274,13 +275,13 @@ public abstract class FailedTests
                             : Task.FromException(new Exception())
                 ).Invoke;
 
-            await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(param, param));
+            await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(functionInstanceId.ToString(), param));
         }
         {
             var flag = new SyncedFlag();
             using var rFunctions = new RFunctions(
                 store,
-                new Settings(unhandledExceptionHandler.Catch, signOfLifeFrequency: TimeSpan.FromMilliseconds(2))
+                new Settings(unhandledExceptionHandler.Catch, signOfLifeFrequency: TimeSpan.FromMilliseconds(100))
             );
             var rFunc = rFunctions.RegisterAction(
                 functionTypeId,
@@ -291,10 +292,9 @@ public abstract class FailedTests
                 }
             ).Invoke;
                 
-            await Task.Delay(100);
+            await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
@@ -302,14 +302,14 @@ public abstract class FailedTests
             storedFunction.Scrapbook.ShouldNotBeNull();
             storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
 
-            await Should.ThrowAsync<Exception>(() => rFunc(param, param));
+            await Should.ThrowAsync<Exception>(() => rFunc(functionInstanceId.ToString(), param));
         }
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         if (throwUnhandledException)
         {
             await store
-                .GetFunction(new FunctionId(functionTypeId, param))
+                .GetFunction(functionId)
                 .Map(f => f?.Exception)
                 .ShouldNotBeNullAsync();
         }

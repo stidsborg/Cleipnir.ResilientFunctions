@@ -1051,6 +1051,37 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task ExistingActivityCanBeReplaced();
+    protected async Task ExistingActivityCanBeReplaced(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            Task<string> (string param, RScrapbook _, Context context) 
+                => context.Activity.Do("Test", () => "ActivityResult")
+        );
+
+        var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        result.ShouldBe("ActivityResult");
+        
+        var controlPanel = await rFunc.ControlPanel.For(functionInstanceId).ShouldNotBeNullAsync();
+        var activities = await controlPanel.Activities;
+        await activities.Set(
+            new StoredActivity("Test", WorkStatus.Completed, "ReplacedResult".ToJson(), StoredException: null)
+        );
+
+        result = await controlPanel.ReInvoke();
+        result.ShouldBe("ReplacedResult");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     public abstract Task SaveChangesPersistsChangedResult();
     protected async Task SaveChangesPersistsChangedResult(Task<IFunctionStore> storeTask)
     {

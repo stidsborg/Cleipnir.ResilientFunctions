@@ -424,8 +424,18 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         var activityStore = _functionStore.ActivityStore;
         var existingActivities = await activityStore.GetActivityResults(functionId);
         return new Activity(functionId, existingActivities, activityStore, _settings.Serializer);
-    } 
-        
+    }
+
+    public async Task<ExistingActivities> GetExistingActivities(FunctionId functionId)
+    {
+        var activityStore = _functionStore.ActivityStore;
+        var existingActivities = await activityStore.GetActivityResults(functionId);
+        return new ExistingActivities(
+            functionId,
+            existingActivities.ToDictionary(sa => sa.ActivityId, sa => sa),
+            activityStore
+        );
+    }
 
     public async Task<List<EventAndIdempotencyKey>> GetEvents(FunctionId functionId)
     {

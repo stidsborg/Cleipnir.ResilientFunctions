@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -34,7 +35,7 @@ public class Activity
 
     public Task Do(string id, Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Do(id, work: () => { work(); return Task.CompletedTask; }, resiliency);
-    public Task Do<T>(string id, Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+    public Task<T> Do<T>(string id, Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Do(id, work: () => work().ToTask(), resiliency);
 
     public async Task Do(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
@@ -82,13 +83,13 @@ public class Activity
         );
     }
     
-    public async Task Do<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+    public async Task<T> Do<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
     {
         lock (_sync)
         {
             var success = _activityResults.TryGetValue(id, out var activityResult);
             if (success && activityResult!.WorkStatus == WorkStatus.Completed)
-                return;
+                return (activityResult.Result == null ? default : JsonSerializer.Deserialize<T>(activityResult.Result))!;
             if (success && activityResult!.WorkStatus == WorkStatus.Failed)
                 throw new PreviousFunctionInvocationException(_functionId, _serializer.DeserializeException(activityResult.StoredException!));
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
@@ -126,5 +127,7 @@ public class Activity
             _functionId,
             new StoredActivity(id, WorkStatus.Completed, Result: _serializer.SerializeActivityResult(result), StoredException: null)
         );
+
+        return result;
     } 
 }

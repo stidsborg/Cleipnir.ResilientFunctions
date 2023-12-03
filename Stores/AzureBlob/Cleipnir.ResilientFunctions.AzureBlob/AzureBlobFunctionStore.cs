@@ -14,7 +14,8 @@ public class AzureBlobFunctionStore : IFunctionStore
 {
     private readonly AzureBlobEventStore _eventStore;
     public IEventStore EventStore => _eventStore;
-    public IActivityStore ActivityStore => throw new NotImplementedException();
+    private AzureBlobActivityStore _activityStore;
+    public IActivityStore ActivityStore => _activityStore;
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
     
@@ -29,6 +30,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         _blobServiceClient = new BlobServiceClient(connectionString);
         _blobContainerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
         _eventStore = new AzureBlobEventStore(_blobContainerClient);
+        _activityStore = new AzureBlobActivityStore(_blobContainerClient);
         TimeoutStore = new AzureBlobTimeoutStore(_blobContainerClient);
         Utilities = new Utilities(new AzureBlobUnderlyingRegister(_blobContainerClient));
     }
