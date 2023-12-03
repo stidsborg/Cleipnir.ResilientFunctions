@@ -1,18 +1,12 @@
 ﻿using System.Text;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Storage.Utils;
 using Cleipnir.ResilientFunctions.Utils;
+using Base64 = Cleipnir.ResilientFunctions.Storage.Base64;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
 public static class Utils
 {
-    public static Task<string> ConvertToString(this Stream stream)
-    {
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        return reader.ReadToEndAsync();
-    }
-
     public static MemoryStream ConvertToStream(this string s)
         => new MemoryStream(Encoding.UTF8.GetBytes(s));
 
@@ -32,11 +26,21 @@ public static class Utils
         => GetBlobName(registerType.ToString(), group, name);
 
     private static string GetBlobName(string type, string group, string instance, string? id = null)
-        => SimpleMarshaller.Serialize(type, group, instance, id ?? "");
+    {
+        var parts = id == null
+            ? new[] { type, group, instance }
+            : new[] { type, group, instance, id };
+
+        return string.Join('|', parts.Select(Base64.Base64Encode));
+    }
     public record FileNameParts(string Type, string Group, string Instance, string? Id);
     internal static FileNameParts SplitIntoParts(string blobName)
     {
-        var parts = SimpleMarshaller.Deserialize(blobName, expectedCount: 4);
-        return new FileNameParts(parts[0]!, parts[1]!, parts[2]!, parts[3]! == "" ? null : parts[3]);
+        var parts = blobName
+            .Split("|")
+            .Select(Base64.Base64Decode)
+            .ToArray();
+        
+        return new FileNameParts(Type: parts[0], Group: parts[1], Instance: parts[2], Id: parts.Length == 4 ? parts[3] : null);
     }
 }
