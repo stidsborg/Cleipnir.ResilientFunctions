@@ -433,7 +433,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         return new ExistingActivities(
             functionId,
             existingActivities.ToDictionary(sa => sa.ActivityId, sa => sa),
-            activityStore
+            activityStore,
+            _settings.Serializer
         );
     }
 

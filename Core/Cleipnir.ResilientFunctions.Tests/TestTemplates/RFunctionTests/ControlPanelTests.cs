@@ -1051,8 +1051,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingActivityCanBeReplaced();
-    protected async Task ExistingActivityCanBeReplaced(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingActivityCanBeReplacedWithValue();
+    protected async Task ExistingActivityCanBeReplacedWithValue(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1072,13 +1072,150 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         var activities = await controlPanel.Activities;
-        await activities.Set(
-            new StoredActivity("Test", WorkStatus.Completed, "ReplacedResult".ToJson(), StoredException: null)
-        );
+        await activities.SetSucceeded(activityId: "Test", result: "ReplacedResult");
 
         result = await controlPanel.ReInvoke();
         result.ShouldBe("ReplacedResult");
         
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ActivityCanBeStarted();
+    protected async Task ActivityCanBeStarted(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        var runActivity = false;
+        
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            Task (string param, RScrapbook _, Context context) 
+                => runActivity 
+                    ? context.Activity.Do("Test", () => {}, ResiliencyLevel.AtMostOnce)
+                    : Task.CompletedTask
+        );
+
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        
+        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var activities = await controlPanel.Activities;
+        await activities.SetStarted(activityId: "Test");
+        
+        runActivity = true;
+        await Should.ThrowAsync<Exception>(controlPanel.ReInvoke());
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingActivityCanBeReplaced();
+    protected async Task ExistingActivityCanBeReplaced(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rFunc = rFunctions.RegisterAction(
+            functionTypeId,
+            Task (string param, RScrapbook _, Context context) 
+                => context.Activity.Do("Test", () => throw new InvalidOperationException("oh no"))
+        );
+
+        await Should.ThrowAsync<Exception>(rFunc.Invoke(functionInstanceId.Value, param: "param"));
+        
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var activities = await controlPanel.Activities;
+        await activities.SetSucceeded(activityId: "Test");
+        
+        await controlPanel.ReInvoke();
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingActivityCanBeRemoved();
+    protected async Task ExistingActivityCanBeRemoved(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        var syncedCounter = new SyncedCounter();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            Task<string> (string param, RScrapbook _, Context context) =>
+                context.Activity.Do("Test", () =>
+                {
+                    syncedCounter++;
+                    return "ActivityResult";
+                })
+        );
+
+        var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        result.ShouldBe("ActivityResult");
+        syncedCounter.Current.ShouldBe(1);
+
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+        result = await controlPanel.ReInvoke();
+        result.ShouldBe("ActivityResult");
+        syncedCounter.Current.ShouldBe(1);
+        
+        await controlPanel.Refresh();
+        var activities = await controlPanel.Activities;
+        await activities.Remove("Test");
+
+        await controlPanel.ReInvoke();
+
+        result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        result.ShouldBe("ActivityResult");
+        syncedCounter.Current.ShouldBe(2);
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ExistingActivityCanBeSetToFailed();
+    protected async Task ExistingActivityCanBeSetToFailed(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        var syncedCounter = new SyncedCounter();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rFunc = rFunctions.RegisterFunc(
+            functionTypeId,
+            Task<string> (string param, RScrapbook _, Context context) =>
+                context.Activity.Do("Test", () =>
+                {
+                    syncedCounter++;
+                    return "ActivityResult";
+                })
+        );
+
+        var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        result.ShouldBe("ActivityResult");
+        syncedCounter.Current.ShouldBe(1);
+
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+        var activities = await controlPanel.Activities;
+        await activities.SetFailed(activityId: "Test", new InvalidOperationException("oh no"));
+
+        await Should.ThrowAsync<PreviousFunctionInvocationException>(() => 
+            controlPanel.ReInvoke()
+        );
+
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
