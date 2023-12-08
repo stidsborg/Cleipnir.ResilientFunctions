@@ -19,4 +19,10 @@ public class SyncedCounter
         lock (_sync)
             return _current++;
     }
+
+    public static SyncedCounter operator ++(SyncedCounter counter)
+    {
+        counter.Increment();
+        return counter;
+    }
 }
