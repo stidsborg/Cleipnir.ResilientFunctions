@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Extensions.Work;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -128,52 +124,6 @@ public abstract class AtMostOnceWorkStatusAndResultTests
 
     private record Person(string Name, int Age);
     
-    public abstract Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource();
-    public async Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Task<IFunctionStore> functionStoreTask)
-    {
-        var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
-        var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        
-        var rAction = rFunctions.RegisterAction(
-            functionTypeId,
-            async Task(string param, Context context) =>
-            {
-                var es = context.EventSource;
-                await es
-                    .DoAtMostOnce(
-                        workId: "someId",
-                        work: () =>
-                        {
-                            counter.Increment();
-                            if (counter.Current != 0)
-                                throw new PostponeInvocationException(1);
-
-                            return "hello world".ToTask();
-                        }
-                    );
-            });
-
-        await rAction.Schedule(functionInstanceId.ToString(), "hello");
-
-        var controlPanel = await rAction.ControlPanel(functionInstanceId);
-        controlPanel.ShouldNotBeNull();
-        
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Failed;
-        });
-
-        var events = await controlPanel.Events;
-        events.ExistingCount.ShouldBe(1);
-        events.OfType<WorkStarted>().Single().WorkId.ShouldBe("someId");
-        
-        counter.Current.ShouldBe(1);
-    }
-    
     public abstract Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes();
     public async Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
@@ -270,50 +220,6 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         deserialized.Result.ShouldBe(new Person("Peter", 32));
     }
     
-    public abstract Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource();
-    public async Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Task<IFunctionStore> functionStoreTask)
-    {
-        var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
-        var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        
-        var rAction = rFunctions.RegisterAction(
-            functionTypeId,
-            async Task(string param, Context context) =>
-            {
-                var es = context.EventSource;
-                await es
-                    .DoAtMostOnce(
-                        workId: "someId",
-                        work: () => { counter.Increment(); return "hello world".ToTask(); }
-                    );
-            });
-
-        await rAction.Schedule(functionInstanceId.ToString(), "hello");
-        var controlPanel = await rAction.ControlPanel(functionInstanceId);
-        controlPanel.ShouldNotBeNull();
-
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
-        });
-
-        await controlPanel.ReInvoke();
-
-        counter.Current.ShouldBe(1);
-        await controlPanel.Refresh();
-
-        var events = await controlPanel.Events;
-        events.ExistingCount.ShouldBe(2);
-        events.OfType<WorkStarted>().Single().WorkId.ShouldBe("someId");
-        var completedWork = events.OfType<WorkWithResultCompleted<string>>().Single();
-        completedWork.WorkId.ShouldBe("someId");
-        completedWork.Result.ShouldBe("hello world");
-    }
-   
     public abstract Task ReferencingGetOnlyPropertyThrowsException();
     public async Task ReferencingGetOnlyPropertyThrowsException(Task<IFunctionStore> functionStoreTask)
     {

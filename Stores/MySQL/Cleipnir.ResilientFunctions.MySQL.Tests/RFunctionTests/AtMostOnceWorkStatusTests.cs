@@ -18,14 +18,6 @@ public class AtMostOnceWorkStatusTests : Cleipnir.ResilientFunctions.Tests.TestT
         => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()
         => ReferencingGetOnlyPropertyThrowsException(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
-        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(FunctionStoreFactory.Create());
 }

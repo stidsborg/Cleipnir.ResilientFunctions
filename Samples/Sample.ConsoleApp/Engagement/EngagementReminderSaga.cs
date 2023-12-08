@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Extensions.Work;
 
 namespace ConsoleApp.Engagement;
 
@@ -17,7 +14,7 @@ public static class EngagementReminderSaga
         var (candidateEmail, nextReminderTime) = startEngagement;
         var es = context.EventSource;
 
-        await es.DoAtLeastOnce(
+        await scrapbook.DoAtLeastOnce(
             workId: "InitialCorrespondence",
             SendEngagementInitialCorrespondence
         );

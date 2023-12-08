@@ -15,16 +15,8 @@ public class AtMostOnceWorkStatusTests : Cleipnir.ResilientFunctions.Tests.TestT
         => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource()
-        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
     public override Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
         => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
-        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task ReferencingGetOnlyPropertyThrowsException()

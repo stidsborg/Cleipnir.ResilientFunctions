@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Extensions.Work;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -137,56 +133,6 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     }
 
     private record Person(string Name, int Age);
-    
-    public abstract Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource();
-    public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompletedUsingEventSource(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
-        var counter = new SyncedCounter();
-
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        var rFunc = rFunctions.RegisterFunc(
-            functionTypeId,
-            async Task<string>(string param, Context context) =>
-            {
-                var es = context.EventSource;
-                return await es
-                    .DoAtLeastOnce(
-                        workId: "someId",
-                        work: () =>
-                        {
-                            counter.Increment();
-                            if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
-                            
-                            return "hello world".ToTask();
-                        }
-                    );
-            });
-
-        _ = rFunc.Schedule(functionInstanceId.ToString(), "hello");
-
-        await BusyWait.Until(async () => await store.GetFunction(functionId) != null);
-
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId.ToString());
-        controlPanel.ShouldNotBeNull();
-
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
-        });
-
-        counter.Current.ShouldBe(2);
-        var events = await controlPanel.Events;
-        events.ExistingCount.ShouldBe(1);
-        var workCompleted = events.OfType<WorkWithResultCompleted<string>>().Single();
-        workCompleted.WorkId.ShouldBe("someId");
-        
-        controlPanel.Result.ShouldBe("hello world");
-    }
 
     public abstract Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes();
     public async Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> storeTask)
@@ -246,42 +192,6 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var splitValue = value.Split(",");
         splitValue[0].ShouldBe(WorkStatus.Completed.ToString());
         splitValue[1].ShouldBe("hello world");
-        counter.Current.ShouldBe(1);
-    }
-    
-    public abstract Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource();
-    public async Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimesUsingEventSource(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
-        var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        
-        var rAction = rFunctions.RegisterAction(
-            functionTypeId,
-            async Task(string param, Context context) =>
-            {
-                var es = context.EventSource;
-                await es
-                    .DoAtLeastOnce(
-                        workId: "someId",
-                        work: () => { counter.Increment(); return "hello world".ToTask(); }
-                    );
-            });
-
-        await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        var controlPanel = await rAction.ControlPanel(functionInstanceId);
-        controlPanel.ShouldNotBeNull();
-        
-        await controlPanel.ReInvoke();
-        await controlPanel.Refresh();
-
-        var events = await controlPanel.Events;
-        events.ExistingCount.ShouldBe(1);
-        var workResult = events.OfType<WorkWithResultCompleted<string>>().Single();
-        workResult.WorkId.ShouldBe("someId");
-        workResult.Result.ShouldBe("hello world");
         counter.Current.ShouldBe(1);
     }
 
