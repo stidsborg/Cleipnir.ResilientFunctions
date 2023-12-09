@@ -143,6 +143,10 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ExistingActivityCanBeRemoved(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task ActivitiesAreUpdatedAfterRefresh()
+        => ActivitiesAreUpdatedAfterRefresh(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
     public override Task ExistingActivityCanBeSetToFailed()
         => ExistingActivityCanBeSetToFailed(Utils.CreateInMemoryFunctionStoreTask());
 

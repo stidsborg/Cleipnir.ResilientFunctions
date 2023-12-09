@@ -34,6 +34,7 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
             f.Param,
             f.Scrapbook,
             f.PostponedUntil,
+            await _invocationHelper.GetExistingActivities(functionId),
             f.PreviouslyThrownException
         );
     }
@@ -73,6 +74,7 @@ public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull w
             f.Scrapbook,
             f.Result,
             f.PostponedUntil,
+            await _invocationHelper.GetExistingActivities(functionId),
             f.PreviouslyThrownException
         );
     }

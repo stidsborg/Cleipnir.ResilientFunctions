@@ -24,6 +24,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         TParam param, 
         TScrapbook scrapbook, 
         DateTime? postponedUntil, 
+        ExistingActivities existingActivities,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -36,6 +37,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         _scrapbook = scrapbook;
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
+        Activities = existingActivities;
     }
 
     public FunctionId FunctionId { get; }
@@ -46,8 +48,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
 
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
-    private Task<ExistingActivities>? _activities;
-    public Task<ExistingActivities> Activities => _activities ??= _invocationHelper.GetExistingActivities(FunctionId); 
+    public ExistingActivities Activities { get; private set; } 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
     
     private TParam _param;
@@ -177,6 +178,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
         _events = null;
+        Activities = await _invocationHelper.GetExistingActivities(FunctionId);
     }
 
     public async Task WaitForCompletion(bool allowPostponeAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponeAndSuspended);
@@ -199,6 +201,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         TScrapbook scrapbook, 
         TReturn? result,
         DateTime? postponedUntil, 
+        ExistingActivities activities,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -212,6 +215,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         _scrapbook = scrapbook;
         Result = result;
         PostponedUntil = postponedUntil;
+        Activities = activities;
         PreviouslyThrownException = previouslyThrownException;
     }
 
@@ -223,8 +227,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     
     private Task<ExistingEvents>? _events;
     public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
-    private Task<ExistingActivities>? _activities;
-    public Task<ExistingActivities> Activities => _activities ??= _invocationHelper.GetExistingActivities(FunctionId); 
+    public ExistingActivities Activities { get; private set; } 
 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
 
@@ -359,6 +362,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
+        Activities = await _invocationHelper.GetExistingActivities(FunctionId);
 
         _changed = false;
         _events = null;

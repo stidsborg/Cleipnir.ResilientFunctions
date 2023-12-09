@@ -138,6 +138,10 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ExistingActivityCanBeReplaced(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ActivitiesAreUpdatedAfterRefresh()
+        => ActivitiesAreUpdatedAfterRefresh(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingActivityCanBeSetToFailed()
         => ExistingActivityCanBeSetToFailed(FunctionStoreFactory.Create());
 

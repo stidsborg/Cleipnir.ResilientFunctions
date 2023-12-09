@@ -181,7 +181,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = await controlPanel.Activities.SelectAsync(a => a.GetValue<string>("someId"));
+        var value = controlPanel.Activities.GetValue<string>("someId");
         value.ShouldBe("hello world");
     }
     
@@ -215,7 +215,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = await controlPanel.Activities.SelectAsync(a => a.GetValue<Person>("someId"));
+        var value = controlPanel.Activities.GetValue<Person>("someId");
         value.ShouldBe(new Person("Peter", 32));
     }
 }

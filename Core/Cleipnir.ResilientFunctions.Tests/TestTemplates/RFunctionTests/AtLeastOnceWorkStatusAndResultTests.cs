@@ -48,7 +48,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId);
-        controlPanel!.Activities.SelectAsync(a => a.GetValue<int>("id")).Result.ShouldBe(1);
+        controlPanel!.Activities.GetValue<int>("id").ShouldBe(1);
         counter.Current.ShouldBe(2);
     }
 
@@ -189,7 +189,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
 
-        var value = await controlPanel.Activities.SelectAsync(a => a.GetValue<string>("someId"));
+        var value = controlPanel.Activities.GetValue<string>("someId");
         value.ShouldBe("hello world");
         counter.Current.ShouldBe(1);
     }

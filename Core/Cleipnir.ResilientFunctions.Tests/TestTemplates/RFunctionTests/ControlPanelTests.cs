@@ -1071,7 +1071,7 @@ public abstract class ControlPanelTests
         result.ShouldBe("ActivityResult");
         
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var activities = await controlPanel.Activities;
+        var activities = controlPanel.Activities;
         await activities.SetSucceeded(activityId: "Test", result: "ReplacedResult");
 
         result = await controlPanel.ReInvoke();
@@ -1102,7 +1102,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var activities = await controlPanel.Activities;
+        var activities = controlPanel.Activities;
         await activities.SetStarted(activityId: "Test");
         
         runActivity = true;
@@ -1130,7 +1130,7 @@ public abstract class ControlPanelTests
         await Should.ThrowAsync<Exception>(rFunc.Invoke(functionInstanceId.Value, param: "param"));
         
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var activities = await controlPanel.Activities;
+        var activities = controlPanel.Activities;
         await activities.SetSucceeded(activityId: "Test");
         
         await controlPanel.ReInvoke();
@@ -1170,7 +1170,7 @@ public abstract class ControlPanelTests
         syncedCounter.Current.ShouldBe(1);
         
         await controlPanel.Refresh();
-        var activities = await controlPanel.Activities;
+        var activities = controlPanel.Activities;
         await activities.Remove("Test");
 
         await controlPanel.ReInvoke();
@@ -1179,6 +1179,37 @@ public abstract class ControlPanelTests
         result.ShouldBe("ActivityResult");
         syncedCounter.Current.ShouldBe(2);
 
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ActivitiesAreUpdatedAfterRefresh();
+    protected async Task ActivitiesAreUpdatedAfterRefresh(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rAction = rFunctions.RegisterAction(
+            functionTypeId,
+            (string _, Context _) => {}
+        );
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        
+        var firstControlPanel = await rAction.ControlPanel(functionInstanceId.Value);
+        firstControlPanel.ShouldNotBeNull();
+        
+        var secondControlPanel = await rAction.ControlPanel(functionInstanceId.Value);
+        secondControlPanel.ShouldNotBeNull();
+
+        await firstControlPanel.Activities.SetSucceeded("Id", "SomeResult");
+        
+        secondControlPanel.Activities.HasValue("Id").ShouldBe(false);
+        await secondControlPanel.Refresh();
+        secondControlPanel.Activities.GetValue<string>("Id").ShouldBe("SomeResult");
+        
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
@@ -1209,7 +1240,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
         controlPanel.ShouldNotBeNull();
-        var activities = await controlPanel.Activities;
+        var activities = controlPanel.Activities;
         await activities.SetFailed(activityId: "Test", new InvalidOperationException("oh no"));
 
         await Should.ThrowAsync<PreviousFunctionInvocationException>(() => 
