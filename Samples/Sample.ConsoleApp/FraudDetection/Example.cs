@@ -20,7 +20,7 @@ public static class Example
         );
 
         var rFunc = functions
-            .RegisterFunc<Transaction, RScrapbook, bool>(
+            .RegisterFunc<Transaction, bool>(
                 "FraudDetection",
                 Saga.StartFraudDetection
             ).Invoke;
@@ -55,7 +55,7 @@ public static class Example
         );
 
         var registration = functions
-            .RegisterFunc<Transaction, RScrapbook, bool>(
+            .RegisterFunc<Transaction, bool>(
                 "FraudDetection",
                 Saga.StartFraudDetection
             );

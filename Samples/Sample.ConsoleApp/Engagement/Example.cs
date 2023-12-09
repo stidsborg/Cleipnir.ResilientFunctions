@@ -19,12 +19,10 @@ public static class Example
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
 
-        var rAction = functions
-            .RegisterAction(
-             "EngagementSaga",
-             (StartCustomerEngagement startCustomerEngagement, RScrapbook scrapbook, Context context) 
-                 => EngagementReminderSaga.Start(startCustomerEngagement, scrapbook, context)
-            );
+        var rAction = functions.RegisterAction<StartCustomerEngagement>(
+            "EngagementSaga",
+            EngagementReminderSaga.Start
+        );
 
         const string customerEmail = "peter@gmail.com";
         await rAction.Schedule(

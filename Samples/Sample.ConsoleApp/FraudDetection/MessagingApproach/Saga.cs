@@ -9,7 +9,7 @@ namespace ConsoleApp.FraudDetection.MessagingApproach;
 
 public static class Saga
 {
-    public static async Task StartFraudDetection(Transaction transaction, RScrapbook scrapbook, Context context)
+    public static async Task StartFraudDetection(Transaction transaction, Context context)
     {
         var eventSource = context.EventSource;
         await MessageBroker.Send(new ApproveTransaction(transaction));

@@ -16,7 +16,7 @@ public static class Saga
             .OfType<CreditCheckOutcome>()
             .Take(3)
             .TakeUntilTimeout("TimeoutId", expiresAt: loanApplication.Created.AddMinutes(15))
-            .Completion();
+            .SuspendUntilCompletion();
 
         if (outcomes.Count < 2)
             await MessageBroker.Send(new LoanApplicationRejected(loanApplication));

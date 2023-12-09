@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
@@ -9,7 +8,7 @@ namespace ConsoleApp.Engagement;
 
 public static class EngagementReminderSaga
 {
-    public static async Task Start(StartCustomerEngagement startEngagement, RScrapbook scrapbook, Context context)
+    public static async Task Start(StartCustomerEngagement startEngagement, Context context)
     {
         var (candidateEmail, nextReminderTime) = startEngagement;
         var es = context.EventSource;
