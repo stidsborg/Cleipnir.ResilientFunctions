@@ -25,16 +25,16 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workStatus: s => s.WorkStatus,
+                await context.Activity
+                    .Do(
+                        "id",
                         work: () =>
                         {
                             counter.Increment();
                             throw new PostponeInvocationException(1);
-                        }
+                        }, ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -59,11 +59,11 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workId: "someId",
+                await context.Activity
+                    .Do(
+                        "someId",
                         work: () =>
                         {
                             counter.Increment();
@@ -71,7 +71,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                                 throw new PostponeInvocationException(1);
 
                             return "hello world".ToTask();
-                        }
+                        }, ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -96,11 +96,11 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workId: "someId",
+                await context.Activity
+                    .Do(
+                        "someId",
                         work: () =>
                         {
                             counter.Increment();
@@ -108,7 +108,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                                 throw new PostponeInvocationException(1);
 
                             return new Person("Peter", 32).ToTask();
-                        }
+                        }, ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -135,12 +135,13 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workStatus: s => s.WorkStatus,
-                        work: () => { counter.Increment(); return 1.ToTask(); }
+                await context.Activity
+                    .Do(
+                        "id",
+                        work: () => { counter.Increment(); return 1.ToTask(); }, 
+                        ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -161,12 +162,13 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workId: "someId",
-                        work: () => { counter.Increment(); return "hello world".ToTask(); }
+                await context.Activity
+                    .Do(
+                        "someId",
+                        work: () => { counter.Increment(); return "hello world".ToTask(); }, 
+                        ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -179,10 +181,8 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = controlPanel.Scrapbook.StateDictionary["someId"];
-        var splitValue = value.Split(",");
-        splitValue[0].ShouldBe(WorkStatus.Completed.ToString());
-        splitValue[1].ShouldBe("hello world");
+        var value = await controlPanel.Activities.SelectAsync(a => a.GetValue<string>("someId"));
+        value.ShouldBe("hello world");
     }
     
     public abstract Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes();
@@ -196,12 +196,13 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workId: "someId",
-                        work: () => { counter.Increment(); return new Person("Peter", 32).ToTask(); }
+                await context.Activity
+                    .Do(
+                        "someId",
+                        work: () => { counter.Increment(); return new Person("Peter", 32).ToTask(); }, 
+                        ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -214,31 +215,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = controlPanel.Scrapbook.StateDictionary["someId"];
-        var deserialized = JsonSerializer.Deserialize<Work<Person>>(value);
-        deserialized.Status.ShouldBe(WorkStatus.Completed);
-        deserialized.Result.ShouldBe(new Person("Peter", 32));
-    }
-    
-    public abstract Task ReferencingGetOnlyPropertyThrowsException();
-    public async Task ReferencingGetOnlyPropertyThrowsException(Task<IFunctionStore> functionStoreTask)
-    {
-        var scrapbook = new ScrapbookGetterOnly();
-        await Should.ThrowAsync<ArgumentException>(() => 
-            scrapbook.DoAtMostOnce(
-                workStatus: s => s.WorkStatus,
-                work: () => 1.ToTask()
-            )
-        );
-    }
-
-    private class Scrapbook : RScrapbook
-    {
-        public Work<int> WorkStatus { get; set; }
-    }
-    
-    private class ScrapbookGetterOnly : RScrapbook
-    {
-        public Work<int> WorkStatus { get; } = new();
+        var value = await controlPanel.Activities.SelectAsync(a => a.GetValue<Person>("someId"));
+        value.ShouldBe(new Person("Peter", 32));
     }
 }

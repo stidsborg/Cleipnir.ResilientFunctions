@@ -35,12 +35,12 @@ public sealed class TransferSagaV1
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             
-            var deductTask = scrapbook.DoAtMostOnce(
+            var deductTask = context.Activity.Do(
                 "DeductAmount",
                 () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
             );
             
-            var addTask = scrapbook.DoAtMostOnce(
+            var addTask = context.Activity.Do(
                 "AddAmount",
                 () => BankCentralClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
             );

@@ -22,7 +22,7 @@ public static class Saga
 
         var approved = results.Count >= 2 && results.All(result => result.Approved);
 
-        await scrapbook.DoAtMostOnce(
+        await context.Activity.Do(
             "PublishTransactionApproval",
             () => MessageBroker.Send(approved
                 ? new TransactionApproved(transaction)

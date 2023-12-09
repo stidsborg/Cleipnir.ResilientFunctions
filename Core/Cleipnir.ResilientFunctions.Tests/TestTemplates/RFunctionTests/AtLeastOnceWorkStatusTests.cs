@@ -24,11 +24,11 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workStatus: s => s.WorkStatus,
+                await context.Activity
+                    .Do(
+                        "Id",
                         work: () =>
                         {
                             counter.Increment();
@@ -60,11 +60,11 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workId: "someId",
+                await context.Activity
+                    .Do(
+                        "someId",
                         work: () =>
                         {
                             counter.Increment();
@@ -96,11 +96,11 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workStatus: s => s.WorkStatus,
+                await context.Activity
+                    .Do(
+                        "Id",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
 
@@ -121,11 +121,11 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workId: "someId",
+                await context.Activity
+                    .Do(
+                        "someId",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
 
@@ -133,27 +133,5 @@ public abstract class AtLeastOnceWorkStatusTests
         await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
-    }
-    
-    public abstract Task ReferencingGetOnlyPropertyThrowsException();
-    public async Task ReferencingGetOnlyPropertyThrowsException(Task<IFunctionStore> functionStoreTask)
-    {
-        var scrapbook = new ScrapbookGetterOnly();
-        await Should.ThrowAsync<ArgumentException>(() => 
-            scrapbook.DoAtMostOnce(
-                workStatus: s => s.WorkStatus,
-                work: () => Task.CompletedTask
-            )
-        );
-    }
-
-    private class Scrapbook : RScrapbook
-    {
-        public WorkStatus WorkStatus { get; set; }
-    }
-    
-    private class ScrapbookGetterOnly : RScrapbook
-    {
-        public WorkStatus WorkStatus { get; } = WorkStatus.NotStarted;
     }
 }

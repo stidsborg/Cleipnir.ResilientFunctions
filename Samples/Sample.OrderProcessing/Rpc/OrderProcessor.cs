@@ -23,8 +23,8 @@ public class OrderProcessor
 
         await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
 
-        var trackAndTrace = await scrapbook.DoAtMostOnce(
-            workStatus: s => s.ProductsShippedStatus,
+        var trackAndTrace = await context.Activity.Do(
+            "ShipProducts",
             work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
         );
 

@@ -4,7 +4,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -24,16 +23,16 @@ public abstract class AtMostOnceWorkStatusTests
 
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workStatus: s => s.WorkStatus,
+                await context.Activity
+                    .Do(
+                        "Id",
                         work: () =>
                         {
                             counter.Increment();
                             throw new PostponeInvocationException(1);
-                        }
+                        }, ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -58,16 +57,16 @@ public abstract class AtMostOnceWorkStatusTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workId: "someId",
+                await context.Activity
+                    .Do(
+                        "someId",
                         work: () =>
                         {
                             counter.Increment();
                             throw new PostponeInvocationException(1);
-                        }
+                        }, ResiliencyLevel.AtMostOnce
                     );
             });
 
@@ -92,39 +91,22 @@ public abstract class AtMostOnceWorkStatusTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtMostOnce(
-                        workStatus: s => s.WorkStatus,
-                        work: () => { counter.Increment(); return Task.CompletedTask; });
+                await context.Activity
+                    .Do(
+                        id: "id",
+                        work: () =>
+                        {
+                            counter.Increment();
+                            return Task.CompletedTask;
+                        }, ResiliencyLevel.AtMostOnce
+                    );
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
         await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
 
         counter.Current.ShouldBe(1);
-    }
-    
-    public abstract Task ReferencingGetOnlyPropertyThrowsException();
-    public async Task ReferencingGetOnlyPropertyThrowsException(Task<IFunctionStore> functionStoreTask)
-    {
-        var scrapbook = new ScrapbookGetterOnly();
-        await Should.ThrowAsync<ArgumentException>(() => 
-            scrapbook.DoAtMostOnce(
-                workStatus: s => s.WorkStatus,
-                work: () => Task.CompletedTask
-            )
-        );
-    }
-
-    private class Scrapbook : RScrapbook
-    {
-        public WorkStatus WorkStatus { get; set; }
-    }
-    
-    private class ScrapbookGetterOnly : RScrapbook
-    {
-        public WorkStatus WorkStatus { get; } = WorkStatus.NotStarted;
     }
 }

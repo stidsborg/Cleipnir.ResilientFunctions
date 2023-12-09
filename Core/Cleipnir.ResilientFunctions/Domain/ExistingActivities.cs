@@ -23,6 +23,22 @@ public class ExistingActivities
 
     public IReadOnlyDictionary<string, StoredActivity> All => _storedActivities;
 
+    public bool HasValue(string id) => _storedActivities.ContainsKey(id);
+    public TResult? GetValue<TResult>(string id)
+    {
+        var success = _storedActivities.TryGetValue(id, out var storedActivity);
+        if (!success)
+            throw new KeyNotFoundException($"Activity '{id}' was not found in existing activities");
+        if (storedActivity!.WorkStatus != WorkStatus.Completed)
+            throw new InvalidOperationException($"Activity '{id}' has not completed (but has status '{storedActivity.WorkStatus}')");
+
+        return storedActivity.Result == null 
+            ? default 
+            : _serializer.DeserializeActivityResult<TResult>(_storedActivities[id].Result!);
+    } 
+        
+            
+    
     public async Task Remove(string id)
     {
         await _activityStore.DeleteActivityResult(_functionId, id);

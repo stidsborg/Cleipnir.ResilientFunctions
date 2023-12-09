@@ -24,11 +24,11 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workStatus: s => s.WorkStatus,
+                await context.Activity
+                    .Do(
+                        "id",
                         work: () =>
                         {
                             counter.Increment();
@@ -48,7 +48,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId);
-        controlPanel!.Scrapbook.WorkStatus.Result.ShouldBe(1);
+        controlPanel!.Activities.SelectAsync(a => a.GetValue<int>("id")).Result.ShouldBe(1);
         counter.Current.ShouldBe(2);
     }
 
@@ -63,11 +63,11 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
-            async Task<string>(string param, Scrapbook scrapbook) =>
+            async Task<string>(string param, Context context) =>
             {
-                return await scrapbook
-                    .DoAtLeastOnce(
-                        workId: "someId",
+                return await context.Activity
+                    .Do(
+                        "someId",
                         work: () =>
                         {
                             counter.Increment();
@@ -103,11 +103,11 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
-            async Task<Person>(string param, Scrapbook scrapbook) =>
+            async Task<Person>(string param, Context context) =>
             {
-                return await scrapbook
-                    .DoAtLeastOnce(
-                        workId: "someId",
+                return await context.Activity
+                    .Do(
+                        "someId",
                         work: () =>
                         {
                             counter.Increment();
@@ -146,12 +146,13 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workStatus: s => s.WorkStatus,
-                        work: () => { counter.Increment(); return 1.ToTask(); });
+                await context.Activity
+                    .Do(
+                        "id",
+                        work: () => { counter.Increment(); return 1.ToTask(); }
+                    );
             });
 
         await rAction.Invoke(functionInstanceId.ToString(), "hello");
@@ -172,11 +173,11 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rAction = rFunctions.RegisterAction(
             functionTypeId,
-            async Task(string param, Scrapbook scrapbook) =>
+            async Task(string param, Context context) =>
             {
-                await scrapbook
-                    .DoAtLeastOnce(
-                        workId: "someId",
+                await context.Activity
+                    .Do(
+                        "someId",
                         work: () => { counter.Increment(); return "hello world".ToTask(); }
                     );
             });
@@ -188,32 +189,8 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
 
-        var value = controlPanel.Scrapbook.StateDictionary["someId"];
-        var splitValue = value.Split(",");
-        splitValue[0].ShouldBe(WorkStatus.Completed.ToString());
-        splitValue[1].ShouldBe("hello world");
+        var value = await controlPanel.Activities.SelectAsync(a => a.GetValue<string>("someId"));
+        value.ShouldBe("hello world");
         counter.Current.ShouldBe(1);
-    }
-
-    public abstract Task ReferencingGetOnlyPropertyThrowsException();
-    public async Task ReferencingGetOnlyPropertyThrowsException(Task<IFunctionStore> storeTask)
-    {
-        var scrapbook = new ScrapbookGetterOnly();
-        await Should.ThrowAsync<ArgumentException>(() => 
-            scrapbook.DoAtMostOnce(
-                workStatus: s => s.WorkStatus,
-                work: () => 1.ToTask()
-            )
-        );
-    }
-
-    private class Scrapbook : RScrapbook
-    {
-        public Work<int> WorkStatus { get; set; }
-    }
-    
-    private class ScrapbookGetterOnly : RScrapbook
-    {
-        public Work<int> WorkStatus { get; } = new();
     }
 }

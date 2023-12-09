@@ -32,15 +32,16 @@ public sealed class TransferSagaV2
         public async Task Perform(Transfer transfer, RScrapbook scrapbook, Context context)
         {
             var arbitrator = context.Utilities.Arbitrator;
+            var (activity, eventSource) = context;
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             
-            var deductTask = scrapbook.DoAtMostOnce(
+            var deductTask = activity.Do(
                 "DeductAmount",
                 () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
             );
             
-            var addTask = scrapbook.DoAtMostOnce(
+            var addTask = activity.Do(
                 "AddAmount",
                 () => BankCentralClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
             );

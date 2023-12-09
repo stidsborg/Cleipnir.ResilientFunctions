@@ -65,6 +65,14 @@ public class Activity
         {
             await work();
         }
+        catch (PostponeInvocationException)
+        {
+            throw;
+        }
+        catch (SuspendInvocationException)
+        {
+            throw;
+        }
         catch (Exception exception)
         {
             var storedException = _serializer.SerializeException(exception);
@@ -110,6 +118,14 @@ public class Activity
         try
         {
             result = await work();
+        }
+        catch (PostponeInvocationException)
+        {
+            throw;
+        }
+        catch (SuspendInvocationException)
+        {
+            throw;
         }
         catch (Exception exception)
         {

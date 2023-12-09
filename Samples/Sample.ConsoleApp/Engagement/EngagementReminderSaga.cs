@@ -14,8 +14,8 @@ public static class EngagementReminderSaga
         var (candidateEmail, nextReminderTime) = startEngagement;
         var es = context.EventSource;
 
-        await scrapbook.DoAtLeastOnce(
-            workId: "InitialCorrespondence",
+        await context.Activity.Do(
+            "InitialCorrespondence",
             SendEngagementInitialCorrespondence
         );
         
@@ -39,7 +39,7 @@ public static class EngagementReminderSaga
             // if accepted notify hr and complete the flow
             if (either.Match(ea => true, er => false))
             {
-                await scrapbook.DoAtLeastOnce(workId: "NotifyHR", work: () => NotifyHR(candidateEmail));
+                await context.Activity.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
                 await es.CancelTimeoutEvent(timeoutId: i.ToString());
                 
                 return;

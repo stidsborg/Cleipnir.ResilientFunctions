@@ -15,7 +15,7 @@ public class Saga
         var agents = request.CustomerSupportAgents.Length;
         for (var i = 0; ; i++)
         {
-            await scrapbook.DoAtLeastOnce("SendTakeSupportTicketRequest", async () =>
+            await context.Activity.Do("SendTakeSupportTicketRequest", async () =>
             {
                 var customerSupportAgentEmail = request.CustomerSupportAgents[i % agents];
                 await MessageBroker.Send(

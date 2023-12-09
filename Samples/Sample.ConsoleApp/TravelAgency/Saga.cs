@@ -13,8 +13,8 @@ public static class Saga
         var eventSource = context.EventSource;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
-        await scrapbook.DoAtMostOnce(
-            workId: "SendRequests", 
+        await context.Activity.Do(
+            "SendRequests", 
             async () =>
             {
                 await MessageBroker.Send(new BookFlight(bookingId, customerId, details));
