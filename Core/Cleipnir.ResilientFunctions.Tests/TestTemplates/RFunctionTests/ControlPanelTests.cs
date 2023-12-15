@@ -7,7 +7,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -754,7 +753,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = await controlPanel.Events;
+        var existingEvents = controlPanel.Events;
         existingEvents.Count().ShouldBe(1);
         existingEvents[0].ShouldBe("param");
         existingEvents[0] = "hello";
@@ -799,7 +798,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        var existingEvents = await controlPanel.Events;
+        var existingEvents = controlPanel.Events;
         existingEvents.Count().ShouldBe(2);
         existingEvents.Clear();
         existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello to you", "1"));
@@ -810,7 +809,7 @@ public abstract class ControlPanelTests
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
         
-        (await controlPanel.Events).Count().ShouldBe(2);
+        controlPanel.Events.Count().ShouldBe(2);
         
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
@@ -857,7 +856,7 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
 
-        var events = (await controlPanel.Events).EventsWithIdempotencyKeys;
+        var events = controlPanel.Events.EventsWithIdempotencyKeys;
         events.Count.ShouldBe(2);
         events[0].Event.ShouldBe("hello world");
         events[0].IdempotencyKey.ShouldBe("1");
@@ -886,7 +885,7 @@ public abstract class ControlPanelTests
         await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = await controlPanel.Events;
+        var existingEvents = controlPanel.Events;
         existingEvents.Count().ShouldBe(1);
 
         await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
@@ -930,7 +929,7 @@ public abstract class ControlPanelTests
         controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
-        var events = await controlPanel.Events;
+        var events = controlPanel.Events;
         events.Count().ShouldBe(2);
         events[0].ShouldBe("hello world");
         events[1].ShouldBe("hello universe");
@@ -957,7 +956,7 @@ public abstract class ControlPanelTests
         await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = await controlPanel.Events;
+        var existingEvents = controlPanel.Events;
         existingEvents.Count().ShouldBe(1);
 
         await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
@@ -1001,7 +1000,7 @@ public abstract class ControlPanelTests
         controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
-        var events = await controlPanel.Events;
+        var events = controlPanel.Events;
         events.Count().ShouldBe(2);
         events[0].ShouldBe("hello world");
         events[1].ShouldBe("hello universe");
@@ -1031,7 +1030,7 @@ public abstract class ControlPanelTests
         );
         
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = await controlPanel.Events;
+        var existingEvents = controlPanel.Events;
         var (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();
         @event.ShouldBe("hello world");
         idempotencyKey.ShouldBe("first");
@@ -1043,7 +1042,7 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
 
-        existingEvents = await controlPanel.Events;
+        existingEvents = controlPanel.Events;
         (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();
         @event.ShouldBe("hello universe");
         idempotencyKey.ShouldBe("second");

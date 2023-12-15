@@ -336,7 +336,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         TReturn? result,
         DateTime? postponeUntil,
         Exception? exception,
-        ExistingEvents? existingEvents,
         int expectedEpoch
     )
     {

@@ -20,22 +20,23 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
     public async Task<ControlPanel<TParam, TScrapbook>?> For(FunctionInstanceId functionInstanceId)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        var f = await _invocationHelper.GetFunction(functionId);
-        if (f == null)
+        var functionState = await _invocationHelper.GetFunction(functionId);
+        if (functionState == null)
             return null;
         
         return new ControlPanel<TParam, TScrapbook>(
             _invoker,
             _invocationHelper,
             functionId,
-            f.Status,
-            f.Epoch,
-            f.LeaseExpiration,
-            f.Param,
-            f.Scrapbook,
-            f.PostponedUntil,
+            functionState.Status,
+            functionState.Epoch,
+            functionState.LeaseExpiration,
+            functionState.Param,
+            functionState.Scrapbook,
+            functionState.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
-            f.PreviouslyThrownException
+            await _invocationHelper.GetExistingEvents(functionId),
+            functionState.PreviouslyThrownException
         );
     }
 }
@@ -75,6 +76,7 @@ public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull w
             f.Result,
             f.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
+            await _invocationHelper.GetExistingEvents(functionId),
             f.PreviouslyThrownException
         );
     }

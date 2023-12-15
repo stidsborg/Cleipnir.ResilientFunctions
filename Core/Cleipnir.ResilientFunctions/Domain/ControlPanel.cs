@@ -25,6 +25,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         TScrapbook scrapbook, 
         DateTime? postponedUntil, 
         ExistingActivities existingActivities,
+        ExistingEvents existingEvents,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -38,6 +39,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
         Activities = existingActivities;
+        Events = existingEvents;
     }
 
     public FunctionId FunctionId { get; }
@@ -45,9 +47,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     
     public int Epoch { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
-
-    private Task<ExistingEvents>? _events;
-    public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
+    public ExistingEvents Events { get; private set; }
     public ExistingActivities Activities { get; private set; } 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
     
@@ -96,7 +96,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         
         Epoch++;
         _changed = false;
-        _events = null;
     }
     
     public async Task Postpone(DateTime until)
@@ -113,7 +112,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Status = Status.Postponed;
         PostponedUntil = until;
         _changed = false;
-        _events = null;
     }
 
     public Task Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
@@ -132,7 +130,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Status = Status.Failed;
         PreviouslyThrownException = new PreviouslyThrownException(exception.Message, exception.StackTrace, exception.GetType());
         _changed = false;
-        _events = null;
     }
     
     public async Task SaveChanges()
@@ -143,7 +140,6 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         
         Epoch++;
         _changed = false;
-        _events = null;
     }
 
     public Task Delete() => _invocationHelper.Delete(FunctionId, Epoch);
@@ -177,7 +173,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
-        _events = null;
+        Events = await _invocationHelper.GetExistingEvents(FunctionId);
         Activities = await _invocationHelper.GetExistingActivities(FunctionId);
     }
 
@@ -202,6 +198,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         TReturn? result,
         DateTime? postponedUntil, 
         ExistingActivities activities,
+        ExistingEvents events,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -216,6 +213,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Result = result;
         PostponedUntil = postponedUntil;
         Activities = activities;
+        Events = events;
         PreviouslyThrownException = previouslyThrownException;
     }
 
@@ -225,8 +223,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public int Epoch { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
     
-    private Task<ExistingEvents>? _events;
-    public Task<ExistingEvents> Events => _events ??= _invocationHelper.GetExistingEvents(FunctionId);
+    public ExistingEvents Events { get; private set; }
     public ExistingActivities Activities { get; private set; } 
 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
@@ -268,8 +265,10 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public async Task Succeed(TReturn result)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, Scrapbook, result, PostponedUntil, exception: null, 
-            existingEvents: _events == null ? null : await _events, 
+            FunctionId, Status.Succeeded, 
+            Param, Scrapbook, 
+            result, 
+            PostponedUntil, exception: null, 
             Epoch
         );
 
@@ -279,14 +278,15 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Epoch++;
         Status = Status.Succeeded;
         _changed = false;
-        _events = null;
     }
     
     public async Task Postpone(DateTime until)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, Scrapbook, result: default, until, exception: null, 
-            existingEvents: _events == null ? null : await _events,
+            FunctionId, Status.Postponed, 
+            Param, Scrapbook, 
+            result: default, until, 
+            exception: null, 
             Epoch
         );
 
@@ -297,7 +297,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Status = Status.Postponed;
         PostponedUntil = until;
         _changed = false;
-        _events = null;
     }
         
     public Task Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
@@ -305,8 +304,9 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public async Task Fail(Exception exception)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, Scrapbook, result: default, postponeUntil: null, exception, 
-            existingEvents: _events == null ? null : await _events,
+            FunctionId, Status.Failed, 
+            Param, Scrapbook, 
+            result: default, postponeUntil: null, exception, 
             Epoch
         );
 
@@ -317,7 +317,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Status = Status.Failed;
         PreviouslyThrownException = new PreviouslyThrownException(exception.Message, exception.StackTrace, exception.GetType());
         _changed = false;
-        _events = null;
     }
 
     public async Task SaveChanges()
@@ -328,7 +327,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         
         Epoch++;
         _changed = false;
-        _events = null;
     }
     
     public Task Delete() => _invocationHelper.Delete(FunctionId, Epoch);
@@ -365,7 +363,6 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Activities = await _invocationHelper.GetExistingActivities(FunctionId);
 
         _changed = false;
-        _events = null;
     }
     
     public async Task<TReturn> WaitForCompletion(bool allowPostponeAndSuspended = false) 
