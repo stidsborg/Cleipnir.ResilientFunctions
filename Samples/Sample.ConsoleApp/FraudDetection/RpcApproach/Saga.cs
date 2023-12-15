@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
+using ConsoleApp.Utils;
 
 namespace ConsoleApp.FraudDetection.RpcApproach;
 
@@ -14,20 +14,13 @@ public static class Saga
     
     public static async Task<bool> StartFraudDetection(Transaction transaction, Context context)
     {
-        var fraudDetector1 = FraudDetector1.Approve(transaction);
-        var fraudDetector2 = FraudDetector2.Approve(transaction);
-        var fraudDetector3 = FraudDetector3.Approve(transaction);
-        var timeout = Task.Delay(TimeSpan.FromSeconds(2));
+        var fraudDetector1 = FraudDetector1.Approve(transaction, timeout: TimeSpan.FromSeconds(5));
+        var fraudDetector2 = FraudDetector2.Approve(transaction, timeout: TimeSpan.FromSeconds(5));
+        var fraudDetector3 = FraudDetector3.Approve(transaction, timeout: TimeSpan.FromSeconds(5));
 
-        var resultsOrTimeouts = await Task.WhenAll(
-            Task.WhenAny(fraudDetector1, timeout),
-            Task.WhenAny(fraudDetector2, timeout),
-            Task.WhenAny(fraudDetector3, timeout)
-        );
+        var tasks = new[] { fraudDetector1, fraudDetector2, fraudDetector3 };
+        await Safe.Try(() => Task.WhenAll(tasks));
 
-        var results = resultsOrTimeouts.Where(t => t is Task<bool>).Cast<Task<bool>>();
-
-        var approvals = results.Select(t => t.Result).ToList();
-        return approvals.Count >= 2 && approvals.All(approved => approved);
+        return tasks.Count(t => t is { IsCompletedSuccessfully: true, Result: true }) >= 2;
     }
 }
