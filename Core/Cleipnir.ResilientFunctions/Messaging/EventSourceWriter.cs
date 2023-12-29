@@ -16,7 +16,6 @@ public class EventSourceWriter
     private readonly IEventStore _eventStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
-    private static Status[] SuspendedOrPostponed { get; } = { Status.Suspended, Status.Postponed }; 
 
     public EventSourceWriter(FunctionId functionId, IFunctionStore functionStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
     {
@@ -43,11 +42,7 @@ public class EventSourceWriter
 
         var (status, epoch) = statusAndEpoch;
         if (status == Status.Suspended || status == Status.Postponed)
-            await _scheduleReInvocation(
-                _functionId.InstanceId.Value,
-                expectedEpoch: epoch,
-                expectedStatuses: SuspendedOrPostponed
-            );
+            await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     }
 
     public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
@@ -63,11 +58,7 @@ public class EventSourceWriter
         );
 
         if (status is Status.Suspended or Status.Postponed)
-            await _scheduleReInvocation(
-                _functionId.InstanceId.Value,
-                expectedEpoch: epoch,
-                expectedStatuses: SuspendedOrPostponed
-            );
+            await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     } 
 
     public Task Truncate() => _eventStore.Truncate(_functionId);

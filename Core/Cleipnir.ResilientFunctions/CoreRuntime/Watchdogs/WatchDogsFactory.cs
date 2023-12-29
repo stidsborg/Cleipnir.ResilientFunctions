@@ -41,7 +41,7 @@ internal static class WatchDogsFactory
             functionTypeId,
             functionStore,
             settings.Serializer,
-            scheduleReInvocation: (id, epoch, status) => reInvoke(id, epoch, status)
+            scheduleReInvocation: (id, epoch) => reInvoke(id, epoch)
         );
         var timeoutWatchdog = new TimeoutWatchdog(
             functionTypeId,

@@ -85,7 +85,7 @@ internal class CrashedWatchdog
         if (_shutdownCoordinator.ShutdownInitiated || sef.LeaseExpiration > DateTime.UtcNow.Ticks) return;
         try
         {
-            await _reInvoke(sef.InstanceId, expectedEpoch: sef.Epoch, expectedStatuses: Status.Executing);
+            await _reInvoke(sef.InstanceId, expectedEpoch: sef.Epoch);
         }
         catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it

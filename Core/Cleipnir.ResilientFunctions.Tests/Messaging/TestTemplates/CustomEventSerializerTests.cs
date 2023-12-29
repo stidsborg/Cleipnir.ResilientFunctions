@@ -27,7 +27,7 @@ public abstract class CustomEventSerializerTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var eventSerializer = new EventSerializer();
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _, _) => Task.CompletedTask);
+        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var eventSource = new EventSource(
             functionId,
             initialEvents: null,

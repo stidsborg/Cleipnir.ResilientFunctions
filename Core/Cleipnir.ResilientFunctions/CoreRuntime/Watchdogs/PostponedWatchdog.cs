@@ -90,7 +90,7 @@ internal class PostponedWatchdog
             var success = await _functionStore.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: spf.Epoch); //cheap change-detection before performing re-invocation
             if (!success) return;
             
-            await _reInvoke(spf.InstanceId, expectedEpoch: spf.Epoch + 1, expectedStatuses: Status.Postponed);
+            await _reInvoke(spf.InstanceId, expectedEpoch: spf.Epoch + 1);
         }
         catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it

@@ -122,53 +122,11 @@ public class Invoker<TParam, TScrapbook, TReturn>
         await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch);
         return result.SucceedWithValue!;
     }
-    
-    public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch, params Status[] expectedStatuses)
-    {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
-        using var _ = disposables;
-
-        Result<TReturn> result;
-        try
-        {
-            // *** USER FUNCTION INVOCATION *** 
-            result = await inner(param, scrapbook, context);
-        }
-        catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
-
-        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch);
-        return result.SucceedWithValue!;
-    }
 
     public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                Result<TReturn> result;
-                try
-                {
-                    // *** USER FUNCTION INVOCATION *** 
-                    result = await inner(param, scrapbook, context);
-                }
-                catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
-
-                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch, allowPostponedOrSuspended: true);
-            }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally{ disposables.Dispose(); }
-        });
-    }
-    
-    public async Task ScheduleReInvoke(string instanceId, int expectedEpoch, params Status[] expectedStatuses)
-    {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
 
         _ = Task.Run(async () =>
         {
