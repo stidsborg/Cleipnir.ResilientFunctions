@@ -14,12 +14,7 @@ namespace Cleipnir.ResilientFunctions;
 
 public class RFunctions : IDisposable
 {
-    private delegate Task ReInvokeResilientFunction(string functionInstanceId, int expectedEpoch);
-    private delegate Task ScheduleResilientFunctionReInvocation(string functionInstanceId, int expectedEpoch);
-    
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
-    private readonly Dictionary<FunctionTypeId, ReInvokeResilientFunction> _reInvokes = new();
-    private readonly Dictionary<FunctionTypeId, ScheduleResilientFunctionReInvocation> _scheduleReInvocations = new();
 
     private readonly IFunctionStore _functionStore;
     private readonly IEventStore _eventStore;
@@ -401,8 +396,6 @@ public class RFunctions : IDisposable
                 new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
-            _reInvokes[functionTypeId] = (id, epoch) => rFuncInvoker.ReInvoke(id, epoch);
-            _scheduleReInvocations[functionTypeId] = (id, epoch) => rFuncInvoker.ScheduleReInvoke(id, epoch);
             
             return registration;
         }
@@ -555,38 +548,9 @@ public class RFunctions : IDisposable
                 new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
-            _reInvokes[functionTypeId] = (id, epoch) => rActionInvoker.ReInvoke(id, epoch);
-            _scheduleReInvocations[functionTypeId] = (id, epoch) => rActionInvoker.ScheduleReInvoke(id, epoch);
+            
             return registration;
         }
-    }
-
-    public Task ReInvoke(string functionTypeId, string functionInstanceId, int expectedEpoch)
-    {
-        ReInvokeResilientFunction reInvoke;
-        lock (_sync)
-        {
-            if (!_reInvokes.ContainsKey(functionTypeId)) 
-                throw new InvalidOperationException($"FunctionType '{functionTypeId}' has not been registered");
-
-            reInvoke = _reInvokes[functionTypeId];
-        }
-
-        return reInvoke(functionInstanceId, expectedEpoch);
-    }
-
-    public Task ScheduleReInvoke(string functionTypeId, string functionInstanceId, int expectedEpoch)
-    {
-        ScheduleResilientFunctionReInvocation scheduleReInvocation;
-        lock (_sync)
-        {
-            if (!_scheduleReInvocations.ContainsKey(functionTypeId)) 
-                throw new InvalidOperationException($"FunctionType '{functionTypeId}' has not been registered");
-            
-            scheduleReInvocation = _scheduleReInvocations[functionTypeId];
-        }
-
-        return scheduleReInvocation(functionInstanceId, expectedEpoch);
     }
     
     public void Dispose() => _ = ShutdownGracefully();

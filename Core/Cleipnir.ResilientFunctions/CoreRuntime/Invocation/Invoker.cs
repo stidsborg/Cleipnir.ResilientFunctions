@@ -254,6 +254,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
         
         await Task.Delay(delay);
         using var suppressedFlow = ExecutionContext.SuppressFlow();
-        _ = ScheduleReInvoke(functionId.InstanceId.ToString(), expectedEpoch);
+        var expectedEpochAfterPostponed = expectedEpoch + 1;
+        _ = ScheduleReInvoke(functionId.InstanceId.ToString(), expectedEpochAfterPostponed);
     }
 }

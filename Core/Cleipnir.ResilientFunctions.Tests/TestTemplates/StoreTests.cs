@@ -668,7 +668,7 @@ public abstract class StoreTests
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
-        sf.Epoch.ShouldBe(0);
+        sf.Epoch.ShouldBe(1);
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
         var previouslyThrownException = DefaultSerializer.Instance.DeserializeException(sf.Exception);
@@ -816,7 +816,7 @@ public abstract class StoreTests
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
-        sf.Epoch.ShouldBe(0);
+        (sf.Epoch is 1 or 2).ShouldBeTrue();
         sf.Status.ShouldBe(Status.Suspended);
         sf.Scrapbook.ScrapbookType.ShouldBe(storedScrapbook.ScrapbookType);
         sf.Scrapbook.ScrapbookJson.ShouldBe(storedScrapbook.ScrapbookJson);
@@ -927,5 +927,125 @@ public abstract class StoreTests
         var (status, epoch) = await store.GetFunctionStatus(functionId).ShouldNotBeNullAsync();
         status.ShouldBe(Status.Succeeded);
         epoch.ShouldBe(1);
+    }
+    
+    public abstract Task EpochIsIncrementedOnCompletion();
+    protected async Task EpochIsIncrementedOnCompletion(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedScrapbook: Test.SimpleStoredScrapbook,
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.SucceedFunction(
+            functionId,
+            StoredResult.Null,
+            Test.SimpleStoredScrapbook.ScrapbookJson,
+            DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(Test.SimpleStoredParameter, Test.SimpleStoredScrapbook)
+        );
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Epoch.ShouldBe(1);
+    }
+    
+    public abstract Task EpochIsIncrementedOnPostponed();
+    protected async Task EpochIsIncrementedOnPostponed(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedScrapbook: Test.SimpleStoredScrapbook,
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.PostponeFunction(
+            functionId,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            Test.SimpleStoredScrapbook.ScrapbookJson,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(Test.SimpleStoredParameter, Test.SimpleStoredScrapbook)
+        );
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Epoch.ShouldBe(1);
+    }
+    
+    public abstract Task EpochIsIncrementedOnFailure();
+    protected async Task EpochIsIncrementedOnFailure(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedScrapbook: Test.SimpleStoredScrapbook,
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.FailFunction(
+            functionId,
+            new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
+            Test.SimpleStoredScrapbook.ScrapbookJson,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(Test.SimpleStoredParameter, Test.SimpleStoredScrapbook)
+        );
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Epoch.ShouldBe(1);
+    }
+    
+    public abstract Task EpochIsIncrementedOnSuspension();
+    protected async Task EpochIsIncrementedOnSuspension(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedScrapbook: Test.SimpleStoredScrapbook,
+            storedEvents: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.SuspendFunction(
+            functionId,
+            expectedEventCount: 0,
+            Test.SimpleStoredScrapbook.ScrapbookJson,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complementaryState: new ComplimentaryState.SetResult(Test.SimpleStoredParameter, Test.SimpleStoredScrapbook)
+        );
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        (storedFunction.Epoch is 1 or 2).ShouldBeTrue();
     }
 }

@@ -125,4 +125,20 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
     [TestMethod]
     public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
         => FunctionStatusAndEpochCanBeSuccessfullyFetched(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    
+    [TestMethod]
+    public override Task EpochIsIncrementedOnCompletion()
+        => EpochIsIncrementedOnCompletion(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EpochIsIncrementedOnPostponed()
+        => EpochIsIncrementedOnPostponed(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EpochIsIncrementedOnFailure()
+        => EpochIsIncrementedOnFailure(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EpochIsIncrementedOnSuspension()
+        => EpochIsIncrementedOnSuspension(FunctionStoreFactory.Create());
 }

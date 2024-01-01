@@ -312,101 +312,6 @@ public class AzureBlobFunctionStore : IFunctionStore
         }
     } 
 
-    private async Task<bool> SetFunctionStateWithEvents( 
-        FunctionId functionId, 
-        Status status, 
-        StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook, 
-        StoredResult storedResult, 
-        StoredException? storedException, 
-        long? postponeUntil,
-        ReplaceEvents replaceEvents,
-        int expectedEpoch)
-    {
-        BlobLeaseClient? stateLeaseClient = null;
-        BlobLeaseClient? eventsLeaseClient = null;
-
-        try
-        {
-            var stateBlobName = functionId.GetStateBlobName();
-            var stateBlobClient = _blobContainerClient.GetBlobClient(stateBlobName);
-            stateLeaseClient = stateBlobClient.GetBlobLeaseClient();
-            var stateLeaseResponse = await stateLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite state lease
-            var stateLeaseId = stateLeaseResponse.Value.LeaseId;
-            
-            var eventsBlobName = functionId.GetEventsBlobName();
-            var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
-            await eventsBlobClient.CreateIfNotExistsAsync();
-            
-            eventsLeaseClient = eventsBlobClient.GetBlobLeaseClient();
-            var eventsLeaseResponse = await eventsLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite events lease
-            var eventsLeaseId = eventsLeaseResponse.Value.LeaseId;
-            
-            var tags = await stateBlobClient
-                .GetTagsAsync(conditions: new BlobRequestConditions { LeaseId = stateLeaseId }); 
-            var rfTags = RfTags.ConvertFrom(tags.Value.Tags);
-            if (rfTags.Epoch != expectedEpoch)
-                return false;
-
-            var (existingEvents, _, _) = await _eventStore.InnerGetEvents(functionId, offset: 0, leaseId: eventsLeaseId);
-            if (replaceEvents.ExistingCount != existingEvents.Count)
-                return false;
-
-            await _eventStore.Replace(functionId, replaceEvents.Events, eventsLeaseId);
-
-            var (paramJson, paramType) = storedParameter;
-            var (scrapbookJson, scrapbookType) = storedScrapbook;
-            var (resultJson, resultType) = storedResult;
-
-            var stateDictionary =
-                new Dictionary<string, string?>
-                {
-                    { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", paramType },
-                    { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
-                    { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
-                    { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
-                    { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultJson)}", resultJson },
-                    { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultType)}", resultType },
-                };
-
-            if (storedException != null)
-            {
-                var (exceptionMessage, exceptionStackTrace, exceptionType) = storedException;
-                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}"] =
-                    exceptionMessage;
-                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}"] =
-                    exceptionStackTrace;
-                stateDictionary[$"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}"] = exceptionType;
-            }
-            
-            var content = SimpleDictionaryMarshaller.Serialize(stateDictionary);
-            await stateBlobClient.UploadAsync(
-                new BinaryData(content),
-                new BlobUploadOptions
-                {
-                    Conditions = new BlobRequestConditions { LeaseId = stateLeaseId },
-                    Tags = new RfTags(
-                        functionId.TypeId.Value,
-                        status,
-                        Epoch: expectedEpoch + 1,
-                        LeaseExpiration: DateTime.UtcNow.Ticks,
-                        PostponedUntil: postponeUntil,
-                        Timestamp: DateTime.UtcNow.Ticks
-                    ).ToDictionary()
-                }
-            );
-        }
-        finally
-        {
-            if (stateLeaseClient != null)
-                await stateLeaseClient.ReleaseAsync();
-            if (eventsLeaseClient != null)
-                await eventsLeaseClient.ReleaseAsync();
-        }
-
-        return true;
-    }
-
     public async Task<bool> SaveScrapbookForExecutingFunction(
         FunctionId functionId,
         string _,
@@ -512,7 +417,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Succeeded, 
-                        Epoch: expectedEpoch, 
+                        Epoch: expectedEpoch + 1, 
                         LeaseExpiration: DateTime.UtcNow.Ticks, 
                         PostponedUntil: null,
                         timestamp
@@ -557,7 +462,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Postponed, 
-                        Epoch: expectedEpoch, 
+                        Epoch: expectedEpoch + 1, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
                         postponeUntil,
                         timestamp
@@ -605,7 +510,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Failed, 
-                        Epoch: expectedEpoch, 
+                        Epoch: expectedEpoch + 1, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: null,
                         timestamp
@@ -665,12 +570,12 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Suspended, 
-                        Epoch: expectedEpoch, 
+                        Epoch: expectedEpoch + 2, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: null,
                         timestamp
                     ).ToDictionary(),
-                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
+                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch + 1}'"}
                 }
             );    
         } catch (RequestFailedException e)

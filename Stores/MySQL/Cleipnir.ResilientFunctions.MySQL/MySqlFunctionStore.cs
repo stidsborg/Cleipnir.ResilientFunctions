@@ -377,23 +377,24 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Succeeded}, result_json = ?, result_type = ?, scrapbook_json = ?, timestamp = ?
+            SET status = {(int) Status.Succeeded}, result_json = ?, result_type = ?, scrapbook_json = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ?";
-        
+
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = result?.ResultJson ?? (object) DBNull.Value},
-                new() {Value = result?.ResultType ?? (object) DBNull.Value},
-                new() {Value = scrapbookJson},
-                new() {Value = timestamp},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEpoch},
+                new() { Value = result?.ResultJson ?? (object)DBNull.Value },
+                new() { Value = result?.ResultType ?? (object)DBNull.Value },
+                new() { Value = scrapbookJson },
+                new() { Value = timestamp },
+                new() { Value = expectedEpoch + 1 },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
             }
         };
         
@@ -406,22 +407,23 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = ?, scrapbook_json = ?, timestamp = ?
+            SET status = {(int) Status.Postponed}, postponed_until = ?, scrapbook_json = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ?";
-        
+
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = postponeUntil},
-                new() {Value = scrapbookJson},
-                new() {Value = timestamp},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEpoch},
+                new() { Value = postponeUntil },
+                new() { Value = scrapbookJson },
+                new() { Value = timestamp },
+                new() { Value = expectedEpoch + 1 },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
             }
         };
         
@@ -435,25 +437,26 @@ public class MySqlFunctionStore : IFunctionStore
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, scrapbook_json = ?, timestamp = ?
+            SET status = {(int) Status.Suspended}, scrapbook_json = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ? AND
                 (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?) = ?";
-        
+
         await using var command = new MySqlCommand(sql, conn, transaction)
         {
             Parameters =
             {
-                new() {Value = scrapbookJson},
-                new() {Value = timestamp},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEpoch},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEventCount},
+                new() { Value = scrapbookJson },
+                new() { Value = timestamp },
+                new() { Value = expectedEpoch + 1 },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEventCount },
             }
         };
         
@@ -502,22 +505,23 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, exception_json = ?, scrapbook_json = ?, timestamp = ?
+            SET status = {(int) Status.Failed}, exception_json = ?, scrapbook_json = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ?";
-        
+
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = JsonSerializer.Serialize(storedException)},
-                new() {Value = scrapbookJson},
-                new() {Value = timestamp},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEpoch},
+                new() { Value = JsonSerializer.Serialize(storedException) },
+                new() { Value = scrapbookJson },
+                new() { Value = timestamp },
+                new() { Value = expectedEpoch + 1 },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
             }
         };
         

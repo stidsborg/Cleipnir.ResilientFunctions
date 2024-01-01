@@ -44,7 +44,5 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             var scrapbook = new RScrapbook();
             Should.ThrowAsync<InvalidOperationException>(() => scrapbook.Save());
         }
-        
-        private class TestScrapbook : RScrapbook {}
     }
 }

@@ -248,6 +248,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
 
+            state.Epoch += 1;
+
             return true.ToTask();
         }
     }
@@ -272,6 +274,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
 
+            state.Epoch += 1;
+            
             return true.ToTask();
         }
     }
@@ -299,6 +303,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Status = Status.Suspended;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
+            
+            state.Epoch += 1;
             
             return SuspensionResult.Success.ToTask();
         }
@@ -336,6 +342,8 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
 
+            state.Epoch += 1;
+            
             return true.ToTask();
         }
     }
