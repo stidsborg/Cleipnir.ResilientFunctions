@@ -21,7 +21,7 @@ public class RFunctionsShutdownTests
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
+                leaseLength: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -63,7 +63,7 @@ public class RFunctionsShutdownTests
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
+                leaseLength: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -108,7 +108,7 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
+                leaseLength: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -169,7 +169,7 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
+                leaseLength: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
@@ -208,7 +208,7 @@ public class RFunctionsShutdownTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
+                leaseLength: TimeSpan.FromMilliseconds(10),
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );

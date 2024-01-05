@@ -26,9 +26,9 @@ public abstract class TimeoutTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero,
-                timeoutCheckFrequency: TimeSpan.FromMilliseconds(1)
+                timeoutEventsCheckFrequency: TimeSpan.FromMilliseconds(1)
             )
         );
         var rFunc = rFunctions.RegisterAction(

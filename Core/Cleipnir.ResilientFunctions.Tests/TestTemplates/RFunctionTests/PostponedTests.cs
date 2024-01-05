@@ -27,7 +27,7 @@ public abstract class PostponedTests
                     crashableStore,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.Zero,
+                        leaseLength: TimeSpan.Zero,
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
@@ -47,7 +47,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
@@ -78,7 +78,7 @@ public abstract class PostponedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.Zero,
+                        leaseLength: TimeSpan.Zero,
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
@@ -96,7 +96,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
                 )
             );
@@ -139,7 +139,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
             );
@@ -156,7 +156,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -187,7 +187,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.Zero
                 )
             );
@@ -206,7 +206,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
                 )
             );
@@ -246,7 +246,7 @@ public abstract class PostponedTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromSeconds(10)
                 )
             );
@@ -265,7 +265,7 @@ public abstract class PostponedTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.Zero,
+                    leaseLength: TimeSpan.Zero,
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -714,7 +714,7 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
             )
         );
@@ -761,7 +761,7 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
             )
         );

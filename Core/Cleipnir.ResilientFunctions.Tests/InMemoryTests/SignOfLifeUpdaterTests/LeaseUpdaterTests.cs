@@ -12,7 +12,7 @@ using Shouldly;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
 
 [TestClass]
-public class SignOfLifeUpdaterTests
+public class LeaseUpdaterTests
 {
     private readonly FunctionId _functionId = new FunctionId("functionId", "instanceId");
     private UnhandledExceptionCatcher _unhandledExceptionCatcher = new();
@@ -34,9 +34,9 @@ public class SignOfLifeUpdaterTests
         
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            signOfLifeFrequency: TimeSpan.FromMilliseconds(10)
+            leaseLength: TimeSpan.FromMilliseconds(10)
         );
-        var updater = SignOfLifeUpdater.CreateAndStart(
+        var updater = LeaseUpdater.CreateAndStart(
             _functionId,
             expectedEpoch,
             store,
@@ -70,9 +70,9 @@ public class SignOfLifeUpdaterTests
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            signOfLifeFrequency: TimeSpan.FromMilliseconds(10)
+            leaseLength: TimeSpan.FromMilliseconds(10)
         );
-        var updater = SignOfLifeUpdater.CreateAndStart(
+        var updater = LeaseUpdater.CreateAndStart(
             _functionId,
             epoch: 0,
             store,
@@ -99,9 +99,9 @@ public class SignOfLifeUpdaterTests
 
         var settings = new Settings(
             _unhandledExceptionCatcher.Catch,
-            signOfLifeFrequency: TimeSpan.FromMilliseconds(10)
+            leaseLength: TimeSpan.FromMilliseconds(10)
         );
-        var updater = SignOfLifeUpdater.CreateAndStart(
+        using var updater = LeaseUpdater.CreateAndStart(
             _functionId,
             epoch: 0,
             store,

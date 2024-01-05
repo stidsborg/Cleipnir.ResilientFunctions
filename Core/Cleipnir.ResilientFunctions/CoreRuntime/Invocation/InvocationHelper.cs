@@ -61,7 +61,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 storedScrapbook,
                 storedEvents,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
-                leaseExpiration: utcNowTicks + (2 * _settings.SignOfLifeFrequency.Ticks),
+                leaseExpiration: utcNowTicks + (2 * _settings.LeaseLength.Ticks),
                 timestamp: utcNowTicks
             );
 
@@ -112,7 +112,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
 
     public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
-        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.SignOfLifeFrequency.Ticks));
+        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks));
 
     private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long signOfLifeFrequency)
     {
@@ -264,7 +264,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             var success = await _functionStore.RestartExecution(
                 functionId,
                 expectedEpoch: sf.Epoch,
-                leaseExpiration: DateTime.UtcNow.Ticks + 2 * _settings.SignOfLifeFrequency.Ticks 
+                leaseExpiration: DateTime.UtcNow.Ticks + 2 * _settings.LeaseLength.Ticks 
             );
 
             if (!success)
@@ -276,7 +276,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.SignOfLifeFrequency.Ticks));
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks));
             
             return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
         }
@@ -303,7 +303,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction);
 
     public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
-        => SignOfLifeUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
+        => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId,
@@ -406,7 +406,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public EventSource CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, IReadOnlyList<StoredEvent>? initialEvents)
     {
         var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutCheckFrequency); 
+        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutEventsCheckFrequency); 
         return new EventSource(
             functionId,
             initialEvents,

@@ -96,7 +96,7 @@ public class SerializationTests
         using var rFunctions = new RFunctions(
             store, 
             new Settings(
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(1),
+                leaseLength: TimeSpan.FromMilliseconds(1),
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );

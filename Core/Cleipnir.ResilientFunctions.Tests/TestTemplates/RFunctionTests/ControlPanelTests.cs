@@ -622,7 +622,7 @@ public abstract class ControlPanelTests
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
         
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch, signOfLifeFrequency: TimeSpan.FromMilliseconds(250)));
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
         var flag = new SyncedFlag();
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
@@ -658,7 +658,7 @@ public abstract class ControlPanelTests
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
         
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch, signOfLifeFrequency: TimeSpan.FromMilliseconds(250)));
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
         var flag = new SyncedFlag();
         var rAction = rFunctions.RegisterAction(
             functionTypeId,

@@ -31,7 +31,7 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new RFunctions(store, new Settings(
-            signOfLifeFrequency: TimeSpan.FromMilliseconds(10),
+            leaseLength: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
@@ -60,7 +60,7 @@ public class DelayedStartUpTests
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        using var rFunctions = new RFunctions(store, new Settings(signOfLifeFrequency: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new RFunctions(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => { }

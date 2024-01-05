@@ -71,7 +71,7 @@ public static class MixingTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                signOfLifeFrequency: TimeSpan.FromSeconds(1),
+                leaseLength: TimeSpan.FromSeconds(1),
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
@@ -84,7 +84,7 @@ public static class MixingTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                signOfLifeFrequency: TimeSpan.FromSeconds(1),
+                leaseLength: TimeSpan.FromSeconds(1),
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );

@@ -26,7 +26,7 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
@@ -63,7 +63,7 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
@@ -95,7 +95,7 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
@@ -127,7 +127,7 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
+                leaseLength: TimeSpan.Zero,
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );

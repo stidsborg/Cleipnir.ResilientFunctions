@@ -27,7 +27,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.Zero, 
+                        leaseLength: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
@@ -43,7 +43,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
+                    leaseLength: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -82,7 +82,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.Zero, 
+                        leaseLength: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
@@ -99,7 +99,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
+                    leaseLength: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -147,7 +147,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.Zero, 
+                        leaseLength: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
@@ -164,7 +164,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
+                    leaseLength: TimeSpan.FromMilliseconds(250)
                 )
             );
 
@@ -204,7 +204,7 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        signOfLifeFrequency: TimeSpan.Zero, 
+                        leaseLength: TimeSpan.Zero, 
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 )
@@ -220,7 +220,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    signOfLifeFrequency: TimeSpan.FromMilliseconds(250)
+                    leaseLength: TimeSpan.FromMilliseconds(250)
                 )
             );
 

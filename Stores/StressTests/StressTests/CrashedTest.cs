@@ -43,7 +43,7 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                signOfLifeFrequency: TimeSpan.FromSeconds(1)
+                leaseLength: TimeSpan.FromSeconds(1)
             )
         );
         var _ = rFunctions.RegisterAction(
@@ -55,7 +55,7 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                signOfLifeFrequency: TimeSpan.FromSeconds(1)
+                leaseLength: TimeSpan.FromSeconds(1)
             )
         );
         _ = rFunctions2.RegisterAction(

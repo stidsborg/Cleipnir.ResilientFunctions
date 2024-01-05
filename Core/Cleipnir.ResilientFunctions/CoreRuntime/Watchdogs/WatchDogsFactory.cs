@@ -21,7 +21,7 @@ internal static class WatchDogsFactory
             functionStore,
             reInvoke,
             asyncSemaphore,
-            settings.SignOfLifeFrequency,
+            settings.LeaseLength,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
@@ -48,7 +48,7 @@ internal static class WatchDogsFactory
             functionTypeId,
             eventSourceWriters,
             functionStore.TimeoutStore,
-            settings.TimeoutCheckFrequency,
+            settings.TimeoutEventsCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator

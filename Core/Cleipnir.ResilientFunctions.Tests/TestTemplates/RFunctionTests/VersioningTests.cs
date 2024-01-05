@@ -19,7 +19,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(250), 
+                leaseLength: TimeSpan.FromMilliseconds(250), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
@@ -62,7 +62,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(250), 
+                leaseLength: TimeSpan.FromMilliseconds(250), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
@@ -105,7 +105,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10), 
+                leaseLength: TimeSpan.FromMilliseconds(10), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
@@ -150,7 +150,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(250), 
+                leaseLength: TimeSpan.FromMilliseconds(250), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );
@@ -203,7 +203,7 @@ public abstract class VersioningTests
         using var rFunctions = new RFunctions(
             store,
             new Settings(
-                signOfLifeFrequency: TimeSpan.FromMilliseconds(10), 
+                leaseLength: TimeSpan.FromMilliseconds(10), 
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch
             )
         );

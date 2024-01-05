@@ -14,7 +14,7 @@ internal class CrashedWatchdog
     private readonly FunctionTypeId _functionTypeId;
     private readonly ReInvoke _reInvoke;
     private readonly IFunctionStore _functionStore;
-    private readonly TimeSpan _signOfLifeFrequency;
+    private readonly TimeSpan _leaseLength;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -28,7 +28,7 @@ internal class CrashedWatchdog
         IFunctionStore functionStore,
         ReInvoke reInvoke,
         AsyncSemaphore maxParallelismSemaphore,
-        TimeSpan signOfLifeFrequency,
+        TimeSpan leaseLength,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -37,7 +37,7 @@ internal class CrashedWatchdog
         _functionStore = functionStore;
         _reInvoke = reInvoke;
         _maxParallelismSemaphore = maxParallelismSemaphore;
-        _signOfLifeFrequency = signOfLifeFrequency;
+        _leaseLength = leaseLength;
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -45,7 +45,7 @@ internal class CrashedWatchdog
 
     public async Task Start()
     {
-        if (_signOfLifeFrequency == TimeSpan.Zero) return;
+        if (_leaseLength == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         
         try
@@ -58,7 +58,7 @@ internal class CrashedWatchdog
                 foreach (var hangingFunction in hangingFunctions.RandomlyPermute())
                     _ = ReInvokeCrashedFunction(hangingFunction);
                 
-                await Task.Delay(_signOfLifeFrequency);
+                await Task.Delay(_leaseLength);
             }
         }
         catch (Exception thrownException)
