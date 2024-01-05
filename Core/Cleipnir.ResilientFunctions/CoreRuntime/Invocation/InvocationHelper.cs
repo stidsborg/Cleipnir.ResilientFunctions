@@ -114,7 +114,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
         => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks));
 
-    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long signOfLifeFrequency)
+    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long leaseLength)
     {
         var storedParameter = Serializer.SerializeParameter(param);
         var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
@@ -123,7 +123,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, signOfLifeFrequency)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, leaseLength)
         );
 
         if (!success)
@@ -286,7 +286,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
 
     internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction);
 
-    public IDisposable StartSignOfLife(FunctionId functionId, int epoch = 0) 
+    public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
 
     public async Task<bool> SetFunctionState(

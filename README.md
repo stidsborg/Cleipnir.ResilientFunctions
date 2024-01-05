@@ -46,7 +46,7 @@ Secondly, setup the framework:
    store,
    new Settings(
      unhandledExceptionHandler: e => Console.WriteLine($"Unhandled framework exception occured: '{e}'"),
-     signOfLifeFrequency: TimeSpan.FromSeconds(5)
+     leaseLength: TimeSpan.FromSeconds(5)
    )
  );
 ```

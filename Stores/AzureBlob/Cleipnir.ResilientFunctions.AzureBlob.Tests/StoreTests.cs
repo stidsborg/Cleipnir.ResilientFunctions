@@ -29,12 +29,12 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         SunshineScenarioTest(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task SignOfLifeIsUpdatedWhenAsExpected()
-        => SignOfLifeIsUpdatedWhenAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    public override Task LeaseIsUpdatedWhenAsExpected()
+        => LeaseIsUpdatedWhenAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    public override Task LeaseIsNotUpdatedWhenNotAsExpected()
+        => LeaseIsNotUpdatedWhenNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected()

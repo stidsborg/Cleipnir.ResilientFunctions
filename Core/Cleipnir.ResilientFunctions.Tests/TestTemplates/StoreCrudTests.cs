@@ -121,8 +121,8 @@ public abstract class StoreCrudTests
         await store.GetFunction(FunctionId).ShouldBeNullAsync();
     }  
    
-    public abstract Task SignOfLifeIsUpdatedWhenCurrentEpochMatches();
-    protected async Task SignOfLifeIsUpdatedWhenCurrentEpochMatches(Task<IFunctionStore> storeTask)
+    public abstract Task LeaseIsUpdatedWhenCurrentEpochMatches();
+    protected async Task LeaseIsUpdatedWhenCurrentEpochMatches(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
@@ -142,8 +142,8 @@ public abstract class StoreCrudTests
         storedFunction.LeaseExpiration.ShouldBe(1);
     }
     
-    public abstract Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent();
-    protected async Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(Task<IFunctionStore> storeTask)
+    public abstract Task LeaseIsNotUpdatedWhenCurrentEpochIsDifferent();
+    protected async Task LeaseIsNotUpdatedWhenCurrentEpochIsDifferent(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
@@ -185,7 +185,7 @@ public abstract class StoreCrudTests
             FunctionId, 
             storedScrapbook.ScrapbookJson, 
             expectedEpoch: 0, 
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
@@ -217,7 +217,7 @@ public abstract class StoreCrudTests
             FunctionId, 
             storedScrapbook.ScrapbookJson, 
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
         ).ShouldBeFalseAsync();
 
         var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;

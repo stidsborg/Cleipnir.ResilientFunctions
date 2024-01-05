@@ -11,12 +11,12 @@ public class StoreTests : TestTemplates.StoreTests
         => SunshineScenarioTest(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SignOfLifeIsUpdatedWhenAsExpected() 
-        => SignOfLifeIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
+    public override Task LeaseIsUpdatedWhenAsExpected() 
+        => LeaseIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SignOfLifeIsNotUpdatedWhenNotAsExpected()
-        => SignOfLifeIsNotUpdatedWhenNotAsExpected(FunctionStoreFactory.Create());
+    public override Task LeaseIsNotUpdatedWhenNotAsExpected()
+        => LeaseIsNotUpdatedWhenNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected()

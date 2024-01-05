@@ -30,7 +30,7 @@ public interface IFunctionStore
     Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration);
 
     Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore);
-    Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore);
+    Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore);
 
     Task<bool> SaveScrapbookForExecutingFunction(
         FunctionId functionId,

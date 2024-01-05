@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.LeaseUpdaterTests;
 
 [TestClass]
 public class LeaseUpdaterTests
@@ -21,14 +21,14 @@ public class LeaseUpdaterTests
     public void SetUp() => _unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
     [TestMethod]
-    public async Task AfterSignOfLifeIsStartedStoreIsInvokedContinuouslyWithExpectedDelay()
+    public async Task AfterLeaseUpdaterIsStartedStoreIsInvokedContinuouslyWithExpectedDelay()
     {
         const int expectedEpoch = 100;
         var invocations = new SyncedList<Parameters>();
-        var store = new SignOfLifeTestFunctionStore(
-            (id, epoch, life) =>
+        var store = new LeaseUpdaterTestFunctionStore(
+            (id, epoch, leaseExpiry) =>
             {
-                invocations.Add(new Parameters(id, ExpectedEpoch: epoch, NewSignOfLife: life));
+                invocations.Add(new Parameters(id, ExpectedEpoch: epoch, LeaseExpiry: leaseExpiry));
                 return true;
             });
         
@@ -49,20 +49,20 @@ public class LeaseUpdaterTests
         invocations.Count.ShouldBeGreaterThan(2);
         invocations.All(p => p.FunctionId == _functionId).ShouldBeTrue();
 
-        const long expectedInitialSignOfLife = 0;
-        _ = invocations.Aggregate(expectedInitialSignOfLife, (prevSignOfLife, parameters) =>
+        const long expectedInitialLeaseExpiry = 0;
+        _ = invocations.Aggregate(expectedInitialLeaseExpiry, (prevLeaseExpiry, parameters) =>
         {
             parameters.ExpectedEpoch.ShouldBe(expectedEpoch);
-            prevSignOfLife.ShouldBeLessThan(parameters.NewSignOfLife);
-            return parameters.NewSignOfLife;
+            prevLeaseExpiry.ShouldBeLessThan(parameters.LeaseExpiry);
+            return parameters.LeaseExpiry;
         });
     }
 
     [TestMethod]
-    public async Task SignOfLifeStopsInvokingStoreWhenFalseIsReturnedFromStore()
+    public async Task LeaseUpdaterStopsInvokingStoreWhenFalseIsReturnedFromStore()
     {
         var syncedCounter = new SyncedCounter();
-        var store = new SignOfLifeTestFunctionStore((id, epoch, life) =>
+        var store = new LeaseUpdaterTestFunctionStore((id, epoch, life) =>
         {
             syncedCounter.Increment();
             return false;
@@ -90,7 +90,7 @@ public class LeaseUpdaterTests
     public void WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
     {
         var syncedCounter = new SyncedCounter();
-        var store = new SignOfLifeTestFunctionStore(
+        var store = new LeaseUpdaterTestFunctionStore(
             (id, epoch, life) =>
             {
                 syncedCounter.Increment();
@@ -116,5 +116,5 @@ public class LeaseUpdaterTests
         syncedCounter.Current.ShouldBe(1);
     }
 
-    private record Parameters(FunctionId FunctionId, int ExpectedEpoch, long NewSignOfLife);
+    private record Parameters(FunctionId FunctionId, int ExpectedEpoch, long LeaseExpiry);
 }

@@ -188,10 +188,10 @@ public class AzureBlobFunctionStore : IFunctionStore
         return executingFunctions;
     }
 
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         var postponedBlobs = _blobContainerClient.FindBlobsByTagsAsync(
-            tagFilterSqlExpression: $"FunctionType = '{functionTypeId.Value}' AND Status = '{(int) Status.Postponed}' AND PostponedUntil <= '{expiresBefore}' AND Epoch >= '0'"
+            tagFilterSqlExpression: $"FunctionType = '{functionTypeId.Value}' AND Status = '{(int) Status.Postponed}' AND PostponedUntil <= '{isEligibleBefore}' AND Epoch >= '0'"
         );
 
         var postponedFunctions = new List<StoredPostponedFunction>();
@@ -320,7 +320,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType), signOfLifeFrequency) = complementaryState;
+        var ((paramJson, paramType), (scrapbookJson, scrapbookType), leaseLength) = complementaryState;
         
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
@@ -343,7 +343,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                         functionId.TypeId.Value, 
                         Status.Executing, 
                         expectedEpoch, 
-                        LeaseExpiration: DateTime.UtcNow.Ticks + 2 * signOfLifeFrequency,
+                        LeaseExpiration: DateTime.UtcNow.Ticks + leaseLength,
                         PostponedUntil: null,
                         Timestamp: DateTime.UtcNow.Ticks
                     ).ToDictionary()

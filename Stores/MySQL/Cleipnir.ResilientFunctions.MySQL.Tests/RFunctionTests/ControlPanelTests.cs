@@ -78,12 +78,12 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => WaitingForExistingActionFromControlPanelToCompleteSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task LastSignOfLifeIsUpdatedForExecutingFunc()
-        => LastSignOfLifeIsUpdatedForExecutingFunc(FunctionStoreFactory.Create());
+    public override Task LeaseIsUpdatedForExecutingFunc()
+        => LeaseIsUpdatedForExecutingFunc(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task LastSignOfLifeIsUpdatedForExecutingAction()
-        => LastSignOfLifeIsUpdatedForExecutingAction(FunctionStoreFactory.Create());
+    public override Task LeaseIsUpdatedForExecutingAction()
+        => LeaseIsUpdatedForExecutingAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook()

@@ -136,14 +136,14 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 .ToTask();
     }
 
-    public virtual Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public virtual Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Postponed)
-                .Where(s => s.PostponeUntil <= expiresBefore)
+                .Where(s => s.PostponeUntil <= isEligibleBefore)
                 .Select(s =>
                     new StoredPostponedFunction(
                         s.FunctionId.InstanceId,

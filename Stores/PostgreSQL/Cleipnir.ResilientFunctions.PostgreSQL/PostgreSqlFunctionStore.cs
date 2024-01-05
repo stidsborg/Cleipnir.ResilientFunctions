@@ -252,7 +252,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return functions;
     }
 
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -264,7 +264,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() {Value = expiresBefore}
+                new() {Value = isEligibleBefore}
             }
         };
         

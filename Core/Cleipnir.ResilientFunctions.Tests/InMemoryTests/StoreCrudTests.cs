@@ -25,12 +25,12 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
         => FetchingNonExistingFunctionReturnsNull(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SignOfLifeIsUpdatedWhenCurrentEpochMatches()
-        => SignOfLifeIsUpdatedWhenCurrentEpochMatches(FunctionStoreFactory.Create());
+    public override Task LeaseIsUpdatedWhenCurrentEpochMatches()
+        => LeaseIsUpdatedWhenCurrentEpochMatches(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent()
-        => SignOfLifeIsNotUpdatedWhenCurrentEpochIsDifferent(FunctionStoreFactory.Create());
+    public override Task LeaseIsNotUpdatedWhenCurrentEpochIsDifferent()
+        => LeaseIsNotUpdatedWhenCurrentEpochIsDifferent(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task UpdateScrapbookSunshineScenario()

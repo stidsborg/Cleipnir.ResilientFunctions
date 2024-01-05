@@ -6,16 +6,16 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.SignOfLifeUpdaterTests;
+namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.LeaseUpdaterTests;
 
-public class SignOfLifeTestFunctionStore : IFunctionStore
+public class LeaseUpdaterTestFunctionStore : IFunctionStore
 {
-    public delegate bool SignOfLifeCallback(FunctionId functionId, int expectedEpoch, long newSignOfLife);
+    public delegate bool LeaseUpdaterCallback(FunctionId functionId, int expectedEpoch, long newLeaseExpiry);
 
-    private readonly SignOfLifeCallback _signOfLifeCallback;
+    private readonly LeaseUpdaterCallback _leaseUpdaterCallback;
     private readonly IFunctionStore _inner = new InMemoryFunctionStore();
 
-    public SignOfLifeTestFunctionStore(SignOfLifeCallback signOfLifeCallback) => _signOfLifeCallback = signOfLifeCallback;
+    public LeaseUpdaterTestFunctionStore(LeaseUpdaterCallback leaseUpdaterCallback) => _leaseUpdaterCallback = leaseUpdaterCallback;
 
     public IEventStore EventStore => _inner.EventStore;
     public IActivityStore ActivityStore => _inner.ActivityStore;
@@ -41,15 +41,15 @@ public class SignOfLifeTestFunctionStore : IFunctionStore
     
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
-        var success = _signOfLifeCallback(functionId, expectedEpoch, leaseExpiration);
+        var success = _leaseUpdaterCallback(functionId, expectedEpoch, leaseExpiration);
         return success.ToTask();
     }
 
     public Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
         => _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
-        => _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+        => _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 

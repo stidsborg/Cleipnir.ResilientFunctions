@@ -74,10 +74,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
             : _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
         => _crashed
             ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
-            : _inner.GetPostponedFunctions(functionTypeId, expiresBefore);
+            : _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, StoredParameter storedParameter,

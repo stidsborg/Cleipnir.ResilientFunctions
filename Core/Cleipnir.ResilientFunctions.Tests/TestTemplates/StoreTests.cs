@@ -80,8 +80,8 @@ public abstract class StoreTests
         storedFunction.Result.Deserialize<object>(DefaultSerializer.Instance).ShouldBe(result);
     }
 
-    public abstract Task SignOfLifeIsUpdatedWhenAsExpected();
-    protected async Task SignOfLifeIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
+    public abstract Task LeaseIsUpdatedWhenAsExpected();
+    protected async Task LeaseIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
     {
         var functionId = TestFunctionId.Create();
         
@@ -121,8 +121,8 @@ public abstract class StoreTests
         });
     }
 
-    public abstract Task SignOfLifeIsNotUpdatedWhenNotAsExpected();
-    protected async Task SignOfLifeIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
+    public abstract Task LeaseIsNotUpdatedWhenNotAsExpected();
+    protected async Task LeaseIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var functionId = TestFunctionId.Create();
         
@@ -290,13 +290,13 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store
-            .GetPostponedFunctions(functionId.TypeId, expiresBefore: nowTicks + 100)
+            .GetPostponedFunctions(functionId.TypeId, isEligibleBefore: nowTicks + 100)
             .SelectAsync(pfs => pfs.Any())
         );
         
         var postponedFunctions = await store.GetPostponedFunctions(
             functionId.TypeId,
-            expiresBefore: nowTicks - 100
+            isEligibleBefore: nowTicks - 100
         );
         postponedFunctions.ShouldBeEmpty();
     }
@@ -340,7 +340,7 @@ public abstract class StoreTests
         
         var postponedFunctions = await store.GetPostponedFunctions(
             functionId.TypeId,
-            expiresBefore: nowTicks + 100
+            isEligibleBefore: nowTicks + 100
         );
         postponedFunctions.Count().ShouldBe(1);
     }
@@ -528,7 +528,7 @@ public abstract class StoreTests
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, SignOfLifeFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(functionId);
@@ -561,7 +561,7 @@ public abstract class StoreTests
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, SignOfLifeFrequency: 0)
+            complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParameter, storedScrapbook, LeaseLength: 0)
         ).ShouldBeFalseAsync();
         
         var sf = await store.GetFunction(functionId);

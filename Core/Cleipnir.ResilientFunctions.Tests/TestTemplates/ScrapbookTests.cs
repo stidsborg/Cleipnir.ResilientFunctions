@@ -45,7 +45,7 @@ public abstract class ScrapbookTests
                 FunctionId,
                 storedScrapbook.ScrapbookJson,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
+                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
             );
         });
 
@@ -109,7 +109,7 @@ public abstract class ScrapbookTests
                 FunctionId,
                 storedScrapbook.ScrapbookJson,
                 expectedEpoch: 1,
-                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
+                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
             );
         });
         await scrapbook.Save();
@@ -123,7 +123,7 @@ public abstract class ScrapbookTests
                 FunctionId,
                 storedScrapbook.ScrapbookJson,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, SignOfLifeFrequency: 0)
+                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
             );
         });
         await scrapbook.Save();

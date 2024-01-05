@@ -161,7 +161,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
                     storedEvents
                 );
             disposables.Add(runningFunction);
-            disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch: 0));
+            disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch: 0));
             
             success = persisted;
             var eventSource = _invocationHelper.CreateEventSource(
@@ -195,7 +195,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             var (param, epoch, scrapbook, runningFunction) = 
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
             disposables.Add(runningFunction);
-            disposables.Add(_invocationHelper.StartSignOfLife(functionId, epoch));
+            disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
             var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke, initialEvents: null);
             await eventSource.Sync();
             var activity = await _invocationHelper.CreateActivity(functionId);

@@ -265,7 +265,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return rows;
     }
 
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -277,7 +277,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
-        command.Parameters.AddWithValue("@PostponedUntil", expiresBefore);
+        command.Parameters.AddWithValue("@PostponedUntil", isEligibleBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<StoredPostponedFunction>(); 

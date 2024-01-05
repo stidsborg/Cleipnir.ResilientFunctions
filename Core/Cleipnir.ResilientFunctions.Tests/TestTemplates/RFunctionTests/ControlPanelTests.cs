@@ -612,8 +612,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task LastSignOfLifeIsUpdatedForExecutingFunc();
-    protected async Task LastSignOfLifeIsUpdatedForExecutingFunc(Task<IFunctionStore> storeTask)
+    public abstract Task LeaseIsUpdatedForExecutingFunc();
+    protected async Task LeaseIsUpdatedForExecutingFunc(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -648,8 +648,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task LastSignOfLifeIsUpdatedForExecutingAction();
-    protected async Task LastSignOfLifeIsUpdatedForExecutingAction(Task<IFunctionStore> storeTask)
+    public abstract Task LeaseIsUpdatedForExecutingAction();
+    protected async Task LeaseIsUpdatedForExecutingAction(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
