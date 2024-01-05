@@ -391,7 +391,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = result?.ResultType ?? (object)DBNull.Value },
                 new() { Value = scrapbookJson },
                 new() { Value = timestamp },
-                new() { Value = expectedEpoch + 1 },
+                new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -420,7 +420,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = postponeUntil },
                 new() { Value = scrapbookJson },
                 new() { Value = timestamp },
-                new() { Value = expectedEpoch + 1 },
+                new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -431,7 +431,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -450,7 +450,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() { Value = scrapbookJson },
                 new() { Value = timestamp },
-                new() { Value = expectedEpoch + 1 },
+                new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -462,14 +462,21 @@ public class MySqlFunctionStore : IFunctionStore
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         await transaction.CommitAsync();
-        
+
         if (affectedRows == 1)
-            return SuspensionResult.Success;
+            return true;
 
         var sf = await GetFunction(functionId);
-        return sf?.Epoch != expectedEpoch
-            ? SuspensionResult.ConcurrentStateModification
-            : SuspensionResult.EventCountMismatch;
+        if (sf == null) return false;
+        
+        if (sf.Epoch == expectedEpoch)
+            return await PostponeFunction(
+                functionId,
+                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
+                new ComplimentaryState.SetResult()
+            );
+
+        return false;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
@@ -518,7 +525,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = JsonSerializer.Serialize(storedException) },
                 new() { Value = scrapbookJson },
                 new() { Value = timestamp },
-                new() { Value = expectedEpoch + 1 },
+                new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },

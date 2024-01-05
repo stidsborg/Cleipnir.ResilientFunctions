@@ -1,7 +1,6 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -417,7 +416,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Succeeded, 
-                        Epoch: expectedEpoch + 1, 
+                        Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks, 
                         PostponedUntil: null,
                         timestamp
@@ -462,7 +461,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Postponed, 
-                        Epoch: expectedEpoch + 1, 
+                        Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
                         postponeUntil,
                         timestamp
@@ -510,7 +509,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Failed, 
-                        Epoch: expectedEpoch + 1, 
+                        Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: null,
                         timestamp
@@ -529,7 +528,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<SuspensionResult> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
         var success = await PostponeFunction(
             functionId,
@@ -540,11 +539,18 @@ public class AzureBlobFunctionStore : IFunctionStore
             complimentaryState
         );
         if (!success)
-            return SuspensionResult.ConcurrentStateModification;
+            return false;
 
         var events = await EventStore.GetEvents(functionId);
         if (events.Count() != expectedEventCount)
-            return SuspensionResult.EventCountMismatch;
+            return await PostponeFunction(
+                functionId,
+                postponeUntil: 0,
+                _: string.Empty,
+                timestamp,
+                expectedEpoch,
+                complimentaryState
+            );
 
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -570,12 +576,12 @@ public class AzureBlobFunctionStore : IFunctionStore
                     Tags = new RfTags(
                         functionId.TypeId.Value, 
                         Status.Suspended, 
-                        Epoch: expectedEpoch + 2, 
+                        Epoch: expectedEpoch, 
                         LeaseExpiration: DateTime.UtcNow.Ticks,
                         PostponedUntil: null,
                         timestamp
                     ).ToDictionary(),
-                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch + 1}'"}
+                    Conditions = new BlobRequestConditions { TagConditions = $"Epoch = '{expectedEpoch}'"}
                 }
             );    
         } catch (RequestFailedException e)
@@ -583,10 +589,10 @@ public class AzureBlobFunctionStore : IFunctionStore
             if (e.ErrorCode is not ("BlobAlreadyExists" or "ConditionNotMet"))
                 throw;
 
-            return SuspensionResult.ConcurrentStateModification;
+            return false;
         }
-        
-        return SuspensionResult.Success;
+
+        return true;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)

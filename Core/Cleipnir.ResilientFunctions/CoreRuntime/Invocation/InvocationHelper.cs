@@ -61,7 +61,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 storedScrapbook,
                 storedEvents,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
-                leaseExpiration: utcNowTicks + (2 * _settings.LeaseLength.Ticks),
+                leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
                 timestamp: utcNowTicks
             );
 
@@ -152,7 +152,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new ConcurrentModificationException(functionId);
     }
 
-    public async Task<PersistResultReturn> PersistResult(
+    public async Task<bool> PersistResult(
         FunctionId functionId,
         Result<TReturn> result,
         TParam param,
@@ -166,7 +166,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         switch (result.Outcome)
         {
             case Outcome.Succeed:
-                var success = await _functionStore.SucceedFunction(
+                return await _functionStore.SucceedFunction(
                     functionId,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
                     scrapbookJson: complementaryState.StoredScrapbook.ScrapbookJson,
@@ -174,11 +174,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                return !success 
-                    ? PersistResultReturn.ConcurrentModification 
-                    : PersistResultReturn.Success;
             case Outcome.Postpone:
-                success = await _functionStore.PostponeFunction(
+                return await _functionStore.PostponeFunction(
                     functionId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
@@ -186,11 +183,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                return !success 
-                    ? PersistResultReturn.ConcurrentModification 
-                    : PersistResultReturn.Success;
             case Outcome.Fail:
-                success = await _functionStore.FailFunction(
+                return await _functionStore.FailFunction(
                     functionId,
                     storedException: Serializer.SerializeException(result.Fail!),
                     scrapbookJson: Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
@@ -198,11 +192,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                return !success 
-                    ? PersistResultReturn.ConcurrentModification 
-                    : PersistResultReturn.Success;
             case Outcome.Suspend:
-                var suspensionResult = await _functionStore.SuspendFunction(
+                return await _functionStore.SuspendFunction(
                     functionId,
                     result.Suspend!.ExpectedEventCount,
                     Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
@@ -210,13 +201,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                if (suspensionResult == SuspensionResult.Success)
-                    return PersistResultReturn.Success;
-                if (suspensionResult == SuspensionResult.EventCountMismatch)
-                    return PersistResultReturn.ScheduleReInvocation;
-                if (suspensionResult == SuspensionResult.ConcurrentStateModification)
-                    return PersistResultReturn.ConcurrentModification;
-                return PersistResultReturn.Success;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -264,7 +248,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             var success = await _functionStore.RestartExecution(
                 functionId,
                 expectedEpoch: sf.Epoch,
-                leaseExpiration: DateTime.UtcNow.Ticks + 2 * _settings.LeaseLength.Ticks 
+                leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks 
             );
 
             if (!success)

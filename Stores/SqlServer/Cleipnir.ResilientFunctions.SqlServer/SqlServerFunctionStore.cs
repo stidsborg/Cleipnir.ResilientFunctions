@@ -405,7 +405,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch + 1
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
@@ -435,7 +435,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch + 1
+            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
@@ -452,7 +452,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<SuspensionResult> SuspendFunction(
+    public async Task<bool> SuspendFunction(
         FunctionId functionId, 
         int expectedEventCount, 
         string scrapbookJson,
@@ -466,7 +466,7 @@ public class SqlServerFunctionStore : IFunctionStore
             
             var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch + 1
+            SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
             AND FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
@@ -483,7 +483,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var affectedRows = await command.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
             if (affectedRows > 0)
-                return SuspensionResult.Success;
+                return true;
         }
         {
             await using var conn = await _connFunc();
@@ -498,9 +498,14 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
 
             var numberOfEvents = (int?) await command.ExecuteScalarAsync();
-            return numberOfEvents > expectedEventCount 
-                ? SuspensionResult.EventCountMismatch 
-                : SuspensionResult.ConcurrentStateModification;
+            if (numberOfEvents == expectedEventCount) 
+                return false;
+
+            return await PostponeFunction(
+                functionId,
+                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
+                new ComplimentaryState.SetResult()
+            );
         }
     }
 
@@ -541,7 +546,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, ScrapbookJson = @ScrapbookJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch + 1
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, ScrapbookJson = @ScrapbookJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";

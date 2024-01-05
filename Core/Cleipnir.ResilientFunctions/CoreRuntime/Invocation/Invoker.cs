@@ -224,16 +224,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
 
     private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        switch (await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch))
-        {
-            case PersistResultReturn.Success:
-                InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
-                return;
-            case PersistResultReturn.ScheduleReInvocation:
-                _ = ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
-                throw new FunctionInvocationSuspendedException(functionId);
-            case PersistResultReturn.ConcurrentModification:
-                throw new ConcurrentModificationException(functionId);
-        }
+        var success = await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch);
+        if (success)
+            InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+        else
+            throw new ConcurrentModificationException(functionId);
     }
 }

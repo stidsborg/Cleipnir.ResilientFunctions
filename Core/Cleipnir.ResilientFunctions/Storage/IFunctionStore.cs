@@ -85,7 +85,7 @@ public interface IFunctionStore
         ComplimentaryState.SetResult complementaryState
     );
     
-    Task<SuspensionResult> SuspendFunction(
+    Task<bool> SuspendFunction(
         FunctionId functionId, 
         int expectedEventCount, 
         string scrapbookJson, 

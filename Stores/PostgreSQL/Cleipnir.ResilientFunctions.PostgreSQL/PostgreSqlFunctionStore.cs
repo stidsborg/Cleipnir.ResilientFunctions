@@ -401,7 +401,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, scrapbook_json = $3, timestamp = $4, epoch = $7 + 1
+            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, scrapbook_json = $3, timestamp = $4
             WHERE 
                 function_type_id = $5 AND 
                 function_instance_id = $6 AND 
@@ -435,7 +435,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = $1, scrapbook_json = $2, timestamp = $3, epoch = $6 + 1
+            SET status = {(int) Status.Postponed}, postponed_until = $1, scrapbook_json = $2, timestamp = $3
             WHERE 
                 function_type_id = $4 AND 
                 function_instance_id = $5 AND 
@@ -457,7 +457,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<SuspensionResult> SuspendFunction(
+    public async Task<bool> SuspendFunction(
         FunctionId functionId, 
         int expectedEventCount, 
         string scrapbookJson,
@@ -470,7 +470,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, scrapbook_json = $1, timestamp = $2, epoch = $5 + 1
+            SET status = {(int) Status.Suspended}, scrapbook_json = $1, timestamp = $2
             WHERE             
                 function_type_id = $3 AND 
                 function_instance_id = $4 AND 
@@ -496,13 +496,19 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await transaction.CommitAsync();
         
         if (affectedRows == 1)
-            return SuspensionResult.Success;
+            return true;
 
         var sf = await GetFunction(functionId);
-        return 
-            sf?.Epoch != expectedEpoch 
-                ? SuspensionResult.ConcurrentStateModification 
-                : SuspensionResult.EventCountMismatch;
+        if (sf == null) return false;
+
+        if (sf.Epoch == expectedEpoch)
+            return await PostponeFunction(
+                functionId,
+                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
+                new ComplimentaryState.SetResult()
+            );
+
+        return false;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
@@ -537,7 +543,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, exception_json = $1, scrapbook_json = $2, timestamp = $3, epoch = $6 + 1
+            SET status = {(int) Status.Failed}, exception_json = $1, scrapbook_json = $2, timestamp = $3
             WHERE 
                 function_type_id = $4 AND 
                 function_instance_id = $5 AND 

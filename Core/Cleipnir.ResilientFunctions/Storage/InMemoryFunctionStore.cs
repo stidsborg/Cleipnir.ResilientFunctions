@@ -248,8 +248,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
 
-            state.Epoch += 1;
-
             return true.ToTask();
         }
     }
@@ -273,14 +271,12 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.PostponeUntil = postponeUntil;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
-
-            state.Epoch += 1;
             
             return true.ToTask();
         }
     }
     
-    public virtual Task<SuspensionResult> SuspendFunction(
+    public virtual Task<bool> SuspendFunction(
         FunctionId functionId, 
         int expectedEventCount, 
         string scrapbookJson,
@@ -290,23 +286,21 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(functionId)) 
-                return SuspensionResult.ConcurrentStateModification.ToTask();
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
 
             var state = _states[functionId];
-            if (state.Epoch != expectedEpoch) 
-                return SuspensionResult.ConcurrentStateModification.ToTask();
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
 
             if (_events[functionId].Count > expectedEventCount)
-                return SuspensionResult.EventCountMismatch.ToTask();
+                return false.ToTask();
                 
             state.Status = Status.Suspended;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
             
-            state.Epoch += 1;
-            
-            return SuspensionResult.Success.ToTask();
+            return true.ToTask();
         }
     }
 

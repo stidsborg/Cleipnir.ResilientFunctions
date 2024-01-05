@@ -109,18 +109,22 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => FunctionStatusAndEpochCanBeSuccessfullyFetched(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task EpochIsIncrementedOnCompletion()
-        => EpochIsIncrementedOnCompletion(FunctionStoreFactory.Create());
+    public override Task EpochIsNotIncrementedOnCompletion()
+        => EpochIsNotIncrementedOnCompletion(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task EpochIsIncrementedOnPostponed()
-        => EpochIsIncrementedOnPostponed(FunctionStoreFactory.Create());
+    public override Task EpochIsNotIncrementedOnPostponed()
+        => EpochIsNotIncrementedOnPostponed(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EpochIsIncrementedOnFailure()
-        => EpochIsIncrementedOnFailure(FunctionStoreFactory.Create());
+    public override Task EpochIsNotIncrementedOnFailure()
+        => EpochIsNotIncrementedOnFailure(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EpochIsIncrementedOnSuspension()
-        => EpochIsIncrementedOnSuspension(FunctionStoreFactory.Create());
+    public override Task EpochIsNotIncrementedOnSuspension()
+        => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FunctionIsPostponedOnSuspensionAndEventCountMismatch()
+        => FunctionIsPostponedOnSuspensionAndEventCountMismatch(FunctionStoreFactory.Create());
 }
