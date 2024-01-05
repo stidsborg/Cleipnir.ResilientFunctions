@@ -233,44 +233,6 @@ public abstract class PostponedTests
         }
     }
     
-    public abstract Task PostponedActionIsCompletedAfterInMemoryTimeout();
-    protected async Task PostponedActionIsCompletedAfterInMemoryTimeout(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = new FunctionId(
-            functionTypeId: nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog),
-            functionInstanceId: "test"
-        );
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var flag = new SyncedFlag();
-
-        using var rFunctions = new RFunctions
-        (
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                signOfLifeFrequency: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromSeconds(10)
-            )
-        );
-        var rFunc = rFunctions
-            .RegisterAction(
-                functionId.TypeId,
-                (string _) =>
-                {
-                    if (flag.Position == FlagPosition.Raised) return Result.Succeed;
-
-                    flag.Raise();
-                    return Postpone.For(1_000);
-                }).Invoke;
-        
-        _ = rFunc(functionId.InstanceId.ToString(), "param");
-
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
-
-        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
-    }
-    
     public abstract Task PostponedActionIsCompletedByWatchDogAfterCrash();
     protected async Task PostponedActionIsCompletedByWatchDogAfterCrash(Task<IFunctionStore> storeTask)
     {

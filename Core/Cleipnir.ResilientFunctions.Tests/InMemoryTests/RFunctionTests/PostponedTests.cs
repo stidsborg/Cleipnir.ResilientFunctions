@@ -1,6 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
@@ -23,11 +21,7 @@ public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
         => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
-        => PostponedActionIsCompletedAfterInMemoryTimeout(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
         => PostponedActionIsCompletedByWatchDogAfterCrash(FunctionStoreFactory.Create());

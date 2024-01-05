@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -18,7 +16,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task AtMostOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -52,7 +50,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -89,7 +87,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -128,7 +126,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -155,7 +153,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -189,7 +187,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;

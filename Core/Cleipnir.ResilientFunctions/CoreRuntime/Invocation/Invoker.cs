@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
 using Cleipnir.ResilientFunctions.Messaging;
 
@@ -91,7 +89,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
         }
 
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (created, disposable) = await _invocationHelper.PersistFunctionInStore(
+        var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
             functionId,
             param,
             scrapbook ?? new TScrapbook(),
@@ -99,10 +97,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             storedEvents: _invocationHelper.SerializeEvents(events)
         );
 
-        if (!created) return;
-        using var _ = disposable;
-
-        await ScheduleSleepAndThenReInvoke(functionId, scheduleAt, expectedEpoch: 0);
+        disposable.Dispose();
     }
 
     public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
@@ -235,8 +230,6 @@ public class Invoker<TParam, TScrapbook, TReturn>
         switch (await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch))
         {
             case PersistResultReturn.Success:
-                if (result.Outcome == Outcome.Postpone)
-                    _ = ScheduleSleepAndThenReInvoke(functionId, result.Postpone!.DateTime, expectedEpoch);
                 InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
                 return;
             case PersistResultReturn.ScheduleReInvocation:
@@ -245,16 +238,5 @@ public class Invoker<TParam, TScrapbook, TReturn>
             case PersistResultReturn.ConcurrentModification:
                 throw new ConcurrentModificationException(functionId);
         }
-    }
-    
-    private async Task ScheduleSleepAndThenReInvoke(FunctionId functionId, DateTime postponeUntil, int expectedEpoch)
-    {
-        var delay = TimeSpanHelper.Max(postponeUntil - DateTime.UtcNow, TimeSpan.Zero);
-        if (delay >= _postponedCheckFrequency) return;
-        
-        await Task.Delay(delay);
-        using var suppressedFlow = ExecutionContext.SuppressFlow();
-        var expectedEpochAfterPostponed = expectedEpoch + 1;
-        _ = ScheduleReInvoke(functionId.InstanceId.ToString(), expectedEpochAfterPostponed);
     }
 }

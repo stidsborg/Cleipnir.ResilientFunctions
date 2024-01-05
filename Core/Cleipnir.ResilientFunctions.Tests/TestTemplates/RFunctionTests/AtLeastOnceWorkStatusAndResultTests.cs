@@ -4,7 +4,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -17,7 +16,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -56,7 +55,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -96,7 +95,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new RFunctions(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;

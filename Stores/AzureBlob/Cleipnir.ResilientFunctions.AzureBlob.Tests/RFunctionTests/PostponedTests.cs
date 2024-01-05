@@ -21,10 +21,6 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
     [TestMethod]
     public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
         => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task PostponedActionIsCompletedAfterInMemoryTimeout()
-        => PostponedActionIsCompletedAfterInMemoryTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
