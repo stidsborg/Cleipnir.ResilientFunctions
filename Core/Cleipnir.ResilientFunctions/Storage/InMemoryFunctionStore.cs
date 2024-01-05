@@ -294,7 +294,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 return false.ToTask();
 
             if (_events[functionId].Count > expectedEventCount)
-                return false.ToTask();
+                return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, new ComplimentaryState.SetResult());
                 
             state.Status = Status.Suspended;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
@@ -335,8 +335,6 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             state.Exception = storedException;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
             state.Timestamp = timestamp;
-
-            state.Epoch += 1;
             
             return true.ToTask();
         }
