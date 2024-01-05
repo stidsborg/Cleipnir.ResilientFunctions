@@ -18,22 +18,19 @@ public class Invoker<TParam, TScrapbook, TReturn>
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Utilities _utilities;
-    private readonly TimeSpan _postponedCheckFrequency;
 
     internal Invoker(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Utilities utilities,
-        TimeSpan postponedCheckFrequency)
+        Utilities utilities)
     {
         _functionTypeId = functionTypeId;
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _utilities = utilities;
-        _postponedCheckFrequency = postponedCheckFrequency;
     }
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null, IEnumerable<EventAndIdempotencyKey>? events = null)
