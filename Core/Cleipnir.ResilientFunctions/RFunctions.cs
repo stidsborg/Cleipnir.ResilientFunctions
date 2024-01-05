@@ -377,7 +377,7 @@ public class RFunctions : IDisposable
             WatchDogsFactory.CreateAndStart(
                 functionTypeId,
                 _functionStore,
-                reInvoke: (id, epoch) => rFuncInvoker.ReInvoke(id.ToString(), epoch),
+                rFuncInvoker.ReInvoke,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
@@ -528,7 +528,7 @@ public class RFunctions : IDisposable
             WatchDogsFactory.CreateAndStart(
                 functionTypeId,
                 _functionStore,
-                reInvoke: (id, epoch) => rActionInvoker.ReInvoke(id.ToString(), epoch),
+                rActionInvoker.ReInvoke,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );

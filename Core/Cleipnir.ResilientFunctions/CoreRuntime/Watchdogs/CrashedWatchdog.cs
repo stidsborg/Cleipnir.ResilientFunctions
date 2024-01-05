@@ -12,22 +12,22 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal class CrashedWatchdog
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly ScheduleReInvocation _reInvoke;
+    private readonly ReInvoke _reInvoke;
     private readonly IFunctionStore _functionStore;
     private readonly TimeSpan _signOfLifeFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     
-    private readonly AsyncSemaphore _asyncSemaphore;
+    private readonly AsyncSemaphore _maxParallelismSemaphore;
     private readonly HashSet<FunctionInstanceId> _toBeExecuted = new();
     private readonly object _sync = new();
 
     public CrashedWatchdog(
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
-        ScheduleReInvocation reInvoke,
-        AsyncSemaphore asyncSemaphore,
+        ReInvoke reInvoke,
+        AsyncSemaphore maxParallelismSemaphore,
         TimeSpan signOfLifeFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -36,7 +36,7 @@ internal class CrashedWatchdog
         _functionTypeId = functionTypeId;
         _functionStore = functionStore;
         _reInvoke = reInvoke;
-        _asyncSemaphore = asyncSemaphore;
+        _maxParallelismSemaphore = maxParallelismSemaphore;
         _signOfLifeFrequency = signOfLifeFrequency;
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -76,12 +76,10 @@ internal class CrashedWatchdog
     private async Task ReInvokeCrashedFunction(StoredExecutingFunction sef)
     {
         lock (_sync)
-            if (_toBeExecuted.Contains(sef.InstanceId))
+            if (!_toBeExecuted.Add(sef.InstanceId))
                 return;
-            else
-                _toBeExecuted.Add(sef.InstanceId);
-        
-        using var @lock = await _asyncSemaphore.Take();
+
+        using var @lock = await _maxParallelismSemaphore.Take();
         
         if (_shutdownCoordinator.ShutdownInitiated || sef.LeaseExpiration > DateTime.UtcNow.Ticks) return;
         try

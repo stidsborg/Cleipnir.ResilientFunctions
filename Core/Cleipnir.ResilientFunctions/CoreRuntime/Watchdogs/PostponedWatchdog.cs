@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -13,17 +14,20 @@ internal class PostponedWatchdog
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly ScheduleReInvocation _reInvoke;
-    private readonly AsyncSemaphore _asyncSemaphore;
+    private readonly ReInvoke _reInvoke;
+    private readonly AsyncSemaphore _maxParallelismSemaphore;
     private readonly TimeSpan _postponedCheckFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
+    
+    private readonly HashSet<FunctionInstanceId> _toBeExecuted = new();
+    private readonly object _sync = new();
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
-        ScheduleReInvocation reInvoke,
-        AsyncSemaphore asyncSemaphore,
+        ReInvoke reInvoke,
+        AsyncSemaphore maxParallelismSemaphore,
         TimeSpan postponedCheckFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -34,7 +38,7 @@ internal class PostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
         _reInvoke = reInvoke;
-        _asyncSemaphore = asyncSemaphore;
+        _maxParallelismSemaphore = maxParallelismSemaphore;
         _postponedCheckFrequency = postponedCheckFrequency;
         _delayStartUp = delayStartUp;
     }
@@ -73,6 +77,10 @@ internal class PostponedWatchdog
 
     private async Task SleepAndThenReInvoke(StoredPostponedFunction spf, DateTime now)
     {
+        lock (_sync)
+            if (!_toBeExecuted.Add(spf.InstanceId))
+                return;
+
         var functionId = new FunctionId(_functionTypeId, spf.InstanceId);
 
         var postponedUntil = new DateTime(spf.PostponedUntil, DateTimeKind.Utc);
@@ -81,7 +89,7 @@ internal class PostponedWatchdog
 
         if (_shutdownCoordinator.ShutdownInitiated) return;
 
-        using var @lock = await _asyncSemaphore.Take();
+        using var @lock = await _maxParallelismSemaphore.Take();
         try
         {
             while (DateTime.UtcNow < postponedUntil) //clock resolution means that we might wake up early 
@@ -106,6 +114,11 @@ internal class PostponedWatchdog
                     innerException
                 )
             );
+        }
+        finally
+        {
+            lock (_sync)
+                _toBeExecuted.Remove(spf.InstanceId);
         }
     }
 }

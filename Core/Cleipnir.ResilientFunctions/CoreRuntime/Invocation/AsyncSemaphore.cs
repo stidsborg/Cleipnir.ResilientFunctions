@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers.Disposables;
 
-namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class AsyncSemaphore
 {
@@ -14,6 +15,16 @@ public class AsyncSemaphore
     {
         await _semaphore.WaitAsync();
         return new Lock(_semaphore);
+    }
+
+    public bool TryTake(out IDisposable @lock)
+    {
+        var success = _semaphore.WaitAsync(timeout: TimeSpan.Zero).Result;
+        @lock = success
+            ? new Lock(_semaphore)
+            : Disposable.NoOp();
+        
+        return success;
     }
 
     private class Lock : IDisposable

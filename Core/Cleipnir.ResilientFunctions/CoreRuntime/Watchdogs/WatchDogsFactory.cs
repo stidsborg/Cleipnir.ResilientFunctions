@@ -11,7 +11,7 @@ internal static class WatchDogsFactory
     public static void CreateAndStart(
         FunctionTypeId functionTypeId, 
         IFunctionStore functionStore,
-        ScheduleReInvocation reInvoke, 
+        ReInvoke reInvoke, 
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
