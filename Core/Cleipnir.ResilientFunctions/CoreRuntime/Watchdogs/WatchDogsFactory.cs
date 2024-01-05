@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -10,7 +11,7 @@ internal static class WatchDogsFactory
     public static void CreateAndStart(
         FunctionTypeId functionTypeId, 
         IFunctionStore functionStore,
-        WatchDogReInvokeFunc reInvoke, 
+        ScheduleReInvocation reInvoke, 
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
