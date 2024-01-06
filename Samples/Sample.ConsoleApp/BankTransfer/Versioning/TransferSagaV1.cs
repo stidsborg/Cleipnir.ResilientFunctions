@@ -3,9 +3,8 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Utils.Register;
 
-namespace ConsoleApp.BankTransfer;
+namespace ConsoleApp.BankTransfer.Versioning;
 
 public sealed class TransferSagaV1
 {

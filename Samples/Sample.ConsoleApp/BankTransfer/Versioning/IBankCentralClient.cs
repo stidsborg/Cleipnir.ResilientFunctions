@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace ConsoleApp.BankTransfer;
+namespace ConsoleApp.BankTransfer.Versioning;
 
 public interface IBankCentralClient
 {

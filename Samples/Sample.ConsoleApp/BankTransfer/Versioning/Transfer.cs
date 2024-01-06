@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ConsoleApp.BankTransfer;
+namespace ConsoleApp.BankTransfer.Versioning;
 
 public record Transfer(
     Guid TransferId,
