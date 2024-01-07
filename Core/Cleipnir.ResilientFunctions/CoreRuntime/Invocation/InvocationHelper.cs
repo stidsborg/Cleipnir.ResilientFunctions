@@ -44,8 +44,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId, 
         TParam param, 
         TScrapbook scrapbook,
-        DateTime? scheduleAt,
-        IEnumerable<StoredEvent>? storedEvents)
+        DateTime? scheduleAt)
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -59,7 +58,6 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                storedEvents,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
                 timestamp: utcNowTicks
@@ -387,13 +385,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public EventSource CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, IReadOnlyList<StoredEvent>? initialEvents)
+    public EventSource CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation)
     {
         var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
         var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutEventsCheckFrequency); 
         return new EventSource(
             functionId,
-            initialEvents,
             _functionStore.EventStore,
             eventSourceWriter,
             timeoutProvider,

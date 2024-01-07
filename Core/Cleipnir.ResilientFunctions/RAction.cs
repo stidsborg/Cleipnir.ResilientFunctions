@@ -11,23 +11,20 @@ public static class RAction
     public delegate Task Invoke<in TParam, in TScrapbook>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null, 
-        IEnumerable<EventAndIdempotencyKey>? events = null
+        TScrapbook? scrapbook = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
 
     public delegate Task Schedule<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null, 
-        IEnumerable<EventAndIdempotencyKey>? events = null
+        TScrapbook? scrapbook = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
     
     public delegate Task ScheduleAt<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param,
         DateTime delayUntil,
-        TScrapbook? scrapbook = null,
-        IEnumerable<EventAndIdempotencyKey>? events = null
+        TScrapbook? scrapbook = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
@@ -56,14 +53,12 @@ public class RAction<TParam> where TParam : notnull
         string functionInstanceId,
         TParam param,
         TimeSpan delay,
-        RScrapbook? scrapbook = null,
-        IEnumerable<EventAndIdempotencyKey>? events = null
+        RScrapbook? scrapbook = null
     ) => ScheduleAt(
         functionInstanceId,
         param,
         delayUntil: DateTime.UtcNow.Add(delay),
-        scrapbook,
-        events
+        scrapbook
     );
 }
 
@@ -96,13 +91,11 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
         string functionInstanceId,
         TParam param,
         TimeSpan delay,
-        TScrapbook? scrapbook = null,
-        IEnumerable<EventAndIdempotencyKey>? events = null
+        TScrapbook? scrapbook = null
     ) => ScheduleAt(
         functionInstanceId,
         param,
         delayUntil: DateTime.UtcNow.Add(delay),
-        scrapbook,
-        events
+        scrapbook
     );
 }

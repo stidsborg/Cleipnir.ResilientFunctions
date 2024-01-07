@@ -27,11 +27,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
-        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
-    ) => _inner.CreateFunction(functionId, param, storedScrapbook, storedEvents, leaseExpiration, postponeUntil, timestamp);
+    ) => _inner.CreateFunction(functionId, param, storedScrapbook, leaseExpiration, postponeUntil, timestamp);
 
     public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
         => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);

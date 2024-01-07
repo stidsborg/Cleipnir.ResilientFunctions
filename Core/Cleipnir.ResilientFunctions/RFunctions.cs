@@ -17,7 +17,6 @@ public class RFunctions : IDisposable
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
 
     private readonly IFunctionStore _functionStore;
-    private readonly IEventStore _eventStore;
     public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
@@ -28,7 +27,6 @@ public class RFunctions : IDisposable
     public RFunctions(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
-        _eventStore = functionStore.EventStore;
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
     }

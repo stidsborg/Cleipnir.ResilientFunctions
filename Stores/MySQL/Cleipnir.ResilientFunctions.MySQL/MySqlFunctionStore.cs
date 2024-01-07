@@ -94,18 +94,11 @@ public class MySqlFunctionStore : IFunctionStore
         FunctionId functionId, 
         StoredParameter param, 
         StoredScrapbook storedScrapbook, 
-        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        MySqlTransaction? transaction = null;
-        if (storedEvents != null)
-        {
-            transaction = await conn.BeginTransactionAsync();
-            await _eventStore.AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
-        }
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         var sql = @$"
@@ -113,7 +106,7 @@ public class MySqlFunctionStore : IFunctionStore
                 (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
                 (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?, ?)";
-        await using var command = new MySqlCommand(sql, conn, transaction)
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -130,7 +123,6 @@ public class MySqlFunctionStore : IFunctionStore
         };
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        await (transaction?.CommitAsync() ?? Task.CompletedTask);
         return affectedRows == 1;
     }
 

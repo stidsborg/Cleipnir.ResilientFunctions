@@ -18,7 +18,6 @@ public interface IFunctionStore
         FunctionId functionId, 
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp

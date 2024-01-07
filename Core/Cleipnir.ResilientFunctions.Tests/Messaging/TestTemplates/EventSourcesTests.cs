@@ -26,7 +26,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -34,7 +33,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
@@ -61,7 +59,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -69,7 +66,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
@@ -99,7 +95,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -107,7 +102,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
@@ -141,7 +135,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -149,7 +142,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
@@ -185,7 +177,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -193,7 +184,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
@@ -223,7 +213,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -231,7 +220,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             eventSourceWriter,
             new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
@@ -273,7 +261,6 @@ public abstract class EventSourcesTests
             functionId, 
             Test.SimpleStoredParameter, 
             Test.SimpleStoredScrapbook, 
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -281,7 +268,6 @@ public abstract class EventSourcesTests
         var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var eventSource = new EventSource(
             functionId,
-            initialEvents: null,
             functionStore.EventStore,
             new EventSourceWriter(
                 functionId, functionStore, 

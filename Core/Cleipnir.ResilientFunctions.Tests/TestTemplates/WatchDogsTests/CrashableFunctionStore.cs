@@ -40,7 +40,6 @@ public class CrashableFunctionStore : IFunctionStore
         FunctionId functionId,
         StoredParameter param,
         StoredScrapbook storedScrapbook,
-        IEnumerable<StoredEvent>? storedEvents,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -50,7 +49,6 @@ public class CrashableFunctionStore : IFunctionStore
             functionId,
             param,
             storedScrapbook,
-            storedEvents,
             leaseExpiration,
             postponeUntil,
             timestamp

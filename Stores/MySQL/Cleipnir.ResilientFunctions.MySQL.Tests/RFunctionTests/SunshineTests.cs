@@ -8,15 +8,7 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
     [TestMethod]
     public override Task SunshineScenarioFunc() 
         => SunshineScenarioFunc(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SunshineScenarioFuncWithInitialEvents()
-        => SunshineScenarioFuncWithInitialEvents(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SunshineScenarioActionWithInitialEvents()
-        => SunshineScenarioActionWithInitialEvents(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task SunshineScenarioFuncWithScrapbook() 
         => SunshineScenarioFuncWithScrapbook(FunctionStoreFactory.Create());

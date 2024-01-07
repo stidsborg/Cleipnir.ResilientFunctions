@@ -35,7 +35,6 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -74,7 +73,6 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-           storedEvents: null,
            leaseExpiration: DateTime.UtcNow.Ticks,
            postponeUntil: null,
            timestamp: DateTime.UtcNow.Ticks
@@ -117,7 +115,6 @@ public abstract class VersioningTests
                 typeof(string).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -163,7 +160,6 @@ public abstract class VersioningTests
                 typeof(PersonV1).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -176,7 +172,6 @@ public abstract class VersioningTests
                 typeof(PersonV2).SimpleQualifiedName()
             ),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks

@@ -36,7 +36,6 @@ public static class PostponedTest
                 functionId,
                 storedParameter,
                 storedScrapbook,
-                storedEvents: null,
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks

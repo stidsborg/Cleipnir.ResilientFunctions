@@ -44,6 +44,26 @@ public class EventSourceWriter
         if (status == Status.Suspended || status == Status.Postponed)
             await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     }
+    
+    public async Task AppendEvent(EventAndIdempotencyKey eventAndIdempotency)
+    {
+        var (@event, idempotencyKey) = eventAndIdempotency;
+        var (eventJson, eventType) = _serializer.SerializeEvent(@event);
+        await _eventStore.AppendEvent(
+            _functionId,
+            eventJson,
+            eventType,
+            idempotencyKey
+        );
+
+        var statusAndEpoch = await _functionStore.GetFunctionStatus(_functionId);
+        if (statusAndEpoch == null)
+            throw new UnexpectedFunctionState(_functionId, $"Function '{_functionId}' not found");
+
+        var (status, epoch) = statusAndEpoch;
+        if (status == Status.Suspended || status == Status.Postponed)
+            await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
+    }
 
     public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
     {

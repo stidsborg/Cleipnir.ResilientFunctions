@@ -23,7 +23,6 @@ public class EventSource : IReactiveChain<object>, IDisposable
     
     public EventSource(
         FunctionId functionId,
-        IReadOnlyList<StoredEvent>? initialEvents,
         IEventStore eventStore, 
         EventSourceWriter eventWriter,
         TimeoutProvider timeoutProvider,
@@ -35,7 +34,6 @@ public class EventSource : IReactiveChain<object>, IDisposable
         
         _eventPullerAndEmitter = new EventsPullerAndEmitter(
             functionId,
-            initialEvents,
             pullFrequency ?? TimeSpan.FromMilliseconds(250),
             eventStore,
             serializer,
@@ -81,7 +79,6 @@ public class EventSource : IReactiveChain<object>, IDisposable
         
         public EventsPullerAndEmitter(
             FunctionId functionId, 
-            IReadOnlyList<StoredEvent>? initialEvents,
             TimeSpan delay, 
             IEventStore eventStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
         {
@@ -94,15 +91,6 @@ public class EventSource : IReactiveChain<object>, IDisposable
                 onSubscriptionCreated: SubscriberAdded,
                 onSubscriptionRemoved: SubscriberRemoved
             );
-
-            if (initialEvents != null)
-            { 
-                Source.SignalNext(
-                    initialEvents.Select(se => serializer.DeserializeEvent(se.EventJson, se.EventType))
-                );
-                _toSkip = initialEvents.Count;
-            }
-                
             
             _eventsSubscription = eventStore.SubscribeToEvents(functionId);
         }

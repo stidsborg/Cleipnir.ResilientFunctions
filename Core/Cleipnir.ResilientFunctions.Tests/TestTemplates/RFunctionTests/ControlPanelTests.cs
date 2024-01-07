@@ -1023,12 +1023,11 @@ public abstract class ControlPanelTests
             Task(string param, RScrapbook _, Context context) => Task.CompletedTask
         );
 
-        await rAction.Invoke(
-            functionInstanceId.Value,
-            param: "param",
-            events: new[] { new EventAndIdempotencyKey("hello world", IdempotencyKey: "first") }
-        );
-        
+        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.EventSourceWriters
+            .For(functionInstanceId.Value)
+            .AppendEvent(new EventAndIdempotencyKey("hello world", IdempotencyKey: "first"));
+            
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         var existingEvents = controlPanel.Events;
         var (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();

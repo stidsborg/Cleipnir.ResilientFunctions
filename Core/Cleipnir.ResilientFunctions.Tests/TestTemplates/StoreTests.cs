@@ -32,7 +32,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration,
             postponeUntil: null,
             timestamp
@@ -93,7 +92,6 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -135,7 +133,6 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -174,7 +171,6 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -208,7 +204,6 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -240,7 +235,6 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -250,7 +244,6 @@ public abstract class StoreTests
             functionId,
             param: new StoredParameter(paramJson, paramType),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -274,7 +267,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -318,7 +310,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -362,7 +353,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -409,7 +399,6 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -434,7 +423,6 @@ public abstract class StoreTests
             function1Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -444,7 +432,6 @@ public abstract class StoreTests
             function2Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: 2,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -469,7 +456,6 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -492,7 +478,6 @@ public abstract class StoreTests
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -517,7 +502,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -550,7 +534,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -588,7 +571,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -614,7 +596,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -643,7 +624,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -689,7 +669,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -728,7 +707,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -799,7 +777,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -847,7 +824,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -877,16 +853,19 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: new []
-            {
-                new StoredEvent("Hello".ToJson(), EventType: typeof(string).SimpleQualifiedName()),
-                new StoredEvent("World".ToJson(), EventType: typeof(string).SimpleQualifiedName())
-            },
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
+        await store.EventStore.AppendEvents(
+            functionId,
+            new[]
+            {
+                new StoredEvent("Hello".ToJson(), EventType: typeof(string).SimpleQualifiedName()),
+                new StoredEvent("World".ToJson(), EventType: typeof(string).SimpleQualifiedName())
+            }
+        );
         var events = await store.EventStore.GetEvents(functionId).ToListAsync();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe("Hello");
@@ -905,7 +884,6 @@ public abstract class StoreTests
             functionId,
             storedParameter,
             storedScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -939,7 +917,6 @@ public abstract class StoreTests
             functionId,
             param: Test.SimpleStoredParameter,
             storedScrapbook: Test.SimpleStoredScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -969,7 +946,6 @@ public abstract class StoreTests
             functionId,
             param: Test.SimpleStoredParameter,
             storedScrapbook: Test.SimpleStoredScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -999,7 +975,6 @@ public abstract class StoreTests
             functionId,
             param: Test.SimpleStoredParameter,
             storedScrapbook: Test.SimpleStoredScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1029,7 +1004,6 @@ public abstract class StoreTests
             functionId,
             param: Test.SimpleStoredParameter,
             storedScrapbook: Test.SimpleStoredScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1059,7 +1033,6 @@ public abstract class StoreTests
             functionId,
             param: Test.SimpleStoredParameter,
             storedScrapbook: Test.SimpleStoredScrapbook,
-            storedEvents: null,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks

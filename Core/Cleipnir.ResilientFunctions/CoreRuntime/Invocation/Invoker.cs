@@ -33,10 +33,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
         _utilities = utilities;
     }
 
-    public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null, IEnumerable<EventAndIdempotencyKey>? events = null)
+    public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook, events);
+        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
         if (!created) return await WaitForFunctionResult(functionId);
         using var _ = disposables;
 
@@ -52,10 +52,10 @@ public class Invoker<TParam, TScrapbook, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events = null)
+    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook, events);
+        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
         if (!created) return;
 
         _ = Task.Run(async () =>
@@ -77,11 +77,11 @@ public class Invoker<TParam, TScrapbook, TReturn>
         });
     }
     
-    public async Task ScheduleAt(string instanceId, TParam param, DateTime scheduleAt, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events = null)
+    public async Task ScheduleAt(string instanceId, TParam param, DateTime scheduleAt, TScrapbook? scrapbook)
     {
         if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
         {
-            await ScheduleInvoke(instanceId, param, scrapbook, events);
+            await ScheduleInvoke(instanceId, param, scrapbook);
             return;
         }
 
@@ -90,8 +90,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             functionId,
             param,
             scrapbook ?? new TScrapbook(),
-            scheduleAt,
-            storedEvents: _invocationHelper.SerializeEvents(events)
+            scheduleAt
         );
 
         disposable.Dispose();
@@ -142,7 +141,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _invocationHelper.WaitForFunctionResult(functionId, allowPostponeAndSuspended: false);
 
-    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook, IEnumerable<EventAndIdempotencyKey>? events)
+    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param, TScrapbook? scrapbook)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -150,25 +149,19 @@ public class Invoker<TParam, TScrapbook, TReturn>
         {
             scrapbook ??= new TScrapbook();
             _invocationHelper.InitializeScrapbook(functionId, param, scrapbook, epoch: 0);
-
-            var storedEvents = _invocationHelper.SerializeEvents(events);
+            
             var (persisted, runningFunction) = 
                 await _invocationHelper.PersistFunctionInStore(
                     functionId, 
                     param, 
                     scrapbook,
-                    scheduleAt: null,
-                    storedEvents
+                    scheduleAt: null
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch: 0));
             
             success = persisted;
-            var eventSource = _invocationHelper.CreateEventSource(
-                functionId,
-                ScheduleReInvoke,
-                storedEvents
-            );
+            var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke);
             var activity = await _invocationHelper.CreateActivity(functionId);
             var context = new Context(functionId, eventSource, activity, _utilities);
             disposables.Add(context);
@@ -196,7 +189,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
-            var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke, initialEvents: null);
+            var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke);
             await eventSource.Sync();
             var activity = await _invocationHelper.CreateActivity(functionId);
             var context = new Context(functionId, eventSource, activity, _utilities);
