@@ -224,4 +224,30 @@ public abstract class ActivityTests
         storedActivity.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
         syncedCounter.Current.ShouldBe(1);
     }
+    
+    public abstract Task TaskWhenAnyFuncTest();
+    public async Task TaskWhenAnyFuncTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var rFunctions = new RFunctions(store);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        var rAction = rFunctions.RegisterFunc(
+            functionTypeId,
+            async Task<int> (string param, Context context) =>
+            {
+                var (activity, _) = context;
+                var t1 = new Task<int>(() => 1);
+                var t2 = Task.FromResult(2);
+                return await activity.WhenAny("WhenAny", t1, t2);
+            });
+
+        var result = await rAction.Invoke(functionInstanceId.ToString(), param: "hello");
+        result.ShouldBe(2);
+        
+        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
+        var storedActivity = activityResults.Single(r => r.ActivityId == "WhenAny");
+        storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedActivity.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
+    }
 }

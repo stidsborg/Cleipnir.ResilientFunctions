@@ -25,4 +25,8 @@ public class ActivityTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFu
     [TestMethod]
     public override Task ExceptionThrowingActionTest()
         => ExceptionThrowingActionTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task TaskWhenAnyFuncTest()
+        => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
 }

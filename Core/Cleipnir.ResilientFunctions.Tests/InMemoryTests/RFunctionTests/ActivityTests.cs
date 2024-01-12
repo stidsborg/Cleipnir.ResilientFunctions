@@ -27,4 +27,8 @@ public class ActivityTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFu
     [TestMethod]
     public override Task ExceptionThrowingActionTest()
         => ExceptionThrowingActionTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task TaskWhenAnyFuncTest()
+        => TaskWhenAnyFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

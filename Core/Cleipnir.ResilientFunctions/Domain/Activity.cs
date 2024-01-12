@@ -145,5 +145,8 @@ public class Activity
         );
 
         return result;
-    } 
+    }
+    
+    public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
+        => Do(id, async () => await await Task.WhenAny(tasks));
 }
