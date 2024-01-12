@@ -23,8 +23,7 @@ public interface IFunctionStore
         long timestamp
     );
     
-    Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch);
-    Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration);
+    Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration);
     
     Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration);
 

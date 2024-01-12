@@ -259,7 +259,7 @@ public abstract class StoreCrudTests
             FunctionId,
             expectedEpoch: 0,
             leaseExpiration: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await store.DeleteFunction(FunctionId, expectedEpoch: 0).ShouldBeFalseAsync();
 
         await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
@@ -389,7 +389,7 @@ public abstract class StoreCrudTests
             FunctionId,
             expectedEpoch: 0,
             leaseExpiration: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = new StoredParameter(
             "hello world".ToJson(),

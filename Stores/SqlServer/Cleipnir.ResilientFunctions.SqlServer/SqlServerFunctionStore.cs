@@ -168,24 +168,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
-    {
-        await using var conn = await _connFunc();
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET Epoch = Epoch + 1
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-
-    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -193,7 +176,20 @@ public class SqlServerFunctionStore : IFunctionStore
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
                 LeaseExpiration = @LeaseExpiration
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;
+
+            SELECT ParamJson, ParamType,
+                   ScrapbookJson, ScrapbookType,
+                   Status,
+                   ResultJson, ResultType,
+                   ExceptionJson,
+                   PostponedUntil,
+                   Epoch, 
+                   LeaseExpiration,
+                   Timestamp
+            FROM {_tablePrefix}RFunctions
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId";
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
@@ -201,8 +197,14 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        await using var reader = await command.ExecuteReaderAsync();
+        if (reader.RecordsAffected == 0)
+            return default;
+        
+        var sf = ReadToStoredFunction(functionId, reader);
+        return sf?.Epoch == expectedEpoch + 1
+            ? sf
+            : default;
     }
 
     public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
@@ -573,6 +575,11 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         
         await using var reader = await command.ExecuteReaderAsync();
+        return ReadToStoredFunction(functionId, reader);
+    }
+
+    private StoredFunction? ReadToStoredFunction(FunctionId functionId, SqlDataReader reader)
+    {
         while (reader.HasRows)
         {
             while (reader.Read())
@@ -608,7 +615,7 @@ public class SqlServerFunctionStore : IFunctionStore
             }
         }
 
-        return null;
+        return default;
     }
 
     public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)

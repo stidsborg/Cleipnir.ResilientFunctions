@@ -88,31 +88,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
-    {
-        var blobName = functionId.GetStateBlobName();
-        var blobClient = _blobContainerClient.GetBlobClient(blobName);
-        
-        var rfTags = await blobClient.GetRfTags();
-        try
-        {
-            await blobClient
-                .SetRfTags(
-                    rfTags with { Epoch = expectedEpoch + 1, LeaseExpiration = DateTime.UtcNow.Ticks },
-                    expectedEpoch
-                );
-        } catch (RequestFailedException e)
-        {
-            if (e.ErrorCode != "ConditionNotMet")
-                throw;
-
-            return false;
-        }
-
-        return true;
-    }
-
-    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -133,13 +109,16 @@ public class AzureBlobFunctionStore : IFunctionStore
                 );
         } catch (RequestFailedException e)
         {
-            if (e.ErrorCode != "ConditionNotMet")
+            if (e.ErrorCode != "ConditionNotMet" && e.ErrorCode != "BlobNotFound")
                 throw;
 
-            return false;
+            return default;
         }
 
-        return true;    
+        var sf = await GetFunction(functionId);
+        return sf?.Epoch == expectedEpoch + 1
+            ? sf
+            : default;
     }
 
     public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)

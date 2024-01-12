@@ -53,13 +53,10 @@ public class CrashableFunctionStore : IFunctionStore
             postponeUntil,
             timestamp
         );
-
-    public Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
-        => _inner.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch);
-
-    public Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    
+    public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
+            ? Task.FromException<StoredFunction?>(new TimeoutException())
             : _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);
     
     public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)

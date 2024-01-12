@@ -145,37 +145,27 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
-    {
-        await using var conn = await CreateConnection();
-
-        var sql = @$"
-            UPDATE {_tablePrefix}rfunctions
-            SET epoch = epoch + 1
-            WHERE function_type_id = $1 AND function_instance_id = $2 AND epoch = $3";
-
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
-    public async Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateConnection();
 
         var sql = @$"
             UPDATE {_tablePrefix}rfunctions
             SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = $1
-            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
+            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4
+            RETURNING               
+                param_json, 
+                param_type,
+                scrapbook_json, 
+                scrapbook_type,
+                status,
+                result_json, 
+                result_type,
+                exception_json,
+                postponed_until,
+                epoch, 
+                lease_expiration,
+                timestamp";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -187,9 +177,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = expectedEpoch },
             }
         };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        if (reader.RecordsAffected == 0)
+            return default;
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        var sf = await ReadToStoredFunction(functionId, reader);
+        return sf?.Epoch == expectedEpoch + 1
+            ? sf
+            : default;
     }
 
     public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
@@ -585,7 +581,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        
+        return await ReadToStoredFunction(functionId, reader);
+    }
+
+    private async Task<StoredFunction?> ReadToStoredFunction(FunctionId functionId, NpgsqlDataReader reader)
+    {
         while (await reader.ReadAsync())
         {
             var hasResult = !await reader.IsDBNullAsync(6);

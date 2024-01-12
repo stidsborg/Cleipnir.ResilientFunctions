@@ -227,50 +227,41 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    public async Task<PreparedReInvocation> PrepareForReInvocation(
-        FunctionId functionId, int expectedEpoch, Status[]? expectedStatuses
-    ) 
+    public async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch) 
     {
-        var sf = await _functionStore.GetFunction(functionId);
-        if (sf == null)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' not found");
-        if (sf.Epoch != expectedEpoch)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{sf.Epoch}'");
-        if (expectedStatuses != null && expectedStatuses.All(expectedStatus => expectedStatus != sf.Status))
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected status: '{string.Join(" or ", expectedStatuses)}' was '{sf.Status}'");
-
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
-        var epoch = sf.Epoch + 1;
         try
         {
-            var success = await _functionStore.RestartExecution(
+            var sf = await _functionStore.RestartExecution(
                 functionId,
-                expectedEpoch: sf.Epoch,
+                expectedEpoch,
                 leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks 
             );
+            if (sf == null)
+                throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{expectedEpoch}'");
 
-            if (!success)
-                throw new UnexpectedFunctionState(functionId, $"Unable to become leader for function: '{functionId}'");
-
+            expectedEpoch = sf.Epoch;
+            
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
 
             var scrapbook = Serializer.DeserializeScrapbook<TScrapbook>(
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks));
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, sf.Epoch, _settings.LeaseLength.Ticks));
             
-            return new PreparedReInvocation(param, epoch, scrapbook, runningFunction);
+            return new PreparedReInvocation(param, sf.Epoch, scrapbook, runningFunction);
         }
         catch (DeserializationException e)
         {
             runningFunction.Dispose();
+            var sf = await _functionStore.GetFunction(functionId);
             await _functionStore.FailFunction(
                 functionId,
                 storedException: Serializer.SerializeException(e),
-                scrapbookJson: sf.Scrapbook.ScrapbookJson,
+                scrapbookJson: sf!.Scrapbook.ScrapbookJson,
                 timestamp: DateTime.UtcNow.Ticks,
-                expectedEpoch: epoch,
+                expectedEpoch,
                 complementaryState: new ComplimentaryState.SetResult(sf.Parameter, sf.Scrapbook)
             );
             throw;

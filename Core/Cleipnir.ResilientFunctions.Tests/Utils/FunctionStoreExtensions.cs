@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -10,6 +11,7 @@ public static class FunctionStoreExtensions
     {
         var sf = await functionStore.GetFunction(functionId);
         var existingEpoch = sf!.Epoch;
-        return await functionStore.IncrementAlreadyPostponedFunctionEpoch(functionId, existingEpoch);
+        var sfAfterRestart = await functionStore.RestartExecution(functionId, existingEpoch, DateTime.UtcNow.Ticks);
+        return sfAfterRestart != null;
     }
 }

@@ -96,7 +96,7 @@ public abstract class ScrapbookTests
             FunctionId,
             expectedEpoch: 0, 
             leaseExpiration: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         var scrapbook = new Scrapbook() {Name = "Peter"};
         scrapbook.Initialize(onSave: async () =>

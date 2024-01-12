@@ -180,13 +180,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
     }
     private record PreparedInvocation(bool Persisted, TScrapbook Scrapbook, Context Context, IDisposable Disposables);
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch, Status[]? expectedStatuses = null)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
             var (param, epoch, scrapbook, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch, expectedStatuses);
+                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
             var eventSource = _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke);

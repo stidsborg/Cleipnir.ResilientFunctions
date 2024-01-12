@@ -69,36 +69,22 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             return true.ToTask();
         }
     }
-
-    public virtual Task<bool> IncrementAlreadyPostponedFunctionEpoch(FunctionId functionId, int expectedEpoch)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId)) return false.ToTask();
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch)
-                return false.ToTask();
-
-            state.Epoch += 1;
-            return true.ToTask();
-        }
-    }
-
-    public virtual Task<bool> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    
+    public virtual Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(functionId))
-                return false.ToTask();
+                return default(StoredFunction).ToTask();
 
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch)
-                return false.ToTask();
+                return default(StoredFunction).ToTask();
 
             state.Epoch += 1;
             state.Status = Status.Executing;
             state.LeaseExpiration = leaseExpiration;
-            return true.ToTask();
+            return GetFunction(functionId);
         }
     }
 

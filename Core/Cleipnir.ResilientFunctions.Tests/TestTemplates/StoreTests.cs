@@ -182,7 +182,7 @@ public abstract class StoreTests
                 functionId,
                 expectedEpoch: 0,
                 leaseExpiration
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -214,7 +214,7 @@ public abstract class StoreTests
                 functionId,
                 expectedEpoch: 1,
                 leaseExpiration: DateTime.UtcNow.Ticks
-            ).ShouldBeFalseAsync();
+            ).ShouldBeNullAsync();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -461,7 +461,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 0).ShouldBeTrueAsync();
+        await store.RestartExecution(functionId, expectedEpoch: 0, DateTime.UtcNow.Ticks).ShouldNotBeNullAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -483,7 +483,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.IncrementAlreadyPostponedFunctionEpoch(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
+        await store.RestartExecution(functionId, expectedEpoch: 1, leaseExpiration: DateTime.UtcNow.Ticks).ShouldBeNullAsync();
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -833,12 +833,12 @@ public abstract class StoreTests
             functionId, 
             expectedEpoch: 0, 
             leaseExpiration: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await store.RestartExecution(
             functionId, 
             expectedEpoch: 0, 
             leaseExpiration: DateTime.UtcNow.Ticks
-        ).ShouldBeFalseAsync();
+        ).ShouldBeNullAsync();
     }
     
     public abstract Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated();
