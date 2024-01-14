@@ -376,11 +376,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public EventSource CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation)
+    public async Task<EventSource> CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, bool sync)
     {
         var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
         var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutEventsCheckFrequency); 
-        return new EventSource(
+        var es = new EventSource(
             functionId,
             _functionStore.EventStore,
             eventSourceWriter,
@@ -388,12 +388,20 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             _settings.EventSourcePullFrequency,
             _settings.Serializer
         );
+        
+        if (sync)
+            await es.Sync();
+
+        return es;
     }
 
-    public async Task<Activity> CreateActivity(FunctionId functionId)
+    public async Task<Activity> CreateActivity(FunctionId functionId, bool sync)
     {
         var activityStore = _functionStore.ActivityStore;
-        var existingActivities = await activityStore.GetActivityResults(functionId);
+        var existingActivities = sync 
+            ? await activityStore.GetActivityResults(functionId)
+            : Enumerable.Empty<StoredActivity>();
+        
         return new Activity(functionId, existingActivities, activityStore, _settings.Serializer);
     }
 
