@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
@@ -217,7 +215,7 @@ public class InnerOperatorsTests
 
     #region OfTypes
 
-        [TestMethod]
+    [TestMethod]
     public void EventsCanBeFilteredByType()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
@@ -300,7 +298,7 @@ public class InnerOperatorsTests
             matched.ShouldBe("25");
         }
     }
-
+    
     #endregion
 
     #region Buffer / Chunk

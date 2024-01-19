@@ -167,6 +167,38 @@ public class LeafOperatorsTests
         nextOrSuspend.Value.ShouldBe("hallo");
     }
     
+    [TestMethod]
+    public void FirstOfTypeReturnsValueOfTypeOnSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        source.SignalNext("hallo");
+        source.SignalNext("world");
+
+        var firstOfType = source.FirstOfType<int>();
+        firstOfType.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(2);
+        firstOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        firstOfType.Result.ShouldBe(2);
+    }
+    
+    [TestMethod]
+    public void FirstOfReturnsValueOfTypeOnSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        source.SignalNext("hallo");
+        source.SignalNext("world");
+
+        var firstOfType = source.FirstOf<int>();
+        firstOfType.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(2);
+        firstOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        firstOfType.Result.ShouldBe(2);
+    }
+    
     #endregion
 
     #region Last(s)
@@ -357,6 +389,40 @@ public class LeafOperatorsTests
         await Should.ThrowAsync<SuspendInvocationException>(
             () => source.OfType<int>().SuspendUntilLast()
         );
+    }
+    
+    [TestMethod]
+    public void LastOfTypeReturnsValueOfTypeOnSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        source.SignalNext(2);
+        source.SignalNext("hallo");
+        source.SignalNext("world");
+
+        var lastOfType = source.LastOfType<string>();
+        lastOfType.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+        lastOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        lastOfType.Result.ShouldBe("world");
+    }
+    
+    [TestMethod]
+    public void LastOfReturnsValueOfTypeOnSignal()
+    {
+        var source = new Source(NoOpTimeoutProvider.Instance);
+        
+        source.SignalNext(2);
+        source.SignalNext("hallo");
+        source.SignalNext("world");
+
+        var lastOfType = source.LastOf<string>();
+        lastOfType.IsCompleted.ShouldBeFalse();
+        
+        source.SignalCompletion();
+        lastOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        lastOfType.Result.ShouldBe("world");
     }
     
     #endregion

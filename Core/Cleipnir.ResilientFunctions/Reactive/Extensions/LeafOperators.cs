@@ -158,6 +158,8 @@ public static class LeafOperators
             );
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().First();
+
+    public static Task<T> FirstOf<T>(this IReactiveChain<object> s) => s.FirstOfType<T>();
     
     public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count)
         => s.Take(count).ToList();
@@ -194,6 +196,10 @@ public static class LeafOperators
                     ? new Option<T>(l.First())
                     : Option<T>.NoValue
             );
+
+    public static Task<T> LastOfType<T>(this IReactiveChain<object> s)
+        => s.OfType<T>().Last();
+    public static Task<T> LastOf<T>(this IReactiveChain<object> s) => s.LastOfType<T>();
 
     #endregion
 
