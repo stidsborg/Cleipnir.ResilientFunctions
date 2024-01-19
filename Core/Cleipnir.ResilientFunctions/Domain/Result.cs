@@ -87,9 +87,9 @@ public class Postpone
 
 public class Suspend
 {
-    public int ExpectedEventCount { get; }
+    public int ExpectedMessageCount { get; }
     
-    private Suspend(int expectedEventCount) => ExpectedEventCount = expectedEventCount;
+    private Suspend(int expectedMessageCount) => ExpectedMessageCount = expectedMessageCount;
 
     public static Suspend UntilAfter(int expectedEventCount) => new Suspend(expectedEventCount);
     public static void Throw(int expectedEventCount) => throw new SuspendInvocationException(expectedEventCount);

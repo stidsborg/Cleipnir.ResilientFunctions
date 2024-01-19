@@ -38,7 +38,7 @@ internal static class WatchDogsFactory
             shutdownCoordinator
         );
 
-        var eventSourceWriters = new EventSourceWriters(
+        var messagesWriters = new MessageWriters(
             functionTypeId,
             functionStore,
             settings.Serializer,
@@ -46,7 +46,7 @@ internal static class WatchDogsFactory
         );
         var timeoutWatchdog = new TimeoutWatchdog(
             functionTypeId,
-            eventSourceWriters,
+            messagesWriters,
             functionStore.TimeoutStore,
             settings.TimeoutEventsCheckFrequency,
             settings.DelayStartup,

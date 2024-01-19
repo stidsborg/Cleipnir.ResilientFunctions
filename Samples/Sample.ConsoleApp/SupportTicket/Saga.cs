@@ -10,12 +10,12 @@ public class Saga
 {
     public static async Task AcceptSupportTicket(SupportTicketRequest request, RScrapbook scrapbook, Context context)
     {
-        var eventSource = context.EventSource;
+        var messages = context.Messages;
         
         var agents = request.CustomerSupportAgents.Length;
         for (var i = 0; ; i++)
         {
-            await context.Activity.Do("SendTakeSupportTicketRequest", async () =>
+            await context.Activities.Do("SendTakeSupportTicketRequest", async () =>
             {
                 var customerSupportAgentEmail = request.CustomerSupportAgents[i % agents];
                 await MessageBroker.Send(
@@ -23,7 +23,7 @@ public class Saga
                 );
             });
             
-            var supportTicketTakenOption = await eventSource
+            var supportTicketTakenOption = await messages
                 .OfType<SupportTicketTaken>()
                 .Where(t => int.Parse(t.RequestId) == i)
                 .TakeUntilTimeout($"TimeoutId{i}", expiresIn: TimeSpan.FromMinutes(15))

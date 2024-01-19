@@ -11,7 +11,6 @@ public static class FunctionStoreFactory
     public static BlobContainerClient BlobContainerClient { get; } = null!;
     public static AzureBlobFunctionStore FunctionStore { get; } = null!;
     public static Task<IFunctionStore> FunctionStoreTask => FunctionStore.CastTo<IFunctionStore>().ToTask();
-    public static Task<IEventStore> EventStoreTask => FunctionStore.EventStore.ToTask();
     private static bool ShouldRun => Settings.ConnectionString != null;
 
     public static Task<IFunctionStore> Create() => FunctionStoreTask;

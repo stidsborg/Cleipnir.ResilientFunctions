@@ -15,19 +15,19 @@ public class OrderProcessor
     public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-        using var eventSource = context.EventSource;
+        using var messages = context.Messages;
 
         await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
-        await eventSource.FirstOfType<FundsReserved>();
+        await messages.FirstOfType<FundsReserved>();
 
         await _messageBroker.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
-        var productsShipped = await eventSource.FirstOfType<ProductsShipped>();
+        var productsShipped = await messages.FirstOfType<ProductsShipped>();
 
         await _messageBroker.Send(new CaptureFunds(order.OrderId, order.CustomerId, scrapbook.TransactionId));
-        await eventSource.FirstOfType<FundsCaptured>();
+        await messages.FirstOfType<FundsCaptured>();
 
         await _messageBroker.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId, productsShipped.TrackAndTraceNumber));
-        await eventSource.FirstOfType<OrderConfirmationEmailSent>();
+        await messages.FirstOfType<OrderConfirmationEmailSent>();
 
         Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
     }

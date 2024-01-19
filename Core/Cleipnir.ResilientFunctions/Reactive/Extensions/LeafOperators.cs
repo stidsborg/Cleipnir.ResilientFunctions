@@ -205,7 +205,7 @@ public static class LeafOperators
 
     #region Suspend
 
-    public static async Task SuspendUntil(this EventSource s, string timeoutEventId, DateTime resumeAt)
+    public static async Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt)
     {
         var timeoutEmitted = false;
         using var subscription = s
@@ -227,7 +227,7 @@ public static class LeafOperators
         throw new SuspendInvocationException(subscription.EmittedFromSource);
     }
 
-    public static Task SuspendFor(this EventSource s, string timeoutEventId, TimeSpan resumeAfter)
+    public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)
         => s.SuspendUntil(timeoutEventId, DateTime.UtcNow.Add(resumeAfter));
 
     #endregion

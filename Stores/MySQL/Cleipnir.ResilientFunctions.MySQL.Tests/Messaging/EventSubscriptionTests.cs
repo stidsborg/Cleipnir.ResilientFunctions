@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MySQL.Tests.Messaging;
 
 [TestClass]
-public class EventsSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.EventSubscriptionTests
+public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.EventSubscriptionTests
 {
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()

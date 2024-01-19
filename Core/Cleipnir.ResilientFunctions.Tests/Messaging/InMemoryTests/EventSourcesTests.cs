@@ -7,11 +7,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.InMemoryTests;
 
 [TestClass]
-public class EventSourcesTests : TestTemplates.EventSourcesTests
+public class MessagessTests : TestTemplates.MessagessTests
 {
     [TestMethod]
-    public override Task EventSourcesSunshineScenario() 
-        => EventSourcesSunshineScenario(FunctionStoreFactory.Create());
+    public override Task MessagessSunshineScenario() 
+        => MessagessSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
@@ -22,22 +22,22 @@ public class EventSourcesTests : TestTemplates.EventSourcesTests
         => SecondEventWithExistingIdempotencyKeyIsIgnored(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully()
-        => EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.Create());
+    public override Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully()
+        => MessagesBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EventSourcesSunshineScenarioUsingEventStore()
-        => EventSourcesSunshineScenarioUsingEventStore(FunctionStoreFactory.Create());
+    public override Task MessagessSunshineScenarioUsingMessageStore()
+        => MessagessSunshineScenarioUsingMessageStore(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore()
-        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(
+    public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore()
+        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore(
             FunctionStoreFactory.Create()
         );
 
     [TestMethod]
-    public override Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
-        => EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(
+    public override Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
+        => MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(
             FunctionStoreFactory.Create()
         );
 }

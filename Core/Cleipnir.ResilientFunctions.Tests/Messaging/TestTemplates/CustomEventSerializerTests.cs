@@ -26,24 +26,24 @@ public abstract class CustomEventSerializerTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var eventSerializer = new EventSerializer();
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             eventSerializer
         );
         
-        await eventSource.AppendEvent("hello world");
+        await messages.AppendMessage("hello world");
         
         eventSerializer.EventToSerialize.Count.ShouldBe(1);
         eventSerializer.EventToSerialize[0].ShouldBe("hello world");
         
         eventSerializer.EventToDeserialize.Count.ShouldBe(1);
         var (eventJson, eventType) = eventSerializer.EventToDeserialize[0];
-        var deserializedEvent = DefaultSerializer.Instance.DeserializeEvent(eventJson, eventType);
+        var deserializedEvent = DefaultSerializer.Instance.DeserializeMessage(eventJson, eventType);
         deserializedEvent.ShouldBe("hello world");
     }
 
@@ -73,15 +73,15 @@ public abstract class CustomEventSerializerTests
         public TResult DeserializeResult<TResult>(string json, string type)
             => DefaultSerializer.Instance.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
+        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
         {
             EventToSerialize.Add(@event);
-            return DefaultSerializer.Instance.SerializeEvent(@event);
+            return DefaultSerializer.Instance.SerializeMessage(@event);
         }
-        public object DeserializeEvent(string json, string type)
+        public object DeserializeMessage(string json, string type)
         {
             EventToDeserialize.Add(Tuple.Create(json, type));
-            return DefaultSerializer.Instance.DeserializeEvent(json, type);
+            return DefaultSerializer.Instance.DeserializeMessage(json, type);
         }
 
         public string SerializeActivityResult<TResult>(TResult result)

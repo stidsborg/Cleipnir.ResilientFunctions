@@ -16,8 +16,8 @@ public static class Utils
     internal static string GetStateBlobName(this FunctionId functionId)
         => GetBlobName(type: "state", functionId.TypeId.Value, functionId.InstanceId.Value);
 
-    internal static string GetEventsBlobName(this FunctionId functionId)
-        => GetBlobName(type: "events", functionId.TypeId.Value, functionId.InstanceId.Value);
+    internal static string GetMessagesBlobName(this FunctionId functionId)
+        => GetBlobName(type: "messages", functionId.TypeId.Value, functionId.InstanceId.Value);
     
     internal static string GetActivityBlobName(this FunctionId functionId, string activityId)
         => GetBlobName(type: "activities", functionId.TypeId.Value, functionId.InstanceId.Value, activityId);

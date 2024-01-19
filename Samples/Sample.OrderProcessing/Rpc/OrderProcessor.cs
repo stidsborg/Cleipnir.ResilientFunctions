@@ -23,7 +23,7 @@ public class OrderProcessor
 
         await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
 
-        var trackAndTrace = await context.Activity.Do(
+        var trackAndTrace = await context.Activities.Do(
             "ShipProducts",
             work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
         );

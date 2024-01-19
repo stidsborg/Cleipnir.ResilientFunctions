@@ -30,10 +30,10 @@ public static class Example
             param: new StartCustomerEngagement(customerEmail, DateTime.Today)
         );
 
-        var eventSourceWriter = rAction.EventSourceWriters.For(customerEmail);
-        await eventSourceWriter.AppendEvent(new EngagementRejected(0));
+        var messageWriter = rAction.MessageWriters.For(customerEmail);
+        await messageWriter.AppendMessage(new EngagementRejected(0));
         await Task.Delay(3_000);
-        await eventSourceWriter.AppendEvent(new EngagementAccepted(1));
+        await messageWriter.AppendMessage(new EngagementAccepted(1));
 
         var controlPanel = await rAction.ControlPanel(customerEmail);
         await BusyWait.Until(async () =>

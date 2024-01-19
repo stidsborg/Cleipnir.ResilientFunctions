@@ -15,8 +15,8 @@ public class MySqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    private readonly MySqlEventStore _eventStore;
-    public IEventStore EventStore => _eventStore;
+    private readonly MySqlMessageStore _messageStore;
+    public IMessageStore MessageStore => _messageStore;
     private readonly MySqlActivityStore _activityStore;
     public IActivityStore ActivityStore => _activityStore;
     private readonly MySqlTimeoutStore _timeoutStore;
@@ -28,7 +28,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
-        _eventStore = new MySqlEventStore(connectionString, tablePrefix);
+        _messageStore = new MySqlMessageStore(connectionString, tablePrefix);
         _activityStore = new MySqlActivityStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new(connectionString, _tablePrefix);
@@ -38,7 +38,7 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await _mySqlUnderlyingRegister.Initialize();
-        await EventStore.Initialize();
+        await MessageStore.Initialize();
         await ActivityStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -68,7 +68,7 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task DropIfExists()
     {
-        await _eventStore.DropUnderlyingTable();
+        await _messageStore.DropUnderlyingTable();
         await _mySqlUnderlyingRegister.DropUnderlyingTable();
         await _timeoutStore.DropUnderlyingTable();
 
@@ -80,7 +80,7 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task TruncateTables()
     {
-        await _eventStore.TruncateTable();
+        await _messageStore.TruncateTable();
         await _timeoutStore.TruncateTable();
         await _mySqlUnderlyingRegister.TruncateTable();
         
@@ -424,7 +424,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -435,7 +435,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ? AND
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?) = ?";
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = ? AND function_instance_id = ?) = ?";
 
         await using var command = new MySqlCommand(sql, conn, transaction)
         {
@@ -449,7 +449,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEventCount },
+                new() { Value = expectedMessageCount },
             }
         };
         
@@ -596,7 +596,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         var sql = $@"
             START TRANSACTION;
-            DELETE FROM {_tablePrefix}rfunctions_events
+            DELETE FROM {_tablePrefix}rfunctions_messages
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ?;

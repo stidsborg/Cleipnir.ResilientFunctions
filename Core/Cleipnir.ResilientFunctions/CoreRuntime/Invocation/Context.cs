@@ -7,23 +7,23 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 public class Context : IDisposable
 {
     public FunctionId FunctionId { get; }
-    public EventSource EventSource { get; }
-    public Activity Activity { get; }
+    public Messages Messages { get; }
+    public Activities Activities { get; }
     public Utilities Utilities { get; }
     
-    public Context(FunctionId functionId, EventSource eventSource, Activity activity, Utilities utilities)
+    public Context(FunctionId functionId, Messages messages, Activities activities, Utilities utilities)
     {
         FunctionId = functionId;
         Utilities = utilities;
-        EventSource = eventSource;
-        Activity = activity;
+        Messages = messages;
+        Activities = activities;
     }
 
-    public void Deconstruct(out Activity activity, out EventSource eventSource)
+    public void Deconstruct(out Activities activities, out Messages messages)
     {
-        activity = Activity;
-        eventSource = EventSource;
+        activities = Activities;
+        messages = Messages;
     }
     
-    public void Dispose() => EventSource.Dispose();
+    public void Dispose() => Messages.Dispose();
 }

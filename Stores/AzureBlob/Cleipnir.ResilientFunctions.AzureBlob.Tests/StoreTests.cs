@@ -107,8 +107,8 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         => SetFunctionStateSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected()
-        => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    public override Task SetFunctionStateSucceedsWithMessagesWhenEpochIsAsExpected()
+        => SetFunctionStateSucceedsWithMessagesWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
@@ -119,8 +119,8 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStore.CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
-    public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
-        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    public override Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated()
+        => MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
     public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
@@ -143,6 +143,6 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task FunctionIsPostponedOnSuspensionAndEventCountMismatch()
-        => FunctionIsPostponedOnSuspensionAndEventCountMismatch(FunctionStoreFactory.Create());
+    public override Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch()
+        => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());
 }

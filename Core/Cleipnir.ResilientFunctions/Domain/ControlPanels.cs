@@ -35,7 +35,7 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
             functionState.Scrapbook,
             functionState.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
-            await _invocationHelper.GetExistingEvents(functionId),
+            await _invocationHelper.GetExistingMessages(functionId),
             functionState.PreviouslyThrownException
         );
     }
@@ -76,7 +76,7 @@ public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull w
             f.Result,
             f.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
-            await _invocationHelper.GetExistingEvents(functionId),
+            await _invocationHelper.GetExistingMessages(functionId),
             f.PreviouslyThrownException
         );
     }

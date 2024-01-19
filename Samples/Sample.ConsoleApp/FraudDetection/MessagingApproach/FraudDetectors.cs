@@ -6,9 +6,9 @@ public static class FraudDetector1
 {
     public static void Start()
     {
-        MessageBroker.Subscribe(events =>
+        MessageBroker.Subscribe(message =>
         {
-            if (events is ApproveTransaction command) 
+            if (message is ApproveTransaction command) 
                 _ = Approve(command.Transaction);
 
             return Task.CompletedTask;
@@ -26,9 +26,9 @@ public class FraudDetector2
 {
     public static void Start()
     {
-        MessageBroker.Subscribe(events =>
+        MessageBroker.Subscribe(message =>
         {
-            if (events is ApproveTransaction command) 
+            if (message is ApproveTransaction command) 
                 _ = Approve(command.Transaction);
 
             return Task.CompletedTask;
@@ -46,9 +46,9 @@ public class FraudDetector3
 {
     public static void Start()
     {
-        MessageBroker.Subscribe(events =>
+        MessageBroker.Subscribe(message =>
         {
-            if (events is ApproveTransaction command) 
+            if (message is ApproveTransaction command) 
                 _ = Approve(command.Transaction);
 
             return Task.CompletedTask;

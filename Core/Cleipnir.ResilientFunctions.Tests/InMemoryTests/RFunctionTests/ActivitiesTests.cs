@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class ActivityTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivityTests
+public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivitiesTests
 {
     [TestMethod]
     public override Task SunshineActionTest()

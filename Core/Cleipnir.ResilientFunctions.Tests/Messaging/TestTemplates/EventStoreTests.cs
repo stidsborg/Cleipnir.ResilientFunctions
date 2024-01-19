@@ -12,7 +12,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
-public abstract class EventStoreTests
+public abstract class MessageStoreTests
 {
     public abstract Task AppendedMessagesCanBeFetchedAgain();
     protected async Task AppendedMessagesCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
@@ -27,24 +27,24 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
 
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
             msg1.ToJson(),
             msg1.GetType().SimpleQualifiedName()
         );
         
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
             msg2.ToJson(),
             msg2.GetType().SimpleQualifiedName()
         );
 
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBeNull();
@@ -65,22 +65,22 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
         const string msg3 = "hello universe";
         const string msg4 = "hello multiverse";
         
-        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
-        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+        var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
 
-        var storedEvent3 = new StoredEvent(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
-        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await eventStore.AppendEvents(functionId, new []{storedEvent3, storedEvent4});
+        var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
+        var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
+        await messageStore.AppendMessages(functionId, new []{storedEvent3, storedEvent4});
         
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(4);
         events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBe("1");
@@ -105,31 +105,31 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
         const string msg3 = "hello universe";
         const string msg4 = "hello multiverse";
         
-        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
-        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+        var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
 
-        await eventStore
-            .GetEvents(functionId)
+        await messageStore
+            .GetMessages(functionId)
             .SelectAsync(events => events.Count())
             .ShouldBeAsync(2);
         
-        var storedEvent3 = new StoredEvent(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
-        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await eventStore.Replace(
+        var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
+        var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
+        await messageStore.Replace(
             functionId,
-            storedEvents: new[] { storedEvent3, storedEvent4 },
-            expectedEventCount: null
+            storedMessages: new[] { storedEvent3, storedEvent4 },
+            expectedMessageCount: null
         ).ShouldBeTrueAsync();
         
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg3);
         events[0].IdempotencyKey.ShouldBe("3");
@@ -150,31 +150,31 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
         const string msg3 = "hello universe";
         const string msg4 = "hello multiverse";
         
-        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
-        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+        var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
 
-        await eventStore
-            .GetEvents(functionId)
+        await messageStore
+            .GetMessages(functionId)
             .SelectAsync(events => events.Count())
             .ShouldBeAsync(2);
         
-        var storedEvent3 = new StoredEvent(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
-        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await eventStore.Replace(
+        var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
+        var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
+        await messageStore.Replace(
             functionId,
-            storedEvents: new[] { storedEvent3, storedEvent4 },
-            expectedEventCount: 2
+            storedMessages: new[] { storedEvent3, storedEvent4 },
+            expectedMessageCount: 2
         ).ShouldBeTrueAsync();
         
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg3);
         events[0].IdempotencyKey.ShouldBe("3");
@@ -195,31 +195,31 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
         const string msg3 = "hello universe";
         const string msg4 = "hello multiverse";
         
-        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
-        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+        var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
 
-        await eventStore
-            .GetEvents(functionId)
+        await messageStore
+            .GetMessages(functionId)
             .SelectAsync(events => events.Count())
             .ShouldBeAsync(2);
         
-        var storedEvent3 = new StoredEvent(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
-        var storedEvent4 = new StoredEvent(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await eventStore.Replace(
+        var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
+        var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
+        await messageStore.Replace(
             functionId,
-            storedEvents: new[] { storedEvent3, storedEvent4 },
-            expectedEventCount: 3
+            storedMessages: new[] { storedEvent3, storedEvent4 },
+            expectedMessageCount: 3
         ).ShouldBeFalseAsync();
         
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg1);
         events[0].IdempotencyKey.ShouldBe("1");
@@ -240,28 +240,28 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
 
-        await eventStore.AppendEvents(
+        await messageStore.AppendMessages(
             functionId,
-            new StoredEvent[]
+            new StoredMessage[]
             {
                 new (msg1.ToJson(), typeof(string).SimpleQualifiedName()),
                 new (msg2.ToJson(), typeof(string).SimpleQualifiedName())
             }
         );
 
-        var events = (await eventStore.GetEvents(functionId)).Skip(1).ToList();
+        var events = (await messageStore.GetMessages(functionId)).Skip(1).ToList();
         events.Count.ShouldBe(1);
         events[0].DefaultDeserialize().ShouldBe(msg2);
         events[0].IdempotencyKey.ShouldBeNull();
     }
     
-    public abstract Task TruncatedEventSourceContainsNoEvents();
-    protected async Task TruncatedEventSourceContainsNoEvents(Task<IFunctionStore> functionStoreTask)
+    public abstract Task TruncatedMessagesContainsNoEvents();
+    protected async Task TruncatedMessagesContainsNoEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -273,22 +273,22 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
         const string msg1 = "hello here";
         const string msg2 = "hello world";
 
-        var storedEvent1 = new StoredEvent(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
-        var storedEvent2 = new StoredEvent(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await eventStore.AppendEvents(functionId, new []{storedEvent1, storedEvent2});
+        var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
+        var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
+        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
 
-        await eventStore.Truncate(functionId);
-        var events = await eventStore.GetEvents(functionId);
+        await messageStore.Truncate(functionId);
+        var events = await messageStore.GetMessages(functionId);
         events.ShouldBeEmpty();
     }
     
-    public abstract Task NoExistingEventSourceCanBeTruncated();
-    protected async Task NoExistingEventSourceCanBeTruncated(Task<IFunctionStore> functionStoreTask)
+    public abstract Task NoExistingMessagesCanBeTruncated();
+    protected async Task NoExistingMessagesCanBeTruncated(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -300,15 +300,15 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
         
-        await eventStore.Truncate(functionId);
-        var events = await eventStore.GetEvents(functionId);
+        await messageStore.Truncate(functionId);
+        var events = await messageStore.GetMessages(functionId);
         events.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingEventSourceCanBeReplacedWithProvidedEvents();
-    protected async Task ExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
+    public abstract Task ExistingMessagesCanBeReplacedWithProvidedEvents();
+    protected async Task ExistingMessagesCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -320,41 +320,41 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName()
         );
         
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
             "hello universe".ToJson(),
             typeof(string).SimpleQualifiedName()
         );
 
-        await eventStore.Truncate(functionId);
-        await eventStore.AppendEvents(
+        await messageStore.Truncate(functionId);
+        await messageStore.AppendMessages(
             functionId,
-            new StoredEvent[]
+            new StoredMessage[]
             {
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
             }
         );
 
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].EventJson, Type.GetType(events[0].EventType, throwOnError: true)!)!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].EventJson, Type.GetType(events[1].EventType, throwOnError: true)!)!;
+        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageJson, Type.GetType(events[0].MessageType, throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageJson, Type.GetType(events[1].MessageType, throwOnError: true)!)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
     }
     
-    public abstract Task NonExistingEventSourceCanBeReplacedWithProvidedEvents();
-    protected async Task NonExistingEventSourceCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
+    public abstract Task NonExistingMessagesCanBeReplacedWithProvidedEvents();
+    protected async Task NonExistingMessagesCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -366,36 +366,36 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        await eventStore.Truncate(functionId);
-        await eventStore.AppendEvents(
+        await messageStore.Truncate(functionId);
+        await messageStore.AppendMessages(
             functionId,
-            new StoredEvent[]
+            new StoredMessage[]
             {
                 new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
                 new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
             }
         );
 
-        var events = (await eventStore.GetEvents(functionId)).ToList();
+        var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].EventJson, Type.GetType(events[0].EventType, throwOnError: true)!)!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].EventJson, Type.GetType(events[1].EventType, throwOnError: true)!)!;
+        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageJson, Type.GetType(events[0].MessageType, throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageJson, Type.GetType(events[1].MessageType, throwOnError: true)!)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
     }
     
-    public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource();
-    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(Task<IFunctionStore> functionStoreTask)
+    public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessages();
+    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessages(Task<IFunctionStore> functionStoreTask)
     {
-        var event1 = new StoredEvent(
+        var event1 = new StoredMessage(
             JsonExtensions.ToJson("hello world"),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key"
         );
-        var event2 = new StoredEvent(
+        var event2 = new StoredMessage(
             "hello universe".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key"
@@ -411,26 +411,26 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        await eventStore.AppendEvent(functionId, event1);
-        await eventStore.AppendEvent(functionId, event2);
+        await messageStore.AppendMessage(functionId, event1);
+        await messageStore.AppendMessage(functionId, event2);
 
-        var events = await TaskLinq.ToListAsync(eventStore.GetEvents(functionId));
+        var events = await TaskLinq.ToListAsync(messageStore.GetMessages(functionId));
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
     }
     
-    public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion();
-    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(Task<IFunctionStore> functionStoreTask)
+    public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion();
+    protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion(Task<IFunctionStore> functionStoreTask)
     {
-        var event1 = new StoredEvent(
+        var event1 = new StoredMessage(
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key"
         );
-        var event2 = new StoredEvent(
+        var event2 = new StoredMessage(
             "hello universe".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key"
@@ -446,11 +446,11 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        await eventStore.AppendEvents(functionId, new [] {event1, event2});
+        await messageStore.AppendMessages(functionId, new [] {event1, event2});
 
-        var events = await TaskLinq.ToListAsync(eventStore.GetEvents(functionId));
+        var events = await TaskLinq.ToListAsync(messageStore.GetMessages(functionId));
         events.Count.ShouldBe(1);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
@@ -469,8 +469,8 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
-        var events = await eventStore.GetEvents(functionId);
+        var messageStore = functionStore.MessageStore;
+        var events = await messageStore.GetMessages(functionId);
         events.ShouldBeEmpty();
     }
     
@@ -487,35 +487,35 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        var subscription = eventStore.SubscribeToEvents(functionId);
+        var subscription = messageStore.SubscribeToMessages(functionId);
         
-        var event1 = new StoredEvent(
+        var event1 = new StoredMessage(
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_1"
         );
-        await eventStore.AppendEvent(functionId, event1);
+        await messageStore.AppendMessage(functionId, event1);
 
         var newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType);
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         
-        var event2 = new StoredEvent(
+        var event2 = new StoredMessage(
             "hello universe".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_2"
         );
-        await eventStore.AppendEvent(functionId, event2);
+        await messageStore.AppendMessage(functionId, event2);
         
         newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);
         storedEvent = newEvents[0];
-        @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType);
         @event.ShouldBe("hello universe");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
 
@@ -535,30 +535,30 @@ public abstract class EventStoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        var subscription = eventStore.SubscribeToEvents(functionId);
+        var subscription = messageStore.SubscribeToMessages(functionId);
         
-        var event1 = new StoredEvent(
+        var event1 = new StoredMessage(
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_1"
         );
-        await eventStore.AppendEvent(functionId, event1);
+        await messageStore.AppendMessage(functionId, event1);
 
         var newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType);
+        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType);
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         
-        var event2 = new StoredEvent(
+        var event2 = new StoredMessage(
             "hello universe".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_1"
         );
-        await eventStore.AppendEvent(functionId, event2);
+        await messageStore.AppendMessage(functionId, event2);
         
         newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(0);

@@ -26,33 +26,33 @@ public abstract class EventSubscriptionTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventStore = functionStore.EventStore;
+        var messageStore = functionStore.MessageStore;
 
-        var subscription = eventStore.SubscribeToEvents(functionId);
+        var subscription = messageStore.SubscribeToMessages(functionId);
 
         var events = await subscription.PullNewEvents();
         events.ShouldBeEmpty();
         
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
-            eventJson: JsonExtensions.ToJson("hello world"),
-            eventType: typeof(string).SimpleQualifiedName()
+            messageJson: JsonExtensions.ToJson("hello world"),
+            messageType: typeof(string).SimpleQualifiedName()
         );
 
         events = await subscription.PullNewEvents();
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .DeserializeEvent(events[0].EventJson, events[0].EventType)
+            .DeserializeMessage(events[0].MessageJson, events[0].MessageType)
             .ShouldBe("hello world");
         
         events = await subscription.PullNewEvents();
         events.ShouldBeEmpty();
         
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
-            eventJson: JsonExtensions.ToJson("hello universe"),
-            eventType: typeof(string).SimpleQualifiedName()
+            messageJson: JsonExtensions.ToJson("hello universe"),
+            messageType: typeof(string).SimpleQualifiedName()
         );
 
         events = await subscription.PullNewEvents();
@@ -60,15 +60,15 @@ public abstract class EventSubscriptionTests
         
         DefaultSerializer
             .Instance
-            .DeserializeEvent(events[0].EventJson, events[0].EventType)
+            .DeserializeMessage(events[0].MessageJson, events[0].MessageType)
             .ShouldBe("hello universe");
 
         subscription.Dispose();
         
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
-            eventJson: JsonExtensions.ToJson("should not be received"),
-            eventType: typeof(string).SimpleQualifiedName()
+            messageJson: JsonExtensions.ToJson("should not be received"),
+            messageType: typeof(string).SimpleQualifiedName()
         );
 
         events = await subscription.PullNewEvents();
@@ -89,23 +89,23 @@ public abstract class EventSubscriptionTests
             timestamp: DateTime.UtcNow.Ticks
         );
         
-        var storedEvent1 = new StoredEvent(
-            EventJson: "hello".ToJson(),
-            EventType: typeof(string).SimpleQualifiedName(),
+        var storedEvent1 = new StoredMessage(
+            MessageJson: "hello".ToJson(),
+            MessageType: typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "someIdempotencyKey"
         );
-        var storedEvent2 = new StoredEvent(
-            EventJson: "world".ToJson(),
-            EventType: typeof(string).SimpleQualifiedName(),
+        var storedEvent2 = new StoredMessage(
+            MessageJson: "world".ToJson(),
+            MessageType: typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "someIdempotencyKey"
         );
-        await functionStore.EventStore.AppendEvent(functionId, storedEvent1);
+        await functionStore.MessageStore.AppendMessage(functionId, storedEvent1);
 
         await Safe.Try(
-            () => functionStore.EventStore.AppendEvent(functionId, storedEvent2)
+            () => functionStore.MessageStore.AppendMessage(functionId, storedEvent2)
         );
 
-        using var subscription = functionStore.EventStore.SubscribeToEvents(functionId);
+        using var subscription = functionStore.MessageStore.SubscribeToMessages(functionId);
 
         var newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(1);

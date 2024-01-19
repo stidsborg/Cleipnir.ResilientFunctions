@@ -20,8 +20,8 @@ public class SerializationTests
     {
         var serializer = DefaultSerializer.Instance;
         Parent @event = new Child("Hello World");
-        var serialized = serializer.SerializeEvent(@event);
-        var deserialized = serializer.DeserializeEvent(serialized.Json, serialized.Type);
+        var serialized = serializer.SerializeMessage(@event);
+        var deserialized = serializer.DeserializeMessage(serialized.Json, serialized.Type);
         if (deserialized is not Child child)
             throw new Exception("Expected event to be of child-type");
                 
@@ -163,10 +163,10 @@ public class SerializationTests
         public TResult DeserializeResult<TResult>(string json, string type)
             => _defaultSerializer.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
-            => _defaultSerializer.SerializeEvent(@event);
-        public object DeserializeEvent(string json, string type)
-            => _defaultSerializer.DeserializeEvent(json, type);
+        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
+            => _defaultSerializer.SerializeMessage(@event);
+        public object DeserializeMessage(string json, string type)
+            => _defaultSerializer.DeserializeMessage(json, type);
 
         public string SerializeActivityResult<TResult>(TResult result)
             => _defaultSerializer.SerializeActivityResult(result);

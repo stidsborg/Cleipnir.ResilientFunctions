@@ -16,7 +16,7 @@ public enum ResiliencyLevel
     AtMostOnce
 }
 
-public class Activity
+public class Activities
 {
     private readonly Dictionary<string, StoredActivity> _activityResults;
     private readonly IActivityStore _activityStore;
@@ -24,7 +24,7 @@ public class Activity
     private readonly FunctionId _functionId;
     private readonly object _sync = new();
     
-    public Activity(FunctionId functionId, IEnumerable<StoredActivity> existingActivities, IActivityStore activityStore, ISerializer serializer)
+    public Activities(FunctionId functionId, IEnumerable<StoredActivity> existingActivities, IActivityStore activityStore, ISerializer serializer)
     {
         _functionId = functionId;
         _activityStore = activityStore;

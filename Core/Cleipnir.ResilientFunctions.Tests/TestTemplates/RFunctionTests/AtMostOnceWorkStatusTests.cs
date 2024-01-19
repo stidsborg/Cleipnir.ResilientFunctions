@@ -25,7 +25,7 @@ public abstract class AtMostOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "Id",
                         work: () =>
@@ -59,7 +59,7 @@ public abstract class AtMostOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -93,7 +93,7 @@ public abstract class AtMostOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         id: "id",
                         work: () =>

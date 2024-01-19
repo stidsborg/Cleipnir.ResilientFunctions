@@ -11,10 +11,10 @@ public static class Saga
 {
     public static async Task StartFraudDetection(Transaction transaction, Context context)
     {
-        var eventSource = context.EventSource;
+        var messages = context.Messages;
         await MessageBroker.Send(new ApproveTransaction(transaction));
         
-        var results = await eventSource
+        var results = await messages
             .OfType<FraudDetectorResult>()
             .Take(3)
             .TakeUntilTimeout("Timeout", TimeSpan.FromSeconds(2))
@@ -22,7 +22,7 @@ public static class Saga
 
         var approved = results.Count >= 2 && results.All(result => result.Approved);
 
-        await context.Activity.Do(
+        await context.Activities.Do(
             "PublishTransactionApproval",
             () => MessageBroker.Send(approved
                 ? new TransactionApproved(transaction)

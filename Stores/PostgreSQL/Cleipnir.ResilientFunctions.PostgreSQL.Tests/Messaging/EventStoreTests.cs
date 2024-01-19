@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.Messaging;
 
 [TestClass]
-public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates.EventStoreTests
+public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates.MessageStoreTests
 {
     [TestMethod]
     public override Task AppendedMessagesCanBeFetchedAgain()
@@ -31,28 +31,28 @@ public class EventStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplates
         => SkippedMessagesAreNotFetched(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task TruncatedEventSourceContainsNoEvents()
-        => TruncatedEventSourceContainsNoEvents(FunctionStoreFactory.Create());
+    public override Task TruncatedMessagesContainsNoEvents()
+        => TruncatedMessagesContainsNoEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task NoExistingEventSourceCanBeTruncated()
-        => NoExistingEventSourceCanBeTruncated(FunctionStoreFactory.Create());
+    public override Task NoExistingMessagesCanBeTruncated()
+        => NoExistingMessagesCanBeTruncated(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => ExistingEventSourceCanBeReplacedWithProvidedEvents(FunctionStoreFactory.Create());
+    public override Task ExistingMessagesCanBeReplacedWithProvidedEvents()
+        => ExistingMessagesCanBeReplacedWithProvidedEvents(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task NonExistingEventSourceCanBeReplacedWithProvidedEvents()
-        => NonExistingEventSourceCanBeReplacedWithProvidedEvents(FunctionStoreFactory.Create());
+    public override Task NonExistingMessagesCanBeReplacedWithProvidedEvents()
+        => NonExistingMessagesCanBeReplacedWithProvidedEvents(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSource(FunctionStoreFactory.Create());
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessages()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoMessages(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion()
-        => EventWithExistingIdempotencyKeyIsNotInsertedIntoEventSourceUsingBulkInsertion(FunctionStoreFactory.Create());
+    public override Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion()
+        => EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FetchNonExistingEventsSucceeds()

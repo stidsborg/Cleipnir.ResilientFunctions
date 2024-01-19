@@ -11,97 +11,97 @@ using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.AzureBlob;
 
-public class AzureBlobEventStore : IEventStore
+public class AzureBlobMessageStore : IMessageStore
 {
     private readonly BlobContainerClient _blobContainerClient;
 
-    public AzureBlobEventStore(BlobContainerClient blobContainerClient)
+    public AzureBlobMessageStore(BlobContainerClient blobContainerClient)
     {
         _blobContainerClient = blobContainerClient;
     }
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
-        => AppendEvents(functionId, storedEvents: new[] { storedEvent });
+    public Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+        => AppendMessages(functionId, storedMessages: new[] { storedMessage });
 
-    public Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
-        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
+        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
 
-    public async Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
-        var marshalledString = SimpleMarshaller.Serialize(storedEvents
-            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+        var marshalledString = SimpleMarshaller.Serialize(storedMessages
+            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
             .ToArray()
         );
         
         return await AppendOrCreate(functionId, marshalledString);
     }
 
-    public async Task CreateEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task CreateMessage(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
-        var marshalledString = SimpleMarshaller.Serialize(storedEvents
-            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+        var marshalledString = SimpleMarshaller.Serialize(storedMessages
+            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
             .ToArray()
         );
         
-        var eventsBlobName = functionId.GetEventsBlobName();
-        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+        var messagesBlobName = functionId.GetMessagesBlobName();
+        var messagesBlobClient = _blobContainerClient.GetAppendBlobClient(messagesBlobName);
         
-        await eventsBlobClient.CreateAsync(
+        await messagesBlobClient.CreateAsync(
             new AppendBlobCreateOptions { Conditions = new AppendBlobRequestConditions { IfNoneMatch = new ETag("*") } }
         );
         
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
-        await eventsBlobClient.AppendBlockAsync(ms);
+        await messagesBlobClient.AppendBlockAsync(ms);
     }
 
     public async Task Truncate(FunctionId functionId)
     {
-        var blobName = functionId.GetEventsBlobName();
+        var blobName = functionId.GetMessagesBlobName();
         
         await _blobContainerClient
             .GetAppendBlobClient(blobName)
             .DeleteIfExistsAsync();
     }
 
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
     {
-        var blobName = functionId.GetEventsBlobName();
+        var blobName = functionId.GetMessagesBlobName();
         var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
 
-        if (expectedEventCount != null)
+        if (expectedMessageCount != null)
         {
-            BlobLeaseClient? eventsLeaseClient = null;
+            BlobLeaseClient? messagesLeaseClient = null;
             
             try
             {
-                var eventsBlobName = functionId.GetEventsBlobName();
-                var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
-                await eventsBlobClient.CreateIfNotExistsAsync();
+                var messagesBlobName = functionId.GetMessagesBlobName();
+                var messagesBlobClient = _blobContainerClient.GetAppendBlobClient(messagesBlobName);
+                await messagesBlobClient.CreateIfNotExistsAsync();
             
-                eventsLeaseClient = eventsBlobClient.GetBlobLeaseClient();
-                var eventsLeaseResponse = await eventsLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite events lease
-                var eventsLeaseId = eventsLeaseResponse.Value.LeaseId;
+                messagesLeaseClient = messagesBlobClient.GetBlobLeaseClient();
+                var messagesLeaseResponse = await messagesLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite messages lease
+                var messagesLeaseId = messagesLeaseResponse.Value.LeaseId;
 
-                var (existingEvents, _, _) = await InnerGetEvents(functionId, offset: 0, leaseId: eventsLeaseId);
-                if (expectedEventCount != existingEvents.Count)
+                var (existingMessages, _, _) = await InnerGetMessages(functionId, offset: 0, leaseId: messagesLeaseId);
+                if (expectedMessageCount != existingMessages.Count)
                     return false;
 
-                await Replace(functionId, storedEvents, eventsLeaseId);
+                await Replace(functionId, storedMessages, messagesLeaseId);
                 return true;
             }
             finally
             {
-                if (eventsLeaseClient != null)
-                    await eventsLeaseClient.ReleaseAsync();
+                if (messagesLeaseClient != null)
+                    await messagesLeaseClient.ReleaseAsync();
             }
         }
 
         await blobClient.CreateAsync(); //overwrites existing blob with empty file
         
-        var marshalledString = SimpleMarshaller.Serialize(storedEvents
-            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+        var marshalledString = SimpleMarshaller.Serialize(storedMessages
+            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
             .ToArray()
         );
         
@@ -110,9 +110,9 @@ public class AzureBlobEventStore : IEventStore
         return true;
     }
 
-    internal async Task Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, string leaseId)
+    internal async Task Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, string leaseId)
     {
-        var blobName = functionId.GetEventsBlobName();
+        var blobName = functionId.GetMessagesBlobName();
         var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
         await blobClient
             .CreateAsync(new AppendBlobCreateOptions
@@ -120,8 +120,8 @@ public class AzureBlobEventStore : IEventStore
                 Conditions = new AppendBlobRequestConditions {LeaseId = leaseId}
             });
         
-        var marshalledString = SimpleMarshaller.Serialize(storedEvents
-            .SelectMany(storedEvent => new[] { storedEvent.EventJson, storedEvent.EventType, storedEvent.IdempotencyKey })
+        var marshalledString = SimpleMarshaller.Serialize(storedMessages
+            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
             .ToArray()
         );
         
@@ -134,18 +134,18 @@ public class AzureBlobEventStore : IEventStore
             });
     }
 
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
-        => InnerGetEvents(functionId, offset: 0)
-            .SelectAsync(fetchedEvents => (IEnumerable<StoredEvent>) fetchedEvents.Events);
+    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
+        => InnerGetMessages(functionId, offset: 0)
+            .SelectAsync(fetchedMessages => (IEnumerable<StoredMessage>) fetchedMessages.Messages);
 
-    internal async Task<FetchedEvents> InnerGetEvents(
+    internal async Task<FetchedMessages> InnerGetMessages(
         FunctionId functionId, 
         int offset, 
         HashSet<string>? idempotencyKeys = null,
         string? leaseId = null
     )
     {
-        var blobName = functionId.GetEventsBlobName();
+        var blobName = functionId.GetMessagesBlobName();
         var appendBlobClient = _blobContainerClient.GetAppendBlobClient(blobName);
         idempotencyKeys ??= new HashSet<string>();
         
@@ -164,59 +164,59 @@ public class AzureBlobEventStore : IEventStore
         catch (RequestFailedException e)
         {
             if (e is { ErrorCode: "InvalidRange", Status: 416 })
-                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset, ETag: null);
+                return new FetchedMessages(Messages: ArraySegment<StoredMessage>.Empty, NewOffset: offset, ETag: null);
             if (e is { ErrorCode: "BlobNotFound", Status: 404 })
             {
                 await appendBlobClient.CreateIfNotExistsAsync();
-                return new FetchedEvents(Events: ArraySegment<StoredEvent>.Empty, NewOffset: offset, ETag: null);                
+                return new FetchedMessages(Messages: ArraySegment<StoredMessage>.Empty, NewOffset: offset, ETag: null);                
             }
 
             throw;
         }
         
         var content = response.Value.Content.ToString();
-        var events = SimpleMarshaller.Deserialize(content);
+        var messages = SimpleMarshaller.Deserialize(content);
 
-        var storedEvents = new List<StoredEvent>(events.Count / 3);
-        for (var i = 0; i < events.Count; i += 3)
+        var storedMessages = new List<StoredMessage>(messages.Count / 3);
+        for (var i = 0; i < messages.Count; i += 3)
         {
-            var json = events[i];
-            var type = events[i + 1];
-            var idempotencyKey = events[i + 2];
-            var storedEvent = new StoredEvent(json!, type!, idempotencyKey);
+            var json = messages[i];
+            var type = messages[i + 1];
+            var idempotencyKey = messages[i + 2];
+            var storedMessage = new StoredMessage(json!, type!, idempotencyKey);
             
             if (idempotencyKey != null && idempotencyKeys.Contains(idempotencyKey))
                 continue;
             if (idempotencyKey != null)
                 idempotencyKeys.Add(idempotencyKey);
             
-            storedEvents.Add(storedEvent);
+            storedMessages.Add(storedMessage);
         }
 
-        return new FetchedEvents(
-            storedEvents, 
+        return new FetchedMessages(
+            storedMessages, 
             NewOffset: offset + response.GetRawResponse().Headers.ContentLength!.Value,
             ETag: response.GetRawResponse().Headers.ETag
         );
     }
 
-    public EventsSubscription SubscribeToEvents(FunctionId functionId)
+    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
     {
         var sync = new object();
         var offset = 0;
         var disposed = false;
         var idempotencyKeys = new HashSet<string>();
         
-        var subscription = new EventsSubscription(
-            pullNewEvents: async () =>
+        var subscription = new MessagesSubscription(
+            pullNewMessages: async () =>
             {
                 lock (sync)
                     if (disposed)
-                        return ArraySegment<StoredEvent>.Empty;
+                        return ArraySegment<StoredMessage>.Empty;
                 
-                var (events, newOffset, _) = await InnerGetEvents(functionId, offset, idempotencyKeys);
+                var (messages, newOffset, _) = await InnerGetMessages(functionId, offset, idempotencyKeys);
                 offset = newOffset;
-                return events;
+                return messages;
             },
             dispose: () =>
             {
@@ -232,18 +232,18 @@ public class AzureBlobEventStore : IEventStore
 
     private async Task<FunctionStatus> AppendOrCreate(FunctionId functionId, string marshalledString)
     {
-        var eventsBlobName = functionId.GetEventsBlobName();
-        var eventsBlobClient = _blobContainerClient.GetAppendBlobClient(eventsBlobName);
+        var messagesBlobName = functionId.GetMessagesBlobName();
+        var messagesBlobClient = _blobContainerClient.GetAppendBlobClient(messagesBlobName);
 
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
         try
         {
-            await eventsBlobClient.AppendBlockAsync(ms);
+            await messagesBlobClient.AppendBlockAsync(ms);
         }
         catch (RequestFailedException e)
         {
             if (e.ErrorCode != "BlobNotFound") throw;
-            await eventsBlobClient.CreateIfNotExistsAsync();
+            await messagesBlobClient.CreateIfNotExistsAsync();
             await AppendOrCreate(functionId, marshalledString);
         }
         
@@ -272,5 +272,5 @@ public class AzureBlobEventStore : IEventStore
         }
     }
     
-    internal readonly record struct FetchedEvents(IReadOnlyList<StoredEvent> Events, int NewOffset, ETag? ETag);
+    internal readonly record struct FetchedMessages(IReadOnlyList<StoredMessage> Messages, int NewOffset, ETag? ETag);
 }

@@ -23,11 +23,11 @@ public static class Example
                 Saga.AcceptSupportTicket
             );
         
-        var eventSourceWriters = registration.EventSourceWriters;
+        var messageWriters = registration.MessageWriters;
         MessageBroker.Subscribe(async @event =>
         {
             if (@event is TakeSupportTicket takeSupportTicket && int.Parse(takeSupportTicket.RequestId) == 2)
-                await eventSourceWriters.For(takeSupportTicket.Id.ToString()).AppendEvent(
+                await messageWriters.For(takeSupportTicket.Id.ToString()).AppendMessage(
                     new SupportTicketTaken(takeSupportTicket.Id, takeSupportTicket.CustomerSupportAgentEmail, takeSupportTicket.RequestId)
                 );
         });

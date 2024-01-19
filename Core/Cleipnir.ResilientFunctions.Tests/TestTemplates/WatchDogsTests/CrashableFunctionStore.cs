@@ -16,7 +16,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     private readonly object _sync = new();
     private readonly Subject<long> _afterPostponeFunctionSubject = new();
-    public IEventStore EventStore => _inner.EventStore;
+    public IMessageStore MessageStore => _inner.MessageStore;
     public IActivityStore ActivityStore => _inner.ActivityStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
@@ -122,10 +122,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.FailFunction(functionId, storedException, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
-    public Task<bool> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+    public Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, timestamp, expectedEpoch, complementaryState);
+            : _inner.SuspendFunction(functionId, expectedMessageCount, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _crashed

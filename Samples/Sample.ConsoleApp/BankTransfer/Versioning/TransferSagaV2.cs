@@ -31,7 +31,7 @@ public sealed class TransferSagaV2
         public async Task Perform(Transfer transfer, RScrapbook scrapbook, Context context)
         {
             var arbitrator = context.Utilities.Arbitrator;
-            var (activity, eventSource) = context;
+            var (activity, messages) = context;
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             

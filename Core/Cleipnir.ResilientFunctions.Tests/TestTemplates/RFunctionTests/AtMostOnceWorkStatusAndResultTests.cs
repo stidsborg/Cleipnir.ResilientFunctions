@@ -25,7 +25,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "id",
                         work: () =>
@@ -59,7 +59,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -96,7 +96,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -135,7 +135,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "id",
                         work: () => { counter.Increment(); return 1.ToTask(); }, 
@@ -162,7 +162,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () => { counter.Increment(); return "hello world".ToTask(); }, 
@@ -196,7 +196,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () => { counter.Increment(); return new Person("Peter", 32).ToTask(); }, 

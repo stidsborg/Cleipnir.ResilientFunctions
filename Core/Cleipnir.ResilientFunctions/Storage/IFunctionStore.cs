@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface IFunctionStore
 {
-    public IEventStore EventStore { get; }
+    public IMessageStore MessageStore { get; }
     public IActivityStore ActivityStore { get; }
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
@@ -85,7 +85,7 @@ public interface IFunctionStore
     
     Task<bool> SuspendFunction(
         FunctionId functionId, 
-        int expectedEventCount, 
+        int expectedMessageCount, 
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 

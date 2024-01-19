@@ -1,10 +1,10 @@
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.AzureBlob.Tests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class ActivityTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivityTests
+public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivitiesTests
 {
     [TestMethod]
     public override Task SunshineActionTest()

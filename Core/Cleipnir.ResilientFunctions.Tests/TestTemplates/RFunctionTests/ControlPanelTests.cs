@@ -731,8 +731,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents();
-    protected async Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents(Task<IFunctionStore> storeTask)
+    public abstract Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages();
+    protected async Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -745,24 +745,24 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                using var eventSource = context.EventSource;
-                await eventSource.AppendEvent(param);
+                using var messages = context.Messages;
+                await messages.AppendMessage(param);
             }
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = controlPanel.Events;
-        existingEvents.Count().ShouldBe(1);
-        existingEvents[0].ShouldBe("param");
-        existingEvents[0] = "hello";
+        var existingMessages = controlPanel.Messages;
+        existingMessages.Count().ShouldBe(1);
+        existingMessages[0].ShouldBe("param");
+        existingMessages[0] = "hello";
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingEventsCanBeReplacedUsingControlPanel();
-    protected async Task ExistingEventsCanBeReplacedUsingControlPanel(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingMessagesCanBeReplacedUsingControlPanel();
+    protected async Task ExistingMessagesCanBeReplacedUsingControlPanel(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -778,18 +778,18 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                using var eventSource = context.EventSource;
+                using var messages = context.Messages;
                 if (first)
                 {
                     invocationCount.Increment();
                     first = false;
-                    await eventSource.AppendEvent("hello world", idempotencyKey: "1");
-                    await eventSource.AppendEvent("hello universe", idempotencyKey: "2");
+                    await messages.AppendMessage("hello world", idempotencyKey: "1");
+                    await messages.AppendMessage("hello universe", idempotencyKey: "2");
                 }
                 else
                 {
-                    var existingEvents = eventSource.Select(e => e.ToString()!).Existing();
-                    syncedList.AddRange(existingEvents);
+                    var existing = messages.Select(e => e.ToString()!).Existing();
+                    syncedList.AddRange(existing);
                 }
             }
         );
@@ -798,23 +798,23 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        var existingEvents = controlPanel.Events;
-        existingEvents.Count().ShouldBe(2);
-        existingEvents.Clear();
-        existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello to you", "1"));
-        existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello from me", "2"));
-        await existingEvents.SaveChanges(verifyNoChangesBeforeSave: true);
+        var existingMessages = controlPanel.Messages;
+        existingMessages.Count().ShouldBe(2);
+        existingMessages.Clear();
+        existingMessages.MessagesWithIdempotencyKeys.Add(new MessageAndIdempotencyKey("hello to you", "1"));
+        existingMessages.MessagesWithIdempotencyKeys.Add(new MessageAndIdempotencyKey("hello from me", "2"));
+        await existingMessages.SaveChanges(verifyNoChangesBeforeSave: true);
         
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
         
-        controlPanel.Events.Count().ShouldBe(2);
+        controlPanel.Messages.Count().ShouldBe(2);
         
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
             throw new Exception(
-                $"Excepted only 2 events (invocation count: {invocationCount.Current}) - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'"))
+                $"Excepted only 2 messages (invocation count: {invocationCount.Current}) - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'"))
             );
         
         syncedList.Count.ShouldBe(2);
@@ -824,8 +824,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation();
-    protected async Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation();
+    protected async Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -839,12 +839,12 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
-                using var eventSource = context.EventSource;
+                using var messages = context.Messages;
                 if (first)
                 {
                     first = false;
-                    await eventSource.AppendEvent("hello world", idempotencyKey: "1");
-                    await eventSource.AppendEvent("hello universe", idempotencyKey: "2");
+                    await messages.AppendMessage("hello world", idempotencyKey: "1");
+                    await messages.AppendMessage("hello universe", idempotencyKey: "2");
                 }
             }
         );
@@ -856,18 +856,18 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
 
-        var events = controlPanel.Events.EventsWithIdempotencyKeys;
-        events.Count.ShouldBe(2);
-        events[0].Event.ShouldBe("hello world");
-        events[0].IdempotencyKey.ShouldBe("1");
-        events[1].Event.ShouldBe("hello universe");
-        events[1].IdempotencyKey.ShouldBe("2");
+        var messages = controlPanel.Messages.MessagesWithIdempotencyKeys;
+        messages.Count.ShouldBe(2);
+        messages[0].Message.ShouldBe("hello world");
+        messages[0].IdempotencyKey.ShouldBe("1");
+        messages[1].Message.ShouldBe("hello universe");
+        messages[1].IdempotencyKey.ShouldBe("2");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges();
-    protected async Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(Task<IFunctionStore> storeTask)
+    public abstract Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSaveChanges();
+    protected async Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSaveChanges(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -882,25 +882,25 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = controlPanel.Events;
-        existingEvents.Count().ShouldBe(1);
+        var existingMessages = controlPanel.Messages;
+        existingMessages.Count().ShouldBe(1);
 
-        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
         
-        existingEvents.Clear();
-        existingEvents.Add("hej verden");
-        existingEvents.Add("hej univers");
+        existingMessages.Clear();
+        existingMessages.Add("hej verden");
+        existingMessages.Add("hej univers");
         
-        await Should.ThrowAsync<ConcurrentModificationException>(() => existingEvents.SaveChanges(verifyNoChangesBeforeSave: true));
+        await Should.ThrowAsync<ConcurrentModificationException>(() => existingMessages.SaveChanges(verifyNoChangesBeforeSave: true));
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced();
-    protected async Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced(Task<IFunctionStore> storeTask)
+    public abstract Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSaveChangesWhenMessagesAreNotReplaced();
+    protected async Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSaveChangesWhenMessagesAreNotReplaced(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -915,11 +915,11 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
 
-        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
 
         controlPanel.Param = "PARAM";
         await controlPanel.SaveChanges();
@@ -929,16 +929,16 @@ public abstract class ControlPanelTests
         controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
-        var events = controlPanel.Events;
-        events.Count().ShouldBe(2);
-        events[0].ShouldBe("hello world");
-        events[1].ShouldBe("hello universe");
+        var messages = controlPanel.Messages;
+        messages.Count().ShouldBe(2);
+        messages[0].ShouldBe("hello world");
+        messages[1].ShouldBe("hello universe");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ConcurrentModificationOfExistingEventsCausesExceptionOnSave();
-    protected async Task ConcurrentModificationOfExistingEventsCausesExceptionOnSave(Task<IFunctionStore> storeTask)
+    public abstract Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSave();
+    protected async Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSave(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -953,25 +953,25 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = controlPanel.Events;
-        existingEvents.Count().ShouldBe(1);
+        var existingMessages = controlPanel.Messages;
+        existingMessages.Count().ShouldBe(1);
 
-        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
         
-        existingEvents.Clear();
-        existingEvents.Add("hej verden");
-        existingEvents.Add("hej univers");
+        existingMessages.Clear();
+        existingMessages.Add("hej verden");
+        existingMessages.Add("hej univers");
 
-        await Should.ThrowAsync<ConcurrentModificationException>(() => existingEvents.SaveChanges(verifyNoChangesBeforeSave: true));
+        await Should.ThrowAsync<ConcurrentModificationException>(() => existingMessages.SaveChanges(verifyNoChangesBeforeSave: true));
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced();
-    protected async Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(Task<IFunctionStore> storeTask)
+    public abstract Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSucceedWhenMessagesAreNotReplaced();
+    protected async Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSucceedWhenMessagesAreNotReplaced(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -986,11 +986,11 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
 
-        await store.EventStore.AppendEvent(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
 
         controlPanel.Param = "PARAM";
         await controlPanel.Succeed();
@@ -1000,16 +1000,16 @@ public abstract class ControlPanelTests
         controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
-        var events = controlPanel.Events;
-        events.Count().ShouldBe(2);
-        events[0].ShouldBe("hello world");
-        events[1].ShouldBe("hello universe");
+        var messages = controlPanel.Messages;
+        messages.Count().ShouldBe(2);
+        messages[0].ShouldBe("hello world");
+        messages[1].ShouldBe("hello universe");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingEventsCanBeReplaced();
-    protected async Task ExistingEventsCanBeReplaced(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingMessagesCanBeReplaced();
+    protected async Task ExistingMessagesCanBeReplaced(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1024,26 +1024,26 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await rAction.EventSourceWriters
+        await rAction.MessageWriters
             .For(functionInstanceId.Value)
-            .AppendEvent(new EventAndIdempotencyKey("hello world", IdempotencyKey: "first"));
+            .AppendMessage(new MessageAndIdempotencyKey("hello world", IdempotencyKey: "first"));
             
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var existingEvents = controlPanel.Events;
-        var (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();
-        @event.ShouldBe("hello world");
+        var existingMessages = controlPanel.Messages;
+        var (message, idempotencyKey) = existingMessages.MessagesWithIdempotencyKeys.Single();
+        message.ShouldBe("hello world");
         idempotencyKey.ShouldBe("first");
 
-        existingEvents.Clear();
-        existingEvents.EventsWithIdempotencyKeys.Add(new EventAndIdempotencyKey("hello universe", IdempotencyKey: "second"));
+        existingMessages.Clear();
+        existingMessages.MessagesWithIdempotencyKeys.Add(new MessageAndIdempotencyKey("hello universe", IdempotencyKey: "second"));
 
-        await existingEvents.SaveChanges();
+        await existingMessages.SaveChanges();
 
         await controlPanel.Refresh();
 
-        existingEvents = controlPanel.Events;
-        (@event, idempotencyKey) = existingEvents.EventsWithIdempotencyKeys.Single();
-        @event.ShouldBe("hello universe");
+        existingMessages = controlPanel.Messages;
+        (message, idempotencyKey) = existingMessages.MessagesWithIdempotencyKeys.Single();
+        message.ShouldBe("hello universe");
         idempotencyKey.ShouldBe("second");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -1062,7 +1062,7 @@ public abstract class ControlPanelTests
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             Task<string> (string param, RScrapbook _, Context context) 
-                => context.Activity.Do("Test", () => "ActivityResult")
+                => context.Activities.Do("Test", () => "ActivityResult")
         );
 
         var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
@@ -1093,7 +1093,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             Task (string param, RScrapbook _, Context context) 
                 => runActivity 
-                    ? context.Activity.Do("Test", () => {}, ResiliencyLevel.AtMostOnce)
+                    ? context.Activities.Do("Test", () => {}, ResiliencyLevel.AtMostOnce)
                     : Task.CompletedTask
         );
 
@@ -1122,7 +1122,7 @@ public abstract class ControlPanelTests
         var rFunc = rFunctions.RegisterAction(
             functionTypeId,
             Task (string param, RScrapbook _, Context context) 
-                => context.Activity.Do("Test", () => throw new InvalidOperationException("oh no"))
+                => context.Activities.Do("Test", () => throw new InvalidOperationException("oh no"))
         );
 
         await Should.ThrowAsync<Exception>(rFunc.Invoke(functionInstanceId.Value, param: "param"));
@@ -1150,7 +1150,7 @@ public abstract class ControlPanelTests
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             Task<string> (string param, RScrapbook _, Context context) =>
-                context.Activity.Do("Test", () =>
+                context.Activities.Do("Test", () =>
                 {
                     syncedCounter++;
                     return "ActivityResult";
@@ -1225,7 +1225,7 @@ public abstract class ControlPanelTests
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
             Task<string> (string param, RScrapbook _, Context context) =>
-                context.Activity.Do("Test", () =>
+                context.Activities.Do("Test", () =>
                 {
                     syncedCounter++;
                     return "ActivityResult";

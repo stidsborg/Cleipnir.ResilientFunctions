@@ -81,10 +81,10 @@ public class RFuncWithScrapbookRegistrationTests
         public TResult DeserializeResult<TResult>(string json, string type) 
             => Default.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
-            => Default.SerializeEvent(@event);
-        public object DeserializeEvent(string json, string type)
-            => Default.DeserializeEvent(json, type);
+        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
+            => Default.SerializeMessage(@event);
+        public object DeserializeMessage(string json, string type)
+            => Default.DeserializeMessage(json, type);
 
         public string SerializeActivityResult<TResult>(TResult result)
             => Default.SerializeActivityResult(result);

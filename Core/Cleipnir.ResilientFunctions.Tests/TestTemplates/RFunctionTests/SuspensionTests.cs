@@ -107,14 +107,14 @@ public abstract class SuspensionTests
 
         await Task.Delay(250);
 
-        var eventSourceWriter = rFunc.EventSourceWriters.For(functionInstanceId); 
-        await eventSourceWriter.AppendEvent("hello multiverse");
+        var messagesWriter = rFunc.MessageWriters.For(functionInstanceId); 
+        await messagesWriter.AppendMessage("hello multiverse");
 
         await BusyWait.UntilAsync(() => invocations == 2);
     }
     
-    public abstract Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource();
-    protected async Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(Task<IFunctionStore> storeTask)
+    public abstract Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages();
+    protected async Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -148,8 +148,8 @@ public abstract class SuspensionTests
 
         await Task.Delay(250);
 
-        var eventSourceWriter = rFunc.EventSourceWriters.For(functionInstanceId); 
-        await eventSourceWriter.AppendEvent("hello multiverse");
+        var messagesWriter = rFunc.MessageWriters.For(functionInstanceId); 
+        await messagesWriter.AppendMessage("hello multiverse");
 
         await BusyWait.UntilAsync(() => invocations == 2);
     }
@@ -183,7 +183,7 @@ public abstract class SuspensionTests
             () => rFunc.Invoke(functionInstanceId, "hello world")
         );
 
-        await rFunc.EventSourceWriters.For(functionInstanceId).AppendEvent("hello universe");
+        await rFunc.MessageWriters.For(functionInstanceId).AppendMessage("hello universe");
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -207,8 +207,8 @@ public abstract class SuspensionTests
             nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
             async Task<string> (string param, Context context) =>
             {
-                var eventSource = context.EventSource;
-                var next = await eventSource.SuspendUntilNextOfType<string>();
+                var messages = context.Messages;
+                var next = await messages.SuspendUntilNextOfType<string>();
                 return next;
             }
         );
@@ -217,8 +217,8 @@ public abstract class SuspensionTests
             registration.Invoke(functionInstanceId, "hello world")
         );
 
-        var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
-        await eventSourceWriter.AppendEvent("hello universe");
+        var messagesWriter = registration.MessageWriters.For(functionInstanceId);
+        await messagesWriter.AppendMessage("hello universe");
 
         var controlPanel = await registration.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();
@@ -251,8 +251,8 @@ public abstract class SuspensionTests
             functionTypeId,
             async Task<string> (string param, Context context) =>
             {
-                var eventSource = context.EventSource;
-                var next = await eventSource.SuspendUntilNextOfType<string>();
+                var messages = context.Messages;
+                var next = await messages.SuspendUntilNextOfType<string>();
                 return next;
             }
         );
@@ -261,8 +261,8 @@ public abstract class SuspensionTests
             registration.Invoke(functionInstanceId.Value, "hello world")
         );
 
-        var eventSourceWriter = registration.EventSourceWriters.For(functionInstanceId);
-        await eventSourceWriter.AppendEvent("hello universe");
+        var messagesWriter = registration.MessageWriters.For(functionInstanceId);
+        await messagesWriter.AppendMessage("hello universe");
 
         var controlPanel = await registration.ControlPanel(functionInstanceId);
         controlPanel.ShouldNotBeNull();

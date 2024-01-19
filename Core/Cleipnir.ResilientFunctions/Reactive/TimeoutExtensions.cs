@@ -9,26 +9,26 @@ namespace Cleipnir.ResilientFunctions.Reactive;
 
 public static class TimeoutExtensions
 {
-    public static async Task RegisterTimeoutEvent(this EventSource eventSource, string timeoutId, DateTime expiresAt)
+    public static async Task RegisterTimeoutEvent(this Messages messages, string timeoutId, DateTime expiresAt)
     {
-        if (!DoesEventSourceAlreadyContainTimeoutEvent(eventSource, timeoutId))
-            await eventSource.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
+        if (!DoesMessagesAlreadyContainTimeoutEvent(messages, timeoutId))
+            await messages.TimeoutProvider.RegisterTimeout(timeoutId, expiresAt);
     }
 
-    public static async Task RegisterTimeoutEvent(this EventSource eventSource, string timeoutId, TimeSpan expiresIn)
+    public static async Task RegisterTimeoutEvent(this Messages messages, string timeoutId, TimeSpan expiresIn)
     {
-        if (!DoesEventSourceAlreadyContainTimeoutEvent(eventSource, timeoutId))
-            await eventSource.TimeoutProvider.RegisterTimeout(timeoutId, expiresIn);
+        if (!DoesMessagesAlreadyContainTimeoutEvent(messages, timeoutId))
+            await messages.TimeoutProvider.RegisterTimeout(timeoutId, expiresIn);
     }
     
-    public static async Task CancelTimeoutEvent(this EventSource eventSource, string timeoutId)
+    public static async Task CancelTimeoutEvent(this Messages messages, string timeoutId)
     {
-        if (!DoesEventSourceAlreadyContainTimeoutEvent(eventSource, timeoutId))
-            await eventSource.TimeoutProvider.CancelTimeout(timeoutId);
+        if (!DoesMessagesAlreadyContainTimeoutEvent(messages, timeoutId))
+            await messages.TimeoutProvider.CancelTimeout(timeoutId);
     }
 
-    private static bool DoesEventSourceAlreadyContainTimeoutEvent(EventSource eventSource, string timeoutId)
-        => eventSource
+    private static bool DoesMessagesAlreadyContainTimeoutEvent(Messages messages, string timeoutId)
+        => messages
             .Existing()
             .OfType<TimeoutEvent>()
             .Any(t => t.TimeoutId == timeoutId);

@@ -29,7 +29,7 @@ public abstract class MessagingTests
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
             inner: async Task<string> (string _, Context context) =>
             {
-                var es = context.EventSource;
+                var es = context.Messages;
                 return await es.OfType<string>().First();
             }
         );
@@ -38,8 +38,8 @@ public abstract class MessagingTests
         await Task.Delay(100);
         invocationTask.IsCompleted.ShouldBeFalse();
         
-        var eventSourceWriter = rAction.EventSourceWriters.For("instanceId");
-        await eventSourceWriter.AppendEvent("hello world");
+        var messagesWriter = rAction.MessageWriters.For("instanceId");
+        await messagesWriter.AppendMessage("hello world");
         var result = await invocationTask;
         result.ShouldBe("hello world");
         
@@ -59,7 +59,7 @@ public abstract class MessagingTests
             functionId.TypeId,
             inner: async Task<string> (string _, Context context) =>
             {
-                var es = context.EventSource;
+                var es = context.Messages;
                 return await es.SuspendUntilNextOfType<string>();
             }
         );
@@ -87,7 +87,7 @@ public abstract class MessagingTests
             functionId.TypeId,
             inner: async Task<Tuple<bool, string>> (string _, Context context) =>
             {
-                var es = context.EventSource;
+                var es = context.Messages;
 
                 var timeoutOption = await es
                     .OfType<string>()

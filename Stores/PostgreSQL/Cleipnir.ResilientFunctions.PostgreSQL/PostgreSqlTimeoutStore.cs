@@ -123,7 +123,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
             }
         };
 
-        var storedEvents = new List<StoredTimeout>();
+        var storedMessages = new List<StoredTimeout>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -131,10 +131,10 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
             var timeoutId = reader.GetString(1);
             var expires = reader.GetInt64(2);
             var functionId = new FunctionId(functionTypeId, functionInstanceId);
-            storedEvents.Add(new StoredTimeout(functionId, timeoutId, expires));
+            storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
-        return storedEvents;
+        return storedMessages;
     }
 
     public async Task DropUnderlyingTable()

@@ -10,10 +10,10 @@ public static class Saga
 {
     public static async Task BookTravel(BookingRequest bookingRequest, RScrapbook scrapbook, Context context)
     {
-        var eventSource = context.EventSource;
+        var messages = context.Messages;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
-        await context.Activity.Do(
+        await context.Activities.Do(
             "SendRequests", 
             async () =>
             {
@@ -23,7 +23,7 @@ public static class Saga
             }
         );
         
-        var events = await eventSource
+        var events = await messages
             .Take(3)
             .TakeUntilTimeout("TimeoutId", TimeSpan.FromMinutes(1))
             .SuspendUntilCompletion(maxWait: TimeSpan.FromSeconds(5));
@@ -35,9 +35,9 @@ public static class Saga
             throw new TimeoutException("All responses were not received within threshold");
         }
         
-        var flightBooking = await eventSource.OfType<FlightBooked>().First();
-        var hotelBooking = await eventSource.OfType<HotelBooked>().First();
-        var carBooking = await eventSource.OfType<CarRented>().First();
+        var flightBooking = await messages.OfType<FlightBooked>().First();
+        var hotelBooking = await messages.OfType<HotelBooked>().First();
+        var carBooking = await messages.OfType<CarRented>().First();
 
         await MessageBroker.Send(
             new BookingCompletedSuccessfully(

@@ -97,8 +97,8 @@ public class StoreTests : TestTemplates.StoreTests
         => SetFunctionStateSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected()
-        => SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
+    public override Task SetFunctionStateSucceedsWithMessagesWhenEpochIsAsExpected()
+        => SetFunctionStateSucceedsWithMessagesWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
@@ -109,8 +109,8 @@ public class StoreTests : TestTemplates.StoreTests
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated()
-        => EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(FunctionStoreFactory.Create());
+    public override Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated()
+        => MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionStatusAndEpochCanBeSuccessfullyFetched()
@@ -133,6 +133,6 @@ public class StoreTests : TestTemplates.StoreTests
         => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task FunctionIsPostponedOnSuspensionAndEventCountMismatch()
-        => FunctionIsPostponedOnSuspensionAndEventCountMismatch(FunctionStoreFactory.Create());
+    public override Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch()
+        => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());
 }

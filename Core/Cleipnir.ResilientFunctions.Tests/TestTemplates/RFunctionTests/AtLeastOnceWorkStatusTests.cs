@@ -25,7 +25,7 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "Id",
                         work: () =>
@@ -61,7 +61,7 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -97,7 +97,7 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "Id",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
@@ -122,7 +122,7 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Context context) =>
             {
-                await context.Activity
+                await context.Activities
                     .Do(
                         "someId",
                         work: () => { counter.Increment(); return Task.CompletedTask; });

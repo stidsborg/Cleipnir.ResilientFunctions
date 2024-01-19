@@ -6,17 +6,16 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerEventStore : IEventStore
+public class SqlServerMessageStore : IMessageStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public SqlServerEventStore(string connectionString, string tablePrefix = "")
+    public SqlServerMessageStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
@@ -27,17 +26,17 @@ public class SqlServerEventStore : IEventStore
         await using var conn = await CreateConnection();
 
         var sql = @$"
-        CREATE TABLE {_tablePrefix}RFunctions_Events (
+        CREATE TABLE {_tablePrefix}RFunctions_Messages (
             FunctionTypeId NVARCHAR(255),
             FunctionInstanceId NVARCHAR(255),
             Position INT NOT NULL,
-            EventJson NVARCHAR(MAX) NOT NULL,
-            EventType NVARCHAR(255) NOT NULL,   
+            MessageJson NVARCHAR(MAX) NOT NULL,
+            MessageType NVARCHAR(255) NOT NULL,   
             IdempotencyKey NVARCHAR(255),          
             PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
         );
-        CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Events
-            ON {_tablePrefix}RFunctions_Events (FunctionTypeId, FunctionInstanceId, IdempotencyKey)
+        CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Messages
+            ON {_tablePrefix}RFunctions_Messages (FunctionTypeId, FunctionInstanceId, IdempotencyKey)
             WHERE IdempotencyKey IS NOT NULL;";
         var command = new SqlCommand(sql, conn);
         try
@@ -49,7 +48,7 @@ public class SqlServerEventStore : IEventStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Events;";
+        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Messages;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -57,31 +56,31 @@ public class SqlServerEventStore : IEventStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}RFunctions_Events;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}RFunctions_Messages;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
         var sql = @$"    
-            INSERT INTO {_tablePrefix}RFunctions_Events
-                (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
+            INSERT INTO {_tablePrefix}RFunctions_Messages
+                (FunctionTypeId, FunctionInstanceId, Position, MessageJson, MessageType, IdempotencyKey)
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                @EventJson, @EventType, @IdempotencyKey
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                @MessageJson, @MessageType, @IdempotencyKey
             );";
         
         await using var command = new SqlCommand(sql, conn, transaction);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
-        command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
-        command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
+        command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
+        command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
         try
         {
             await command.ExecuteNonQueryAsync();
@@ -92,46 +91,46 @@ public class SqlServerEventStore : IEventStore
         return await GetSuspensionStatus(functionId);
     }
 
-    public Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
-        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
+        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
 
-    public async Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
         await using var conn = await CreateConnection();
         await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
 
-        await AppendEvents(functionId, storedEvents, conn, transaction);
+        await AppendMessages(functionId, storedMessages, conn, transaction);
         var suspensionStatus = await GetSuspensionStatus(functionId);
         await transaction.CommitAsync();
         return suspensionStatus;
     }
     
-    internal async Task AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, SqlConnection connection, SqlTransaction transaction)
+    internal async Task AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, SqlConnection connection, SqlTransaction transaction)
     {
-        foreach (var storedEvent in storedEvents)
+        foreach (var storedMessage in storedMessages)
         {
             string sql;
-            if (storedEvent.IdempotencyKey == null)
+            if (storedMessage.IdempotencyKey == null)
                 sql = @$"    
-                    INSERT INTO {_tablePrefix}RFunctions_Events
-                        (FunctionTypeId, FunctionInstanceId, Position, EventJson, EventType, IdempotencyKey)
+                    INSERT INTO {_tablePrefix}RFunctions_Messages
+                        (FunctionTypeId, FunctionInstanceId, Position, MessageJson, MessageType, IdempotencyKey)
                     VALUES ( 
                         @FunctionTypeId, 
                         @FunctionInstanceId, 
-                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                        @EventJson, @EventType, @IdempotencyKey
+                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                        @MessageJson, @MessageType, @IdempotencyKey
                     );";
             else
                 sql = @$"
-                    INSERT INTO {_tablePrefix}RFunctions_Events
+                    INSERT INTO {_tablePrefix}RFunctions_Messages
                     SELECT 
                         @FunctionTypeId, 
                         @FunctionInstanceId, 
-                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                        @EventJson, @EventType, @IdempotencyKey
+                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                        @MessageJson, @MessageType, @IdempotencyKey
                     WHERE NOT EXISTS (
                         SELECT 1
-                        FROM {_tablePrefix}RFunctions_Events
+                        FROM {_tablePrefix}RFunctions_Messages
                         WHERE FunctionTypeId = @FunctionTypeId AND
                         FunctionInstanceId = @FunctionInstanceId AND
                         IdempotencyKey = @IdempotencyKey
@@ -140,9 +139,9 @@ public class SqlServerEventStore : IEventStore
             await using var command = new SqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@EventJson", storedEvent.EventJson);
-            command.Parameters.AddWithValue("@EventType", storedEvent.EventType);
-            command.Parameters.AddWithValue("@IdempotencyKey", storedEvent.IdempotencyKey ?? (object) DBNull.Value);
+            command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
+            command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
+            command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object) DBNull.Value);
             await command.ExecuteNonQueryAsync();
         }
     }
@@ -156,7 +155,7 @@ public class SqlServerEventStore : IEventStore
     internal async Task<int> Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
     {
         var sql = @$"    
-            DELETE FROM {_tablePrefix}RFunctions_Events
+            DELETE FROM {_tablePrefix}RFunctions_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = 
@@ -169,30 +168,30 @@ public class SqlServerEventStore : IEventStore
         return await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
     {
         await using var conn = await CreateConnection();
         await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
 
-        if (expectedEventCount != null)
+        if (expectedMessageCount != null)
         {
-            var count = await GetEventsCount(functionId, conn, transaction);
-            if (count != expectedEventCount.Value)
+            var count = await GetMessagesCount(functionId, conn, transaction);
+            if (count != expectedMessageCount.Value)
                 return false;
         }
         
         await Truncate(functionId, conn, transaction);
-        await AppendEvents(functionId, storedEvents, conn, transaction);
+        await AppendMessages(functionId, storedMessages, conn, transaction);
 
         await transaction.CommitAsync();
         return true;
     }
 
-    private async Task<long> GetEventsCount(FunctionId functionId, SqlConnection conn, SqlTransaction transaction)
+    private async Task<long> GetMessagesCount(FunctionId functionId, SqlConnection conn, SqlTransaction transaction)
     {
         var sql = @$"    
             SELECT COALESCE(MAX(position), -1) + 1 
-            FROM {_tablePrefix}RFunctions_Events
+            FROM {_tablePrefix}RFunctions_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(sql, conn, transaction);
@@ -205,16 +204,16 @@ public class SqlServerEventStore : IEventStore
         return count.Value;
     }
     
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
-        => InnerGetEvents(functionId, skip: 0)
-            .SelectAsync(events => (IEnumerable<StoredEvent>) events);
+    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
+        => InnerGetMessages(functionId, skip: 0)
+            .SelectAsync(messages => (IEnumerable<StoredMessage>) messages);
     
-    private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
+    private async Task<List<StoredMessage>> InnerGetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
-            SELECT EventJson, EventType, IdempotencyKey
-            FROM {_tablePrefix}RFunctions_Events
+            SELECT MessageJson, MessageType, IdempotencyKey
+            FROM {_tablePrefix}RFunctions_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position >= @Position
             ORDER BY Position ASC;";
         
@@ -223,36 +222,36 @@ public class SqlServerEventStore : IEventStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@Position", skip);
         
-        var storedEvents = new List<StoredEvent>();
+        var storedMessages = new List<StoredMessage>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var eventJson = reader.GetString(0);
-            var eventType = reader.GetString(1);
+            var messageJson = reader.GetString(0);
+            var messageType = reader.GetString(1);
             var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedEvents.Add(new StoredEvent(eventJson, eventType, idempotencyKey));
+            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
         }
 
-        return storedEvents;
+        return storedMessages;
     }
 
-    public EventsSubscription SubscribeToEvents(FunctionId functionId)
+    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
     {
         var sync = new object();
         var disposed = false;
         var skip = 0;
 
-        var subscription = new EventsSubscription(
-            pullNewEvents: async () =>
+        var subscription = new MessagesSubscription(
+            pullNewMessages: async () =>
             {
                 lock (sync)
                     if (disposed)
-                        return ArraySegment<StoredEvent>.Empty;
+                        return ArraySegment<StoredMessage>.Empty;
                 
-                var events = await InnerGetEvents(functionId, skip);
-                skip += events.Count;
+                var messages = await InnerGetMessages(functionId, skip);
+                skip += messages.Count;
 
-                return events;
+                return messages;
             },
             dispose: () =>
             {

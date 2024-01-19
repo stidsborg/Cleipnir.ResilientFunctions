@@ -14,12 +14,12 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class TimeoutTests
 {
-    public abstract Task ExpiredTimeoutIsAddedToEventSource();
+    public abstract Task ExpiredTimeoutIsAddedToMessages();
 
-    protected async Task ExpiredTimeoutIsAddedToEventSource(Task<IFunctionStore> storeTask)
+    protected async Task ExpiredTimeoutIsAddedToMessages(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ExpiredTimeoutIsAddedToEventSource).ToFunctionTypeId();
+        var functionTypeId = nameof(ExpiredTimeoutIsAddedToMessages).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new RFunctions
         (
@@ -35,7 +35,7 @@ public abstract class TimeoutTests
             functionTypeId,
             inner: async Task (string _, Context context) =>
             {
-                var es = context.EventSource;
+                var es = context.Messages;
                 var timeoutTask = es.OfType<TimeoutEvent>().First();
                 await es.TimeoutProvider.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
                 timeoutTask.IsCompleted.ShouldBeFalse();

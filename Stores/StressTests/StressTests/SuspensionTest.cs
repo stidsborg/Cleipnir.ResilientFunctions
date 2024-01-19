@@ -43,14 +43,14 @@ public class SuspensionTest
             );
             await store.SuspendFunction(
                 functionId,
-                expectedEventCount: 1,
+                expectedMessageCount: 1,
                 scrapbookJson: new RScrapbook().ToJson(),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
                 complementaryState: new ComplimentaryState.SetResult(storedParameter, storedScrapbook)
             );
 
-            await store.EventStore.AppendEvent(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+            await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
         }
         
         stopWatch.Stop();

@@ -10,12 +10,12 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlEventStore : IEventStore
+public class PostgreSqlMessageStore : IMessageStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
     
-    public PostgreSqlEventStore(string connectionString, string tablePrefix = "")
+    public PostgreSqlMessageStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix.ToLower();
@@ -32,18 +32,18 @@ public class PostgreSqlEventStore : IEventStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_events (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_messages (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 position INT NOT NULL,
-                event_json TEXT NOT NULL,
-                event_type VARCHAR(255) NOT NULL,   
+                message_json TEXT NOT NULL,
+                message_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position)
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_events_idempotencykeys
-            ON {_tablePrefix}rfunctions_events(function_type_id, function_instance_id, idempotency_key)";
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_messages_idempotencykeys
+            ON {_tablePrefix}rfunctions_messages(function_type_id, function_instance_id, idempotency_key)";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -51,7 +51,7 @@ public class PostgreSqlEventStore : IEventStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_events;";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_messages;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -59,24 +59,24 @@ public class PostgreSqlEventStore : IEventStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_events;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_messages;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
-        var (eventJson, eventType, idempotencyKey) = storedEvent;
+        var (messageJson, messageType, idempotencyKey) = storedMessage;
        
-        { //append event to event stream sql
+        { //append Message to message stream sql
             var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_events
-                    (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
+                INSERT INTO {_tablePrefix}rfunctions_messages
+                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
                 VALUES (
                      $1, $2, 
-                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), 
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $1 AND function_instance_id = $2), 
                      $3, $4, $5
                 ) RETURNING position;";
             var command = new NpgsqlBatchCommand(sql)
@@ -85,8 +85,8 @@ public class PostgreSqlEventStore : IEventStore
                 {
                     new() {Value = functionId.TypeId.Value},
                     new() {Value = functionId.InstanceId.Value},
-                    new() {Value = eventJson},
-                    new() {Value = eventType},
+                    new() {Value = messageJson},
+                    new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
                 }
             };
@@ -132,42 +132,42 @@ public class PostgreSqlEventStore : IEventStore
         throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
     }
 
-    public Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
-        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
+        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
     
-    public async Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
         await using var conn = await CreateConnection();
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
-        await AppendEvents(functionId, storedEvents, conn, transaction);
+        await AppendMessages(functionId, storedMessages, conn, transaction);
         await transaction.CommitAsync();
         
         return await GetSuspensionStatus(functionId);
     }
 
-    internal async Task AppendEvents(
+    internal async Task AppendMessages(
         FunctionId functionId, 
-        IEnumerable<StoredEvent> storedEvents,
+        IEnumerable<StoredMessage> storedMessages,
         NpgsqlConnection connection, 
         NpgsqlTransaction? transaction)
     {
         var batch = new NpgsqlBatch(connection, transaction);
-        foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
+        foreach (var (messageJson, messageType, idempotencyKey) in storedMessages)
         {
             string sql;
             if (idempotencyKey == null)
                 sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_events
-                    (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
+                INSERT INTO {_tablePrefix}rfunctions_messages
+                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
                 VALUES
-                    ($1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
+                    ($1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
             else
                 sql = @$"
-                    INSERT INTO {_tablePrefix}rfunctions_events
-                    SELECT $1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5
+                    INSERT INTO {_tablePrefix}rfunctions_messages
+                    SELECT $1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5
                     WHERE NOT EXISTS (
                         SELECT 1
-                        FROM {_tablePrefix}rfunctions_events
+                        FROM {_tablePrefix}rfunctions_messages
                         WHERE function_type_id = $1 AND
                         function_instance_id = $2 AND
                         idempotency_key = $5
@@ -179,8 +179,8 @@ public class PostgreSqlEventStore : IEventStore
                 {
                     new() {Value = functionId.TypeId.Value},
                     new() {Value = functionId.InstanceId.Value},
-                    new() {Value = eventJson},
-                    new() {Value = eventType},
+                    new() {Value = messageJson},
+                    new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
                 }
             };
@@ -196,30 +196,30 @@ public class PostgreSqlEventStore : IEventStore
         await Truncate(functionId, conn, transaction: null);
     }
 
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
     {
         await using var conn = await CreateConnection();
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        if (expectedEventCount != null)
+        if (expectedMessageCount != null)
         {
-            var existingCount = await GetEventsCount(functionId, conn, transaction);
-            if (existingCount != expectedEventCount)
+            var existingCount = await GetMessagesCount(functionId, conn, transaction);
+            if (existingCount != expectedMessageCount)
                 return false;
         }
         
         await Truncate(functionId, conn, transaction);
-        await AppendEvents(functionId, storedEvents, conn, transaction);
+        await AppendMessages(functionId, storedMessages, conn, transaction);
 
         await transaction.CommitAsync();
         return true;
     }
 
-    private async Task<int> GetEventsCount(FunctionId functionId, NpgsqlConnection conn, NpgsqlTransaction transaction)
+    private async Task<int> GetMessagesCount(FunctionId functionId, NpgsqlConnection conn, NpgsqlTransaction transaction)
     {
         var sql = @$"    
             SELECT (COALESCE(MAX(position), -1) + 1) 
-            FROM {_tablePrefix}rfunctions_events 
+            FROM {_tablePrefix}rfunctions_messages 
             WHERE function_type_id = $1 AND function_instance_id = $2";
         
         await using var command = new NpgsqlCommand(sql, conn, transaction)
@@ -240,7 +240,7 @@ public class PostgreSqlEventStore : IEventStore
     internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
     {
         var sql = @$"    
-                DELETE FROM {_tablePrefix}rfunctions_events
+                DELETE FROM {_tablePrefix}rfunctions_messages
                 WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, connection, transaction)
         {
@@ -254,15 +254,15 @@ public class PostgreSqlEventStore : IEventStore
         return affectedRows;
     }
 
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
-        => InnerGetEvents(functionId, skip: 0).SelectAsync(events => (IEnumerable<StoredEvent>) events);
+    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
+        => InnerGetMessages(functionId, skip: 0).SelectAsync(messages => (IEnumerable<StoredMessage>) messages);
     
-    private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
+    private async Task<List<StoredMessage>> InnerGetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
-            SELECT event_json, event_type, idempotency_key
-            FROM {_tablePrefix}rfunctions_events
+            SELECT message_json, message_type, idempotency_key
+            FROM {_tablePrefix}rfunctions_messages
             WHERE function_type_id = $1 AND function_instance_id = $2 AND position >= $3
             ORDER BY position ASC;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -275,36 +275,36 @@ public class PostgreSqlEventStore : IEventStore
             }
         };
         
-        var storedEvents = new List<StoredEvent>();
+        var storedMessages = new List<StoredMessage>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var eventJson = reader.GetString(0);
-            var messageJson = reader.GetString(1);
+            var messageJson = reader.GetString(0);
+            var messageType = reader.GetString(1);
             var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedEvents.Add(new StoredEvent(eventJson, messageJson, idempotencyKey));
+            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
         }
 
-        return storedEvents;
+        return storedMessages;
     }
 
-    public EventsSubscription SubscribeToEvents(FunctionId functionId)
+    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
     {
         var sync = new object();
         var disposed = false;
         var skip = 0;
 
-        var subscription = new EventsSubscription(
-            pullNewEvents: async () =>
+        var subscription = new MessagesSubscription(
+            pullNewMessages: async () =>
             {
                 lock (sync)
                     if (disposed)
-                        return ArraySegment<StoredEvent>.Empty;
+                        return ArraySegment<StoredMessage>.Empty;
 
-                var events = await InnerGetEvents(functionId, skip);
-                skip += events.Count;
+                var messages = await InnerGetMessages(functionId, skip);
+                skip += messages.Count;
 
-                return events;
+                return messages;
             },
             dispose: () =>
             {

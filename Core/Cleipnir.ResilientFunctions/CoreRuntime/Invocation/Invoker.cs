@@ -161,9 +161,9 @@ public class Invoker<TParam, TScrapbook, TReturn>
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch: 0));
             
             success = persisted;
-            var eventSource = await _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke, sync: false);
+            var messages = await _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: false);
             var activity = await _invocationHelper.CreateActivity(functionId, sync: false);
-            var context = new Context(functionId, eventSource, activity, _utilities);
+            var context = new Context(functionId, messages, activity, _utilities);
             disposables.Add(context);
             
             return new PreparedInvocation(
@@ -190,9 +190,9 @@ public class Invoker<TParam, TScrapbook, TReturn>
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
             
-            var eventSourceTask = Task.Run(() => _invocationHelper.CreateEventSource(functionId, ScheduleReInvoke, sync: true));
+            var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: true));
             var activityTask = Task.Run(() => _invocationHelper.CreateActivity(functionId, sync: true));
-            var context = new Context(functionId, await eventSourceTask, await activityTask, _utilities);
+            var context = new Context(functionId, await messagesTask, await activityTask, _utilities);
             disposables.Add(context);
 
             return new PreparedReInvocation(

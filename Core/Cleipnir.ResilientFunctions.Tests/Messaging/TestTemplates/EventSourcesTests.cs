@@ -15,10 +15,10 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
-public abstract class EventSourcesTests
+public abstract class MessagessTests
 {
-    public abstract Task EventSourcesSunshineScenario();
-    protected async Task EventSourcesSunshineScenario(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessagessSunshineScenario();
+    protected async Task MessagessSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -30,22 +30,22 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
         
-        var task = eventSource.First();
+        var task = messages.First();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
 
-        await eventSource.AppendEvent("hello world");
+        await messages.AppendMessage("hello world");
 
         (await task).ShouldBe("hello world");
     }
@@ -63,22 +63,22 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
 
-        await eventSource.AppendEvent("hello world");
+        await messages.AppendMessage("hello world");
 
-        var nextEvent = await eventSource.First();
+        var nextEvent = await messages.First();
         nextEvent.ShouldBe("hello world");
 
-        var next = eventSource
+        var next = messages
             .OfType<string>()
             .Existing(out var emittedFromSource)
             .First();
@@ -99,35 +99,35 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
         
-        var task = eventSource.Take(2).ToList();
+        var task = messages.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
 
-        await eventSource.AppendEvent("hello world", idempotencyKey: "1");
-        await eventSource.AppendEvent("hello world", idempotencyKey: "1");
-        await eventSource.AppendEvent("hello universe");
+        await messages.AppendMessage("hello world", idempotencyKey: "1");
+        await messages.AppendMessage("hello world", idempotencyKey: "1");
+        await messages.AppendMessage("hello universe");
 
         task.IsCompletedSuccessfully.ShouldBeTrue();
         task.Result.Count.ShouldBe(2);
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.EventStore.GetEvents(functionId)).Count().ShouldBe(2);
+        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(2);
     }
     
-    public abstract Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully();
-    protected async Task EventSourceBulkMethodOverloadAppendsAllEventsSuccessfully(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully();
+    protected async Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -139,21 +139,21 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
 
-        var task = eventSource.Take(2).ToList();
+        var task = messages.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
-        await eventSource.AppendEvents(new EventAndIdempotencyKey[]
+        await messages.AppendEvents(new MessageAndIdempotencyKey[]
         {
             new("hello world", "1"),
             new("hello world", "1"),
@@ -165,11 +165,11 @@ public abstract class EventSourcesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.EventStore.GetEvents(functionId)).Count().ShouldBe(2);
+        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(2);
     }
 
-    public abstract Task EventSourcesSunshineScenarioUsingEventStore();
-    protected async Task EventSourcesSunshineScenarioUsingEventStore(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessagessSunshineScenarioUsingMessageStore();
+    protected async Task MessagessSunshineScenarioUsingMessageStore(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -181,31 +181,31 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
         
-        var task = eventSource.First();
+        var task = messages.First();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
 
-        await functionStore.EventStore.AppendEvent(
+        await functionStore.MessageStore.AppendMessage(
             functionId,
-            new StoredEvent(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName())
+            new StoredMessage(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName())
         );
 
         (await task).ShouldBe("hello world");
     }
 
-    public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore();
-    protected async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingEventStore(Task<IFunctionStore> functionStoreTask)
+    public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore();
+    protected async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -217,43 +217,43 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            eventSourceWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            functionStore.MessageStore,
+            messagesWriter,
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             DefaultSerializer.Instance
         );
 
-        var task = eventSource.Take(2).ToList();
+        var task = messages.Take(2).ToList();
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
-        var eventStore = functionStore.EventStore;
-        await eventStore.AppendEvent(
+        var messageStore = functionStore.MessageStore;
+        await messageStore.AppendMessage(
             functionId,
-            new StoredEvent(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName(), "1")
+            new StoredMessage(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName(), "1")
         );
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
-            new StoredEvent(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName(), "1")
+            new StoredMessage(JsonExtensions.ToJson("hello world"), typeof(string).SimpleQualifiedName(), "1")
         );
-        await eventStore.AppendEvent(
+        await messageStore.AppendMessage(
             functionId,
-            new StoredEvent(JsonExtensions.ToJson("hello universe"), typeof(string).SimpleQualifiedName())
+            new StoredMessage(JsonExtensions.ToJson("hello universe"), typeof(string).SimpleQualifiedName())
         );
 
         await task;
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await eventStore.GetEvents(functionId)).Count().ShouldBe(2);
+        (await messageStore.GetMessages(functionId)).Count().ShouldBe(2);
     }
     
-    public abstract Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
-    protected async Task EventSourceRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
+    protected async Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -265,24 +265,24 @@ public abstract class EventSourcesTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var eventSourceWriter = new EventSourceWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var eventSource = new EventSource(
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        using var messages = new Messages(
             functionId,
-            functionStore.EventStore,
-            new EventSourceWriter(
+            functionStore.MessageStore,
+            new MessageWriter(
                 functionId, functionStore, 
                 new ExceptionThrowingEventSerializer(typeof(int)), 
                 scheduleReInvocation: (_, _) => Task.CompletedTask
             ),
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, eventSourceWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
+            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
             pullFrequency: null,
             new ExceptionThrowingEventSerializer(typeof(int))
         );
         
-        await eventSource.AppendEvent("hello world");
-        await Should.ThrowAsync<EventProcessingException>(eventSource.AppendEvent(1));
-        await Should.ThrowAsync<EventProcessingException>(async () => await eventSource.Skip(1).First());
-        Should.Throw<EventProcessingException>(() => eventSource.ToList());
+        await messages.AppendMessage("hello world");
+        await Should.ThrowAsync<MessageProcessingException>(messages.AppendMessage(1));
+        await Should.ThrowAsync<MessageProcessingException>(async () => await messages.Skip(1).First());
+        Should.Throw<MessageProcessingException>(() => messages.ToList());
     }
     
     private class ExceptionThrowingEventSerializer : ISerializer
@@ -313,16 +313,16 @@ public abstract class EventSourcesTests
         public TResult DeserializeResult<TResult>(string json, string type)
             => DefaultSerializer.Instance.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
-            => DefaultSerializer.Instance.SerializeEvent(@event);
+        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
+            => DefaultSerializer.Instance.SerializeMessage(@event);
 
-        public object DeserializeEvent(string json, string type)
+        public object DeserializeMessage(string json, string type)
         {
             var eventType = Type.GetType(type)!;
             if (eventType == _failDeserializationOnType)
                 throw new Exception("Deserialization exception");
 
-            return DefaultSerializer.Instance.DeserializeEvent(json, type);
+            return DefaultSerializer.Instance.DeserializeMessage(json, type);
         }
 
         public string SerializeActivityResult<TResult>(TResult result)

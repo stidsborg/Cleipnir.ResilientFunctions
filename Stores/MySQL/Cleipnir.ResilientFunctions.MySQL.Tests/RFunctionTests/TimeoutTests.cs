@@ -6,6 +6,6 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests.RFunctionTests;
 public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.TimeoutTests
 {
     [TestMethod]
-    public override Task ExpiredTimeoutIsAddedToEventSource()
-        => ExpiredTimeoutIsAddedToEventSource(FunctionStoreFactory.Create());
+    public override Task ExpiredTimeoutIsAddedToMessages()
+        => ExpiredTimeoutIsAddedToMessages(FunctionStoreFactory.Create());
 }

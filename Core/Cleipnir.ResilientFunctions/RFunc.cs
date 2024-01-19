@@ -34,7 +34,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }
     private readonly RFunc<TParam, RScrapbook, TReturn> _rFunc; 
-    public EventSourceWriters EventSourceWriters { get; }
+    public MessageWriters MessageWriters { get; }
 
     public RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
     {
@@ -43,7 +43,7 @@ public class RFunc<TParam, TReturn> where TParam : notnull
         Invoke = rFunc.Invoke;
         Schedule = rFunc.Schedule;
         ScheduleAt = rFunc.ScheduleAt;
-        EventSourceWriters = rFunc.EventSourceWriters;
+        MessageWriters = rFunc.MessageWriters;
     }
 
     public Task<ControlPanel<TParam, RScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
@@ -68,21 +68,21 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
     private ControlPanels<TParam, TScrapbook, TReturn> ControlPanels { get; }
-    public EventSourceWriters EventSourceWriters { get; }
+    public MessageWriters MessageWriters { get; }
 
     public RFunc(
         RFunc.Invoke<TParam, TScrapbook, TReturn> invoke,
         RFunc.Schedule<TParam, TScrapbook> schedule,
         RFunc.ScheduleAt<TParam, TScrapbook> scheduleAt,
         ControlPanels<TParam, TScrapbook, TReturn> controlPanel, 
-        EventSourceWriters eventSourceWriters)
+        MessageWriters messageWriters)
     {
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;
 
         ControlPanels = controlPanel;
-        EventSourceWriters = eventSourceWriters;
+        MessageWriters = messageWriters;
     }
 
     public Task<ControlPanel<TParam, TScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)

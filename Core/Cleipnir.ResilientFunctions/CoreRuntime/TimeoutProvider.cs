@@ -22,17 +22,17 @@ public class TimeoutProvider : ITimeoutProvider
 {
     private readonly ITimeoutStore _timeoutStore;
     
-    private readonly EventSourceWriter? _eventSourceWriter;
+    private readonly MessageWriter? _messageWriter;
     private readonly TimeSpan _timeoutCheckFrequency;
     private readonly HashSet<string> _localTimeouts = new();
     private readonly object _sync = new();
 
     private readonly FunctionId _functionId;
 
-    public TimeoutProvider(FunctionId functionId, ITimeoutStore timeoutStore, EventSourceWriter? eventSourceWriter, TimeSpan timeoutCheckFrequency)
+    public TimeoutProvider(FunctionId functionId, ITimeoutStore timeoutStore, MessageWriter? messageWriter, TimeSpan timeoutCheckFrequency)
     {
         _timeoutStore = timeoutStore;
-        _eventSourceWriter = eventSourceWriter;
+        _messageWriter = messageWriter;
         _timeoutCheckFrequency = timeoutCheckFrequency;
         _functionId = functionId;
     }
@@ -46,7 +46,7 @@ public class TimeoutProvider : ITimeoutProvider
 
     private async Task RegisterLocalTimeout(string timeoutId, DateTime expiresAt)
     {
-        if (_eventSourceWriter == null) return;
+        if (_messageWriter == null) return;
         
         var expiresIn = expiresAt - DateTime.UtcNow; 
         if (expiresIn > _timeoutCheckFrequency) return;
@@ -59,7 +59,7 @@ public class TimeoutProvider : ITimeoutProvider
         lock (_sync)
             if (!_localTimeouts.Contains(timeoutId)) return;
 
-        await _eventSourceWriter.AppendEvent(
+        await _messageWriter.AppendMessage(
             new TimeoutEvent(timeoutId, expiresAt),
             idempotencyKey: $"Timeout¤{timeoutId}"
         );

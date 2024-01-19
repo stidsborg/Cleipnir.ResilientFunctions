@@ -31,11 +31,11 @@ public class DirectInvocationTest
             {
                 try
                 {
-                    var eventSource = context.EventSource;
-                    await eventSource.AppendEvent(param);
+                    var messages = context.Messages;
+                    await messages.AppendMessage(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();
-                    return await eventSource.FirstOfType<string>();
+                    return await messages.FirstOfType<string>();
                 }
                 catch (Exception exception)
                 {
@@ -55,11 +55,11 @@ public class DirectInvocationTest
             {
                 try
                 {
-                    var eventSource = context.EventSource;
-                    await eventSource.AppendEvent(param);
+                    var messages = context.Messages;
+                    await messages.AppendMessage(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();
-                    return await eventSource.FirstOfType<string>();
+                    return await messages.FirstOfType<string>();
                 }
                 catch (Exception exception)
                 {

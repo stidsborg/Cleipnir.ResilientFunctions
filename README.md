@@ -88,8 +88,8 @@ I.e. awaiting 2 external messages before completing an invocation can be accompl
   functionTypeId: "MessageWaitingFunc",
   async (string param, Context context) => 
   {
-    var eventSource = await context.EventSource;
-    await EventSource
+    var messages = await context.Messages;
+    await messages
       .OfTypes<FundsReserved, InventoryLocked>()
       .Take(2)
       .ToList();

@@ -4,21 +4,21 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public sealed class EventsSubscription : IDisposable
+public sealed class MessagesSubscription : IDisposable
 {
-    private readonly Func<Task<IReadOnlyList<StoredEvent>>> _pullNewEvents;
+    private readonly Func<Task<IReadOnlyList<StoredMessage>>> _pullNewMessages;
     private readonly Func<ValueTask> _dispose;
     private bool _disposed;
 
     private readonly object _sync = new();
 
-    public EventsSubscription(Func<Task<IReadOnlyList<StoredEvent>>> pullNewEvents, Func<ValueTask> dispose)
+    public MessagesSubscription(Func<Task<IReadOnlyList<StoredMessage>>> pullNewMessages, Func<ValueTask> dispose)
     {
-        _pullNewEvents = pullNewEvents;
+        _pullNewMessages = pullNewMessages;
         _dispose = dispose;
     }
 
-    public Task<IReadOnlyList<StoredEvent>> PullNewEvents() => _pullNewEvents();
+    public Task<IReadOnlyList<StoredMessage>> PullNewEvents() => _pullNewMessages();
 
     public void Dispose()
     {

@@ -103,7 +103,7 @@ public abstract class TimeoutStoreTests
         var timeoutProvider = new TimeoutProvider(
             functionId,
             store,
-            eventSourceWriter: null,
+            messageWriter: null,
             timeoutCheckFrequency: TimeSpan.Zero
         );
 

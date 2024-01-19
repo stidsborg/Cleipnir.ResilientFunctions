@@ -22,8 +22,8 @@ public class SqlServerFunctionStore : IFunctionStore
     public IActivityStore ActivityStore => _activityStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
 
-    private readonly SqlServerEventStore _eventStore;
-    public IEventStore EventStore => _eventStore;
+    private readonly SqlServerMessageStore _messageStore;
+    public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
 
@@ -31,7 +31,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         _connFunc = CreateConnection(connectionString);
         _tablePrefix = tablePrefix;
-        _eventStore = new SqlServerEventStore(connectionString, tablePrefix);
+        _messageStore = new SqlServerMessageStore(connectionString, tablePrefix);
         _timeoutStore = new SqlServerTimeoutStore(connectionString, tablePrefix);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, tablePrefix);
         _activityStore = new SqlServerActivityStore(connectionString, tablePrefix);
@@ -51,7 +51,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await _underlyingRegister.Initialize();
-        await _eventStore.Initialize();
+        await _messageStore.Initialize();
         await _activityStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
@@ -92,7 +92,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task DropIfExists()
     {
         await _underlyingRegister.DropUnderlyingTable();
-        await _eventStore.DropUnderlyingTable();
+        await _messageStore.DropUnderlyingTable();
         await _timeoutStore.DropUnderlyingTable();
         
         await using var conn = await _connFunc();
@@ -104,7 +104,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task Truncate()
     {
         await _underlyingRegister.TruncateTable();
-        await _eventStore.TruncateTable();
+        await _messageStore.TruncateTable();
         await _timeoutStore.TruncateTable();
         
         await using var conn = await _connFunc();
@@ -444,7 +444,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> SuspendFunction(
         FunctionId functionId, 
-        int expectedEventCount, 
+        int expectedMessageCount, 
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
@@ -457,7 +457,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var sql = @$"
             UPDATE {_tablePrefix}RFunctions
             SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Events WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
+            WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
             AND FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
@@ -468,7 +468,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-            command.Parameters.AddWithValue("@ExpectedCount", expectedEventCount);
+            command.Parameters.AddWithValue("@ExpectedCount", expectedMessageCount);
 
             var affectedRows = await command.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
@@ -479,7 +479,7 @@ public class SqlServerFunctionStore : IFunctionStore
             await using var conn = await _connFunc();
             var sql = @$"
                 SELECT COALESCE(MAX(position), -1) + 1 
-                FROM {_tablePrefix}RFunctions_Events 
+                FROM {_tablePrefix}RFunctions_Messages 
                 WHERE FunctionTypeId = @FunctionTypeId 
                   AND FunctionInstanceId = @FunctionInstanceId";
 
@@ -487,8 +487,8 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
 
-            var numberOfEvents = (int?) await command.ExecuteScalarAsync();
-            if (numberOfEvents == expectedEventCount) 
+            var numberOfMessages = (int?) await command.ExecuteScalarAsync();
+            if (numberOfMessages == expectedMessageCount) 
                 return false;
 
             return await PostponeFunction(

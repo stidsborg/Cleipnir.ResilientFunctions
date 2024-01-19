@@ -7,12 +7,12 @@ using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL;
 
-public class MySqlEventStore : IEventStore
+public class MySqlMessageStore : IMessageStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
     
-    public MySqlEventStore(string connectionString, string tablePrefix = "")
+    public MySqlMessageStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix.ToLower();
@@ -22,12 +22,12 @@ public class MySqlEventStore : IEventStore
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_events (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_messages (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 position INT NOT NULL,
-                event_json TEXT NOT NULL,
-                event_type VARCHAR(255) NOT NULL,   
+                message_json TEXT NOT NULL,
+                message_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position),
                 UNIQUE INDEX (function_type_id, function_instance_id, idempotency_key)
@@ -39,7 +39,7 @@ public class MySqlEventStore : IEventStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_events";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_messages";
         await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -47,22 +47,22 @@ public class MySqlEventStore : IEventStore
     public async Task TruncateTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_events;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_messages;";
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
+    public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
-        var (eventJson, eventType, idempotencyKey) = storedEvent;
+        var (messageJson, messageType, idempotencyKey) = storedMessage;
         
         var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_events
-                    (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
+                INSERT INTO {_tablePrefix}rfunctions_messages
+                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
                 SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
-                FROM {_tablePrefix}rfunctions_events
+                FROM {_tablePrefix}rfunctions_messages
                 WHERE function_type_id = ? AND function_instance_id = ?";
         await using var command = new MySqlCommand(sql, conn, transaction)
         {
@@ -70,8 +70,8 @@ public class MySqlEventStore : IEventStore
             {
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
-                new() {Value = eventJson},
-                new() {Value = eventType},
+                new() {Value = messageJson},
+                new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value}
@@ -89,24 +89,24 @@ public class MySqlEventStore : IEventStore
         catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
         {
             await transaction.RollbackAsync();
-            return await AppendEvent(functionId, storedEvent);
+            return await AppendMessage(functionId, storedMessage);
         }
 
         return await GetSuspensionStatus(functionId);
     }
 
-    public Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
-        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
+        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
     
-    public async Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
-        var existingCount = await GetNumberOfEvents(functionId);
+        var existingCount = await GetNumberOfMessages(functionId);
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
 
         try
         {
-            await AppendEvents(functionId, storedEvents, existingCount, conn, transaction);
+            await AppendMessages(functionId, storedMessages, existingCount, conn, transaction);
             var suspensionStatus = await GetSuspensionStatus(functionId);
             await transaction.CommitAsync();
             return suspensionStatus;
@@ -114,23 +114,23 @@ public class MySqlEventStore : IEventStore
         catch (MySqlException e) when (e.Number == 1213)
         {
             await transaction.RollbackAsync();
-            return await AppendEvents(functionId, storedEvents);
+            return await AppendMessages(functionId, storedMessages);
         }
     }
 
-    internal async Task AppendEvents(
+    internal async Task AppendMessages(
         FunctionId functionId,
-        IEnumerable<StoredEvent> storedEvents,
+        IEnumerable<StoredMessage> storedMessages,
         long existingCount,
         MySqlConnection connection,
         MySqlTransaction transaction)
     {
         var existingIdempotencyKeys = new HashSet<string>();
-        storedEvents = storedEvents.ToList();
-        if (storedEvents.Any(se => se.IdempotencyKey != null))
+        storedMessages = storedMessages.ToList();
+        if (storedMessages.Any(se => se.IdempotencyKey != null))
             existingIdempotencyKeys = await GetExistingIdempotencyKeys(functionId, connection, transaction);
         
-        foreach (var (eventJson, eventType, idempotencyKey) in storedEvents)
+        foreach (var (messageJson, messageType, idempotencyKey) in storedMessages)
         {
             if (idempotencyKey != null && existingIdempotencyKeys.Contains(idempotencyKey))
                 continue;
@@ -138,8 +138,8 @@ public class MySqlEventStore : IEventStore
                 existingIdempotencyKeys.Add(idempotencyKey);
             
             var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_events
-                    (function_type_id, function_instance_id, position, event_json, event_type, idempotency_key)
+                INSERT INTO {_tablePrefix}rfunctions_messages
+                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
                 VALUES
                     (?, ?, ?, ?, ?, ?);";
            
@@ -150,8 +150,8 @@ public class MySqlEventStore : IEventStore
                     new() {Value = functionId.TypeId.Value},
                     new() {Value = functionId.InstanceId.Value},
                     new() {Value = existingCount++},
-                    new() {Value = eventJson},
-                    new() {Value = eventType},
+                    new() {Value = messageJson},
+                    new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
                 }
             };
@@ -166,7 +166,7 @@ public class MySqlEventStore : IEventStore
     {
         var sql = @$"    
             SELECT idempotency_key
-            FROM {_tablePrefix}rfunctions_events
+            FROM {_tablePrefix}rfunctions_messages
             WHERE function_type_id = ? AND function_instance_id = ? AND idempotency_key IS NOT NULL";
         await using var command = new MySqlCommand(sql, connection, transaction)
         {
@@ -188,15 +188,15 @@ public class MySqlEventStore : IEventStore
         return idempotencyKeys;
     }
 
-    public async Task<long> GetNumberOfEvents(FunctionId functionId)
+    public async Task<long> GetNumberOfMessages(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        return await GetNumberOfEvents(functionId, conn, transaction: null);
+        return await GetNumberOfMessages(functionId, conn, transaction: null);
     }
 
-    private async Task<long> GetNumberOfEvents(FunctionId functionId, MySqlConnection conn, MySqlTransaction? transaction)
+    private async Task<long> GetNumberOfMessages(FunctionId functionId, MySqlConnection conn, MySqlTransaction? transaction)
     {
-        var sql = $"SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = ? AND function_instance_id = ?";
+        var sql = $"SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = ? AND function_instance_id = ?";
         await using var command =
             transaction == null
                 ? new MySqlCommand(sql, conn)
@@ -217,7 +217,7 @@ public class MySqlEventStore : IEventStore
     internal async Task<int> Truncate(FunctionId functionId, MySqlConnection connection, MySqlTransaction? transaction)
     {
         var sql = @$"    
-                DELETE FROM {_tablePrefix}rfunctions_events
+                DELETE FROM {_tablePrefix}rfunctions_messages
                 WHERE function_type_id = ? AND function_instance_id = ?";
         
         await using var command =
@@ -232,34 +232,34 @@ public class MySqlEventStore : IEventStore
         return affectedRows;
     }
     
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
+    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        if (expectedEventCount != null)
+        if (expectedMessageCount != null)
         {
-            var count = await GetNumberOfEvents(functionId, conn, transaction);
-            if (count != expectedEventCount)
+            var count = await GetNumberOfMessages(functionId, conn, transaction);
+            if (count != expectedMessageCount)
                 return false;
         }
         
         await Truncate(functionId, conn, transaction);
-        await AppendEvents(functionId, storedEvents, existingCount: 0, conn, transaction);
+        await AppendMessages(functionId, storedMessages, existingCount: 0, conn, transaction);
 
         await transaction.CommitAsync();
         return true;
     }
     
-    public Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
-        => InnerGetEvents(functionId, skip: 0).SelectAsync(events => (IEnumerable<StoredEvent>)events);
+    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
+        => InnerGetMessages(functionId, skip: 0).SelectAsync(messages => (IEnumerable<StoredMessage>)messages);
     
-    private async Task<List<StoredEvent>> InnerGetEvents(FunctionId functionId, int skip)
+    private async Task<List<StoredMessage>> InnerGetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"    
-            SELECT event_json, event_type, idempotency_key
-            FROM {_tablePrefix}rfunctions_events
+            SELECT message_json, message_type, idempotency_key
+            FROM {_tablePrefix}rfunctions_messages
             WHERE function_type_id = ? AND function_instance_id = ? AND position >= ?
             ORDER BY position ASC;";
         await using var command = new MySqlCommand(sql, conn)
@@ -272,35 +272,35 @@ public class MySqlEventStore : IEventStore
             }
         };
         
-        var storedEvents = new List<StoredEvent>();
+        var storedMessages = new List<StoredMessage>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var eventJson = reader.GetString(0);
-            var messageJson = reader.GetString(1);
+            var messageJson = reader.GetString(0);
+            var messageType = reader.GetString(1);
             var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedEvents.Add(new StoredEvent(eventJson, messageJson, idempotencyKey));
+            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
         }
 
-        return storedEvents;
+        return storedMessages;
     }
     
-    public EventsSubscription SubscribeToEvents(FunctionId functionId)
+    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
     {
         var sync = new object();
         var skip = 0;
         var disposed = false;
         
-        var subscription = new EventsSubscription(
-            pullNewEvents: async () =>
+        var subscription = new MessagesSubscription(
+            pullNewMessages: async () =>
             {
                 lock (sync)
                     if (disposed)
-                        return ArraySegment<StoredEvent>.Empty;
+                        return ArraySegment<StoredMessage>.Empty;
                 
-                var events = await InnerGetEvents(functionId, skip);
-                skip += events.Count;
-                return events;
+                var messages = await InnerGetMessages(functionId, skip);
+                skip += messages.Count;
+                return messages;
             },
             dispose: () =>
             {

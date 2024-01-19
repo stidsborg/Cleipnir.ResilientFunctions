@@ -20,11 +20,11 @@ internal class TimeoutWatchdog
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly EventSourceWriters _eventSourceWriters;
+    private readonly MessageWriters _messageWriters;
 
     public TimeoutWatchdog(
         FunctionTypeId functionTypeId,
-        EventSourceWriters eventSourceWriters,
+        MessageWriters messageWriters,
         ITimeoutStore timeoutStore,
         TimeSpan checkFrequency, 
         TimeSpan delayStartUp,
@@ -32,7 +32,7 @@ internal class TimeoutWatchdog
         ShutdownCoordinator shutdownCoordinator)
     {
         _functionTypeId = functionTypeId;
-        _eventSourceWriters = eventSourceWriters;
+        _messageWriters = messageWriters;
         _timeoutStore = timeoutStore;
 
         _checkFrequency = checkFrequency;
@@ -77,7 +77,7 @@ internal class TimeoutWatchdog
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
             var delay = TimeSpanHelper.Max(expiresAt - DateTime.UtcNow, TimeSpan.Zero);
             await Task.Delay(delay);
-            await _eventSourceWriters.For(functionId.InstanceId).AppendEvent(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await _messageWriters.For(functionId.InstanceId).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }

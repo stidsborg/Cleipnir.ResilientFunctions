@@ -59,13 +59,13 @@ public static class Example
             );
         var rFunc = registration.Invoke;
 
-        var eventSourceWriters = registration.EventSourceWriters;
+        var messageWriters = registration.MessageWriters;
         MessageBroker.Subscribe(async @event =>
         {
             if (@event is CreditCheckOutcome creditCheckOutcome)
             {
-                var writer = eventSourceWriters.For(creditCheckOutcome.LoanApplicationId);
-                await writer.AppendEvent(creditCheckOutcome);
+                var writer = messageWriters.For(creditCheckOutcome.LoanApplicationId);
+                await writer.AppendMessage(creditCheckOutcome);
             }
         });
         

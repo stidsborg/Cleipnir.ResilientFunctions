@@ -29,7 +29,7 @@ public class ReactiveIntegrationTests
             functionTypeId,
             inner: async (_, context) =>
             {
-                var es = context.EventSource;
+                var es = context.Messages;
                 await es.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
@@ -41,17 +41,17 @@ public class ReactiveIntegrationTests
     }
     
     [TestMethod]
-    public async Task EventsAreNotPulledFromEventStoreWhenThereAreNoActiveSubscriptions()
+    public async Task EventsAreNotPulledFromMessageStoreWhenThereAreNoActiveSubscriptions()
     {
         var store = new InMemoryFunctionStoreTestStub();
-        var rFunctions = new RFunctions(store, new Settings(eventSourcePullFrequency: TimeSpan.FromMilliseconds(10)));
+        var rFunctions = new RFunctions(store, new Settings(messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = rFunctions.RegisterAction<string>(
             functionTypeId,
             inner: async (_, context) =>
             {
-                var es = context.EventSource;
+                var es = context.Messages;
                 store.EventSubscriptionPulls.ShouldBe(0);
                 var __ = es.First();
                 await Task.Delay(100);
@@ -68,14 +68,14 @@ public class ReactiveIntegrationTests
         public int EventSubscriptionPulls = 0;
         public volatile bool IsDisposed = false;
         
-        public override EventsSubscription SubscribeToEvents(FunctionId functionId)
+        public override MessagesSubscription SubscribeToMessages(FunctionId functionId)
         {
-            return new EventsSubscription(
+            return new MessagesSubscription(
                 async () =>
                 {
                     await Task.CompletedTask;
                     Interlocked.Increment(ref EventSubscriptionPulls);
-                    return new List<StoredEvent>();
+                    return new List<StoredMessage>();
                 }, () =>
                 {
                     IsDisposed = true;

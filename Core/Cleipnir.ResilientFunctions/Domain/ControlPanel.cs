@@ -25,7 +25,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         TScrapbook scrapbook, 
         DateTime? postponedUntil, 
         ExistingActivities existingActivities,
-        ExistingEvents existingEvents,
+        ExistingMessages existingMessages,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -39,7 +39,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
         Activities = existingActivities;
-        Events = existingEvents;
+        Messages = existingMessages;
     }
 
     public FunctionId FunctionId { get; }
@@ -47,7 +47,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     
     public int Epoch { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
-    public ExistingEvents Events { get; private set; }
+    public ExistingMessages Messages { get; private set; }
     public ExistingActivities Activities { get; private set; } 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
     
@@ -173,7 +173,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
-        Events = await _invocationHelper.GetExistingEvents(FunctionId);
+        Messages = await _invocationHelper.GetExistingMessages(FunctionId);
         Activities = await _invocationHelper.GetExistingActivities(FunctionId);
     }
 
@@ -198,7 +198,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         TReturn? result,
         DateTime? postponedUntil, 
         ExistingActivities activities,
-        ExistingEvents events,
+        ExistingMessages messages,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -213,7 +213,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Result = result;
         PostponedUntil = postponedUntil;
         Activities = activities;
-        Events = events;
+        Messages = messages;
         PreviouslyThrownException = previouslyThrownException;
     }
 
@@ -223,7 +223,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     public int Epoch { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
     
-    public ExistingEvents Events { get; private set; }
+    public ExistingMessages Messages { get; private set; }
     public ExistingActivities Activities { get; private set; } 
 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);

@@ -13,7 +13,7 @@ public class Settings
     internal TimeSpan? TimeoutEventsCheckFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
-    internal TimeSpan? EventSourcePullFrequency { get; }
+    internal TimeSpan? MessagesPullFrequency { get; }
     internal ISerializer? Serializer { get; }
 
     public Settings(
@@ -21,7 +21,7 @@ public class Settings
         TimeSpan? leaseLength = null, 
         TimeSpan? postponedCheckFrequency = null,
         TimeSpan? timeoutEventsCheckFrequency = null,
-        TimeSpan? eventSourcePullFrequency = null,
+        TimeSpan? messagesPullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null)
@@ -33,7 +33,7 @@ public class Settings
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
-        EventSourcePullFrequency = eventSourcePullFrequency;
+        MessagesPullFrequency = messagesPullFrequency;
     }
 }
 
@@ -42,7 +42,7 @@ public record SettingsWithDefaults(
     TimeSpan LeaseLength,
     TimeSpan PostponedCheckFrequency,
     TimeSpan TimeoutEventsCheckFrequency,
-    TimeSpan EventSourcePullFrequency,
+    TimeSpan MessagesPullFrequency,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
     ISerializer Serializer)
@@ -58,7 +58,7 @@ public record SettingsWithDefaults(
             child.LeaseLength ?? LeaseLength,
             child.PostponedCheckFrequency ?? PostponedCheckFrequency,
             child.TimeoutEventsCheckFrequency ?? TimeoutEventsCheckFrequency,
-            child.EventSourcePullFrequency ?? EventSourcePullFrequency,
+            child.MessagesPullFrequency ?? MessagesPullFrequency,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
             child.Serializer ?? Serializer
@@ -71,7 +71,7 @@ public record SettingsWithDefaults(
             LeaseLength: TimeSpan.FromSeconds(10),
             PostponedCheckFrequency: TimeSpan.FromSeconds(1),
             TimeoutEventsCheckFrequency: TimeSpan.FromSeconds(1),
-            EventSourcePullFrequency: TimeSpan.FromMilliseconds(250),
+            MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 100,
             Serializer: DefaultSerializer.Instance

@@ -23,8 +23,8 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         );
 
     [TestMethod]
-    public override Task PostponedFunctionIsResumedAfterEventIsAppendedToEventSource()
-        => PostponedFunctionIsResumedAfterEventIsAppendedToEventSource(
+    public override Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages()
+        => PostponedFunctionIsResumedAfterEventIsAppendedToMessages(
             FunctionStoreFactory.Create()
         );
 

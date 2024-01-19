@@ -9,27 +9,27 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class EventSourceWriter
+public class MessageWriter
 {
     private readonly FunctionId _functionId;
     private readonly IFunctionStore _functionStore;
-    private readonly IEventStore _eventStore;
+    private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
 
-    public EventSourceWriter(FunctionId functionId, IFunctionStore functionStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
+    public MessageWriter(FunctionId functionId, IFunctionStore functionStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
     {
         _functionId = functionId;
         _functionStore = functionStore;
-        _eventStore = functionStore.EventStore;
+        _messageStore = functionStore.MessageStore;
         _serializer = eventSerializer;
         _scheduleReInvocation = scheduleReInvocation;
     }
 
-    public async Task AppendEvent<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
+    public async Task AppendMessage<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
     {
-        var (eventJson, eventType) = _serializer.SerializeEvent(@event);
-        await _eventStore.AppendEvent(
+        var (eventJson, eventType) = _serializer.SerializeMessage(@event);
+        await _messageStore.AppendMessage(
             _functionId,
             eventJson,
             eventType,
@@ -45,11 +45,11 @@ public class EventSourceWriter
             await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     }
     
-    public async Task AppendEvent(EventAndIdempotencyKey eventAndIdempotency)
+    public async Task AppendMessage(MessageAndIdempotencyKey messageAndIdempotency)
     {
-        var (@event, idempotencyKey) = eventAndIdempotency;
-        var (eventJson, eventType) = _serializer.SerializeEvent(@event);
-        await _eventStore.AppendEvent(
+        var (@event, idempotencyKey) = messageAndIdempotency;
+        var (eventJson, eventType) = _serializer.SerializeMessage(@event);
+        await _messageStore.AppendMessage(
             _functionId,
             eventJson,
             eventType,
@@ -65,15 +65,15 @@ public class EventSourceWriter
             await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     }
 
-    public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
+    public async Task AppendEvents(IEnumerable<MessageAndIdempotencyKey> events)
     {
-        var (status, epoch) = await _eventStore.AppendEvents(
+        var (status, epoch) = await _messageStore.AppendMessages(
             _functionId,
-            storedEvents: events.Select(eventAndIdempotencyKey =>
+            storedMessages: events.Select(eventAndIdempotencyKey =>
             {
                 var (@event, idempotencyKey) = eventAndIdempotencyKey;
-                var (json, type) = _serializer.SerializeEvent(@event);
-                return new StoredEvent(json, type, idempotencyKey);
+                var (json, type) = _serializer.SerializeMessage(@event);
+                return new StoredMessage(json, type, idempotencyKey);
             })
         );
 
@@ -81,5 +81,5 @@ public class EventSourceWriter
             await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     } 
 
-    public Task Truncate() => _eventStore.Truncate(_functionId);
+    public Task Truncate() => _messageStore.Truncate(_functionId);
 }

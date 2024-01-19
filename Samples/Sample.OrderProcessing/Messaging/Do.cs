@@ -22,19 +22,19 @@ public static class Do
             switch (msg)
             {
                 case FundsCaptured e:
-                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsCaptured)}.{e.OrderId}");
+                    await rAction.MessageWriters.For(e.OrderId).AppendMessage(e, idempotencyKey: $"{nameof(FundsCaptured)}.{e.OrderId}");
                     break;
                 case FundsReservationCancelled e:
-                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsReservationCancelled)}.{e.OrderId}");
+                    await rAction.MessageWriters.For(e.OrderId).AppendMessage(e, idempotencyKey: $"{nameof(FundsReservationCancelled)}.{e.OrderId}");
                     break;
                 case FundsReserved e:
-                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(FundsReserved)}.{e.OrderId}");
+                    await rAction.MessageWriters.For(e.OrderId).AppendMessage(e, idempotencyKey: $"{nameof(FundsReserved)}.{e.OrderId}");
                     break;
                 case OrderConfirmationEmailSent e:
-                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(OrderConfirmationEmailSent)}.{e.OrderId}");
+                    await rAction.MessageWriters.For(e.OrderId).AppendMessage(e, idempotencyKey: $"{nameof(OrderConfirmationEmailSent)}.{e.OrderId}");
                     break;
                 case ProductsShipped e:
-                    await rAction.EventSourceWriters.For(e.OrderId).AppendEvent(e, idempotencyKey: $"{nameof(ProductsShipped)}.{e.OrderId}");
+                    await rAction.MessageWriters.For(e.OrderId).AppendMessage(e, idempotencyKey: $"{nameof(ProductsShipped)}.{e.OrderId}");
                     break;
 
                 default:

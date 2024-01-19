@@ -13,13 +13,13 @@ using Cleipnir.ResilientFunctions.Utils.Register;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class InMemoryFunctionStore : IFunctionStore, IEventStore
+public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 {
     private readonly Dictionary<FunctionId, State> _states = new();
-    private readonly Dictionary<FunctionId, List<StoredEvent>> _events = new();
+    private readonly Dictionary<FunctionId, List<StoredMessage>> _messages = new();
     private readonly object _sync = new();
 
-    public IEventStore EventStore => this;
+    public IMessageStore MessageStore => this;
     public IActivityStore ActivityStore { get; } = new InMemoryActivityStore();
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
     public Utilities Utilities { get; }
@@ -64,7 +64,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
                 LeaseExpiration = leaseExpiration,
                 Timestamp = timestamp
             };
-            _events[functionId] = new List<StoredEvent>();
+            _messages[functionId] = new List<StoredMessage>();
 
             return true.ToTask();
         }
@@ -260,7 +260,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     
     public virtual Task<bool> SuspendFunction(
         FunctionId functionId, 
-        int expectedEventCount, 
+        int expectedMessageCount, 
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
@@ -275,7 +275,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
-            if (_events[functionId].Count > expectedEventCount)
+            if (_messages[functionId].Count > expectedMessageCount)
                 return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, new ComplimentaryState.SetResult());
                 
             state.Status = Status.Suspended;
@@ -358,7 +358,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             if (expectedEpoch == null)
             {
                 _states.Remove(functionId);
-                _events.Remove(functionId);
+                _messages.Remove(functionId);
                 return true.ToTask();
             }
             
@@ -366,7 +366,7 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
             if (state.Epoch == expectedEpoch.Value)
             {
                 _states.Remove(functionId);
-                _events.Remove(functionId);
+                _messages.Remove(functionId);
                 return true.ToTask();
             }
             
@@ -389,26 +389,26 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     }
     #endregion
     
-    #region EventStore
+    #region MessageStore
 
-    public virtual Task<FunctionStatus> AppendEvent(FunctionId functionId, StoredEvent storedEvent)
-        => AppendEvents(functionId, new[] { storedEvent });
+    public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+        => AppendMessages(functionId, new[] { storedMessage });
 
-    public virtual Task<FunctionStatus> AppendEvent(FunctionId functionId, string eventJson, string eventType, string? idempotencyKey = null)
-        => AppendEvent(functionId, new StoredEvent(eventJson, eventType, idempotencyKey));
+    public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
+        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
 
-    public virtual Task<FunctionStatus> AppendEvents(FunctionId functionId, IEnumerable<StoredEvent> storedEvents)
+    public virtual Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
         lock (_sync)
         {
-            if (!_events.ContainsKey(functionId))
-                _events[functionId] = new List<StoredEvent>();
+            if (!_messages.ContainsKey(functionId))
+                _messages[functionId] = new List<StoredMessage>();
 
-            var events = _events[functionId];
-            foreach (var storedEvent in storedEvents)
-                if (storedEvent.IdempotencyKey == null ||
-                    events.All(e => e.IdempotencyKey != storedEvent.IdempotencyKey))
-                    events.Add(storedEvent);
+            var messages = _messages[functionId];
+            foreach (var storedMessage in storedMessages)
+                if (storedMessage.IdempotencyKey == null ||
+                    messages.All(e => e.IdempotencyKey != storedMessage.IdempotencyKey))
+                    messages.Add(storedMessage);
 
             return Task.FromResult(
                 new FunctionStatus(_states[functionId].Status, Epoch: _states[functionId].Epoch)
@@ -419,65 +419,65 @@ public class InMemoryFunctionStore : IFunctionStore, IEventStore
     public virtual Task Truncate(FunctionId functionId)
     {
         lock (_sync)
-            _events[functionId] = new List<StoredEvent>();
+            _messages[functionId] = new List<StoredMessage>();
 
         return Task.CompletedTask;
     }
 
-    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredEvent> storedEvents, int? expectedEventCount)
+    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
     {
         lock (_sync)
         {
-            if (expectedEventCount == null)
+            if (expectedMessageCount == null)
             {
-                _events[functionId] = storedEvents.ToList();
+                _messages[functionId] = storedMessages.ToList();
                 return true.ToTask();
             }
                 
-            var success = _events.TryGetValue(functionId, out var existingEvents);
+            var success = _messages.TryGetValue(functionId, out var existingMessages);
             if (!success) return false.ToTask();
 
-            if (existingEvents == null || existingEvents.Count != expectedEventCount)
+            if (existingMessages == null || existingMessages.Count != expectedMessageCount)
                 return false.ToTask();
             
-            _events[functionId] = storedEvents.ToList();
+            _messages[functionId] = storedMessages.ToList();
             return true.ToTask();
         }
     }
 
-    public virtual Task<IEnumerable<StoredEvent>> GetEvents(FunctionId functionId)
+    public virtual Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
     {
         lock (_sync)
         {
-            if (!_events.ContainsKey(functionId))
-                return Enumerable.Empty<StoredEvent>().ToTask();
+            if (!_messages.ContainsKey(functionId))
+                return Enumerable.Empty<StoredMessage>().ToTask();
 
-            return _events[functionId].ToList().AsEnumerable().ToTask();
+            return _messages[functionId].ToList().AsEnumerable().ToTask();
         }
     }
 
-    public virtual EventsSubscription SubscribeToEvents(FunctionId functionId)
+    public virtual MessagesSubscription SubscribeToMessages(FunctionId functionId)
     {
         var disposed = false;
         var skip = 0;
 
-        var subscription = new EventsSubscription(
-            pullNewEvents: () =>
+        var subscription = new MessagesSubscription(
+            pullNewMessages: () =>
             {
-                List<StoredEvent>? events;
+                List<StoredMessage>? messages;
 
                 lock (_sync)
                     if (disposed)
-                        return Task.FromResult((IReadOnlyList<StoredEvent>) Array.Empty<StoredEvent>());
-                    else if (_events.ContainsKey(functionId) && _events[functionId].Count > skip)
+                        return Task.FromResult((IReadOnlyList<StoredMessage>) Array.Empty<StoredMessage>());
+                    else if (_messages.ContainsKey(functionId) && _messages[functionId].Count > skip)
                     {
-                        events = _events[functionId].Skip(skip).ToList();
-                        skip += events.Count;
+                        messages = _messages[functionId].Skip(skip).ToList();
+                        skip += messages.Count;
                     }
                     else
-                        events = new List<StoredEvent>();
+                        messages = new List<StoredMessage>();
 
-                return Task.FromResult((IReadOnlyList<StoredEvent>) events);
+                return Task.FromResult((IReadOnlyList<StoredMessage>) messages);
             },
             dispose: () =>
             {

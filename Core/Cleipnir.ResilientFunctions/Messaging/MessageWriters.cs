@@ -5,14 +5,14 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class EventSourceWriters
+public class MessageWriters
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
 
-    public EventSourceWriters(
+    public MessageWriters(
         FunctionTypeId functionTypeId, 
         IFunctionStore functionStore, 
         ISerializer serializer, 
@@ -24,9 +24,9 @@ public class EventSourceWriters
         _scheduleReInvocation = scheduleReInvocation;
     }
 
-    public EventSourceWriter For(FunctionInstanceId instanceId)
+    public MessageWriter For(FunctionInstanceId instanceId)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        return new EventSourceWriter(functionId, _functionStore, _serializer, _scheduleReInvocation);
+        return new MessageWriter(functionId, _functionStore, _serializer, _scheduleReInvocation);
     }
 }

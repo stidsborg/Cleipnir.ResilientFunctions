@@ -7,7 +7,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
-using EventAndIdempotencyKey = Cleipnir.ResilientFunctions.Messaging.EventAndIdempotencyKey;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -32,11 +31,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         _functionStore = functionStore;
     }
 
-    public IReadOnlyList<StoredEvent>? SerializeEvents(IEnumerable<EventAndIdempotencyKey>? events)
-        => events?.Select(@event =>
+    public IReadOnlyList<StoredMessage>? SerializeMessages(IEnumerable<MessageAndIdempotencyKey>? messages)
+        => messages?.Select(message =>
             {
-                var (json, type) = Serializer.SerializeEvent(@event.Event);
-                return new StoredEvent(json, type, @event.IdempotencyKey);
+                var (json, type) = Serializer.SerializeMessage(message.Message);
+                return new StoredMessage(json, type, message.IdempotencyKey);
             })
             .ToList();
 
@@ -193,7 +192,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             case Outcome.Suspend:
                 return await _functionStore.SuspendFunction(
                     functionId,
-                    result.Suspend!.ExpectedEventCount,
+                    result.Suspend!.ExpectedMessageCount,
                     Serializer.SerializeScrapbook(scrapbook).ScrapbookJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
@@ -376,16 +375,16 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public async Task<EventSource> CreateEventSource(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, bool sync)
+    public async Task<Messages> CreateMessages(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, bool sync)
     {
-        var eventSourceWriter = new EventSourceWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, eventSourceWriter, _settings.TimeoutEventsCheckFrequency); 
-        var es = new EventSource(
+        var messageWriter = new MessageWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
+        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, messageWriter, _settings.TimeoutEventsCheckFrequency); 
+        var es = new Messages(
             functionId,
-            _functionStore.EventStore,
-            eventSourceWriter,
+            _functionStore.MessageStore,
+            messageWriter,
             timeoutProvider,
-            _settings.EventSourcePullFrequency,
+            _settings.MessagesPullFrequency,
             _settings.Serializer
         );
         
@@ -395,14 +394,14 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         return es;
     }
 
-    public async Task<Activity> CreateActivity(FunctionId functionId, bool sync)
+    public async Task<Activities> CreateActivity(FunctionId functionId, bool sync)
     {
         var activityStore = _functionStore.ActivityStore;
         var existingActivities = sync 
             ? await activityStore.GetActivityResults(functionId)
             : Enumerable.Empty<StoredActivity>();
         
-        return new Activity(functionId, existingActivities, activityStore, _settings.Serializer);
+        return new Activities(functionId, existingActivities, activityStore, _settings.Serializer);
     }
 
     public async Task<ExistingActivities> GetExistingActivities(FunctionId functionId)
@@ -417,26 +416,26 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
     }
 
-    public async Task<List<EventAndIdempotencyKey>> GetEvents(FunctionId functionId)
+    public async Task<List<MessageAndIdempotencyKey>> GetEvents(FunctionId functionId)
     {
-        var storedEvents = await _functionStore.EventStore.GetEvents(functionId);
-        return storedEvents
-            .Select(se => new EventAndIdempotencyKey(
-                    _settings.Serializer.DeserializeEvent(se.EventJson, se.EventType),
+        var storedMessages = await _functionStore.MessageStore.GetMessages(functionId);
+        return storedMessages
+            .Select(se => new MessageAndIdempotencyKey(
+                    _settings.Serializer.DeserializeMessage(se.MessageJson, se.MessageType),
                     se.IdempotencyKey
                 )
             )
             .ToList();
     }
     
-    public async Task<ExistingEvents> GetExistingEvents(FunctionId functionId) 
-        => new ExistingEvents(functionId, await GetEvents(functionId), _functionStore.EventStore, _settings.Serializer);
+    public async Task<ExistingMessages> GetExistingMessages(FunctionId functionId) 
+        => new ExistingMessages(functionId, await GetEvents(functionId), _functionStore.MessageStore, _settings.Serializer);
 
     public ITimeoutProvider CreateTimeoutProvider(FunctionId functionId)
         => new TimeoutProvider(
             functionId,
             _functionStore.TimeoutStore,
-            eventSourceWriter: null,
+            messageWriter: null,
             timeoutCheckFrequency: TimeSpan.Zero
         );
 }

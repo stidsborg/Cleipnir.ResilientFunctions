@@ -61,21 +61,21 @@ public static class Example
             );
         var rFunc = registration.Invoke;
 
-        var eventSourceWriters = registration.EventSourceWriters;
+        var messageWriters = registration.MessageWriters;
         MessageBroker.Subscribe(async events =>
         {
             switch (events)
             {
                 case TransactionApproved transactionApproved:
                 {
-                    var writer = eventSourceWriters.For(transactionApproved.Transaction.Id);
-                    await writer.AppendEvent(transactionApproved);
+                    var writer = messageWriters.For(transactionApproved.Transaction.Id);
+                    await writer.AppendMessage(transactionApproved);
                     break;
                 }
                 case TransactionDeclined transactionDeclined:
                 {
-                    var writer = eventSourceWriters.For(transactionDeclined.Transaction.Id);
-                    await writer.AppendEvent(transactionDeclined);
+                    var writer = messageWriters.For(transactionDeclined.Transaction.Id);
+                    await writer.AppendMessage(transactionDeclined);
                     break;
                 }
             }

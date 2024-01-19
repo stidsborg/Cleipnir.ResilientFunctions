@@ -47,9 +47,9 @@ public class DefaultSerializer : ISerializer
     public TResult DeserializeResult<TResult>(string json, string type) 
         => (TResult) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
-    public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull 
+    public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull 
         => new(JsonSerializer.Serialize(@event, @event.GetType()), @event.GetType().SimpleQualifiedName());
-    public object DeserializeEvent(string json, string type)
+    public object DeserializeMessage(string json, string type)
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
     public string SerializeActivityResult<TResult>(TResult result)

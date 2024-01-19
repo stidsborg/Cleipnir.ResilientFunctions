@@ -104,13 +104,13 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public JsonAndType SerializeEvent<TEvent>(TEvent @event) where TEvent : notnull
-        => _inner.SerializeEvent(@event);
-    public object DeserializeEvent(string json, string type)
+    public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
+        => _inner.SerializeMessage(@event);
+    public object DeserializeMessage(string json, string type)
     {
         try
         {
-            return _inner.DeserializeEvent(json, type)
+            return _inner.DeserializeMessage(json, type)
                    ?? throw new DeserializationException(
                        $"Deserialized event was null with type: '{type}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()

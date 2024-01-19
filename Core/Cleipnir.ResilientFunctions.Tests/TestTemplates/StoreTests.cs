@@ -694,11 +694,11 @@ public abstract class StoreTests
         sf.Exception.ShouldBeNull();
     }
     
-    public abstract Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected();
-    public async Task SetFunctionStateSucceedsWithEventsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
+    public abstract Task SetFunctionStateSucceedsWithMessagesWhenEpochIsAsExpected();
+    public async Task SetFunctionStateSucceedsWithMessagesWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var eventStore = store.EventStore;
+        var messages = store.MessageStore;
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
@@ -712,32 +712,32 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var event1 = new StoredEvent(
+        var message1 = new StoredMessage(
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_1"
         );
-        var event2 = new StoredEvent(
+        var message2 = new StoredMessage(
             "hello universe".ToJson(),
             typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_2"
         );
-        await eventStore.AppendEvents(
+        await messages.AppendMessages(
             functionId,
-            new[] { event1, event2 }
+            new[] { message1, message2 }
         );
 
-        await eventStore.Replace(
+        await messages.Replace(
             functionId,
             new[]
             {
-                new StoredEvent(
+                new StoredMessage(
                     "hello everyone".ToJson(),
-                    EventType: typeof(string).SimpleQualifiedName(),
+                    MessageType: typeof(string).SimpleQualifiedName(),
                     IdempotencyKey: "idempotency_key_1"
                 ),
             },
-            expectedEventCount: 2
+            expectedMessageCount: 2
         ).ShouldBeTrueAsync();
         
         await store.SetFunctionState(
@@ -759,10 +759,10 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Succeeded);
         sf.Exception.ShouldBeNull();
 
-        var events = await TaskLinq.ToListAsync(store.EventStore.GetEvents(functionId));
-        events.Count.ShouldBe(1);
-        var deserializedEvent = (string) DefaultSerializer.Instance.DeserializeEvent(events[0].EventJson, events[0].EventType);
-        deserializedEvent.ShouldBe("hello everyone");
+        var storedMessages = await TaskLinq.ToListAsync(store.MessageStore.GetMessages(functionId));
+        storedMessages.Count.ShouldBe(1);
+        var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].MessageJson, storedMessages[0].MessageType);
+        deserializedMessage.ShouldBe("hello everyone");
     }
     
     public abstract Task ExecutingFunctionCanBeSuspendedSuccessfully();
@@ -784,7 +784,7 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedEventCount: 0,
+            expectedMessageCount: 0,
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -800,14 +800,14 @@ public abstract class StoreTests
         sf.Parameter.ParamType.ShouldBe(storedParameter.ParamType);
         sf.Parameter.ParamJson.ShouldBe(storedParameter.ParamJson);
 
-        var events = await store.EventStore.GetEvents(functionId);
-        events.ShouldBeEmpty();
+        var messages = await store.MessageStore.GetMessages(functionId);
+        messages.ShouldBeEmpty();
 
         await Task.Delay(500);
 
-        var functionStatus = await store.EventStore.AppendEvents(
+        var functionStatus = await store.MessageStore.AppendMessages(
             functionId,
-            storedEvents: new[] { new StoredEvent("hello world".ToJson(), EventType: typeof(string).SimpleQualifiedName()) }
+            storedMessages: new[] { new StoredMessage("hello world".ToJson(), MessageType: typeof(string).SimpleQualifiedName()) }
         );
         functionStatus.Status.ShouldBe(Status.Suspended);
     }
@@ -841,8 +841,8 @@ public abstract class StoreTests
         ).ShouldBeNullAsync();
     }
     
-    public abstract Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated();
-    public async Task EventsCanBeFetchedAfterFunctionWithInitialEventsHasBeenCreated(Task<IFunctionStore> storeTask)
+    public abstract Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated();
+    public async Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -858,18 +858,18 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.EventStore.AppendEvents(
+        await store.MessageStore.AppendMessages(
             functionId,
             new[]
             {
-                new StoredEvent("Hello".ToJson(), EventType: typeof(string).SimpleQualifiedName()),
-                new StoredEvent("World".ToJson(), EventType: typeof(string).SimpleQualifiedName())
+                new StoredMessage("Hello".ToJson(), MessageType: typeof(string).SimpleQualifiedName()),
+                new StoredMessage("World".ToJson(), MessageType: typeof(string).SimpleQualifiedName())
             }
         );
-        var events = await store.EventStore.GetEvents(functionId).ToListAsync();
-        events.Count.ShouldBe(2);
-        events[0].DefaultDeserialize().ShouldBe("Hello");
-        events[1].DefaultDeserialize().ShouldBe("World");
+        var messages = await store.MessageStore.GetMessages(functionId).ToListAsync();
+        messages.Count.ShouldBe(2);
+        messages[0].DefaultDeserialize().ShouldBe("Hello");
+        messages[1].DefaultDeserialize().ShouldBe("World");
     }
     
     public abstract Task FunctionStatusAndEpochCanBeSuccessfullyFetched();
@@ -1011,7 +1011,7 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedEventCount: 0,
+            expectedMessageCount: 0,
             Test.SimpleStoredScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -1023,8 +1023,8 @@ public abstract class StoreTests
         (storedFunction.Epoch is 0).ShouldBeTrue();
     }
     
-    public abstract Task FunctionIsPostponedOnSuspensionAndEventCountMismatch();
-    protected async Task FunctionIsPostponedOnSuspensionAndEventCountMismatch(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch();
+    protected async Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch(Task<IFunctionStore> storeTask)
     {
         var functionId = TestFunctionId.Create();
         
@@ -1038,11 +1038,11 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.EventStore.AppendEvent(functionId, eventJson: "hello world".ToJson(), eventType: typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(functionId, messageJson: "hello world".ToJson(), messageType: typeof(string).SimpleQualifiedName());
         
         var success = await store.SuspendFunction(
             functionId,
-            expectedEventCount: 0,
+            expectedMessageCount: 0,
             Test.SimpleStoredScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,

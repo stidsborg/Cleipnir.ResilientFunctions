@@ -12,19 +12,19 @@ using Cleipnir.ResilientFunctions.Reactive.Origin;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class EventSource : IReactiveChain<object>, IDisposable
+public class Messages : IReactiveChain<object>, IDisposable
 {
     public TimeoutProvider TimeoutProvider { get; }
     public IReactiveChain<object> Source => _eventPullerAndEmitter.Source;
     public IEnumerable<object> Existing => _eventPullerAndEmitter.Source.Existing;
     
-    private readonly EventSourceWriter _eventWriter;
+    private readonly MessageWriter _eventWriter;
     private readonly EventsPullerAndEmitter _eventPullerAndEmitter;
     
-    public EventSource(
+    public Messages(
         FunctionId functionId,
-        IEventStore eventStore, 
-        EventSourceWriter eventWriter,
+        IMessageStore messageStore, 
+        MessageWriter eventWriter,
         TimeoutProvider timeoutProvider,
         TimeSpan? pullFrequency, 
         ISerializer serializer)
@@ -35,19 +35,19 @@ public class EventSource : IReactiveChain<object>, IDisposable
         _eventPullerAndEmitter = new EventsPullerAndEmitter(
             functionId,
             pullFrequency ?? TimeSpan.FromMilliseconds(250),
-            eventStore,
+            messageStore,
             serializer,
             timeoutProvider
         );
     }
 
-    public async Task AppendEvent(object @event, string? idempotencyKey = null)
+    public async Task AppendMessage(object @event, string? idempotencyKey = null)
     {
-        await _eventWriter.AppendEvent(@event, idempotencyKey);
+        await _eventWriter.AppendMessage(@event, idempotencyKey);
         await Sync();
     }
 
-    public async Task AppendEvents(IEnumerable<EventAndIdempotencyKey> events)
+    public async Task AppendEvents(IEnumerable<MessageAndIdempotencyKey> events)
     {
         await _eventWriter.AppendEvents(events);
         await Sync();
@@ -63,7 +63,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
     private class EventsPullerAndEmitter : IDisposable
     {
         private readonly TimeSpan _delay;
-        private readonly EventsSubscription _eventsSubscription;
+        private readonly MessagesSubscription _messagesSubscription;
         private readonly ISerializer _serializer;
 
         public Source Source { get; }
@@ -80,7 +80,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
         public EventsPullerAndEmitter(
             FunctionId functionId, 
             TimeSpan delay, 
-            IEventStore eventStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
+            IMessageStore messageStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
         {
             _delay = delay;
 
@@ -92,7 +92,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
                 onSubscriptionRemoved: SubscriberRemoved
             );
             
-            _eventsSubscription = eventStore.SubscribeToEvents(functionId);
+            _messagesSubscription = messageStore.SubscribeToMessages(functionId);
         }
         
         private async Task StartPullEventLoop()
@@ -143,31 +143,31 @@ public class EventSource : IReactiveChain<object>, IDisposable
         {
             lock (_sync)
                 if (_disposed)
-                    throw new ObjectDisposedException(nameof(EventSource));
+                    throw new ObjectDisposedException(nameof(Messages));
             
             using var @lock = await _semaphore.Take();
             if (_thrownException != null)
-                throw new EventProcessingException(_thrownException);
+                throw new MessageProcessingException(_thrownException);
             
             try
             {
-                var storedEvents = await _eventsSubscription.PullNewEvents();
+                var storedMessages = await _messagesSubscription.PullNewEvents();
                 
                 if (_toSkip != 0)
                 {
-                    storedEvents = storedEvents.Skip(_toSkip).ToList();
+                    storedMessages = storedMessages.Skip(_toSkip).ToList();
                     _toSkip = 0;
                 }
                     
-                var events = storedEvents.Select(
-                    storedEvent => _serializer.DeserializeEvent(storedEvent.EventJson, storedEvent.EventType)
+                var events = storedMessages.Select(
+                    storedEvent => _serializer.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType)
                 );
                 
                 Source.SignalNext(events);
             }
             catch (Exception e)
             {
-                var eventHandlingException = new EventProcessingException(e);
+                var eventHandlingException = new MessageProcessingException(e);
                 _thrownException = e;
                 
                 Source.SignalError(eventHandlingException);
@@ -179,7 +179,7 @@ public class EventSource : IReactiveChain<object>, IDisposable
         public void Dispose()
         {
             _disposed = true;
-            _eventsSubscription.Dispose();
+            _messagesSubscription.Dispose();
         }  
     }
 }

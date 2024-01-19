@@ -17,7 +17,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public LeaseUpdaterTestFunctionStore(LeaseUpdaterCallback leaseUpdaterCallback) => _leaseUpdaterCallback = leaseUpdaterCallback;
 
-    public IEventStore EventStore => _inner.EventStore;
+    public IMessageStore MessageStore => _inner.MessageStore;
     public IActivityStore ActivityStore => _inner.ActivityStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
@@ -74,8 +74,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
         => _inner.FailFunction(functionId, storedException, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
-    public Task<bool> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
-        => _inner.SuspendFunction(functionId, expectedEventCount, scrapbookJson, timestamp, expectedEpoch, complementaryState);
+    public Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complementaryState)
+        => _inner.SuspendFunction(functionId, expectedMessageCount, scrapbookJson, timestamp, expectedEpoch, complementaryState);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _inner.GetFunctionStatus(functionId);

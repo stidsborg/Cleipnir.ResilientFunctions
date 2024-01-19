@@ -11,9 +11,9 @@ public static class EngagementReminderSaga
     public static async Task Start(StartCustomerEngagement startEngagement, Context context)
     {
         var (candidateEmail, nextReminderTime) = startEngagement;
-        var es = context.EventSource;
+        var es = context.Messages;
 
-        await context.Activity.Do(
+        await context.Activities.Do(
             "InitialCorrespondence",
             SendEngagementInitialCorrespondence
         );
@@ -38,7 +38,7 @@ public static class EngagementReminderSaga
             // if accepted notify hr and complete the flow
             if (either.Match(ea => true, er => false))
             {
-                await context.Activity.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
+                await context.Activities.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
                 await es.CancelTimeoutEvent(timeoutId: i.ToString());
                 
                 return;

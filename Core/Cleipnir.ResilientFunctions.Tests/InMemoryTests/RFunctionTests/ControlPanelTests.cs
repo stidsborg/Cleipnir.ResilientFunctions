@@ -95,36 +95,36 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ControlPanelsExistingEventsContainsPreviouslyAddedEvents()
-        => ControlPanelsExistingEventsContainsPreviouslyAddedEvents(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages()
+        => ControlPanelsExistingMessagesContainsPreviouslyAddedMessages(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingEventsCanBeReplacedUsingControlPanel()
-        => ExistingEventsCanBeReplacedUsingControlPanel(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingMessagesCanBeReplacedUsingControlPanel()
+        => ExistingMessagesCanBeReplacedUsingControlPanel(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation()
-        => ExistingEventsAreNotAffectedByControlPanelSaveChangesInvocation(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation()
+        => ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges()
-        => ConcurrentModificationOfExistingEventsCausesExceptionOnSaveChanges(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSaveChanges()
+        => ConcurrentModificationOfExistingMessagesCausesExceptionOnSaveChanges(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced()
-        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSaveChangesWhenEventsAreNotReplaced(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSaveChangesWhenMessagesAreNotReplaced()
+        => ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSaveChangesWhenMessagesAreNotReplaced(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ConcurrentModificationOfExistingEventsCausesExceptionOnSave()
-        => ConcurrentModificationOfExistingEventsCausesExceptionOnSave(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSave()
+        => ConcurrentModificationOfExistingMessagesCausesExceptionOnSave(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced()
-        => ConcurrentModificationOfExistingEventsDoesNotCauseExceptionOnSucceedWhenEventsAreNotReplaced(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSucceedWhenMessagesAreNotReplaced()
+        => ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSucceedWhenMessagesAreNotReplaced(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingEventsCanBeReplaced()
-        => ExistingEventsCanBeReplaced(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingMessagesCanBeReplaced()
+        => ExistingMessagesCanBeReplaced(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task ExistingActivityCanBeReplacedWithValue()

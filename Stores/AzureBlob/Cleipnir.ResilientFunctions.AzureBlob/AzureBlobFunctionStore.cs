@@ -11,8 +11,8 @@ namespace Cleipnir.ResilientFunctions.AzureBlob;
 
 public class AzureBlobFunctionStore : IFunctionStore
 {
-    private readonly AzureBlobEventStore _eventStore;
-    public IEventStore EventStore => _eventStore;
+    private readonly AzureBlobMessageStore _messageStore;
+    public IMessageStore MessageStore => _messageStore;
     private AzureBlobActivityStore _activityStore;
     public IActivityStore ActivityStore => _activityStore;
     public ITimeoutStore TimeoutStore { get; }
@@ -28,7 +28,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         
         _blobServiceClient = new BlobServiceClient(connectionString);
         _blobContainerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
-        _eventStore = new AzureBlobEventStore(_blobContainerClient);
+        _messageStore = new AzureBlobMessageStore(_blobContainerClient);
         _activityStore = new AzureBlobActivityStore(_blobContainerClient);
         TimeoutStore = new AzureBlobTimeoutStore(_blobContainerClient);
         Utilities = new Utilities(new AzureBlobUnderlyingRegister(_blobContainerClient));
@@ -199,7 +199,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         long? postponeUntil,
         int expectedEpoch)
     {
-        return await SetFunctionStateWithoutEvents(
+        return await SetFunctionStateWithoutMessages(
             functionId,
             status,
             storedParameter,
@@ -213,7 +213,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         );
     }
 
-    private async Task<bool> SetFunctionStateWithoutEvents(
+    private async Task<bool> SetFunctionStateWithoutMessages(
         FunctionId functionId, 
         Status status, 
         StoredParameter storedParameter,
@@ -503,7 +503,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedEventCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
     {
         var success = await PostponeFunction(
             functionId,
@@ -516,8 +516,8 @@ public class AzureBlobFunctionStore : IFunctionStore
         if (!success)
             return false;
 
-        var events = await EventStore.GetEvents(functionId);
-        if (events.Count() != expectedEventCount)
+        var messages = await MessageStore.GetMessages(functionId);
+        if (messages.Count() != expectedMessageCount)
             return await PostponeFunction(
                 functionId,
                 postponeUntil: 0,

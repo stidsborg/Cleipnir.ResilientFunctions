@@ -16,8 +16,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    private readonly PostgreSqlEventStore _eventStore;
-    public IEventStore EventStore => _eventStore;
+    private readonly PostgreSqlMessageStore _messageStore;
+    public IMessageStore MessageStore => _messageStore;
     private readonly PostgresActivityStore _activityStore;
     public IActivityStore ActivityStore => _activityStore;
 
@@ -30,7 +30,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
-        _eventStore = new PostgreSqlEventStore(connectionString, tablePrefix);
+        _messageStore = new PostgreSqlMessageStore(connectionString, tablePrefix);
         _activityStore = new PostgresActivityStore(connectionString, tablePrefix);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, tablePrefix);
         _postgresSqlUnderlyingRegister = new(connectionString, _tablePrefix);
@@ -47,7 +47,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task Initialize()
     {
         await _postgresSqlUnderlyingRegister.Initialize();
-        await _eventStore.Initialize();
+        await _messageStore.Initialize();
         await _activityStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await CreateConnection();
@@ -87,7 +87,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task DropIfExists()
     {
         await _postgresSqlUnderlyingRegister.DropUnderlyingTable();
-        await _eventStore.DropUnderlyingTable();
+        await _messageStore.DropUnderlyingTable();
         await _timeoutStore.DropUnderlyingTable();
         
         await using var conn = await CreateConnection();
@@ -98,7 +98,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task TruncateTable()
     {
-        await _eventStore.TruncateTable();
+        await _messageStore.TruncateTable();
         await _timeoutStore.TruncateTable();
         await _postgresSqlUnderlyingRegister.TruncateTable();
         
@@ -447,7 +447,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     public async Task<bool> SuspendFunction(
         FunctionId functionId, 
-        int expectedEventCount, 
+        int expectedMessageCount, 
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
@@ -463,7 +463,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 function_type_id = $3 AND 
                 function_instance_id = $4 AND 
                 epoch = $5 AND
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_events WHERE function_type_id = $6 AND function_instance_id = $7) = $8";
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $6 AND function_instance_id = $7) = $8";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
@@ -475,7 +475,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEventCount },
+                new() { Value = expectedMessageCount },
             }
         };
         

@@ -390,7 +390,7 @@ public class RFunctions : IDisposable
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleAt,
                 controlPanels,
-                new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
+                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
             
@@ -541,7 +541,7 @@ public class RFunctions : IDisposable
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,
                 controlPanels,
-                new EventSourceWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke)
+                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke)
             );
             _functions[functionTypeId] = registration;
             

@@ -9,10 +9,10 @@ public static class Saga
 {
     public static async Task ApproveLoan(LoanApplication loanApplication, Context context)
     {
-        var eventSource = context.EventSource;
+        var messages = context.Messages;
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));
 
-        var outcomes = await eventSource
+        var outcomes = await messages
             .OfType<CreditCheckOutcome>()
             .Take(3)
             .TakeUntilTimeout("TimeoutId", expiresAt: loanApplication.Created.AddMinutes(15))

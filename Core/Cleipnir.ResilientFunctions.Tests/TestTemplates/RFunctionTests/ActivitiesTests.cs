@@ -11,7 +11,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-public abstract class ActivityTests
+public abstract class ActivitiesTests
 {
     public abstract Task SunshineActionTest();
     public async Task SunshineActionTest(Task<IFunctionStore> storeTask)
