@@ -250,4 +250,39 @@ public abstract class ActivitiesTests
         storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedActivity.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
     }
+    
+    public abstract Task ClearActivityTest();
+    public async Task ClearActivityTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var rFunctions = new RFunctions(store);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
+        await store.CreateFunction(
+            functionId,
+            Test.SimpleStoredParameter,
+            Test.SimpleStoredScrapbook,
+            leaseExpiration: DateTime.Now.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.Now.Ticks
+        );
+        
+        var registration = rFunctions.RegisterAction(
+            functionTypeId,
+            async Task (string param, Context context) =>
+            {
+                var (activities, _) = context;
+                await activities.Clear("SomeActivity");
+            });
+
+        var controlPanel = await registration.ControlPanel(functionId.InstanceId);
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.Activities.SetSucceeded("SomeActivity");
+        await controlPanel.ReInvoke();
+
+        await controlPanel.Refresh();
+        controlPanel.Activities.All.Count.ShouldBe(0);
+    }
 }

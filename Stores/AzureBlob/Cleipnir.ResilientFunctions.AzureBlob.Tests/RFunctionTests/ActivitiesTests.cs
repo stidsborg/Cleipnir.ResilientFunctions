@@ -29,4 +29,8 @@ public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
     [TestMethod]
     public override Task TaskWhenAnyFuncTest()
         => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ClearActivityTest()
+        => ClearActivityTest(FunctionStoreFactory.Create());
 }

@@ -31,4 +31,8 @@ public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
     [TestMethod]
     public override Task TaskWhenAnyFuncTest()
         => TaskWhenAnyFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ClearActivityTest()
+        => ClearActivityTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

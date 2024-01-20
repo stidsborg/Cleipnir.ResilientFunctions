@@ -146,6 +146,17 @@ public class Activities
 
         return result;
     }
+
+    public async Task Clear(string id)
+    {
+        lock (_sync)
+            if (!_activityResults.ContainsKey(id))
+                return;
+        
+        await _activityStore.DeleteActivityResult(_functionId, id);
+        lock (_sync)
+            _activityResults.Remove(id);
+    }
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Do(id, async () => await await Task.WhenAny(tasks));
