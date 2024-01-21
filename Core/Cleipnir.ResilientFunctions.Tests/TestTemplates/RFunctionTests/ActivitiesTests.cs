@@ -253,7 +253,7 @@ public abstract class ActivitiesTests
     
     public abstract Task ClearActivityTest();
     public async Task ClearActivityTest(Task<IFunctionStore> storeTask)
-    {
+    {  
         var store = await storeTask;
         using var rFunctions = new RFunctions(store);
         var functionId = TestFunctionId.Create();
@@ -263,7 +263,7 @@ public abstract class ActivitiesTests
             functionId,
             Test.SimpleStoredParameter,
             Test.SimpleStoredScrapbook,
-            leaseExpiration: DateTime.Now.Ticks,
+            leaseExpiration: (DateTime.Now + TimeSpan.FromMinutes(1)).Ticks,
             postponeUntil: null,
             timestamp: DateTime.Now.Ticks
         );
