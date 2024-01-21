@@ -140,7 +140,7 @@ public static class LeafOperators
                 ? new Option<T>(emits.Single())
                 : Option<T>.NoValue
             );
-    public static Task<T> SuspendUntilNextOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
+    public static Task<T> SuspendUntilFirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().SuspendUntilFirst(maxWait);
     public static Task<List<T>> SuspendUntilFirsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
         => s.Take(count).SuspendUntilToList(maxWait);

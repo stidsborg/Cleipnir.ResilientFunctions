@@ -19,7 +19,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.SignalNext("world");
 
             await Should.ThrowAsync<SuspendInvocationException>(
-                () => source.SuspendUntilNextOfType<int>()
+                () => source.SuspendUntilFirstOfType<int>()
             );
         }
         
@@ -31,7 +31,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             source.SignalNext(1);
             source.SignalNext("world");
 
-            var next = await source.SuspendUntilNextOfType<int>();
+            var next = await source.SuspendUntilFirstOfType<int>();
 
             next.ShouldBe(1);
         }

@@ -60,7 +60,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Context context) =>
             {
                 var es = context.Messages;
-                return await es.SuspendUntilNextOfType<string>();
+                return await es.SuspendUntilFirstOfType<string>();
             }
         );
 

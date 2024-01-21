@@ -208,7 +208,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Context context) =>
             {
                 var messages = context.Messages;
-                var next = await messages.SuspendUntilNextOfType<string>();
+                var next = await messages.SuspendUntilFirstOfType<string>();
                 return next;
             }
         );
@@ -252,7 +252,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Context context) =>
             {
                 var messages = context.Messages;
-                var next = await messages.SuspendUntilNextOfType<string>();
+                var next = await messages.SuspendUntilFirstOfType<string>();
                 return next;
             }
         );
