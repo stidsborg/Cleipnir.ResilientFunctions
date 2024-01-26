@@ -174,7 +174,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState.SaveScrapbookForExecutingFunction _)
+        ComplimentaryState2 _)
     {
         lock (_sync)
         {
@@ -216,7 +216,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState2 _)
     {
         lock (_sync)
         {
@@ -240,7 +240,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState2 _)
     {
         lock (_sync)
         {
@@ -264,7 +264,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState2 _)
     {
         lock (_sync)
         {
@@ -276,7 +276,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             if (_messages[functionId].Count > expectedMessageCount)
-                return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, new ComplimentaryState.SetResult());
+                return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, _);
                 
             state.Status = Status.Suspended;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
@@ -304,7 +304,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState2 _)
     {
         lock (_sync)
         {

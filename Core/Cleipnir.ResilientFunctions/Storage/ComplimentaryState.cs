@@ -1,7 +1,11 @@
-﻿namespace Cleipnir.ResilientFunctions.Storage;
+﻿using System;
+using Cleipnir.ResilientFunctions.Domain;
 
-public static class ComplimentaryState
-{
-    public readonly record struct SaveScrapbookForExecutingFunction(StoredParameter StoredParameter, StoredScrapbook StoredScrapbook, long LeaseLength);
-    public readonly record struct SetResult(StoredParameter StoredParameter, StoredScrapbook StoredScrapbook);
-}
+namespace Cleipnir.ResilientFunctions.Storage;
+
+public record ComplimentaryState2(
+    Func<StoredParameter> StoredParameterFunc, 
+    Func<StoredScrapbook> StoredScrapbookFunc, 
+    long LeaseLength,
+    FunctionId? SendResultTo
+);

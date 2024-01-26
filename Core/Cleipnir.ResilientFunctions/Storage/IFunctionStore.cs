@@ -34,7 +34,7 @@ public interface IFunctionStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState.SaveScrapbookForExecutingFunction complimentaryState
+        ComplimentaryState2 complimentaryState
     );
     
     Task<bool> SetParameters(
@@ -62,7 +62,7 @@ public interface IFunctionStore
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult complementaryState
+        ComplimentaryState2 complementaryState
     );
     
     Task<bool> PostponeFunction(
@@ -71,7 +71,7 @@ public interface IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult complementaryState
+        ComplimentaryState2 complementaryState
     );
     
     Task<bool> FailFunction(
@@ -80,7 +80,7 @@ public interface IFunctionStore
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult complementaryState
+        ComplimentaryState2 complementaryState
     );
     
     Task<bool> SuspendFunction(
@@ -89,7 +89,7 @@ public interface IFunctionStore
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult complementaryState
+        ComplimentaryState2 complementaryState
     );
 
     Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId);
