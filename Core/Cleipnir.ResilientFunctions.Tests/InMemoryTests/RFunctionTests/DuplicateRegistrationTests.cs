@@ -27,6 +27,40 @@ public class DuplicateRegistrationTests
             )
         );
     }
+    
+    [TestMethod]
+    public void ReRegistrationRFuncThrowsArgumentException()
+    {
+        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        _ = rFunctions.RegisterFunc(
+            "SomeFunctionType",
+            Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
+        );
+
+        Should.Throw<ArgumentException>(() =>
+            _ = rFunctions.RegisterFunc(
+                "SomeFunctionType",
+                Task<Result<string>> (string param) => Succeed.WithValue(param.ToUpper()).ToTask()
+            )
+        );
+    }
+    
+    [TestMethod]
+    public void ReRegistrationRActionThrowsArgumentException()
+    {
+        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        _ = rFunctions.RegisterFunc(
+            "SomeFunctionType",
+            Task<Result>(string _) => Succeed.WithoutValue.ToTask()
+        );
+
+        Should.Throw<ArgumentException>(() =>
+            _ = rFunctions.RegisterFunc(
+                "SomeFunctionType",
+                Task<Result> (string _) => Succeed.WithoutValue.ToTask()
+            )
+        );
+    }
 
     [TestMethod]
     public void ReRegistrationRActionWithIncompatibleTypeThrowsInArgumentException()
@@ -41,6 +75,23 @@ public class DuplicateRegistrationTests
             _ = rFunctions.RegisterFunc(
                 "SomeFunctionType",
                 Task<Result>(int _) => Succeed.WithoutValue.ToTask()
+            )
+        );
+    }
+    
+    [TestMethod]
+    public void ReRegistrationFromFuncToActionThrowsArgumentException()
+    {
+        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        _ = rFunctions.RegisterFunc(
+            "SomeFunctionType",
+            Task<Result>(string _) => Succeed.WithoutValue.ToTask()
+        );
+
+        Should.Throw<ArgumentException>(() =>
+            _ = rFunctions.RegisterAction(
+                "SomeFunctionType",
+                Task (int _) => Succeed.WithoutValue.ToTask()
             )
         );
     }

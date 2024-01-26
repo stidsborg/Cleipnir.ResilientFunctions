@@ -356,11 +356,7 @@ public class RFunctions : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-            {
-                if (_functions[functionTypeId] is not RFunc<TParam, TScrapbook, TReturn> r)
-                    throw new ArgumentException($"<{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
-                return r;
-            }
+                throw new ArgumentException($"Function <{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> has already been registered");
         
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
@@ -507,12 +503,8 @@ public class RFunctions : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-            {
-                if (_functions[functionTypeId] is not RAction<TParam, TScrapbook> r)
-                    throw new ArgumentException($"<{typeof(RAction<TParam, TScrapbook>).SimpleQualifiedName()}> is not compatible with existing {_functions[functionTypeId].GetType().SimpleQualifiedName()}");
-                return r;
-            }
-
+                    throw new ArgumentException($"Action <{typeof(RFunc<TParam, TScrapbook>).SimpleQualifiedName()}> has already been registered");
+            
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
             var rActionInvoker = new Invoker<TParam, TScrapbook, Unit>(
