@@ -32,7 +32,8 @@ public abstract class ScrapbookTests
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
             
         var scrapbook = new Scrapbook();
@@ -44,7 +45,7 @@ public abstract class ScrapbookTests
                 FunctionId,
                 storedScrapbook.ScrapbookJson,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
+                complimentaryState: new ComplimentaryState(() => storedParam, () => storedScrapbook, LeaseLength: 0, SendResultTo: null)
             );
         });
 
@@ -90,7 +91,8 @@ public abstract class ScrapbookTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             FunctionId,
@@ -107,7 +109,7 @@ public abstract class ScrapbookTests
                 FunctionId,
                 storedScrapbook.ScrapbookJson,
                 expectedEpoch: 1,
-                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
+                complimentaryState: new ComplimentaryState(() => storedParam, () => storedScrapbook, LeaseLength: 0, SendResultTo: null)
             );
         });
         await scrapbook.Save();
@@ -121,7 +123,7 @@ public abstract class ScrapbookTests
                 FunctionId,
                 storedScrapbook.ScrapbookJson,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState.SaveScrapbookForExecutingFunction(storedParam, storedScrapbook, LeaseLength: 0)
+                complimentaryState: new ComplimentaryState(() => storedParam, () => storedScrapbook, LeaseLength: 0, SendResultTo: null)
             );
         });
         await scrapbook.Save();

@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -24,7 +23,8 @@ public abstract class EventSubscriptionTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -86,7 +86,8 @@ public abstract class EventSubscriptionTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         );
         
         var storedEvent1 = new StoredMessage(

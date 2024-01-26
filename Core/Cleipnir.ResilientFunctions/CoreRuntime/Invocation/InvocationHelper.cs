@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -16,18 +17,21 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
+    private readonly Func<FunctionId, MessageWriter?> _messageWriterFunc;
 
     private ISerializer Serializer { get; }
 
     public InvocationHelper(
         SettingsWithDefaults settings,
         IFunctionStore functionStore,
-        ShutdownCoordinator shutdownCoordinator)
+        ShutdownCoordinator shutdownCoordinator, 
+        Func<FunctionId, MessageWriter> messageWriterFunc)
     {
         _settings = settings;
 
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
+        _messageWriterFunc = messageWriterFunc;
         _functionStore = functionStore;
     }
 
@@ -35,7 +39,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId, 
         TParam param, 
         TScrapbook scrapbook,
-        DateTime? scheduleAt)
+        DateTime? scheduleAt,
+        FunctionId? sendResultTo)
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -51,7 +56,8 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 storedScrapbook,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
-                timestamp: utcNowTicks
+                timestamp: utcNowTicks,
+                sendResultTo: sendResultTo
             );
 
             if (!created) runningFunction.Dispose();
@@ -112,7 +118,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState2(() => storedParameter, () => storedScrapbook, leaseLength, sendResultTo) 
+            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, leaseLength, sendResultTo) 
         );
 
         if (!success)
@@ -134,7 +140,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
-            complementaryState: new ComplimentaryState2(
+            complimentaryState: new ComplimentaryState(
                 () => serializer.SerializeParameter(param), 
                 () => storedScrapbook, 
                 _settings.LeaseLength.Ticks, 
@@ -154,7 +160,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         int expectedEpoch)
     {
         var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
-        var complementaryState = new ComplimentaryState2(
+        var complementaryState = new ComplimentaryState(
             () => Serializer.SerializeParameter(param),
             () => storedScrapbook,
             _settings.LeaseLength.Ticks, 
@@ -203,6 +209,18 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
+    public async Task PublishFunctionCompletionResult<T>(FunctionId recipient, FunctionId sender, Result<T> result)
+    {
+        var messageWriter = _messageWriterFunc(recipient);
+        if (messageWriter == null)
+            throw new InvalidOperationException($"Function '{recipient}' has not been registered and thus function result cannot be published");
+
+        if (typeof(TReturn) == typeof(Unit))
+            await messageWriter.AppendMessage(new FunctionCompletion(sender), $"FunctionResult¤{recipient}");
+        else
+            await messageWriter.AppendMessage(new FunctionCompletion<T>(result.SucceedWithValue!, sender), $"FunctionResult¤{recipient}");
+    }
+
     public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponedOrSuspended)
     {
         switch (result.Outcome)
@@ -247,9 +265,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, sf.Epoch, _settings.LeaseLength.Ticks, sendResultTo: default)); //todo set sendResultTo from stored function
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, sf.Epoch, _settings.LeaseLength.Ticks, sf.SendResultTo));
             
-            return new PreparedReInvocation(param, sf.Epoch, scrapbook, runningFunction);
+            return new PreparedReInvocation(param, sf.Epoch, scrapbook, runningFunction, sf.SendResultTo);
         }
         catch (DeserializationException e)
         {
@@ -261,11 +279,11 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 scrapbookJson: sf!.Scrapbook.ScrapbookJson,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
-                complementaryState: new ComplimentaryState2(
+                complimentaryState: new ComplimentaryState(
     () => sf.Parameter, 
     () => sf.Scrapbook, 
                     _settings.LeaseLength.Ticks, 
-                    SendResultTo: default //todo get from stored function in upcoming commit
+                    sf.SendResultTo
                 )
             );
             throw;
@@ -277,7 +295,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction);
+    internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction, FunctionId? SendResultTo);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
@@ -384,7 +402,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     {
         var messageWriter = new MessageWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
         var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, messageWriter, _settings.TimeoutEventsCheckFrequency); 
-        var es = new Messages(
+        var messages = new Messages(
             functionId,
             _functionStore.MessageStore,
             messageWriter,
@@ -394,12 +412,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         );
         
         if (sync)
-            await es.Sync();
+            await messages.Sync();
 
-        return es;
+        return messages;
     }
 
-    public async Task<Activities> CreateActivity(FunctionId functionId, bool sync)
+    public async Task<Activities> CreateActivities(FunctionId functionId, bool sync)
     {
         var activityStore = _functionStore.ActivityStore;
         var existingActivities = sync 

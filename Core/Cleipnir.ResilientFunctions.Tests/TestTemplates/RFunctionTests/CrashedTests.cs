@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -43,7 +41,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(250)
+                    leaseLength: TimeSpan.FromMilliseconds(1_000)
                 )
             );
 
@@ -56,7 +54,8 @@ public abstract class CrashedTests
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
+                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded,
+                maxWait: TimeSpan.FromSeconds(10)
             );
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);

@@ -49,6 +49,10 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         => CreatingTheSameFunctionTwiceReturnsFalse(FunctionStore.CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
+    public override Task FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction()
+        => FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut()
         => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(FunctionStore.CastTo<IFunctionStore>().ToTask());
 

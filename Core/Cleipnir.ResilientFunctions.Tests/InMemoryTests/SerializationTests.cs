@@ -89,7 +89,8 @@ public class SerializationTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
         
         using var rFunctions = new RFunctions(

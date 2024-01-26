@@ -71,6 +71,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 Epoch INT NOT NULL,
                 LeaseExpiration BIGINT NOT NULL,
                 Timestamp BIGINT NOT NULL,
+                SendResultTo NVARCHAR(255) NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
             CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
@@ -119,7 +120,8 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        FunctionId? sendResultTo)
     {
         await using var conn = await _connFunc();
         
@@ -134,7 +136,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     Epoch, 
                     LeaseExpiration,
                     PostponedUntil,
-                    Timestamp)
+                    Timestamp,
+                    SendResultTo)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson, @ParamType,  
@@ -143,7 +146,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     0, 
                     @LeaseExpiration,
                     @PostponeUntil,
-                    @Timestamp
+                    @Timestamp,
+                    @SendResultTo
                 )";
 
             await using var command = new SqlCommand(sql, conn);
@@ -157,6 +161,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
             command.Parameters.AddWithValue("@PostponeUntil", postponeUntil == null ? DBNull.Value : postponeUntil.Value);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
+            command.Parameters.AddWithValue("@SendResultTo", sendResultTo == null ? DBNull.Value : sendResultTo.SerializeToJsonArray());
 
             await command.ExecuteNonQueryAsync();
         }
@@ -186,7 +191,8 @@ public class SqlServerFunctionStore : IFunctionStore
                    PostponedUntil,
                    Epoch, 
                    LeaseExpiration,
-                   Timestamp
+                   Timestamp,
+                   SendResultTo
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
@@ -333,7 +339,7 @@ public class SqlServerFunctionStore : IFunctionStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState.SaveScrapbookForExecutingFunction _)
+        ComplimentaryState _)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -389,7 +395,7 @@ public class SqlServerFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState _)
     {
         await using var conn = await _connFunc();
         
@@ -419,7 +425,7 @@ public class SqlServerFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState _)
     {
         await using var conn = await _connFunc();
         
@@ -448,7 +454,7 @@ public class SqlServerFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState _)
     {
         {
             await using var conn = await _connFunc();
@@ -493,8 +499,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
             return await PostponeFunction(
                 functionId,
-                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
-                new ComplimentaryState.SetResult()
+                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, _
             );
         }
     }
@@ -530,7 +535,7 @@ public class SqlServerFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState _)
     {
         await using var conn = await _connFunc();
         
@@ -565,7 +570,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     PostponedUntil,
                     Epoch, 
                     LeaseExpiration,
-                    Timestamp
+                    Timestamp,
+                    SendResultTo
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
@@ -599,6 +605,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var epoch = reader.GetInt32(9);
                 var leaseExpiration = reader.GetInt64(10);
                 var timestamp = reader.GetInt64(11);
+                var sendResultTo = reader.IsDBNull(12) ? default : reader.GetString(12).DeserializeToFunctionId();
 
                 return new StoredFunction(
                     functionId,
@@ -610,7 +617,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     postponedUntil,
                     epoch,
                     leaseExpiration,
-                    timestamp
+                    timestamp,
+                    sendResultTo
                 );
             }
         }

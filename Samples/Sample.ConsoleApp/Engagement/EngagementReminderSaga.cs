@@ -11,7 +11,7 @@ public static class EngagementReminderSaga
     public static async Task Start(StartCustomerEngagement startEngagement, Context context)
     {
         var (candidateEmail, nextReminderTime) = startEngagement;
-        var es = context.Messages;
+        var messages = context.Messages;
 
         await context.Activities.Do(
             "InitialCorrespondence",
@@ -21,7 +21,7 @@ public static class EngagementReminderSaga
         for (var i = 0; i < 10; i++)
         {
             //wait for candidate reply or timeout
-            var either = await es
+            var either = await messages
                 .OfTypes<EngagementAccepted, EngagementRejected>()
                 .Where(either =>
                     either.Match(
@@ -39,13 +39,13 @@ public static class EngagementReminderSaga
             if (either.Match(ea => true, er => false))
             {
                 await context.Activities.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
-                await es.CancelTimeoutEvent(timeoutId: i.ToString());
+                await messages.CancelTimeoutEvent(timeoutId: i.ToString());
                 
                 return;
             }
 
             //wait for timeout before sending next engagement reminder
-            await es
+            await messages
                 .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
                 .SuspendUntilFirst();
         }

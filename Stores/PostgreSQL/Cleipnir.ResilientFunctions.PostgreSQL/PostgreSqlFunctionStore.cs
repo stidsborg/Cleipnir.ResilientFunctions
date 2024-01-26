@@ -67,6 +67,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL DEFAULT 0,
                 lease_expiration BIGINT NOT NULL,
                 timestamp BIGINT NOT NULL,
+                send_result_to VARCHAR(255) NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
@@ -114,15 +115,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        FunctionId? sendResultTo)
     {
         await using var conn = await CreateConnection();
         
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, status, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration, postponed_until, timestamp)
+                (function_type_id, function_instance_id, status, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration, postponed_until, timestamp, send_result_to)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -137,7 +139,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedScrapbook.ScrapbookType},
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil == null ? DBNull.Value : postponeUntil.Value},
-                new() {Value = timestamp}
+                new() {Value = timestamp},
+                new() {Value = sendResultTo == null ? DBNull.Value : sendResultTo.SerializeToJsonArray()},
             }
         };
 
@@ -165,7 +168,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp";
+                timestamp,
+                send_result_to";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -317,7 +321,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState.SaveScrapbookForExecutingFunction _)
+        ComplimentaryState _)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -384,7 +388,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -418,7 +422,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -451,7 +455,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState.SetResult _)
+        ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -493,7 +497,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             return await PostponeFunction(
                 functionId,
                 postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
-                new ComplimentaryState.SetResult()
+                complimentaryState
             );
 
         return false;
@@ -526,7 +530,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
@@ -569,7 +573,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp
+                timestamp,
+                send_result_to
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -591,6 +596,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasException = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
+            var hasSendResultTo = !await reader.IsDBNullAsync(12);
+            
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
@@ -604,7 +611,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
                 LeaseExpiration: reader.GetInt64(10),
-                Timestamp: reader.GetInt64(11)
+                Timestamp: reader.GetInt64(11),
+                SendResultTo: hasSendResultTo ? reader.GetString(12).DeserializeToFunctionId() : default
             );
         }
 

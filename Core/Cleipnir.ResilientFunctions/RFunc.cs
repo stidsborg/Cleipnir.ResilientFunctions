@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -17,14 +16,16 @@ public static class RFunc
     public delegate Task Schedule<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null
+        TScrapbook? scrapbook = null,
+        FunctionId? sendResultTo = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
     
     public delegate Task ScheduleAt<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param,
         DateTime delayUntil,
-        TScrapbook? scrapbook = null
+        TScrapbook? scrapbook = null,
+        FunctionId? sendResultTo = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 

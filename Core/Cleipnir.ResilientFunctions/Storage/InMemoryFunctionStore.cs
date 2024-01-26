@@ -44,7 +44,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredScrapbook storedScrapbook,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        FunctionId? sendResultTo)
     {
         lock (_sync)
         {
@@ -62,7 +63,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = postponeUntil,
                 LeaseExpiration = leaseExpiration,
-                Timestamp = timestamp
+                Timestamp = timestamp,
+                SendResultTo = sendResultTo
             };
             _messages[functionId] = new List<StoredMessage>();
 
@@ -174,7 +176,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState2 _)
+        ComplimentaryState _)
     {
         lock (_sync)
         {
@@ -216,7 +218,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 _)
+        ComplimentaryState complimentaryState)
     {
         lock (_sync)
         {
@@ -240,7 +242,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 _)
+        ComplimentaryState complimentaryState)
     {
         lock (_sync)
         {
@@ -264,7 +266,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 _)
+        ComplimentaryState complimentaryState)
     {
         lock (_sync)
         {
@@ -276,7 +278,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             if (_messages[functionId].Count > expectedMessageCount)
-                return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, _);
+                return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, complimentaryState);
                 
             state.Status = Status.Suspended;
             state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
@@ -304,7 +306,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 _)
+        ComplimentaryState complimentaryState)
     {
         lock (_sync)
         {
@@ -341,7 +343,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.PostponeUntil,
                     state.Epoch,
                     state.LeaseExpiration,
-                    state.Timestamp
+                    state.Timestamp,
+                    state.SendResultTo
                 )
                 .ToNullable()
                 .ToTask();
@@ -386,6 +389,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public int Epoch { get; set; }
         public long LeaseExpiration { get; set; }
         public long Timestamp { get; set; }
+        public FunctionId? SendResultTo { get; set; }
     }
     #endregion
     

@@ -58,6 +58,7 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL,
                 lease_expiration BIGINT NOT NULL,
                 timestamp BIGINT NOT NULL,
+                send_result_to VARCHAR(255) NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -96,16 +97,17 @@ public class MySqlFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        FunctionId? sendResultTo)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until, timestamp)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until, timestamp, send_result_to)
             VALUES
-                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?, ?, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -118,7 +120,8 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedScrapbook.ScrapbookType},
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil},
-                new() {Value = timestamp}
+                new() {Value = timestamp},
+                new() {Value = sendResultTo.SerializeToJsonArray()}
             }
         };
 
@@ -145,7 +148,8 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp
+                timestamp,
+                send_result_to
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
 
@@ -301,7 +305,7 @@ public class MySqlFunctionStore : IFunctionStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState.SaveScrapbookForExecutingFunction _)
+        ComplimentaryState _)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -365,7 +369,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -395,7 +399,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -424,7 +428,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -465,8 +469,7 @@ public class MySqlFunctionStore : IFunctionStore
         if (sf.Epoch == expectedEpoch)
             return await PostponeFunction(
                 functionId,
-                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
-                new ComplimentaryState.SetResult()
+                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, complimentaryState
             );
 
         return false;
@@ -500,7 +503,7 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult _)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"
@@ -545,7 +548,8 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp
+                timestamp,
+                send_result_to
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(sql, conn)
@@ -566,6 +570,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasError = !await reader.IsDBNullAsync(7);
+            var hasSendResultTo = !await reader.IsDBNullAsync(12);
             var storedException = hasError
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(7))
                 : null;
@@ -583,7 +588,8 @@ public class MySqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
                 LeaseExpiration: reader.GetInt64(10),
-                Timestamp: reader.GetInt64(11)
+                Timestamp: reader.GetInt64(11),
+                SendResultTo: hasSendResultTo ? reader.GetString(12).DeserializeToFunctionId() : default
             );
         }
 

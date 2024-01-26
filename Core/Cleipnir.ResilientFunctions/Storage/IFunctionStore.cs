@@ -20,7 +20,8 @@ public interface IFunctionStore
         StoredScrapbook storedScrapbook,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp
+        long timestamp,
+        FunctionId? sendResultTo
     );
     
     Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration);
@@ -34,7 +35,7 @@ public interface IFunctionStore
         FunctionId functionId,
         string scrapbookJson,
         int expectedEpoch,
-        ComplimentaryState2 complimentaryState
+        ComplimentaryState complimentaryState
     );
     
     Task<bool> SetParameters(
@@ -62,7 +63,7 @@ public interface IFunctionStore
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 complementaryState
+        ComplimentaryState complimentaryState
     );
     
     Task<bool> PostponeFunction(
@@ -71,7 +72,7 @@ public interface IFunctionStore
         string scrapbookJson,
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 complementaryState
+        ComplimentaryState complimentaryState
     );
     
     Task<bool> FailFunction(
@@ -80,7 +81,7 @@ public interface IFunctionStore
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 complementaryState
+        ComplimentaryState complimentaryState
     );
     
     Task<bool> SuspendFunction(
@@ -89,7 +90,7 @@ public interface IFunctionStore
         string scrapbookJson, 
         long timestamp,
         int expectedEpoch, 
-        ComplimentaryState2 complementaryState
+        ComplimentaryState complimentaryState
     );
 
     Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId);

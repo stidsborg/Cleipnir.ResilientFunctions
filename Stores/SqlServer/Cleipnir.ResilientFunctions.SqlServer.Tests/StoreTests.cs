@@ -29,7 +29,11 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task CreatingTheSameFunctionTwiceReturnsFalse()
         => CreatingTheSameFunctionTwiceReturnsFalse(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction()
+        => FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut()
         => FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(FunctionStoreFactory.Create());

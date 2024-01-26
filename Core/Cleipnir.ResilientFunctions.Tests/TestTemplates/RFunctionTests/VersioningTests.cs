@@ -37,7 +37,8 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
 
         _ = rFunctions.RegisterFunc(
@@ -75,7 +76,8 @@ public abstract class VersioningTests
            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
            leaseExpiration: DateTime.UtcNow.Ticks,
            postponeUntil: null,
-           timestamp: DateTime.UtcNow.Ticks
+           timestamp: DateTime.UtcNow.Ticks,
+           sendResultTo: null
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -117,7 +119,8 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -162,9 +165,11 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
-        var v2FunctionId = TestFunctionId.Create() with { TypeId = v1FunctionId.TypeId };
+        var testId = TestFunctionId.Create();
+        var v2FunctionId = new FunctionId(v1FunctionId.TypeId, testId.InstanceId);
         await store.CreateFunction(
             v2FunctionId,
             new StoredParameter(
@@ -174,7 +179,8 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         ).ShouldBeTrueAsync();
 
         var invocations = new SyncedList<Person>();

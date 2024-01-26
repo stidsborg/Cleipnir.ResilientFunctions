@@ -6,7 +6,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -29,8 +28,8 @@ public class ReactiveIntegrationTests
             functionTypeId,
             inner: async (_, context) =>
             {
-                var es = context.Messages;
-                await es.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
+                var messages = context.Messages;
+                await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(rAction.Invoke(functionInstanceId.Value, "param"));
@@ -51,9 +50,9 @@ public class ReactiveIntegrationTests
             functionTypeId,
             inner: async (_, context) =>
             {
-                var es = context.Messages;
+                var messages = context.Messages;
                 store.EventSubscriptionPulls.ShouldBe(0);
-                var __ = es.First();
+                var __ = messages.First();
                 await Task.Delay(100);
                 store.EventSubscriptionPulls.ShouldBeGreaterThanOrEqualTo(1);
             });

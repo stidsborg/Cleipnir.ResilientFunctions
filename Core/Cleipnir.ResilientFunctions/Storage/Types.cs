@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -15,9 +13,9 @@ public record StoredFunction(
     long? PostponedUntil,
     int Epoch,
     long LeaseExpiration,
-    long Timestamp
+    long Timestamp,
+    FunctionId? SendResultTo
 );
-
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, long LeaseExpiration);
 public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);

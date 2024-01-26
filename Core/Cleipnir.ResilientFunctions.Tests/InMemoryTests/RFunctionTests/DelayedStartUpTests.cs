@@ -25,7 +25,8 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -54,7 +55,8 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -72,15 +74,17 @@ public class DelayedStartUpTests
     public async Task PostponedWatchDogStartUpIsDelayedByOneSecondSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-
-        var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
+        var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId"); 
         await store.CreateFunction(
             functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         );
         await store.PostponeFunction(
             functionId,
@@ -88,7 +92,7 @@ public class DelayedStartUpTests
             scrapbookJson: new RScrapbook().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            default
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
         ).ShouldBeTrueAsync();
 
         var stopWatch = new Stopwatch();
@@ -111,14 +115,17 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
+        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
         var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            storedParameter,
+            storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            sendResultTo: null
         );
         await store.PostponeFunction(
             functionId,
@@ -126,7 +133,7 @@ public class DelayedStartUpTests
             scrapbookJson: new RScrapbook().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            default
+            new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
         );
 
         var stopWatch = new Stopwatch();

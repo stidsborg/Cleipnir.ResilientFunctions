@@ -45,7 +45,8 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredScrapbook scrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        FunctionId? sendResultTo)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -56,7 +57,8 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", param.ParamType },
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", param.ParamJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbook.ScrapbookType },
-                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbook.ScrapbookJson }
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbook.ScrapbookJson },
+                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -290,20 +292,22 @@ public class AzureBlobFunctionStore : IFunctionStore
         FunctionId functionId,
         string _,
         int expectedEpoch,
-        ComplimentaryState.SaveScrapbookForExecutingFunction complementaryState)
+        ComplimentaryState complementaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType), leaseLength) = complementaryState;
-        
+        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complementaryState;
+        var (paramJson, paramType) = storedParamFunc();
+        var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
             {
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamType)}", paramType },
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
-                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson }
+                { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -362,13 +366,15 @@ public class AzureBlobFunctionStore : IFunctionStore
         );
     }
 
-    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string _, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string _, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         var (resultJson, resultType) = result;
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (paramJson, paramType) = storedParamFunc();
+        var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
@@ -379,6 +385,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
                 { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultJson)}", resultJson },
                 { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultType)}", resultType },
+                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -410,12 +417,14 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string _, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string _, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (paramJson, paramType) = storedParamFunc();
+        var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
@@ -424,6 +433,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -455,12 +465,15 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string _, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string _, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
-        var ((paramJson, paramType), (scrapbookJson, scrapbookType)) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (paramJson, paramType) = storedParamFunc();
+        var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
+        
         var (exceptionMessage, exceptionStackTrace, exceptionType) = storedException;
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
@@ -472,6 +485,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}", exceptionMessage },
                 { $"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}", exceptionStackTrace },
                 { $"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}", exceptionType },
+                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -503,7 +517,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         return true;
     }
 
-    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState.SetResult complimentaryState)
+    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         var success = await PostponeFunction(
             functionId,
@@ -530,7 +544,9 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
-        var ((paramJson, paramType), (_, scrapbookType)) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (paramJson, paramType) = storedParamFunc();
+        var (_, scrapbookType) = storedScrapbookFunc();
         
         var content = SimpleDictionaryMarshaller.Serialize(
             new Dictionary<string, string?>
@@ -539,6 +555,7 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
+                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -638,6 +655,10 @@ public class AzureBlobFunctionStore : IFunctionStore
                 ? dictionary[$"{nameof(StoredResult)}.{nameof(StoredResult.ResultType)}"]
                 : null
         );
+        var sendResultTo = dictionary.ContainsKey("SendResultTo")
+            ? dictionary["SendResultTo"].DeserializeToFunctionId()
+            : null;
+        
         StoredException? storedException = default;
         if (dictionary.ContainsKey($"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}"))
         {
@@ -662,7 +683,8 @@ public class AzureBlobFunctionStore : IFunctionStore
             PostponedUntil: rfTags.PostponedUntil,
             Epoch: rfTags.Epoch,
             LeaseExpiration: rfTags.LeaseExpiration,
-            Timestamp: rfTags.Timestamp
+            Timestamp: rfTags.Timestamp,
+            SendResultTo: sendResultTo
         );
     }
 

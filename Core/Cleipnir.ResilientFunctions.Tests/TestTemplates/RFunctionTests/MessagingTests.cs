@@ -7,7 +7,6 @@ using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -29,8 +28,8 @@ public abstract class MessagingTests
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
             inner: async Task<string> (string _, Context context) =>
             {
-                var es = context.Messages;
-                return await es.OfType<string>().First();
+                var messages = context.Messages;
+                return await messages.OfType<string>().First();
             }
         );
 
@@ -59,8 +58,8 @@ public abstract class MessagingTests
             functionId.TypeId,
             inner: async Task<string> (string _, Context context) =>
             {
-                var es = context.Messages;
-                return await es.SuspendUntilFirstOfType<string>();
+                var messages = context.Messages;
+                return await messages.SuspendUntilFirstOfType<string>();
             }
         );
 
@@ -87,14 +86,14 @@ public abstract class MessagingTests
             functionId.TypeId,
             inner: async Task<Tuple<bool, string>> (string _, Context context) =>
             {
-                var es = context.Messages;
+                var messages = context.Messages;
 
-                var timeoutOption = await es
+                var timeoutOption = await messages
                     .OfType<string>()
                     .TakeUntilTimeout("timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250))
                     .SuspendUntilFirstOrNone();
                 
-                var timeoutEvent = es
+                var timeoutEvent = messages
                     .OfType<TimeoutEvent>()
                     .Existing()
                     .SingleOrDefault();
@@ -121,6 +120,52 @@ public abstract class MessagingTests
         var (success, timeoutId) = controlPanel.Result;
         success.ShouldBeTrue();
         timeoutId.ShouldBe("timeoutId1");
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId();
+    public async Task ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId(Task<IFunctionStore> functionStore)
+    {
+        var store = await functionStore;
+
+        var parentFunctionId = TestFunctionId.Create();
+        var childFunctionId = TestFunctionId.Create();
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+
+        var child = rFunctions.RegisterFunc(
+            childFunctionId.TypeId,
+            inner: string (string _, Context _) => "hallo world"
+        );
+
+        var parent = rFunctions.RegisterFunc(
+            parentFunctionId.TypeId,
+            inner: async Task<FunctionCompletion<string>> (string _, Context context) =>
+            {
+                await child.Schedule(childFunctionId.InstanceId.Value, param: "stuff", sendResultTo: context.FunctionId);
+                return await context.Messages.SuspendUntilFirstOfType<FunctionCompletion<string>>();
+            }
+        );
+        
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+            parent.Invoke(parentFunctionId.InstanceId.Value, "")
+        );
+        
+        var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
+        controlPanel.ShouldNotBeNull();
+
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+        
+        controlPanel.Result.ShouldNotBeNull();
+        var functionCompletion = controlPanel.Result;
+        functionCompletion.Sender.ShouldBe(childFunctionId);
+        functionCompletion.Result.ShouldBe("hallo world");
         
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }

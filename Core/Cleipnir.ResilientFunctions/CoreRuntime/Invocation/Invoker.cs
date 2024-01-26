@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
-using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -46,13 +45,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, scrapbook, context);
         }
-        catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, sendResultTo: default); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook);
+        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, sendResultTo: default);
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook)
+    public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook, FunctionId? sendResultTo)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
@@ -67,21 +66,22 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 {
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param, scrapbook, context);
+                    await PublishResult(sendResultTo, functionId, result);
                 }
-                catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook); throw; }
+                catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, sendResultTo); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, allowPostponedOrSuspended: true, sendResultTo: sendResultTo);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
         });
     }
     
-    public async Task ScheduleAt(string instanceId, TParam param, DateTime scheduleAt, TScrapbook? scrapbook)
+    public async Task ScheduleAt(string instanceId, TParam param, DateTime scheduleAt, TScrapbook? scrapbook, FunctionId? sendResultTo)
     {
         if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
         {
-            await ScheduleInvoke(instanceId, param, scrapbook);
+            await ScheduleInvoke(instanceId, param, scrapbook, sendResultTo);
             return;
         }
 
@@ -90,7 +90,8 @@ public class Invoker<TParam, TScrapbook, TReturn>
             functionId,
             param,
             scrapbook ?? new TScrapbook(),
-            scheduleAt
+            scheduleAt,
+            sendResultTo
         );
 
         disposable.Dispose();
@@ -99,7 +100,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
+        var (inner, param, scrapbook, context, epoch, disposables, sendResultTo) = await PrepareForReInvocation(functionId, expectedEpoch);
         using var _ = disposables;
 
         Result<TReturn> result;
@@ -107,17 +108,18 @@ public class Invoker<TParam, TScrapbook, TReturn>
         {
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, scrapbook, context);
+            await PublishResult(sendResultTo, functionId, result);
         }
-        catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, sendResultTo, epoch); throw; }
 
-        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch);
+        await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, sendResultTo, epoch);
         return result.SucceedWithValue!;
     }
 
     public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
+        var (inner, param, scrapbook, context, epoch, disposables, sendResultTo) = await PrepareForReInvocation(functionId, expectedEpoch);
 
         _ = Task.Run(async () =>
         {
@@ -128,10 +130,11 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 {
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, scrapbook, context);
+                    await PublishResult(sendResultTo, functionId, result);
                 }
-                catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
+                catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, sendResultTo, epoch); throw; }
 
-                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, epoch, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(functionId, result, param, scrapbook, sendResultTo, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
             finally{ disposables.Dispose(); }
@@ -155,14 +158,15 @@ public class Invoker<TParam, TScrapbook, TReturn>
                     functionId, 
                     param, 
                     scrapbook,
-                    scheduleAt: null
+                    scheduleAt: null,
+                    sendResultTo: null
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch: 0));
             
             success = persisted;
             var messages = await _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: false);
-            var activity = await _invocationHelper.CreateActivity(functionId, sync: false);
+            var activity = await _invocationHelper.CreateActivities(functionId, sync: false);
             var context = new Context(functionId, messages, activity, _utilities);
             disposables.Add(context);
             
@@ -185,14 +189,14 @@ public class Invoker<TParam, TScrapbook, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var (param, epoch, scrapbook, runningFunction) = 
+            var (param, epoch, scrapbook, runningFunction, sendResultTo) = 
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
             
             var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: true));
-            var activityTask = Task.Run(() => _invocationHelper.CreateActivity(functionId, sync: true));
-            var context = new Context(functionId, await messagesTask, await activityTask, _utilities);
+            var activitiesTask = Task.Run(() => _invocationHelper.CreateActivities(functionId, sync: true));
+            var context = new Context(functionId, await messagesTask, await activitiesTask, _utilities);
             disposables.Add(context);
 
             return new PreparedReInvocation(
@@ -201,7 +205,8 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 scrapbook,
                 context,
                 epoch,
-                Disposable.Combine(disposables)
+                Disposable.Combine(disposables),
+                sendResultTo
             );
         }
         catch(Exception)
@@ -210,17 +215,27 @@ public class Invoker<TParam, TScrapbook, TReturn>
             throw;
         }
     }
-    private record PreparedReInvocation(Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TParam Param, TScrapbook Scrapbook, Context Context, int Epoch, IDisposable Disposables);
+    private record PreparedReInvocation(Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TParam Param, TScrapbook Scrapbook, Context Context, int Epoch, IDisposable Disposables, FunctionId? SendResultTo);
 
-    private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, int expectedEpoch = 0)
-        => await _invocationHelper.PersistFailure(functionId, exception, param, scrapbook, expectedEpoch);
+    private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, FunctionId? sendResultTo, int expectedEpoch = 0)
+        => await _invocationHelper.PersistFailure(functionId, exception, param, scrapbook, sendResultTo, expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, FunctionId? sendResultTo, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        var success = await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch);
+        if (sendResultTo != null && result.Succeed)
+            await _invocationHelper.PublishFunctionCompletionResult(sendResultTo, functionId, result);
+        
+        var success = await _invocationHelper.PersistResult(functionId, result, param, scrapbook, sendResultTo, expectedEpoch);
         if (success)
             InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
         else
             throw new ConcurrentModificationException(functionId);
+    }
+
+    public Task PublishResult<T>(FunctionId? recipient, FunctionId sender, Result<T> result)
+    {
+        if (recipient == null) return Task.CompletedTask; 
+        
+        return _invocationHelper.PublishFunctionCompletionResult(recipient, sender, result);
     }
 }

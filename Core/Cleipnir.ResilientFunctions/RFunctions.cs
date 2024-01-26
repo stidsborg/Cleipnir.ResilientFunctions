@@ -363,7 +363,7 @@ public class RFunctions : IDisposable
             }
         
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
             var rFuncInvoker = new Invoker<TParam, TScrapbook, TReturn>(
                 functionTypeId, 
                 inner,
@@ -514,7 +514,7 @@ public class RFunctions : IDisposable
             }
 
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
             var rActionInvoker = new Invoker<TParam, TScrapbook, Unit>(
                 functionTypeId, 
                 inner, 
@@ -547,6 +547,19 @@ public class RFunctions : IDisposable
             
             return registration;
         }
+    }
+
+    public MessageWriter GetMessageWriter(FunctionId functionId)
+    {
+        dynamic? registration = null;
+        lock (_sync)
+            if (_functions.ContainsKey(functionId.TypeId))
+                registration = _functions[functionId.TypeId];
+
+        if (registration == null)
+            throw new ArgumentException($"Cannot create MessageWriter for unregistered function type '{functionId.TypeId}'");
+        
+        return (MessageWriter) registration.MessageWriters.For(functionId.InstanceId);
     }
     
     public void Dispose() => _ = ShutdownGracefully();
