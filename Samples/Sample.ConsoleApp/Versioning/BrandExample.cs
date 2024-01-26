@@ -3,8 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
-using Cleipnir.ResilientFunctions.Tests.Utils;
+using ConsoleApp.Utils;
 
 namespace ConsoleApp.Versioning;
 
