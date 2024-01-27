@@ -52,7 +52,7 @@ public class RFuncRegistrationTests
         await Task.CompletedTask;
         return param.ToUpper();
     }
-    private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
+    private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
     {

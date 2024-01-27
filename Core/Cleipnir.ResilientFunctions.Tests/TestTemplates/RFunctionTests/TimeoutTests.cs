@@ -19,7 +19,7 @@ public abstract class TimeoutTests
         var store = await storeTask;
         var functionTypeId = nameof(ExpiredTimeoutIsAddedToMessages).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(

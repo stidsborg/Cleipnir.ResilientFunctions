@@ -9,10 +9,10 @@ namespace ConsoleApp.BankTransfer.Versioning;
 public sealed class TransferSagaV2
 {
     private readonly RAction<Transfer, RScrapbook> _rAction;
-    public TransferSagaV2(RFunctions rFunctions)
+    public TransferSagaV2(FunctionsRegistry functionsRegistry)
     {
         var saga = new Inner(new BankCentralClient());
-        _rAction = rFunctions
+        _rAction = functionsRegistry
             .RegisterAction<Transfer, RScrapbook>(
                 functionTypeId: nameof(TransferSagaV2),
                 (transfer, scrapbook, context) => saga.Perform(transfer, scrapbook, context)

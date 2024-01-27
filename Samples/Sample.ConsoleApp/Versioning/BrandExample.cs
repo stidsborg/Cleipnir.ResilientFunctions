@@ -20,7 +20,7 @@ public static class BrandExample
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             crashableStore, 
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(100)
@@ -44,7 +44,7 @@ public static class BrandExample
 
     private static void Version2()
     {
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             Store, 
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,

@@ -140,7 +140,7 @@ public abstract class ScrapbookTests
     protected async Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionsRegistry(store);
         var functionId = new FunctionId(
             functionTypeId: nameof(ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration),
             functionInstanceId: "instance"
@@ -164,7 +164,7 @@ public abstract class ScrapbookTests
     protected async Task ChangesToStateDictionaryArePersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionsRegistry(store);
         
         var rAction = rFunctions.RegisterAction<string, RScrapbook>(
             nameof(ChangesToStateDictionaryArePersisted),

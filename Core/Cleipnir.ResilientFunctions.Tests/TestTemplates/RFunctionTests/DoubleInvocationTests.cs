@@ -21,7 +21,7 @@ public abstract class DoubleInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var syncTask = new TaskCompletionSource();
-        var rFunctions = new RFunctions
+        var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -58,7 +58,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions
+        var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -90,7 +90,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions
+        var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -122,7 +122,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var rFunctions = new RFunctions
+        var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(

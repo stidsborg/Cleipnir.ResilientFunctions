@@ -93,7 +93,7 @@ public class SerializationTests
             sendResultTo: null
         ).ShouldBeTrueAsync();
         
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store, 
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(1),

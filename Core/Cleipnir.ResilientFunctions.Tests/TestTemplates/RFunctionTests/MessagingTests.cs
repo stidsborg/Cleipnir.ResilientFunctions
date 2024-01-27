@@ -22,7 +22,7 @@ public abstract class MessagingTests
         var store = await functionStore;
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rAction = rFunctions.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
@@ -52,7 +52,7 @@ public abstract class MessagingTests
 
         var functionId = TestFunctionId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rAction = rFunctions.RegisterFunc(
             functionId.TypeId,
@@ -80,7 +80,7 @@ public abstract class MessagingTests
 
         var functionId = new FunctionId(nameof(TimeoutEventCausesSuspendedFunctionToBeReInvoked),"instanceId");
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rFunc = rFunctions.RegisterFunc(
             functionId.TypeId,
@@ -133,7 +133,7 @@ public abstract class MessagingTests
         var childFunctionId = TestFunctionId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var child = rFunctions.RegisterFunc(
             childFunctionId.TypeId,

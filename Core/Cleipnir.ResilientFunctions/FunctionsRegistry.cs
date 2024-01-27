@@ -12,7 +12,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
 
-public class RFunctions : IDisposable
+public class FunctionsRegistry : IDisposable
 {
     private readonly Dictionary<FunctionTypeId, object> _functions = new();
 
@@ -24,7 +24,7 @@ public class RFunctions : IDisposable
     private volatile bool _disposed;
     private readonly object _sync = new();
     
-    public RFunctions(IFunctionStore functionStore, Settings? settings = null)
+    public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
         _shutdownCoordinator = new ShutdownCoordinator();
@@ -351,7 +351,7 @@ public class RFunctions : IDisposable
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
 
         lock (_sync)
         {
@@ -499,7 +499,7 @@ public class RFunctions : IDisposable
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
         if (_disposed)
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
         
         lock (_sync)
         {

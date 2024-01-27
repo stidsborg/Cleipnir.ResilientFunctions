@@ -11,7 +11,7 @@ public static class HelloWorldExample
     public static async Task Do()
     {
         var store = new InMemoryFunctionStore();
-        var functions = new RFunctions(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
+        var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
         var rFunc = functions.RegisterFunc(
             functionTypeId: "HelloWorld",

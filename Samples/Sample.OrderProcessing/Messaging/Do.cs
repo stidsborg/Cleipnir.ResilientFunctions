@@ -4,7 +4,7 @@ namespace Sample.OrderProcessing.Messaging;
 
 public static class Do
 {
-    public static async Task Execute(RFunctions rFunctions)
+    public static async Task Execute(FunctionsRegistry functionsRegistry)
     {
         var messageBroker = new MessageBroker();
         var emailService = new EmailServiceStub(messageBroker);
@@ -12,7 +12,7 @@ public static class Do
         var paymentProviderService = new PaymentProviderStub(messageBroker);
         
         var orderProcessor = new OrderProcessor(messageBroker);
-        var rAction = rFunctions.RegisterAction<Order, OrderProcessor.Scrapbook>(
+        var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.Scrapbook>(
             "OrderProcessorMessaging",
             orderProcessor.ProcessOrder
         );        

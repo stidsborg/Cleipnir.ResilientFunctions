@@ -24,7 +24,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+            using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
             var rFunc = rFunctions
                 .RegisterFunc(

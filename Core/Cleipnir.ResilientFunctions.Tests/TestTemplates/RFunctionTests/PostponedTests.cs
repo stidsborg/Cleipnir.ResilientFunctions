@@ -22,7 +22,7 @@ public abstract class PostponedTests
         const string param = "test";
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
                 (
                     crashableStore,
                     new Settings(
@@ -43,7 +43,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -73,7 +73,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
                 (
                     store,
                     new Settings(
@@ -92,7 +92,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -134,7 +134,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -152,7 +152,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -182,7 +182,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -202,7 +202,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -241,7 +241,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 crashableStore,
                 new Settings(
@@ -260,7 +260,7 @@ public abstract class PostponedTests
         }
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 crashableStore,
                 new Settings(
@@ -283,7 +283,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedAction);
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -374,7 +374,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedActionWithScrapbook);
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -464,7 +464,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var functionTypeId = TestFunctionId.Create().TypeId;
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -556,7 +556,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var functionTypeId = TestFunctionId.Create().TypeId;
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -673,7 +673,7 @@ public abstract class PostponedTests
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
         ).ShouldBeTrueAsync();
 
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch,
@@ -709,7 +709,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -756,7 +756,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(

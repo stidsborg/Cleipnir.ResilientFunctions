@@ -20,7 +20,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -37,7 +37,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -76,7 +76,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -94,7 +94,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -141,7 +141,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -159,7 +159,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -198,7 +198,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new RFunctions
+            var nonCompletingRFunctions = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -215,7 +215,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,

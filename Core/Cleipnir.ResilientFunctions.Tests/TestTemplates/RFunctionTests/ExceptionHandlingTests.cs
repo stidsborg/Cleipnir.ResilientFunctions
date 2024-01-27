@@ -15,7 +15,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
@@ -31,7 +31,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
@@ -47,7 +47,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions
             .RegisterAction(
@@ -65,7 +65,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions
             .RegisterAction(

@@ -8,14 +8,14 @@ namespace Sample.OrderProcessing.Rpc;
 
 public static class Do
 {
-    public static async Task Execute(RFunctions rFunctions)
+    public static async Task Execute(FunctionsRegistry functionsRegistry)
     {
         var orderProcessor = new OrderProcessor(
             new PaymentProviderClientStub(),
             new EmailClientStub(),
             new LogisticsClientStub()
         );
-        var rAction = rFunctions.RegisterAction<Order, OrderProcessor.Scrapbook>(
+        var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.Scrapbook>(
             "OrderProcessorRpc",
             orderProcessor.ProcessOrder
         );

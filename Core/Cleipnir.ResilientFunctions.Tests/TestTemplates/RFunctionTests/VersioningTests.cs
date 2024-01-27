@@ -16,7 +16,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(250), 
@@ -59,7 +59,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(250), 
@@ -102,7 +102,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(10), 
@@ -147,7 +147,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(250), 
@@ -201,7 +201,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(10), 

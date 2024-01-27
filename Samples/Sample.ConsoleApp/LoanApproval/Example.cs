@@ -13,7 +13,7 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = new RFunctions(
+        var functions = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
@@ -47,7 +47,7 @@ public static class Example
         
         var store = new InMemoryFunctionStore();
         
-        var functions = new RFunctions(
+        var functions = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );

@@ -33,7 +33,7 @@ public abstract class FailedTests
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -57,7 +57,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -103,7 +103,7 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -126,7 +126,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
@@ -167,7 +167,7 @@ public abstract class FailedTests
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new RFunctions
+            using var rFunctions = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -187,7 +187,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -220,7 +220,7 @@ public abstract class FailedTests
         var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
@@ -262,7 +262,7 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.Zero)
             );
@@ -279,7 +279,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new RFunctions(
+            using var rFunctions = new FunctionsRegistry(
                 store,
                 new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.FromMilliseconds(100))
             );

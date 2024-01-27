@@ -67,7 +67,7 @@ public static class MixingTest
         }
         
         Console.WriteLine("MIXING_TEST: Waiting for invocations to begin");
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
@@ -80,7 +80,7 @@ public static class MixingTest
             void(string param) => { }
         );
         
-        using var rFunctions2 = new RFunctions(
+        using var rFunctions2 = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,

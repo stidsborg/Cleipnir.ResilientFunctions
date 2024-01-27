@@ -115,10 +115,10 @@ public class InMemorySunshineTests
             );
     }    
 
-    private async Task ExecuteFunc(Func<RFunctions, Func<string, string>, RFunc<string, string>> createRegistration)
+    private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, string>, RFunc<string, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
         var toReturn = "returned";
@@ -262,10 +262,10 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteScrapbookFunc(Func<RFunctions, Func<string, Scrapbook, string>, RFunc<string, Scrapbook, string>> createRegistration)
+    private async Task ExecuteScrapbookFunc(Func<FunctionsRegistry, Func<string, Scrapbook, string>, RFunc<string, Scrapbook, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
         var syncedScrapbook = new Synced<Scrapbook>();
@@ -422,10 +422,10 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteAction(Func<RFunctions, Action<string>, RAction<string>> createRegistration)
+    private async Task ExecuteAction(Func<FunctionsRegistry, Action<string>, RAction<string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
         // ReSharper disable once AccessToModifiedClosure
@@ -569,10 +569,10 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteScrapbookAction(Func<RFunctions, Action<string, Scrapbook>, RAction<string, Scrapbook>> createRegistration)
+    private async Task ExecuteScrapbookAction(Func<FunctionsRegistry, Action<string, Scrapbook>, RAction<string, Scrapbook>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new RFunctions(store);
+        using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
         var syncedScrapbook = new Synced<Scrapbook>();

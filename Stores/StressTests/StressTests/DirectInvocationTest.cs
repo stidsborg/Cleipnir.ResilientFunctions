@@ -18,7 +18,7 @@ public class DirectInvocationTest
         var store = await helper.CreateFunctionStore();
         
         Console.WriteLine("DIRECT_INVOCATION_TEST: Starting now...");
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
@@ -45,7 +45,7 @@ public class DirectInvocationTest
             }
         );
         
-        using var rFunctions2 = new RFunctions(
+        using var rFunctions2 = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine, leaseLength: TimeSpan.FromSeconds(1))
         );

@@ -21,7 +21,7 @@ public class ReactiveIntegrationTests
     public async Task FunctionCanBeSuspendedForASecondSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        var rFunctions = new RFunctions(store);
+        var rFunctions = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = rFunctions.RegisterAction<string>(
@@ -43,7 +43,7 @@ public class ReactiveIntegrationTests
     public async Task EventsAreNotPulledFromMessageStoreWhenThereAreNoActiveSubscriptions()
     {
         var store = new InMemoryFunctionStoreTestStub();
-        var rFunctions = new RFunctions(store, new Settings(messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
+        var rFunctions = new FunctionsRegistry(store, new Settings(messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = rFunctions.RegisterAction<string>(

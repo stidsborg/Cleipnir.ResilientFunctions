@@ -15,7 +15,7 @@ public static class SimpleHttpAndDbExample
     
     public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionStore store)
     {
-        var functions = new RFunctions(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
+        var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
         var httpClient = new HttpClient();
 
         var rAction = functions.RegisterAction(

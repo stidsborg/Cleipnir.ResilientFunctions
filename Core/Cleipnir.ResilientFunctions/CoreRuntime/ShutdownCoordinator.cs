@@ -27,7 +27,7 @@ internal class ShutdownCoordinator
         if (_shutDownInitiated && Interlocked.Read(ref _confirmed) == 0)
         {
             Interlocked.Decrement(ref _candidates);
-            throw new ObjectDisposedException($"{nameof(RFunctions)} has been disposed");
+            throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
         }
 
         Interlocked.Increment(ref _confirmed);

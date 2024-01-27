@@ -19,7 +19,7 @@ public abstract class ScheduleReInvocationTests
         var functionType = TestFunctionId.Create().TypeId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -71,7 +71,7 @@ public abstract class ScheduleReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -126,7 +126,7 @@ public abstract class ScheduleReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -174,7 +174,7 @@ public abstract class ScheduleReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(
+        using var rFunctions = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,

@@ -25,7 +25,7 @@ public class RActionRegistrationTests
     }
     
     private Task InnerAction(string param) => Task.CompletedTask;
-    private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
+    private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
     {

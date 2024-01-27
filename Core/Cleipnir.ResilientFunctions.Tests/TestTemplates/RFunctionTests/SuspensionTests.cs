@@ -21,7 +21,7 @@ public abstract class SuspensionTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -50,7 +50,7 @@ public abstract class SuspensionTests
         var functionInstanceId = "functionInstanceId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -79,7 +79,7 @@ public abstract class SuspensionTests
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -120,7 +120,7 @@ public abstract class SuspensionTests
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -162,7 +162,7 @@ public abstract class SuspensionTests
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -196,7 +196,7 @@ public abstract class SuspensionTests
         var functionInstanceId = "functionInstanceId";
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -240,7 +240,7 @@ public abstract class SuspensionTests
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions
+        using var rFunctions = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -284,7 +284,7 @@ public abstract class SuspensionTests
         var childFunctionId = new FunctionId($"ChildFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var child = rFunctions.RegisterFunc(
             childFunctionId.TypeId,
@@ -326,7 +326,7 @@ public abstract class SuspensionTests
         var childFunctionId = new FunctionId($"ChildFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var child = rFunctions.RegisterAction(
             childFunctionId.TypeId,

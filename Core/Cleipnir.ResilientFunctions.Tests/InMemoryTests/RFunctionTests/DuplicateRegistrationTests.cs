@@ -14,7 +14,7 @@ public class DuplicateRegistrationTests
     [TestMethod]
     public void ReRegistrationRFuncWithIncompatibleTypeThrowsInArgumentException()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
@@ -31,7 +31,7 @@ public class DuplicateRegistrationTests
     [TestMethod]
     public void ReRegistrationRFuncThrowsArgumentException()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
@@ -48,7 +48,7 @@ public class DuplicateRegistrationTests
     [TestMethod]
     public void ReRegistrationRActionThrowsArgumentException()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result>(string _) => Succeed.WithoutValue.ToTask()
@@ -65,7 +65,7 @@ public class DuplicateRegistrationTests
     [TestMethod]
     public void ReRegistrationRActionWithIncompatibleTypeThrowsInArgumentException()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result>(string _) => Succeed.WithoutValue.ToTask()
@@ -82,7 +82,7 @@ public class DuplicateRegistrationTests
     [TestMethod]
     public void ReRegistrationFromFuncToActionThrowsArgumentException()
     {
-        using var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result>(string _) => Succeed.WithoutValue.ToTask()

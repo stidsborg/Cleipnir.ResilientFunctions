@@ -28,7 +28,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rFunc = rFunctions
             .RegisterFunc(
@@ -67,7 +67,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
         var rFunc = rFunctions
             .RegisterFunc(
                 functionTypeId,
@@ -100,7 +100,7 @@ public abstract class SunshineTests
         var functionTypeId = nameof(SunshineScenarioAction).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
         var rAction = rFunctions
             .RegisterAction(
                 functionTypeId,
@@ -129,7 +129,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionHandler.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
         var rFunc = rFunctions
             .RegisterAction(
                 functionTypeId,
@@ -155,7 +155,7 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
@@ -173,7 +173,7 @@ public abstract class SunshineTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
@@ -201,7 +201,7 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = rFunctions.RegisterFunc(
             functionTypeId,
@@ -225,7 +225,7 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var rFunctions = new RFunctions(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var syncedInvocationMode = new Synced<InvocationMode>();
         var rFunc = rFunctions.RegisterAction(

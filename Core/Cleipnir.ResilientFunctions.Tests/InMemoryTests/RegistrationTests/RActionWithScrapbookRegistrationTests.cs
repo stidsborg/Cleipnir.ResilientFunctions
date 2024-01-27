@@ -46,7 +46,7 @@ public class RActionWithScrapbookRegistrationTests
     }
 
     private async Task InnerAction(string param, Scrapbook scrapbook) => await Task.CompletedTask;
-    private RFunctions CreateRFunctions() => new(new InMemoryFunctionStore());
+    private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
     {

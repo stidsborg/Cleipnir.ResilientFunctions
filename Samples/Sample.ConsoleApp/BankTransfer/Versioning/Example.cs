@@ -9,7 +9,7 @@ public static class Example
 {
     public static async Task Perform()
     {
-        var rFunctions = new RFunctions(new InMemoryFunctionStore());
+        var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
 
         var transferSaga = new TransferSagaV1(rFunctions);
         var transfer = new Transfer(
