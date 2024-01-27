@@ -5,14 +5,14 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions;
 
-public static class RAction
+public static class FuncRegistration
 {
-    public delegate Task Invoke<in TParam, in TScrapbook>(
+    public delegate Task<TReturn> Invoke<in TParam, in TScrapbook, TReturn>(
         string functionInstanceId, 
         TParam param, 
         TScrapbook? scrapbook = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
-
+    
     public delegate Task Schedule<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param, 
@@ -29,30 +29,30 @@ public static class RAction
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 
-public class RAction<TParam> where TParam : notnull
+public class FuncRegistration<TParam, TReturn> where TParam : notnull
 {
     public FunctionTypeId TypeId { get; }
     
-    private readonly RAction<TParam,RScrapbook> _rAction;
-    public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
-    public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
-    public RAction.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }    
+    public FuncRegistration.Invoke<TParam, RScrapbook, TReturn> Invoke { get; }
+    public FuncRegistration.Schedule<TParam, RScrapbook> Schedule { get; }
+    public FuncRegistration.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }
+    private readonly FuncRegistration<TParam, RScrapbook, TReturn> _funcRegistration; 
     public MessageWriters MessageWriters { get; }
-    
-    public RAction(RAction<TParam, RScrapbook> rAction)
+
+    public FuncRegistration(FuncRegistration<TParam, RScrapbook, TReturn> funcRegistration)
     {
-        TypeId = rAction.TypeId;
+        TypeId = funcRegistration.TypeId;
         
-        _rAction = rAction;
-        Invoke = rAction.Invoke;
-        Schedule = rAction.Schedule;
-        ScheduleAt = rAction.ScheduleAt;
+        _funcRegistration = funcRegistration;
         
-        MessageWriters = rAction.MessageWriters;
+        Invoke = funcRegistration.Invoke;
+        Schedule = funcRegistration.Schedule;
+        ScheduleAt = funcRegistration.ScheduleAt;
+        MessageWriters = funcRegistration.MessageWriters;
     }
 
-    public Task<ControlPanel<TParam, RScrapbook>?> ControlPanel(FunctionInstanceId functionInstanceId)
-        => _rAction.ControlPanel(functionInstanceId);
+    public Task<ControlPanel<TParam, RScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
+        => _funcRegistration.ControlPanel(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
@@ -67,22 +67,22 @@ public class RAction<TParam> where TParam : notnull
     );
 }
 
-public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class FuncRegistration<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
     public FunctionTypeId TypeId { get; }
     
-    public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
-    public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
-    public RAction.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
-    private ControlPanels<TParam, TScrapbook> ControlPanels { get; }
+    public FuncRegistration.Invoke<TParam, TScrapbook, TReturn> Invoke { get; }
+    public FuncRegistration.Schedule<TParam, TScrapbook> Schedule { get; }
+    public FuncRegistration.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
+    private ControlPanels<TParam, TScrapbook, TReturn> ControlPanels { get; }
     public MessageWriters MessageWriters { get; }
 
-    public RAction(
+    public FuncRegistration(
         FunctionTypeId functionTypeId,
-        RAction.Invoke<TParam, TScrapbook> invoke,
-        RAction.Schedule<TParam, TScrapbook> schedule,
-        RAction.ScheduleAt<TParam, TScrapbook> scheduleAt,
-        ControlPanels<TParam, TScrapbook> controlPanels, 
+        FuncRegistration.Invoke<TParam, TScrapbook, TReturn> invoke,
+        FuncRegistration.Schedule<TParam, TScrapbook> schedule,
+        FuncRegistration.ScheduleAt<TParam, TScrapbook> scheduleAt,
+        ControlPanels<TParam, TScrapbook, TReturn> controlPanel, 
         MessageWriters messageWriters)
     {
         TypeId = functionTypeId;
@@ -90,11 +90,12 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;
-        ControlPanels = controlPanels;
+
+        ControlPanels = controlPanel;
         MessageWriters = messageWriters;
     }
-    
-    public Task<ControlPanel<TParam, TScrapbook>?> ControlPanel(FunctionInstanceId functionInstanceId)
+
+    public Task<ControlPanel<TParam, TScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
         => ControlPanels.For(functionInstanceId);
     
     public Task ScheduleIn(

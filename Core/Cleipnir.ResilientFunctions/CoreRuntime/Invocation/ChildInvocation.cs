@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 internal static class ChildInvocation
 {
     public static async Task<TReturn> StartChild<TParam, TScrapbook, TReturn>(
-        RFunc<TParam, TScrapbook, TReturn> registration,
+        FuncRegistration<TParam, TScrapbook, TReturn> registration,
         string instanceId,
         TParam param,
         FunctionId parentId,
@@ -37,7 +37,7 @@ internal static class ChildInvocation
     }
     
     public static async Task<TReturn> StartChild<TParam, TReturn>(
-        RFunc<TParam, TReturn> registration,
+        FuncRegistration<TParam, TReturn> registration,
         string instanceId,
         TParam param,
         FunctionId parentId,
@@ -65,7 +65,7 @@ internal static class ChildInvocation
     }
     
     public static async Task StartChild<TParam>(
-        RAction<TParam> registration,
+        ActionRegistration<TParam> registration,
         string instanceId,
         TParam param,
         FunctionId parentId,

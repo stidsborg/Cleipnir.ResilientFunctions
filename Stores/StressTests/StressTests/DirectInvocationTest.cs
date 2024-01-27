@@ -80,11 +80,11 @@ public class DirectInvocationTest
         return new TestResult(0, executionAverageSpeed);
     }
 
-    private static async Task Invoke(RFunc<string, RScrapbook, string> rFunc, int i)
+    private static async Task Invoke(FuncRegistration<string, RScrapbook, string> funcRegistration, int i)
     {
         try
         {
-            await rFunc.Invoke(i.ToString(), i.ToString());
+            await funcRegistration.Invoke(i.ToString(), i.ToString());
         }
         catch (Exception exception)
         {

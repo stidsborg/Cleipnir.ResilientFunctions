@@ -10,7 +10,7 @@ namespace ConsoleApp.WorkDistribution;
 
 public static class ProcessOrders
 {
-    public static RFunc<string, string>? ProcessOrder { get; set; }
+    public static FuncRegistration<string, string>? ProcessOrder { get; set; }
     
     public static async Task Execute(List<string> orderIds, Context context)
     {

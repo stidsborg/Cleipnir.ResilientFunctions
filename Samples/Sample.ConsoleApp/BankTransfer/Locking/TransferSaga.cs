@@ -10,11 +10,11 @@ namespace ConsoleApp.BankTransfer.Locking;
 
 public sealed class TransferSaga
 {
-    private readonly RAction<Transfer> _rAction;
+    private readonly ActionRegistration<Transfer> _actionRegistration;
     public TransferSaga(FunctionsRegistry functionsRegistry)
     {
         var inner = new Inner(new BankCentralClient());
-        _rAction = functionsRegistry
+        _actionRegistration = functionsRegistry
             .RegisterAction<Transfer>(
                 functionTypeId: nameof(TransferSaga).ToFunctionTypeId(),
                 (transfer, context) => inner.Perform(transfer, context)
@@ -22,7 +22,7 @@ public sealed class TransferSaga
     }
 
     public Task Perform(Transfer transfer)
-        => _rAction.Invoke(transfer.TransferId.ToString(), transfer);
+        => _actionRegistration.Invoke(transfer.TransferId.ToString(), transfer);
 
     private class Inner
     {

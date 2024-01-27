@@ -115,7 +115,7 @@ public class InMemorySunshineTests
             );
     }    
 
-    private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, string>, RFunc<string, string>> createRegistration)
+    private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, string>, FuncRegistration<string, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);
@@ -262,7 +262,7 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteScrapbookFunc(Func<FunctionsRegistry, Func<string, Scrapbook, string>, RFunc<string, Scrapbook, string>> createRegistration)
+    private async Task ExecuteScrapbookFunc(Func<FunctionsRegistry, Func<string, Scrapbook, string>, FuncRegistration<string, Scrapbook, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);
@@ -422,7 +422,7 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteAction(Func<FunctionsRegistry, Action<string>, RAction<string>> createRegistration)
+    private async Task ExecuteAction(Func<FunctionsRegistry, Action<string>, ActionRegistration<string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);

@@ -31,21 +31,21 @@ public class Context : IDisposable
     #region StartChild Methods
 
     public Task<TReturn> StartChild<TParam, TScrapbook, TReturn>(
-        RFunc<TParam, TScrapbook, TReturn> registration,
+        FuncRegistration<TParam, TScrapbook, TReturn> registration,
         string instanceId,
         TParam param
     ) where TScrapbook : RScrapbook, new() where TParam : notnull
         => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
     
     public Task<TReturn> StartChild<TParam, TReturn>(
-        RFunc<TParam, TReturn> registration,
+        FuncRegistration<TParam, TReturn> registration,
         string instanceId,
         TParam param
     ) where TParam : notnull
         => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
     
     public Task StartChild<TParam>(
-        RAction<TParam> registration,
+        ActionRegistration<TParam> registration,
         string instanceId,
         TParam param
     ) where TParam : notnull

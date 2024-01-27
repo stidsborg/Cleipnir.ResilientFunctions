@@ -33,12 +33,12 @@ public class FunctionsRegistry : IDisposable
 
     // ** !! FUNC !! ** //
     // ** SYNC ** //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull =>
-        new RFunc<TParam, TReturn>(
+        new FuncRegistration<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -47,12 +47,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. CONTEXT ** //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Context, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull =>
-        new RFunc<TParam, TReturn>(
+        new FuncRegistration<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -61,12 +61,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC ** //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull =>
-        new RFunc<TParam, TReturn>(
+        new FuncRegistration<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -75,12 +75,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. CONTEXT * //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Context, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull =>
-        new RFunc<TParam, TReturn>(
+        new FuncRegistration<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -89,12 +89,12 @@ public class FunctionsRegistry : IDisposable
         );
 
     // ** SYNC W. RESULT ** //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull =>
-        new RFunc<TParam, TReturn>(
+        new FuncRegistration<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -103,12 +103,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Context, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull =>
-        new RFunc<TParam, TReturn>(
+        new FuncRegistration<TParam, TReturn>(
             RegisterFunc(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -117,12 +117,12 @@ public class FunctionsRegistry : IDisposable
         );
    
     // ** ASYNC W. RESULT ** //
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RFunc<TParam, TReturn>(
+        => new FuncRegistration<TParam, TReturn>(
                 RegisterFunc(
                     functionTypeId,
                     InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -131,12 +131,12 @@ public class FunctionsRegistry : IDisposable
             );
 
     // ** ASYNC W. RESULT AND CONTEXT ** //   
-    public RFunc<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, Context, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RFunc<TParam, TReturn>(
+        => new FuncRegistration<TParam, TReturn>(
                 RegisterFunc(
                     functionTypeId,
                     InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -146,12 +146,12 @@ public class FunctionsRegistry : IDisposable
 
     // ** !! ACTION !! ** //
     // ** SYNC ** //
-    public RAction<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Action<TParam> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RAction<TParam>(
+        => new ActionRegistration<TParam>(
                 RegisterAction(
                     functionTypeId,
                     InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -160,12 +160,12 @@ public class FunctionsRegistry : IDisposable
             );
 
     // ** SYNC W. CONTEXT ** //
-    public RAction<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Action<TParam, Context> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RAction<TParam>(
+        => new ActionRegistration<TParam>(
             RegisterAction(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -174,12 +174,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC ** //
-    public RAction<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Task> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RAction<TParam>(
+        => new ActionRegistration<TParam>(
             RegisterAction(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -188,12 +188,12 @@ public class FunctionsRegistry : IDisposable
         );
 
     // ** ASYNC W. CONTEXT * //
-    public RAction<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Context, Task> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RAction<TParam>(
+        => new ActionRegistration<TParam>(
             RegisterAction(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -202,12 +202,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT ** //
-    public RAction<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Result> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RAction<TParam>(
+        => new ActionRegistration<TParam>(
             RegisterAction(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -216,12 +216,12 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public RAction<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
         Func<TParam, Context, Result> inner,
         Settings? settings = null
     ) where TParam : notnull
-        => new RAction<TParam>(
+        => new ActionRegistration<TParam>(
             RegisterAction(
                 functionTypeId,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -230,12 +230,12 @@ public class FunctionsRegistry : IDisposable
         );
     
         // ** ASYNC W. RESULT ** //
-        public RAction<TParam> RegisterAction<TParam>(
+        public ActionRegistration<TParam> RegisterAction<TParam>(
             FunctionTypeId functionTypeId,
             Func<TParam, Task<Result>> inner,
             Settings? settings = null
         ) where TParam : notnull
-            => new RAction<TParam>(
+            => new ActionRegistration<TParam>(
                 RegisterAction(
                     functionTypeId,
                     InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -244,12 +244,12 @@ public class FunctionsRegistry : IDisposable
             );
         
         // ** ASYNC W. RESULT AND CONTEXT ** //   
-        public RAction<TParam> RegisterAction<TParam>(
+        public ActionRegistration<TParam> RegisterAction<TParam>(
             FunctionTypeId functionTypeId,
             Func<TParam, Context, Task<Result>> inner,
             Settings? settings = null
         ) where TParam : notnull
-            => new RAction<TParam>(
+            => new ActionRegistration<TParam>(
                 RegisterAction(
                     functionTypeId,
                     InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -260,7 +260,7 @@ public class FunctionsRegistry : IDisposable
     // ** !! FUNC WITH SCRAPBOOK !! ** //
     
     // ** SYNC ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, TReturn> inner,
         Settings? settings = null
@@ -272,7 +272,7 @@ public class FunctionsRegistry : IDisposable
         );
 
     // ** SYNC W. CONTEXT ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, TReturn> inner,
         Settings? settings = null
@@ -284,7 +284,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<TReturn>> inner,
         Settings? settings = null
@@ -296,7 +296,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. CONTEXT * //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<TReturn>> inner,
         Settings? settings = null
@@ -308,7 +308,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Result<TReturn>> inner,
         Settings? settings = null
@@ -320,7 +320,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT AND CONTEXT ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Result<TReturn>> inner,
         Settings? settings = null
@@ -332,7 +332,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. RESULT ** //
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
         Settings? settings = null
@@ -344,7 +344,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. RESULT AND CONTEXT ** //   
-    public RFunc<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
         Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
         Settings? settings = null
@@ -356,7 +356,7 @@ public class FunctionsRegistry : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-                throw new ArgumentException($"Function <{typeof(RFunc<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> has already been registered");
+                throw new ArgumentException($"Function <{typeof(FuncRegistration<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> has already been registered");
         
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
@@ -381,7 +381,7 @@ public class FunctionsRegistry : IDisposable
                 rFuncInvoker,
                 invocationHelper
             );
-            var registration = new RFunc<TParam, TScrapbook, TReturn>(
+            var registration = new FuncRegistration<TParam, TScrapbook, TReturn>(
                 functionTypeId,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
@@ -504,7 +504,7 @@ public class FunctionsRegistry : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-                    throw new ArgumentException($"Action <{typeof(RFunc<TParam, TScrapbook>).SimpleQualifiedName()}> has already been registered");
+                    throw new ArgumentException($"Action <{typeof(FuncRegistration<TParam, TScrapbook>).SimpleQualifiedName()}> has already been registered");
             
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
