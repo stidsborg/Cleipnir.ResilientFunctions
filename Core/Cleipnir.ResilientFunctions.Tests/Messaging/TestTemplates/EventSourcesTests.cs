@@ -156,7 +156,7 @@ public abstract class MessagessTests
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
-        await messages.AppendEvents(new MessageAndIdempotencyKey[]
+        await messages.AppendMessages(new MessageAndIdempotencyKey[]
         {
             new("hello world", "1"),
             new("hello world", "1"),

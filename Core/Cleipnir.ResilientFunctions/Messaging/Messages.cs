@@ -15,24 +15,24 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 public class Messages : IReactiveChain<object>, IDisposable
 {
     public TimeoutProvider TimeoutProvider { get; }
-    public IReactiveChain<object> Source => _eventPullerAndEmitter.Source;
-    public IEnumerable<object> Existing => _eventPullerAndEmitter.Source.Existing;
+    public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
+    public IEnumerable<object> Existing => _messagePullerAndEmitter.Source.Existing;
     
-    private readonly MessageWriter _eventWriter;
-    private readonly EventsPullerAndEmitter _eventPullerAndEmitter;
+    private readonly MessageWriter _messageWriter;
+    private readonly MessagesPullerAndEmitter _messagePullerAndEmitter;
     
     public Messages(
         FunctionId functionId,
         IMessageStore messageStore, 
-        MessageWriter eventWriter,
+        MessageWriter messageWriter,
         TimeoutProvider timeoutProvider,
         TimeSpan? pullFrequency, 
         ISerializer serializer)
     {
-        _eventWriter = eventWriter;
+        _messageWriter = messageWriter;
         TimeoutProvider = timeoutProvider;
         
-        _eventPullerAndEmitter = new EventsPullerAndEmitter(
+        _messagePullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             pullFrequency ?? TimeSpan.FromMilliseconds(250),
             messageStore,
@@ -43,24 +43,24 @@ public class Messages : IReactiveChain<object>, IDisposable
 
     public async Task AppendMessage(object @event, string? idempotencyKey = null)
     {
-        await _eventWriter.AppendMessage(@event, idempotencyKey);
+        await _messageWriter.AppendMessage(@event, idempotencyKey);
         await Sync();
     }
 
-    public async Task AppendEvents(IEnumerable<MessageAndIdempotencyKey> events)
+    public async Task AppendMessages(IEnumerable<MessageAndIdempotencyKey> events)
     {
-        await _eventWriter.AppendEvents(events);
+        await _messageWriter.AppendEvents(events);
         await Sync();
     }
 
-    public Task Sync() => _eventPullerAndEmitter.PullEvents();
+    public Task Sync() => _messagePullerAndEmitter.PullEvents();
 
-    public void Dispose() => _eventPullerAndEmitter.Dispose();
+    public void Dispose() => _messagePullerAndEmitter.Dispose();
 
     public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null) 
-        => _eventPullerAndEmitter.Source.Subscribe(onNext, onCompletion, onError, subscriptionGroupId);
+        => _messagePullerAndEmitter.Source.Subscribe(onNext, onCompletion, onError, subscriptionGroupId);
 
-    private class EventsPullerAndEmitter : IDisposable
+    private class MessagesPullerAndEmitter : IDisposable
     {
         private readonly TimeSpan _delay;
         private readonly MessagesSubscription _messagesSubscription;
@@ -77,7 +77,7 @@ public class Messages : IReactiveChain<object>, IDisposable
         private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
         private readonly object _sync = new();
         
-        public EventsPullerAndEmitter(
+        public MessagesPullerAndEmitter(
             FunctionId functionId, 
             TimeSpan delay, 
             IMessageStore messageStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
