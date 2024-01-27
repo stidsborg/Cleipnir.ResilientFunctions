@@ -33,4 +33,12 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages()
         => PostponedFunctionIsResumedAfterEventIsAppendedToMessages(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task StartedChildFuncInvocationPublishesResultSuccessfully()
+        => StartedChildFuncInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task StartedChildActionInvocationPublishesResultSuccessfully()
+        => StartedChildActionInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
 }

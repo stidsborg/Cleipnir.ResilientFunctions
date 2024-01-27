@@ -1,6 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
@@ -45,4 +43,12 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(
             FunctionStoreFactory.Create()
         );
+
+    [TestMethod]
+    public override Task StartedChildFuncInvocationPublishesResultSuccessfully()
+        => StartedChildFuncInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task StartedChildActionInvocationPublishesResultSuccessfully()
+        => StartedChildActionInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
 }

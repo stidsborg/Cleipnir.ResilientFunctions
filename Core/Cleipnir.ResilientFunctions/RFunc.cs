@@ -31,6 +31,8 @@ public static class RFunc
 
 public class RFunc<TParam, TReturn> where TParam : notnull
 {
+    public FunctionTypeId TypeId { get; }
+    
     public RFunc.Invoke<TParam, RScrapbook, TReturn> Invoke { get; }
     public RFunc.Schedule<TParam, RScrapbook> Schedule { get; }
     public RFunc.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }
@@ -39,6 +41,8 @@ public class RFunc<TParam, TReturn> where TParam : notnull
 
     public RFunc(RFunc<TParam, RScrapbook, TReturn> rFunc)
     {
+        TypeId = rFunc.TypeId;
+        
         _rFunc = rFunc;
         
         Invoke = rFunc.Invoke;
@@ -65,6 +69,8 @@ public class RFunc<TParam, TReturn> where TParam : notnull
 
 public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
+    public FunctionTypeId TypeId { get; }
+    
     public RFunc.Invoke<TParam, TScrapbook, TReturn> Invoke { get; }
     public RFunc.Schedule<TParam, TScrapbook> Schedule { get; }
     public RFunc.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
@@ -72,12 +78,15 @@ public class RFunc<TParam, TScrapbook, TReturn> where TParam : notnull where TSc
     public MessageWriters MessageWriters { get; }
 
     public RFunc(
+        FunctionTypeId functionTypeId,
         RFunc.Invoke<TParam, TScrapbook, TReturn> invoke,
         RFunc.Schedule<TParam, TScrapbook> schedule,
         RFunc.ScheduleAt<TParam, TScrapbook> scheduleAt,
         ControlPanels<TParam, TScrapbook, TReturn> controlPanel, 
         MessageWriters messageWriters)
     {
+        TypeId = functionTypeId;
+        
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;

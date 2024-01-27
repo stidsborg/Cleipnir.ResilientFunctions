@@ -216,9 +216,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             throw new InvalidOperationException($"Function '{recipient}' has not been registered and thus function result cannot be published");
 
         if (typeof(TReturn) == typeof(Unit))
-            await messageWriter.AppendMessage(new FunctionCompletion(sender), $"FunctionResult¤{recipient}");
+            await messageWriter.AppendMessage(new FunctionCompletion(sender), idempotencyKey: $"FunctionResult¤{sender}");
         else
-            await messageWriter.AppendMessage(new FunctionCompletion<T>(result.SucceedWithValue!, sender), $"FunctionResult¤{recipient}");
+            await messageWriter.AppendMessage(
+                new FunctionCompletion<T>(result.SucceedWithValue!, sender),
+                idempotencyKey: $"FunctionResult¤{sender}"
+            );
     }
 
     public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponedOrSuspended)

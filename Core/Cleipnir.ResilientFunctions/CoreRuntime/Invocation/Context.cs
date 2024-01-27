@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 
@@ -26,4 +27,38 @@ public class Context : IDisposable
     }
     
     public void Dispose() => Messages.Dispose();
+
+    #region StartChild Methods
+
+    public Task<TReturn> StartChild<TParam, TScrapbook, TReturn>(
+        RFunc<TParam, TScrapbook, TReturn> registration,
+        string instanceId,
+        TParam param
+    ) where TScrapbook : RScrapbook, new() where TParam : notnull
+        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
+    
+    public Task<TReturn> StartChild<TParam, TReturn>(
+        RFunc<TParam, TReturn> registration,
+        string instanceId,
+        TParam param
+    ) where TParam : notnull
+        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
+    
+    public Task StartChild<TParam>(
+        RAction<TParam> registration,
+        string instanceId,
+        TParam param
+    ) where TParam : notnull
+        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
+    
+    public Task StartChild<TParam, TScrapbook>(
+        RAction<TParam, TScrapbook> registration,
+        string instanceId,
+        TParam param,
+        FunctionId parentId,
+        Messages messages
+    ) where TScrapbook : RScrapbook, new() where TParam : notnull
+        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
+
+    #endregion
 }

@@ -382,6 +382,7 @@ public class RFunctions : IDisposable
                 invocationHelper
             );
             var registration = new RFunc<TParam, TScrapbook, TReturn>(
+                functionTypeId,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleAt,
@@ -529,6 +530,7 @@ public class RFunctions : IDisposable
                 invocationHelper
             );
             var registration = new RAction<TParam, TScrapbook>(
+                functionTypeId,
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,

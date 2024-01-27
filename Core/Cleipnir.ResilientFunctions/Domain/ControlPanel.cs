@@ -177,7 +177,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Activities = await _invocationHelper.GetExistingActivities(FunctionId);
     }
 
-    public async Task WaitForCompletion(bool allowPostponeAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponeAndSuspended);
+    public async Task WaitForCompletion(bool allowPostponedAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponedAndSuspended);
 }
 
 public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()

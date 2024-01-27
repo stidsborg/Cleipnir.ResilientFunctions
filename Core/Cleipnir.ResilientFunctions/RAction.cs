@@ -31,6 +31,8 @@ public static class RAction
 
 public class RAction<TParam> where TParam : notnull
 {
+    public FunctionTypeId TypeId { get; }
+    
     private readonly RAction<TParam,RScrapbook> _rAction;
     public RAction.Invoke<TParam, RScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, RScrapbook> Schedule { get; }
@@ -39,6 +41,8 @@ public class RAction<TParam> where TParam : notnull
     
     public RAction(RAction<TParam, RScrapbook> rAction)
     {
+        TypeId = rAction.TypeId;
+        
         _rAction = rAction;
         Invoke = rAction.Invoke;
         Schedule = rAction.Schedule;
@@ -65,6 +69,8 @@ public class RAction<TParam> where TParam : notnull
 
 public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
 {
+    public FunctionTypeId TypeId { get; }
+    
     public RAction.Invoke<TParam, TScrapbook> Invoke { get; }
     public RAction.Schedule<TParam, TScrapbook> Schedule { get; }
     public RAction.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
@@ -72,12 +78,15 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
     public MessageWriters MessageWriters { get; }
 
     public RAction(
+        FunctionTypeId functionTypeId,
         RAction.Invoke<TParam, TScrapbook> invoke,
         RAction.Schedule<TParam, TScrapbook> schedule,
         RAction.ScheduleAt<TParam, TScrapbook> scheduleAt,
         ControlPanels<TParam, TScrapbook> controlPanels, 
         MessageWriters messageWriters)
     {
+        TypeId = functionTypeId;
+        
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;

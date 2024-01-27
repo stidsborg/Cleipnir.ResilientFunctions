@@ -222,9 +222,6 @@ public class Invoker<TParam, TScrapbook, TReturn>
 
     private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, FunctionId? sendResultTo, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        if (sendResultTo != null && result.Succeed)
-            await _invocationHelper.PublishFunctionCompletionResult(sendResultTo, functionId, result);
-        
         var success = await _invocationHelper.PersistResult(functionId, result, param, scrapbook, sendResultTo, expectedEpoch);
         if (success)
             InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);

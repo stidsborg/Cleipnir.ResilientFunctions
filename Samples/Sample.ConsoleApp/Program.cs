@@ -6,6 +6,6 @@ internal static class Program
 {
     private static async Task Main()
     {
-        await FraudDetection.Example.PerformRpcApproach();
+        await WorkDistribution.Example.Perform();
     }
 }
