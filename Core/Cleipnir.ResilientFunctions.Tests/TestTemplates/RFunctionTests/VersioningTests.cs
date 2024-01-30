@@ -37,8 +37,7 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         _ = rFunctions.RegisterFunc(
@@ -76,8 +75,7 @@ public abstract class VersioningTests
            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
            leaseExpiration: DateTime.UtcNow.Ticks,
            postponeUntil: null,
-           timestamp: DateTime.UtcNow.Ticks,
-           sendResultTo: null
+           timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -119,8 +117,7 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
@@ -165,8 +162,7 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         var testId = TestFunctionId.Create();
         var v2FunctionId = new FunctionId(v1FunctionId.TypeId, testId.InstanceId);
@@ -179,8 +175,7 @@ public abstract class VersioningTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var invocations = new SyncedList<Person>();

@@ -27,8 +27,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(
@@ -61,8 +60,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(
@@ -98,8 +96,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(
@@ -139,8 +136,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(
@@ -182,8 +178,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(
@@ -219,8 +214,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(
@@ -268,8 +262,7 @@ public abstract class MessagessTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         using var messages = new Messages(

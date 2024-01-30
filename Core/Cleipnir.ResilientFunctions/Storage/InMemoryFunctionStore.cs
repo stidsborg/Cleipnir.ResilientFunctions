@@ -44,8 +44,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredScrapbook storedScrapbook,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo)
+        long timestamp)
     {
         lock (_sync)
         {
@@ -63,8 +62,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Result = new StoredResult(ResultJson: null, ResultType: null),
                 PostponeUntil = postponeUntil,
                 LeaseExpiration = leaseExpiration,
-                Timestamp = timestamp,
-                SendResultTo = sendResultTo
+                Timestamp = timestamp
             };
             _messages[functionId] = new List<StoredMessage>();
 
@@ -343,8 +341,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.PostponeUntil,
                     state.Epoch,
                     state.LeaseExpiration,
-                    state.Timestamp,
-                    state.SendResultTo
+                    state.Timestamp
                 )
                 .ToNullable()
                 .ToTask();
@@ -389,7 +386,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public int Epoch { get; set; }
         public long LeaseExpiration { get; set; }
         public long Timestamp { get; set; }
-        public FunctionId? SendResultTo { get; set; }
     }
     #endregion
     

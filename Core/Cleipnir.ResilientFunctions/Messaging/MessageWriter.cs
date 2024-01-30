@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -42,7 +43,17 @@ public class MessageWriter
 
         var (status, epoch) = statusAndEpoch;
         if (status == Status.Suspended || status == Status.Postponed)
-            await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
+        {
+            try
+            {
+                await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
+            }
+            catch (UnexpectedFunctionState)
+            {
+
+            }
+        }
+            
     }
     
     public async Task AppendMessage(MessageAndIdempotencyKey messageAndIdempotency)
@@ -65,7 +76,7 @@ public class MessageWriter
             await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     }
 
-    public async Task AppendEvents(IEnumerable<MessageAndIdempotencyKey> events)
+    public async Task AppendMessages(IEnumerable<MessageAndIdempotencyKey> events)
     {
         var (status, epoch) = await _messageStore.AppendMessages(
             _functionId,

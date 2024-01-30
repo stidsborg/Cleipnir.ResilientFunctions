@@ -25,13 +25,12 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
-        const string msg1 = "hello world";
-        const string msg2 = "hello universe";
+        const string msg1 = "";
+        const string msg2 = "";
 
         await messageStore.AppendMessage(
             functionId,
@@ -64,8 +63,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -105,8 +103,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -151,8 +148,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -197,8 +193,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -243,8 +238,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -277,8 +271,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -305,8 +298,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
         
@@ -326,8 +318,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -373,8 +364,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -419,8 +409,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -455,8 +444,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -479,8 +467,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
         var events = await messageStore.GetMessages(functionId);
@@ -498,8 +485,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -547,8 +533,7 @@ public abstract class MessageStoreTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 

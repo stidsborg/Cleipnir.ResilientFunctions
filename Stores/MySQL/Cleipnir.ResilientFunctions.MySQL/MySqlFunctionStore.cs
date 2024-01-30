@@ -58,7 +58,6 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL,
                 lease_expiration BIGINT NOT NULL,
                 timestamp BIGINT NOT NULL,
-                send_result_to VARCHAR(255) NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
             );";
@@ -97,17 +96,16 @@ public class MySqlFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo)
+        long timestamp)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         var sql = @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until, timestamp, send_result_to)
+                (function_type_id, function_instance_id, param_json, param_type, scrapbook_json, scrapbook_type, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
-                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?, ?, ?)";
+                (?, ?, ?, ?, ?, ?, {(int) status}, 0, ?, ?, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -120,8 +118,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedScrapbook.ScrapbookType},
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil},
-                new() {Value = timestamp},
-                new() {Value = sendResultTo.SerializeToJsonArray()}
+                new() {Value = timestamp}
             }
         };
 
@@ -148,8 +145,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp,
-                send_result_to
+                timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
 
@@ -182,7 +178,7 @@ public class MySqlFunctionStore : IFunctionStore
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET lease_expiration = ?
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?";
+            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -224,7 +220,7 @@ public class MySqlFunctionStore : IFunctionStore
             var expiration = reader.GetInt64(2);
             functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, expiration));
         }
-
+        
         return functions;
     }
 
@@ -253,7 +249,7 @@ public class MySqlFunctionStore : IFunctionStore
             var postponedUntil = reader.GetInt64(2);
             functions.Add(new StoredPostponedFunction(functionInstanceId, epoch, postponedUntil));
         }
-
+        
         return functions;
     }
 
@@ -431,26 +427,35 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+        
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, scrapbook_json = ?, timestamp = ?, epoch = ?
+            SET status = {(int)Status.Postponed}
+            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
+
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Suspended}, scrapbook_json = ?, timestamp = ?
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ? AND
                 (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = ? AND function_instance_id = ?) = ?";
 
-        await using var command = new MySqlCommand(sql, conn, transaction)
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = scrapbookJson },
-                new() { Value = timestamp },
-                new() { Value = expectedEpoch },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
+                
+                new() { Value = scrapbookJson },
+                new() { Value = timestamp },
+                
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+                
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedMessageCount },
@@ -458,9 +463,8 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         var affectedRows = await command.ExecuteNonQueryAsync();
-        await transaction.CommitAsync();
 
-        if (affectedRows == 1)
+        if (affectedRows == 2)
             return true;
 
         var sf = await GetFunction(functionId);
@@ -548,8 +552,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp,
-                send_result_to
+                timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(sql, conn)
@@ -570,7 +573,6 @@ public class MySqlFunctionStore : IFunctionStore
         {
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasError = !await reader.IsDBNullAsync(7);
-            var hasSendResultTo = !await reader.IsDBNullAsync(12);
             var storedException = hasError
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(7))
                 : null;
@@ -588,8 +590,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
                 LeaseExpiration: reader.GetInt64(10),
-                Timestamp: reader.GetInt64(11),
-                SendResultTo: hasSendResultTo ? reader.GetString(12).DeserializeToFunctionId() : default
+                Timestamp: reader.GetInt64(11)
             );
         }
 

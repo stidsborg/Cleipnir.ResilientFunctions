@@ -125,13 +125,19 @@ public class PostgreSqlMessageStore : IMessageStore
         }
         catch (PostgresException e) when (e.SqlState == "23505")
         {
+            if (e.ConstraintName?.EndsWith("_pkey") == true)
+            {
+                await Task.Delay(Random.Shared.Next(10, 250));
+                conn.Dispose();
+                return await AppendMessage(functionId, storedMessage);
+            }
             //read status separately
             return await GetSuspensionStatus(functionId);
         } //ignore entry already exist error
         
         throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
     }
-
+    
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
         => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
     

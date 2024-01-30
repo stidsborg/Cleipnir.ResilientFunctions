@@ -23,8 +23,7 @@ public abstract class EventSubscriptionTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var messageStore = functionStore.MessageStore;
 
@@ -86,8 +85,7 @@ public abstract class EventSubscriptionTests
             Test.SimpleStoredScrapbook, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         
         var storedEvent1 = new StoredMessage(

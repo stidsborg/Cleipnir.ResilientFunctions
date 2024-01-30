@@ -67,7 +67,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL DEFAULT 0,
                 lease_expiration BIGINT NOT NULL,
                 timestamp BIGINT NOT NULL,
-                send_result_to VARCHAR(255) NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_executing
@@ -115,16 +114,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo)
+        long timestamp)
     {
         await using var conn = await CreateConnection();
         
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, status, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration, postponed_until, timestamp, send_result_to)
+                (function_type_id, function_instance_id, status, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration, postponed_until, timestamp)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -139,8 +137,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedScrapbook.ScrapbookType},
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil == null ? DBNull.Value : postponeUntil.Value},
-                new() {Value = timestamp},
-                new() {Value = sendResultTo == null ? DBNull.Value : sendResultTo.SerializeToJsonArray()},
+                new() {Value = timestamp}
             }
         };
 
@@ -168,8 +165,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp,
-                send_result_to";
+                timestamp";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -573,8 +569,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                timestamp,
-                send_result_to
+                timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -596,7 +591,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(6);
             var hasException = !await reader.IsDBNullAsync(7);
             var postponedUntil = !await reader.IsDBNullAsync(8);
-            var hasSendResultTo = !await reader.IsDBNullAsync(12);
             
             return new StoredFunction(
                 functionId,
@@ -611,8 +605,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
                 LeaseExpiration: reader.GetInt64(10),
-                Timestamp: reader.GetInt64(11),
-                SendResultTo: hasSendResultTo ? reader.GetString(12).DeserializeToFunctionId() : default
+                Timestamp: reader.GetInt64(11)
             );
         }
 

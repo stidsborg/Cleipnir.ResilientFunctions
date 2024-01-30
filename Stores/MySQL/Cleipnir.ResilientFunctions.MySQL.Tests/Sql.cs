@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -17,7 +16,7 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
         {
             ConnectionString = 
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.MySQL.Tests.ConnectionString")
-                ?? @"server=localhost;userid=root;password=Pa55word!;database=rfunctions_tests;SSL Mode=None";
+                ?? "server=localhost;userid=root;password=Pa55word!;database=rfunctions_tests;SSL Mode=None";
             ConnFunc = async () =>
             {
                 var conn = new MySqlConnection(ConnectionString);

@@ -25,6 +25,6 @@ public class MessagingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RF
         );
 
     [TestMethod]
-    public override Task ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId()
-        => ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
+    public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
+        => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
 }

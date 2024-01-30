@@ -1,16 +1,27 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace ConsoleApp.WorkDistribution;
 
+public record ProcessOrderRequest(string OrderId, FunctionId SendResultTo);
+
 public static class ProcessOrder
 {
-    public static async Task<string> Execute(string orderId)
+    public static async Task Execute(ProcessOrderRequest request, Context context)
     {
+        var (orderId, sendResultTo) = request;
         await ReserveFunds(orderId);
         var trackingNumber = await ShipOrder(orderId);
         await CaptureFunds(orderId);
-        return trackingNumber;
+
+        await context.PublishMessage(
+            sendResultTo,
+            new FunctionCompletion<string>(trackingNumber, context.FunctionId),
+            idempotencyKey: context.FunctionId.ToString()
+        );
     }
 
     private static async Task ReserveFunds(string orderId)

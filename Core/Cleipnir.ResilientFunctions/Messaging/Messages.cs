@@ -49,7 +49,7 @@ public class Messages : IReactiveChain<object>, IDisposable
 
     public async Task AppendMessages(IEnumerable<MessageAndIdempotencyKey> events)
     {
-        await _messageWriter.AppendEvents(events);
+        await _messageWriter.AppendMessages(events);
         await Sync();
     }
 

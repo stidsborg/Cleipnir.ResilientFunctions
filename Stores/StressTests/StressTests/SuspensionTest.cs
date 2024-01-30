@@ -39,8 +39,7 @@ public class SuspensionTest
                 storedScrapbook,
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             );
             await store.SuspendFunction(
                 functionId,
@@ -48,7 +47,7 @@ public class SuspensionTest
                 scrapbookJson: new RScrapbook().ToJson(),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0, SendResultTo: null)
+                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0)
             );
 
             await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());

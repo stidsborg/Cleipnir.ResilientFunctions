@@ -39,8 +39,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId, 
         TParam param, 
         TScrapbook scrapbook,
-        DateTime? scheduleAt,
-        FunctionId? sendResultTo)
+        DateTime? scheduleAt)
     {
         ArgumentNullException.ThrowIfNull(param);
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
@@ -56,8 +55,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 storedScrapbook,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
-                timestamp: utcNowTicks,
-                sendResultTo: sendResultTo
+                timestamp: utcNowTicks
             );
 
             if (!created) runningFunction.Dispose();
@@ -70,7 +68,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult(FunctionId functionId, bool allowPostponeAndSuspended) 
+    public async Task<TReturn> WaitForFunctionResult(FunctionId functionId, bool allowPostponedAndSuspended) 
     {
         while (true)
         {
@@ -92,13 +90,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
                     throw new PreviousFunctionInvocationException(functionId, error);
                 case Status.Postponed:
-                    if (allowPostponeAndSuspended) { await Task.Delay(250); continue;}
+                    if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new FunctionInvocationPostponedException(
                         functionId,
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 case Status.Suspended:
-                    if (allowPostponeAndSuspended) { await Task.Delay(250); continue; }
+                    if (allowPostponedAndSuspended) { await Task.Delay(250); continue; }
                     throw new FunctionInvocationSuspendedException(functionId);
                 default:
                     throw new ArgumentOutOfRangeException(); 
@@ -106,10 +104,10 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, FunctionId? sendResultTo = null) 
-        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks, sendResultTo));
+    public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
+        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks));
 
-    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long leaseLength, FunctionId? sendResultTo)
+    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long leaseLength)
     {
         var storedParameter = Serializer.SerializeParameter(param);
         var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
@@ -118,7 +116,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, leaseLength, sendResultTo) 
+            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, leaseLength) 
         );
 
         if (!success)
@@ -128,7 +126,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             );
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, FunctionId? sendResultTo, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
         var storedScrapbook = serializer.SerializeScrapbook(scrapbook);
@@ -143,8 +141,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             complimentaryState: new ComplimentaryState(
                 () => serializer.SerializeParameter(param), 
                 () => storedScrapbook, 
-                _settings.LeaseLength.Ticks, 
-                sendResultTo
+                _settings.LeaseLength.Ticks
             )
         );
         if (!success) 
@@ -156,15 +153,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         Result<TReturn> result,
         TParam param,
         TScrapbook scrapbook,
-        FunctionId? sendResultTo,
         int expectedEpoch)
     {
         var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
         var complementaryState = new ComplimentaryState(
             () => Serializer.SerializeParameter(param),
             () => storedScrapbook,
-            _settings.LeaseLength.Ticks, 
-            sendResultTo
+            _settings.LeaseLength.Ticks
         );
         switch (result.Outcome)
         {
@@ -268,9 +263,9 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 sf.Scrapbook.ScrapbookJson,
                 sf.Scrapbook.ScrapbookType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, sf.Epoch, _settings.LeaseLength.Ticks, sf.SendResultTo));
+            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, sf.Epoch, _settings.LeaseLength.Ticks));
             
-            return new PreparedReInvocation(param, sf.Epoch, scrapbook, runningFunction, sf.SendResultTo);
+            return new PreparedReInvocation(param, sf.Epoch, scrapbook, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -285,8 +280,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 complimentaryState: new ComplimentaryState(
     () => sf.Parameter, 
     () => sf.Scrapbook, 
-                    _settings.LeaseLength.Ticks, 
-                    sf.SendResultTo
+                    _settings.LeaseLength.Ticks
                 )
             );
             throw;
@@ -298,7 +292,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction, FunctionId? SendResultTo);
+    internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);

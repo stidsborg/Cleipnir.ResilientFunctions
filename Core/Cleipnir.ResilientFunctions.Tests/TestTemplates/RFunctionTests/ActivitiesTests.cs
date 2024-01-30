@@ -265,8 +265,7 @@ public abstract class ActivitiesTests
             Test.SimpleStoredScrapbook,
             leaseExpiration: (DateTime.Now + TimeSpan.FromMinutes(1)).Ticks,
             postponeUntil: null,
-            timestamp: DateTime.Now.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.Now.Ticks
         );
         
         var registration = rFunctions.RegisterAction(

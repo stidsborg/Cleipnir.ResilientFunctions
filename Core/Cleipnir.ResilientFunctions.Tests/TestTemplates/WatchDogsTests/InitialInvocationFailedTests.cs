@@ -22,8 +22,7 @@ public abstract class InitialInvocationFailedTests
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
 
         var flag = new SyncedFlag();
@@ -51,8 +50,7 @@ public abstract class InitialInvocationFailedTests
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
 
         var flag = new SyncedFlag();
@@ -83,8 +81,7 @@ public abstract class InitialInvocationFailedTests
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
 
         var flag = new SyncedFlag();
@@ -118,8 +115,7 @@ public abstract class InitialInvocationFailedTests
             new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
 
         var flag = new SyncedFlag();

@@ -34,8 +34,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration,
             postponeUntil: null,
-            timestamp,
-            sendResultTo: null
+            timestamp
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => 
@@ -71,7 +70,7 @@ public abstract class StoreTests
             scrapbookJson: new RScrapbook().ToJson(),
             expectedEpoch: 0,
             timestamp: DateTime.UtcNow.Ticks,
-            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0)
         ).ShouldBeTrueAsync();
             
         storedFunction = await store.GetFunction(functionId);
@@ -95,8 +94,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store
@@ -137,8 +135,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(
@@ -176,8 +173,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
@@ -210,8 +206,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         await store
@@ -242,8 +237,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
@@ -252,8 +246,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeFalseAsync();
     }
     
@@ -273,13 +266,11 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: sendResultToFunctionId
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
-        sf.SendResultTo.ShouldBe(sendResultToFunctionId);
     }
     
     public abstract Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut();
@@ -301,8 +292,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -311,7 +301,7 @@ public abstract class StoreTests
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store
@@ -345,8 +335,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -355,7 +344,7 @@ public abstract class StoreTests
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store
@@ -389,8 +378,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -399,7 +387,7 @@ public abstract class StoreTests
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -436,8 +424,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
 
         await BusyWait.Until(() => store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).Any());
@@ -461,8 +448,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: 0,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         
         await store.CreateFunction(
@@ -471,8 +457,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: 2,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
 
         await BusyWait.Until(() => store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1).Any());
@@ -496,8 +481,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(functionId, expectedEpoch: 0, DateTime.UtcNow.Ticks).ShouldNotBeNullAsync();
@@ -519,8 +503,7 @@ public abstract class StoreTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(functionId, expectedEpoch: 1, leaseExpiration: DateTime.UtcNow.Ticks).ShouldBeNullAsync();
@@ -544,8 +527,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         storedScrapbook = storedScrapbook with { ScrapbookJson = new Scrapbook() { State = "completed" }.ToJson()};
@@ -553,7 +535,7 @@ public abstract class StoreTests
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(functionId);
@@ -577,8 +559,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         storedScrapbook = storedScrapbook with { ScrapbookJson = new Scrapbook() { State = "completed" }.ToJson()};
@@ -586,7 +567,7 @@ public abstract class StoreTests
             functionId,
             storedScrapbook.ScrapbookJson,
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
         
         var sf = await store.GetFunction(functionId);
@@ -615,8 +596,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -641,8 +621,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -670,8 +649,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var storedException = new StoredException(
@@ -686,7 +664,7 @@ public abstract class StoreTests
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         );
         
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -716,8 +694,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -755,8 +732,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         var message1 = new StoredMessage(
@@ -826,8 +802,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -836,7 +811,7 @@ public abstract class StoreTests
             storedScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeAsync(true);
 
         var sf = await store.GetFunction(functionId);
@@ -874,8 +849,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(
@@ -904,8 +878,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessages(
@@ -936,8 +909,7 @@ public abstract class StoreTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -970,8 +942,7 @@ public abstract class StoreTests
             storedScrapbook: Test.SimpleStoredScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SucceedFunction(
@@ -980,7 +951,7 @@ public abstract class StoreTests
             Test.SimpleStoredScrapbook.ScrapbookJson,
             DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1000,8 +971,7 @@ public abstract class StoreTests
             storedScrapbook: Test.SimpleStoredScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -1010,7 +980,7 @@ public abstract class StoreTests
             Test.SimpleStoredScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1030,8 +1000,7 @@ public abstract class StoreTests
             storedScrapbook: Test.SimpleStoredScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.FailFunction(
@@ -1040,7 +1009,7 @@ public abstract class StoreTests
             Test.SimpleStoredScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1060,8 +1029,7 @@ public abstract class StoreTests
             storedScrapbook: Test.SimpleStoredScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -1070,7 +1038,7 @@ public abstract class StoreTests
             Test.SimpleStoredScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1090,8 +1058,7 @@ public abstract class StoreTests
             storedScrapbook: Test.SimpleStoredScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessage(functionId, messageJson: "hello world".ToJson(), messageType: typeof(string).SimpleQualifiedName());
@@ -1102,7 +1069,7 @@ public abstract class StoreTests
             Test.SimpleStoredScrapbook.ScrapbookJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredScrapbook.ToFunc(), LeaseLength: 0)
         );
         
         success.ShouldBeTrue();

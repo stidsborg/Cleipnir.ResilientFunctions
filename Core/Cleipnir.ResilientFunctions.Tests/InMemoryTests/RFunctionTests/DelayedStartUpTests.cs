@@ -25,8 +25,7 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -55,8 +54,7 @@ public class DelayedStartUpTests
             new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -83,8 +81,7 @@ public class DelayedStartUpTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
             functionId,
@@ -92,7 +89,7 @@ public class DelayedStartUpTests
             scrapbookJson: new RScrapbook().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var stopWatch = new Stopwatch();
@@ -124,8 +121,7 @@ public class DelayedStartUpTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
             functionId,
@@ -133,7 +129,7 @@ public class DelayedStartUpTests
             scrapbookJson: new RScrapbook().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         );
 
         var stopWatch = new Stopwatch();

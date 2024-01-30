@@ -12,7 +12,7 @@ public class OrderProcessor
 
     public OrderProcessor(MessageBroker messageBroker) => _messageBroker = messageBroker;
 
-    public async Task ProcessOrder(Order order, Scrapbook scrapbook, Context context)
+    public async Task Execute(Order order, Scrapbook scrapbook, Context context)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
         using var messages = context.Messages;

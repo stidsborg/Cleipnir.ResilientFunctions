@@ -7,13 +7,16 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class Context : IDisposable
 {
+    private readonly Func<FunctionId, MessageWriter> _messageWriterFunc;
+    
     public FunctionId FunctionId { get; }
     public Messages Messages { get; }
     public Activities Activities { get; }
     public Utilities Utilities { get; }
     
-    public Context(FunctionId functionId, Messages messages, Activities activities, Utilities utilities)
+    public Context(FunctionId functionId, Messages messages, Activities activities, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
     {
+        _messageWriterFunc = messageWriterFunc;
         FunctionId = functionId;
         Utilities = utilities;
         Messages = messages;
@@ -28,37 +31,9 @@ public class Context : IDisposable
     
     public void Dispose() => Messages.Dispose();
 
-    #region StartChild Methods
-
-    public Task<TReturn> StartChild<TParam, TScrapbook, TReturn>(
-        FuncRegistration<TParam, TScrapbook, TReturn> registration,
-        string instanceId,
-        TParam param
-    ) where TScrapbook : RScrapbook, new() where TParam : notnull
-        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
-    
-    public Task<TReturn> StartChild<TParam, TReturn>(
-        FuncRegistration<TParam, TReturn> registration,
-        string instanceId,
-        TParam param
-    ) where TParam : notnull
-        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
-    
-    public Task StartChild<TParam>(
-        ActionRegistration<TParam> registration,
-        string instanceId,
-        TParam param
-    ) where TParam : notnull
-        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
-    
-    public Task StartChild<TParam, TScrapbook>(
-        RAction<TParam, TScrapbook> registration,
-        string instanceId,
-        TParam param,
-        FunctionId parentId,
-        Messages messages
-    ) where TScrapbook : RScrapbook, new() where TParam : notnull
-        => ChildInvocation.StartChild(registration, instanceId, param, parentId: FunctionId, Messages);
-
-    #endregion
+    public async Task PublishMessage<T>(FunctionId receiver, T message, string? idempotencyKey) where T : notnull
+    {
+        var messageWriter = _messageWriterFunc(receiver);
+        await messageWriter.AppendMessage(message, idempotencyKey);
+    }
 }

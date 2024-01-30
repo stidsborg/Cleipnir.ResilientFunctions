@@ -29,9 +29,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo
-    ) => _inner.CreateFunction(functionId, param, storedScrapbook, leaseExpiration, postponeUntil, timestamp, sendResultTo);
+        long timestamp
+    ) => _inner.CreateFunction(functionId, param, storedScrapbook, leaseExpiration, postponeUntil, timestamp);
     
     public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);

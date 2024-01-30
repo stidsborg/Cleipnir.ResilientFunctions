@@ -14,7 +14,7 @@ public static class Do
         var orderProcessor = new OrderProcessor(messageBroker);
         var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.Scrapbook>(
             "OrderProcessorMessaging",
-            orderProcessor.ProcessOrder
+            orderProcessor.Execute
         );        
         
         messageBroker.Subscribe(async msg =>

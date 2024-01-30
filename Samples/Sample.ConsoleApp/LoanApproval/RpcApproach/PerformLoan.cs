@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Reactive;
-using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ConsoleApp.LoanApproval.RpcApproach;
 
-public static class Saga
+public static class PerformLoan
 {
     private static CreditChecker1 CreditChecker1 { get; } = new();
     private static CreditChecker2 CreditChecker2 { get; } = new();
     private static CreditChecker3 CreditChecker3 { get; } = new();
     
-    public static async Task<bool> ApproveLoan(LoanApplication loanApplication)
+    public static async Task<bool> Execute(LoanApplication loanApplication)
     {
         var fraudDetector1 = CreditChecker1.Approve(loanApplication);
         var fraudDetector2 = CreditChecker2.Approve(loanApplication);

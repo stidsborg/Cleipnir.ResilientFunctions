@@ -281,25 +281,42 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
-        var childFunctionId = new FunctionId($"ChildFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var child = rFunctions.RegisterFunc(
-            childFunctionId.TypeId,
-            inner: string (string param) => param
+        var child = rFunctions.RegisterAction(
+            $"ChildFunction{Guid.NewGuid()}",
+            inner: async Task (string param, Context context) =>
+            {
+                await context.PublishMessage(parentFunctionId, param.ToUpper(), context.FunctionId.ToString());
+            }
         );
 
         var parent = rFunctions.RegisterFunc(
             parentFunctionId.TypeId,
             async Task<string> (string param, Context context) =>
             {
-                var childrenTasks = param.Split(" ")
-                    .Select((word, i) => context.StartChild(child, $"Child#{i}", word));
-                
-                var results = await Task.WhenAll(childrenTasks);
-                return string.Join(" ", results);
+                var words = param.Split(" ");
+                await Task.WhenAll(
+                    words.Select((word, i) => child.Schedule($"Child#{i}", $"{i}_{word}"))
+                );
+
+                var replies = await context
+                    .Messages
+                    .OfType<string>()
+                    .Take(words.Length)
+                    .SuspendUntilToList();
+
+                var wordsList = replies
+                    .Select(word =>
+                    {
+                        var split = word.Split("_");
+                        return new { Position = int.Parse(split[0]), Word = split[1] };
+                    })
+                    .OrderBy(a => a.Position)
+                    .Select(a => a.Word);
+                return string.Join(" ", wordsList);
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
@@ -315,7 +332,7 @@ public abstract class SuspensionTests
             return controlPanel.Status == Status.Succeeded;
         });
 
-        controlPanel.Result.ShouldBe("hello world and universe");
+        controlPanel.Result.ShouldBe("hello world and universe".ToUpper());
     }
     
     public abstract Task StartedChildActionInvocationPublishesResultSuccessfully();
@@ -323,23 +340,30 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
-        var childFunctionId = new FunctionId($"ChildFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var child = rFunctions.RegisterAction(
-            childFunctionId.TypeId,
-            inner: (string param) => {}
+            $"ChildFunction{Guid.NewGuid()}",
+            inner: (string param, Context context) =>
+                context.PublishMessage(
+                    parentFunctionId,
+                    message: "",
+                    idempotencyKey: null
+                )
         );
 
         var parent = rFunctions.RegisterAction(
             parentFunctionId.TypeId,
             inner: async Task (string param, Context context) =>
             {
-                var child1 = context.StartChild(child, "SomeChildInstance#1", "hallo world");
-                var child2 = context.StartChild(child, "SomeChildInstance#2", "hallo world");
-                await Task.WhenAll(child1, child2);
+                await child.Schedule("SomeChildInstance#1", "hallo world");
+                await child.Schedule("SomeChildInstance#2", "hallo world");
+
+                await Task.Delay(1_000);
+                
+                await context.Messages.Take(2).SuspendUntilCompletion();
             }
         );
 

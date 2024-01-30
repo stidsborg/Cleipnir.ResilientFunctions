@@ -31,8 +31,7 @@ public class CrashableFunctionStore : IFunctionStore
         StoredScrapbook storedScrapbook,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo
+        long timestamp
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
@@ -41,8 +40,7 @@ public class CrashableFunctionStore : IFunctionStore
             storedScrapbook,
             leaseExpiration,
             postponeUntil,
-            timestamp,
-            sendResultTo
+            timestamp
         );
     
     public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)

@@ -1,8 +1,4 @@
 ﻿using Cleipnir.ResilientFunctions;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.PostgreSQL;
-using Cleipnir.ResilientFunctions.Storage;
-using Serilog;
 
 namespace Sample.OrderProcessing.Rpc;
 
@@ -17,7 +13,7 @@ public static class Do
         );
         var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.Scrapbook>(
             "OrderProcessorRpc",
-            orderProcessor.ProcessOrder
+            orderProcessor.Execute
         );
 
         var order = new Order(

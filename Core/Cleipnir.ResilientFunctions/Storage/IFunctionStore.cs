@@ -20,8 +20,7 @@ public interface IFunctionStore
         StoredScrapbook storedScrapbook,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo
+        long timestamp
     );
     
     Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration);

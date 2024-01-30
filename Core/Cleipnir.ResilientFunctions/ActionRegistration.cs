@@ -16,16 +16,14 @@ public static class ActionRegistration
     public delegate Task Schedule<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null,
-        FunctionId? sendResultTo = null
+        TScrapbook? scrapbook = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
     
     public delegate Task ScheduleAt<in TParam, TScrapbook>(
         string functionInstanceId, 
         TParam param,
         DateTime delayUntil,
-        TScrapbook? scrapbook = null,
-        FunctionId? sendResultTo = null
+        TScrapbook? scrapbook = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new();
 }
 

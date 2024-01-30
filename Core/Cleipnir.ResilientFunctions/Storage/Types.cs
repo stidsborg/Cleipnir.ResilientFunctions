@@ -13,8 +13,7 @@ public record StoredFunction(
     long? PostponedUntil,
     int Epoch,
     long LeaseExpiration,
-    long Timestamp,
-    FunctionId? SendResultTo
+    long Timestamp
 );
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, long LeaseExpiration);

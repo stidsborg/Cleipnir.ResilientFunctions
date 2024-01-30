@@ -18,10 +18,10 @@ public static class Example
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
 
-        var rFunc = functions
+        var approveLoanFunc = functions
             .RegisterFunc<LoanApplication, bool>(
                 "LoanApproval",
-                RpcApproach.Saga.ApproveLoan
+                RpcApproach.PerformLoan.Execute
             ).Invoke;
 
         var transaction = new LoanApplication(
@@ -31,7 +31,7 @@ public static class Example
             Created: DateTime.UtcNow
         );
         
-        var transactionApproved = await rFunc(
+        var transactionApproved = await approveLoanFunc(
             transaction.Id,
             transaction
         );
@@ -55,7 +55,7 @@ public static class Example
         var registration = functions
             .RegisterAction<LoanApplication>(
                 functionTypeId: "LoanApproval",
-                Saga.ApproveLoan
+                ApproveLoan.Execute
             );
         var rFunc = registration.Invoke;
 

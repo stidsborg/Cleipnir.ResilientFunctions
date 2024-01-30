@@ -29,8 +29,7 @@ public static class CrashedTest
                 new StoredScrapbook(JsonSerializer.Serialize(new RScrapbook()), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             );
         }
         

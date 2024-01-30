@@ -124,8 +124,8 @@ public abstract class MessagingTests
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId();
-    public async Task ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId(Task<IFunctionStore> functionStore)
+    public abstract Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId();
+    public async Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId(Task<IFunctionStore> functionStore)
     {
         var store = await functionStore;
 
@@ -135,17 +135,17 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var child = rFunctions.RegisterFunc(
+        var child = rFunctions.RegisterAction(
             childFunctionId.TypeId,
-            inner: string (string _, Context _) => "hallo world"
+            inner: Task (string _, Context context) => context.PublishMessage(parentFunctionId, "hello world", idempotencyKey: null)
         );
 
         var parent = rFunctions.RegisterFunc(
             parentFunctionId.TypeId,
-            inner: async Task<FunctionCompletion<string>> (string _, Context context) =>
+            inner: async Task<string> (string _, Context context) =>
             {
-                await child.Schedule(childFunctionId.InstanceId.Value, param: "stuff", sendResultTo: context.FunctionId);
-                return await context.Messages.SuspendUntilFirstOfType<FunctionCompletion<string>>();
+                await child.Schedule(childFunctionId.InstanceId.Value, param: "stuff");
+                return await context.Messages.SuspendUntilFirstOfType<string>();
             }
         );
         
@@ -164,8 +164,7 @@ public abstract class MessagingTests
         
         controlPanel.Result.ShouldNotBeNull();
         var functionCompletion = controlPanel.Result;
-        functionCompletion.Sender.ShouldBe(childFunctionId);
-        functionCompletion.Result.ShouldBe("hallo world");
+        functionCompletion.ShouldBe("hello world");
         
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }

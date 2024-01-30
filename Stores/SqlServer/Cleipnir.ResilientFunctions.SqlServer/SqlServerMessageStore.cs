@@ -64,7 +64,7 @@ public class SqlServerMessageStore : IMessageStore
     public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+        
         var sql = @$"    
             INSERT INTO {_tablePrefix}RFunctions_Messages
                 (FunctionTypeId, FunctionInstanceId, Position, MessageJson, MessageType, IdempotencyKey)
@@ -75,7 +75,7 @@ public class SqlServerMessageStore : IMessageStore
                 @MessageJson, @MessageType, @IdempotencyKey
             );";
         
-        await using var command = new SqlCommand(sql, conn, transaction);
+        await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
@@ -84,9 +84,17 @@ public class SqlServerMessageStore : IMessageStore
         try
         {
             await command.ExecuteNonQueryAsync();
-            await transaction.CommitAsync();
         }
-        catch (SqlException exception) when (exception.Number == 2601) { }
+        catch (SqlException e)
+        {
+            if (e.Number == SqlError.UNIQUENESS_VIOLATION || e.Number == SqlError.UNIQUENESS_INDEX_VIOLATION) return await GetSuspensionStatus(functionId);
+            if (e.Number != SqlError.DEADLOCK_VICTIM) throw;
+
+            //deadlock detected
+            await Task.Delay(Random.Shared.Next(50, 250));
+            conn.Dispose();
+            return await AppendMessage(functionId, storedMessage); 
+        }
         
         return await GetSuspensionStatus(functionId);
     }
@@ -223,13 +231,23 @@ public class SqlServerMessageStore : IMessageStore
         command.Parameters.AddWithValue("@Position", skip);
         
         var storedMessages = new List<StoredMessage>();
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
+        try
         {
-            var messageJson = reader.GetString(0);
-            var messageType = reader.GetString(1);
-            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var messageJson = reader.GetString(0);
+                var messageType = reader.GetString(1);
+                var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
+                storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+            }
+        }
+        catch (SqlException exception)
+        {
+            if (exception.Number != SqlError.UNIQUENESS_VIOLATION && exception.Number != SqlError.DEADLOCK_VICTIM) throw;
+
+            conn.Dispose();
+            return await InnerGetMessages(functionId, skip);
         }
 
         return storedMessages;

@@ -18,6 +18,6 @@ public class MessagingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RF
         => TimeoutEventCausesSuspendedFunctionToBeReInvoked(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId()
-        => ScheduleInvocationWithSendResultToSendsResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
+    public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
+        => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
 }

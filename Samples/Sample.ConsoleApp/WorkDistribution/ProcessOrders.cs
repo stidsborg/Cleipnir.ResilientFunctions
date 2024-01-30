@@ -5,26 +5,38 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.WorkDistribution;
 
 public static class ProcessOrders
 {
-    public static FuncRegistration<string, string>? ProcessOrder { get; set; }
+    public static ActionRegistration<ProcessOrderRequest>? ProcessOrder { get; set; }
     
     public static async Task Execute(List<string> orderIds, Context context)
     {
-        var (activities, _) = context;
+        var (activities, messages) = context;
         await activities.Do(
             "Log_ProcessingStarted",
             () => Console.WriteLine("Processing of orders started")
         );
+
+        await activities.Do(
+            "ScheduleOrders",
+            async () =>
+            {
+                foreach (var orderId in orderIds)
+                    await ProcessOrder!.Schedule(
+                        functionInstanceId: orderId,
+                        new ProcessOrderRequest(orderId, context.FunctionId)
+                    );
+            }
+        );
         
-        var orders = orderIds
-            .Select(orderId => context.StartChild(ProcessOrder!, orderId, orderId))
-            .ToList();
-        
-        await Task.WhenAll(orders);
+        await messages
+            .OfType<FunctionCompletion<string>>()
+            .Take(orderIds.Count)
+            .SuspendUntilCompletion();
 
         await activities.Do(
             "Log_ProcessingFinished",

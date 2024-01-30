@@ -5,9 +5,9 @@ using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.LoanApproval.MessagingApproach;
 
-public static class Saga
+public static class ApproveLoan
 {
-    public static async Task ApproveLoan(LoanApplication loanApplication, Context context)
+    public static async Task Execute(LoanApplication loanApplication, Context context)
     {
         var messages = context.Messages;
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));

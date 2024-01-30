@@ -365,7 +365,8 @@ public class FunctionsRegistry : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                GetMessageWriter
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -513,7 +514,8 @@ public class FunctionsRegistry : IDisposable
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                GetMessageWriter
             );
             
             WatchDogsFactory.CreateAndStart(
@@ -551,7 +553,7 @@ public class FunctionsRegistry : IDisposable
                 registration = _functions[functionId.TypeId];
 
         if (registration == null)
-            throw new ArgumentException($"Cannot create MessageWriter for unregistered function type '{functionId.TypeId}'");
+            throw new ArgumentException($"Cannot create {nameof(MessageWriter)} for unregistered function type '{functionId.TypeId}'");
         
         return (MessageWriter) registration.MessageWriters.For(functionId.InstanceId);
     }

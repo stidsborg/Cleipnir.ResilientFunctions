@@ -38,8 +38,7 @@ public static class PostponedTest
                 storedScrapbook,
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             );
             await store.PostponeFunction(
                 functionId,
@@ -47,7 +46,7 @@ public static class PostponedTest
                 scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0, SendResultTo: null)
+                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0)
             );
         }
         stopWatch.Stop();

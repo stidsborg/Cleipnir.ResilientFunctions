@@ -45,8 +45,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         StoredScrapbook scrapbook, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        FunctionId? sendResultTo)
+        long timestamp)
     {
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
@@ -58,7 +57,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", param.ParamJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbook.ScrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbook.ScrapbookJson },
-                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -297,7 +295,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
-        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complementaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength) = complementaryState;
         var (paramJson, paramType) = storedParamFunc();
         var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         var content = SimpleDictionaryMarshaller.Serialize(
@@ -307,7 +305,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
-                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -372,7 +369,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
 
         var (resultJson, resultType) = result;
-        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength) = complimentaryState;
         var (paramJson, paramType) = storedParamFunc();
         var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         
@@ -385,7 +382,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
                 { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultJson)}", resultJson },
                 { $"{nameof(StoredResult)}.{nameof(StoredResult.ResultType)}", resultType },
-                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -422,7 +418,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
-        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength) = complimentaryState;
         var (paramJson, paramType) = storedParamFunc();
         var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         
@@ -433,7 +429,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
-                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -470,7 +465,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
-        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength) = complimentaryState;
         var (paramJson, paramType) = storedParamFunc();
         var (scrapbookJson, scrapbookType) = storedScrapbookFunc();
         
@@ -485,7 +480,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}", exceptionMessage },
                 { $"{nameof(StoredException)}.{nameof(StoredException.ExceptionStackTrace)}", exceptionStackTrace },
                 { $"{nameof(StoredException)}.{nameof(StoredException.ExceptionType)}", exceptionType },
-                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -544,7 +538,7 @@ public class AzureBlobFunctionStore : IFunctionStore
         var blobName = functionId.GetStateBlobName();
         var blobClient = _blobContainerClient.GetBlobClient(blobName);
         
-        var (storedParamFunc, storedScrapbookFunc, leaseLength, sendResultTo) = complimentaryState;
+        var (storedParamFunc, storedScrapbookFunc, leaseLength) = complimentaryState;
         var (paramJson, paramType) = storedParamFunc();
         var (_, scrapbookType) = storedScrapbookFunc();
         
@@ -555,7 +549,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 { $"{nameof(StoredParameter)}.{nameof(StoredParameter.ParamJson)}", paramJson },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookType)}", scrapbookType },
                 { $"{nameof(StoredScrapbook)}.{nameof(StoredScrapbook.ScrapbookJson)}", scrapbookJson },
-                { "SendResultTo", sendResultTo?.SerializeToJsonArray() },
             }
         );
 
@@ -655,9 +648,6 @@ public class AzureBlobFunctionStore : IFunctionStore
                 ? dictionary[$"{nameof(StoredResult)}.{nameof(StoredResult.ResultType)}"]
                 : null
         );
-        var sendResultTo = dictionary.ContainsKey("SendResultTo")
-            ? dictionary["SendResultTo"].DeserializeToFunctionId()
-            : null;
         
         StoredException? storedException = default;
         if (dictionary.ContainsKey($"{nameof(StoredException)}.{nameof(StoredException.ExceptionMessage)}"))
@@ -683,8 +673,7 @@ public class AzureBlobFunctionStore : IFunctionStore
             PostponedUntil: rfTags.PostponedUntil,
             Epoch: rfTags.Epoch,
             LeaseExpiration: rfTags.LeaseExpiration,
-            Timestamp: rfTags.Timestamp,
-            SendResultTo: sendResultTo
+            Timestamp: rfTags.Timestamp
         );
     }
 

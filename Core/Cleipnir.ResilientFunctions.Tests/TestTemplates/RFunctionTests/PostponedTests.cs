@@ -329,8 +329,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -352,8 +351,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanel(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -418,8 +416,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
@@ -441,8 +438,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanel(functionId.InstanceId).Result!.ScheduleReInvoke();
@@ -511,8 +507,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
             Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
@@ -532,8 +527,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
@@ -601,8 +595,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
@@ -623,8 +616,7 @@ public abstract class PostponedTests
                 new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                sendResultTo: null
+                timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
@@ -660,8 +652,7 @@ public abstract class PostponedTests
             storedScrapbook,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            sendResultTo: null
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -670,7 +661,7 @@ public abstract class PostponedTests
             scrapbookJson: new RScrapbook().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0, SendResultTo: null)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         using var rFunctions = new FunctionsRegistry(
