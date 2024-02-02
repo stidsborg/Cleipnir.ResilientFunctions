@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -784,5 +785,31 @@ public abstract class PostponedTests
         flag.IsRaised.ShouldBeTrue();
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+    public abstract Task ContextDelayInvocationDelaysFunction();
+    protected async Task ContextDelayInvocationDelaysFunction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var rFunctions = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                leaseLength: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
+            )
+        );
+        var rFunc = rFunctions
+            .RegisterFunc(
+                functionId.TypeId,
+                (string _, Context context) => context.Delay("Delay", TimeSpan.FromDays(1)));
+
+        await Should.ThrowAsync<PostponeInvocationException>(
+            () => rFunc.Invoke(functionId.InstanceId.Value, "test")
+        );
     }
 }

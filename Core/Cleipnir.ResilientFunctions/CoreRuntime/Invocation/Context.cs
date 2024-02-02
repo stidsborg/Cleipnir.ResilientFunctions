@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -36,4 +37,13 @@ public class Context : IDisposable
         var messageWriter = _messageWriterFunc(receiver);
         await messageWriter.AppendMessage(message, idempotencyKey);
     }
+
+    public async Task Delay(string activityId, TimeSpan @for)
+    {
+        var expiry = await Activities.Do(activityId, () => DateTime.UtcNow + @for);
+        if (expiry <= DateTime.UtcNow)
+            return;
+
+        throw new PostponeInvocationException(expiry);
+    } 
 }

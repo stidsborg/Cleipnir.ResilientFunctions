@@ -53,4 +53,8 @@ public class PostponedTests : TestTemplates.RFunctionTests.PostponedTests
     [TestMethod]
     public override Task ScheduleAtFuncIsCompletedAfterDelay()
         => ScheduleAtActionIsCompletedAfterDelay(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ContextDelayInvocationDelaysFunction()
+        => ContextDelayInvocationDelaysFunction(FunctionStoreFactory.Create());
 }
