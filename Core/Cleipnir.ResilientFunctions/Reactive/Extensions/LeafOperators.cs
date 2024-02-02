@@ -159,6 +159,11 @@ public static class LeafOperators
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().First();
 
+    public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt)
+        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
+    public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, TimeSpan expiresIn)
+        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresIn).FirstOrNone();
+
     public static Task<T> FirstOf<T>(this IReactiveChain<object> s) => s.FirstOfType<T>();
     
     public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count)
@@ -200,7 +205,12 @@ public static class LeafOperators
     public static Task<T> LastOfType<T>(this IReactiveChain<object> s)
         => s.OfType<T>().Last();
     public static Task<T> LastOf<T>(this IReactiveChain<object> s) => s.LastOfType<T>();
-
+    
+    public static Task<Option<T>> LastOfType<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt)
+        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresAt).LastOrNone();
+    public static Task<Option<T>> LastOfType<T>(this IReactiveChain<object> s, string timeoutId, TimeSpan expiresIn)
+        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresIn).LastOrNone();
+    
     #endregion
 
     #region Suspend
