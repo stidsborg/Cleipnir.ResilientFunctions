@@ -804,11 +804,12 @@ public abstract class PostponedTests
             )
         );
         var rFunc = rFunctions
-            .RegisterFunc(
+            .RegisterAction(
                 functionId.TypeId,
-                (string _, Context context) => context.Delay("Delay", TimeSpan.FromDays(1)));
+                (string _, Context context) => context.Delay("Delay", TimeSpan.FromDays(1))
+            );
 
-        await Should.ThrowAsync<PostponeInvocationException>(
+        await Should.ThrowAsync<FunctionInvocationPostponedException>(
             () => rFunc.Invoke(functionId.InstanceId.Value, "test")
         );
     }
