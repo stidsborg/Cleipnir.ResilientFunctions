@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -226,6 +227,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
 
     private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, TScrapbook scrapbook, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
+        if (result.Succeed && result.SucceedWithValue is Task)
+        {
+            var serializationException = new SerializationException("Unable to serialize result of Task-type");
+            await _invocationHelper.PersistFailure(functionId, serializationException, param, scrapbook, expectedEpoch);
+            throw serializationException;
+        }
+            
         var success = await _invocationHelper.PersistResult(functionId, result, param, scrapbook, expectedEpoch);
         if (success)
             InvocationHelper<TParam, TScrapbook, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);

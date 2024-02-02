@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -313,6 +314,39 @@ public abstract class FailedTests
                 .Map(f => f?.Exception)
                 .ShouldNotBeNullAsync();
         }
+    }
+    
+    public abstract Task FuncReturningTaskThrowsSerialization();
+    public async Task FuncReturningTaskThrowsSerialization(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                leaseLength: TimeSpan.FromMilliseconds(100),
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+            )
+        );
+        var funcRegistration = functionsRegistry
+            .RegisterFunc(
+                functionId.TypeId,
+                inner: (string _) => Task.CompletedTask
+            );
+
+        var rFunc = funcRegistration.Invoke;
+        
+        await Should.ThrowAsync<SerializationException>(
+            () => rFunc(functionId.InstanceId.Value, "test")
+        );
+
+        var controlPanel = await funcRegistration.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Failed);
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
 
     private class Scrapbook : RScrapbook { }

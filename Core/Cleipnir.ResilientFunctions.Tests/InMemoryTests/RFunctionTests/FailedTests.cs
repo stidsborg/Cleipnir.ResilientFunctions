@@ -39,4 +39,8 @@ public class FailedTests : TestTemplates.RFunctionTests.FailedTests
     [TestMethod]
     public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
         => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FuncReturningTaskThrowsSerialization()
+        => FuncReturningTaskThrowsSerialization(FunctionStoreFactory.Create());
 }
