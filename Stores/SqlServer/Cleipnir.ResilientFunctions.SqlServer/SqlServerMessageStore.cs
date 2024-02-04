@@ -87,10 +87,11 @@ public class SqlServerMessageStore : IMessageStore
         }
         catch (SqlException e)
         {
-            if (e.Number == SqlError.UNIQUENESS_VIOLATION || e.Number == SqlError.UNIQUENESS_INDEX_VIOLATION) return await GetSuspensionStatus(functionId);
-            if (e.Number != SqlError.DEADLOCK_VICTIM) throw;
-
-            //deadlock detected
+            if (e.Number == SqlError.UNIQUENESS_INDEX_VIOLATION) //idempotency key already exists
+                return await GetSuspensionStatus(functionId);
+            if (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION) 
+                throw;
+            
             await Task.Delay(Random.Shared.Next(50, 250));
             conn.Dispose();
             return await AppendMessage(functionId, storedMessage); 
