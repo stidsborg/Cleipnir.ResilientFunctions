@@ -47,9 +47,8 @@ public abstract class SuspensionTests
     protected async Task FunctionCanBeSuspended(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(FunctionCanBeSuspended).ToFunctionTypeId();
-        var functionInstanceId = "functionInstanceId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = TestFunctionId.Create();
+        var (typeId, instanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var rFunctions = new FunctionsRegistry
         (
@@ -58,12 +57,12 @@ public abstract class SuspensionTests
         );
 
         var rFunc = rFunctions.RegisterFunc(
-            functionTypeId,
+            typeId,
             Result<string>(string _) => Suspend.UntilAfter(0)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            () => rFunc.Invoke(functionInstanceId, "hello world")
+            () => rFunc.Invoke(instanceId.Value, "hello world")
         );
 
         var sf = await store.GetFunction(functionId);
