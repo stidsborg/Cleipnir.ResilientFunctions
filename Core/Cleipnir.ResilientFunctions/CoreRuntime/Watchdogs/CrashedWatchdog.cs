@@ -47,7 +47,8 @@ internal class CrashedWatchdog
     {
         if (_leaseLength == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
-        
+
+        Start:
         try
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
@@ -66,10 +67,13 @@ internal class CrashedWatchdog
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
-                    $"{nameof(CrashedWatchdog)} for '{_functionTypeId}' failed",
+                    $"{nameof(CrashedWatchdog)} for '{_functionTypeId}' failed - retrying in 5 seconds",
                     innerException: thrownException
                 )
             );
+            
+            await Task.Delay(5_000);
+            goto Start;
         }
     }
 

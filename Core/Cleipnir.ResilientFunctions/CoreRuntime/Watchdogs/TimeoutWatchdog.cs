@@ -46,6 +46,7 @@ internal class TimeoutWatchdog
         if (_checkFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         
+        Start:
         try
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
@@ -63,10 +64,13 @@ internal class TimeoutWatchdog
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
-                    $"{nameof(TimeoutWatchdog)} failed while executing: '{_functionTypeId}'",
+                    $"{nameof(TimeoutWatchdog)} failed while executing: '{_functionTypeId}' - retrying in 5 seconds",
                     innerException
                 )
             );
+            
+            await Task.Delay(5_000);
+            goto Start;
         }
     }
 

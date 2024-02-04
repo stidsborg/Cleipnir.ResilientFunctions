@@ -48,6 +48,7 @@ internal class PostponedWatchdog
         if (_postponedCheckFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         
+        Start:
         try
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
@@ -68,10 +69,13 @@ internal class PostponedWatchdog
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     _functionTypeId,
-                    $"{nameof(PostponedWatchdog)} for '{_functionTypeId}' failed",
+                    $"{nameof(PostponedWatchdog)} for '{_functionTypeId}' failed - retrying in 5 seconds",
                     innerException
                 )
             );
+            
+            await Task.Delay(5_000);
+            goto Start;
         }
     }
 
