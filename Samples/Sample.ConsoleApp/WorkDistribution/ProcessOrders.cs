@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -11,7 +12,7 @@ namespace ConsoleApp.WorkDistribution;
 
 public static class ProcessOrders
 {
-    public static ActionRegistration<ProcessOrderRequest>? ProcessOrder { get; set; }
+    public static AsyncLocal<ActionRegistration<ProcessOrderRequest>>? ProcessOrder { get; } = new();
     
     public static async Task Execute(List<string> orderIds, Context context)
     {
@@ -26,7 +27,7 @@ public static class ProcessOrders
             async () =>
             {
                 foreach (var orderId in orderIds)
-                    await ProcessOrder!.Schedule(
+                    await ProcessOrder!.Value!.Schedule(
                         functionInstanceId: orderId,
                         new ProcessOrderRequest(orderId, context.FunctionId)
                     );
