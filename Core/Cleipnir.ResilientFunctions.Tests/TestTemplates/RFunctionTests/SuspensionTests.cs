@@ -25,7 +25,7 @@ public abstract class SuspensionTests
         using var rFunctions = new FunctionsRegistry
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
+            new Settings(unhandledExceptionHandler.Catch, postponedCheckFrequency: TimeSpan.FromSeconds(60))
         );
 
         var rAction = rFunctions.RegisterAction(
@@ -53,7 +53,7 @@ public abstract class SuspensionTests
         using var rFunctions = new FunctionsRegistry
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
+            new Settings(unhandledExceptionHandler.Catch, postponedCheckFrequency: TimeSpan.FromSeconds(60))
         );
 
         var rFunc = rFunctions.RegisterFunc(
