@@ -51,4 +51,8 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
     [TestMethod]
     public override Task StartedChildActionInvocationPublishesResultSuccessfully()
         => StartedChildActionInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PublishFromChildActionStressTest()
+        => PublishFromChildActionStressTest(FunctionStoreFactory.Create());
 }

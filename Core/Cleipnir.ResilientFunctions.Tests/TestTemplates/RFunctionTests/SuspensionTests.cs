@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -358,8 +359,6 @@ public abstract class SuspensionTests
             {
                 await child.Schedule("SomeChildInstance#1", "hallo world");
                 await child.Schedule("SomeChildInstance#2", "hallo world");
-
-                await Task.Delay(1_000);
                 
                 await context.Messages.Take(2).SuspendUntilCompletion();
             }
@@ -375,5 +374,59 @@ public abstract class SuspensionTests
             await controlPanel.Refresh();
             return controlPanel.Status == Status.Succeeded;
         });
+    }
+    
+    public abstract Task PublishFromChildActionStressTest();
+    protected async Task PublishFromChildActionStressTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        var child = rFunctions.RegisterAction(
+            $"ChildFunction{Guid.NewGuid()}",
+            inner: (string param, Context context) =>
+                context.PublishMessage(
+                    parentFunctionId,
+                    message: param,
+                    idempotencyKey: $"ChildFunction{Guid.NewGuid()}"
+                )
+        );
+
+        var parent = rFunctions.RegisterFunc(
+            parentFunctionId.TypeId,
+            inner: async Task<List<string>> (string param, Context context) =>
+            {
+                await context.Activities.Do("ScheduleChildren", async () =>
+                {
+                    for (var i = 0; i < 100; i++)
+                        await child.Schedule($"SomeChildInstance#{i}", i.ToString());
+                });
+                
+                var messages = await context.Messages
+                    .Take(100)
+                    .Select(m => m.ToString()!)
+                    .SuspendUntilCompletion();
+
+                return messages;
+            }
+        );
+
+        await parent.Schedule(parentFunctionId.InstanceId.Value, "hello world");
+
+        var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
+        controlPanel.ShouldNotBeNull();
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+
+        var result = controlPanel.Result!.ToHashSet();
+        for (var i = 0; i < 100; i++)
+            result.Contains(i.ToString()).ShouldBeTrue();
     }
 }
