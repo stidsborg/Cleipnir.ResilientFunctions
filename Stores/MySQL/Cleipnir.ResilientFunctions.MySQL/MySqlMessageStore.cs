@@ -87,56 +87,11 @@ public class MySqlMessageStore : IMessageStore
         catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
         {
             await conn.DisposeAsync();
-            await Task.Delay(Random.Shared.Next(250, 1000));
-            await AppendMessageSlow(functionId, storedMessage);
+            await Task.Delay(Random.Shared.Next(100, 250));
+            await AppendMessage(functionId, storedMessage);
         }
 
         return await GetSuspensionStatus(functionId);
-    }
-    
-    private async Task AppendMessageSlow(FunctionId functionId, StoredMessage storedMessage)
-    {
-        while (true)
-        {
-            await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-            
-            var (messageJson, messageType, idempotencyKey) = storedMessage;
-            var messageCount = await GetNumberOfMessages(functionId);
-        
-            var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_messages
-                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
-                VALUES
-                    (?, ?, ?, ?, ?, ?)";
-            await using var command = new MySqlCommand(sql, conn)
-            {
-                Parameters =
-                {
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value},
-                    new() {Value = messageCount},
-                    new() {Value = messageJson},
-                    new() {Value = messageType},
-                    new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                }
-            };
-            try
-            {
-                await command.ExecuteNonQueryAsync();
-                return;
-            }
-            catch (MySqlException e) when (e.Number == 1062)
-            {
-                return;
-                //ignore duplicate idempotency key
-            }
-            catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
-            {
-                await conn.DisposeAsync();
-                await Task.Delay(Random.Shared.Next(1000, 2000));
-                continue;
-            }
-        }
     }
 
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
