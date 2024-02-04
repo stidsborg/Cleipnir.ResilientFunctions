@@ -443,59 +443,37 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     public async Task<bool> SuspendFunction(
-        FunctionId functionId, 
-        int expectedMessageCount, 
+        FunctionId functionId,
+        int expectedMessageCount,
         string scrapbookJson,
         long timestamp,
-        int expectedEpoch, 
+        int expectedEpoch,
         ComplimentaryState _)
     {
-        {
-            await using var conn = await _connFunc();
-            await using var transaction = (SqlTransaction) await conn.BeginTransactionAsync(IsolationLevel.Serializable);
-            
-            var sql = @$"
+
+        await using var conn = await _connFunc();
+        var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Suspended}, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int)Status.Postponed}, PostponedUntil = 0
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;
+
+            UPDATE {_tablePrefix}RFunctions
+            SET Status = {(int)Status.Suspended}, ScrapbookJson = @ScrapbookJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
             AND FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
 
-            await using var command = new SqlCommand(sql, conn, transaction);
-            command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
-            command.Parameters.AddWithValue("@Timestamp", timestamp);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-            command.Parameters.AddWithValue("@ExpectedCount", expectedMessageCount);
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@ScrapbookJson", scrapbookJson);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        command.Parameters.AddWithValue("@ExpectedCount", expectedMessageCount);
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            await transaction.CommitAsync();
-            if (affectedRows > 0)
-                return true;
-        }
-        {
-            await using var conn = await _connFunc();
-            var sql = @$"
-                SELECT COALESCE(MAX(position), -1) + 1 
-                FROM {_tablePrefix}RFunctions_Messages 
-                WHERE FunctionTypeId = @FunctionTypeId 
-                  AND FunctionInstanceId = @FunctionInstanceId";
-
-            await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-
-            var numberOfMessages = (int?) await command.ExecuteScalarAsync();
-            if (numberOfMessages == expectedMessageCount) 
-                return false;
-
-            return await PostponeFunction(
-                functionId,
-                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, _
-            );
-        }
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows >= 1;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)

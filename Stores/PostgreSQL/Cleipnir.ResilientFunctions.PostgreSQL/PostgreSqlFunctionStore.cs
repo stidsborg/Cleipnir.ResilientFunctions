@@ -454,49 +454,49 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
+        var batch = new NpgsqlBatch(conn);
+        batch.BatchCommands.Add(
+            new NpgsqlBatchCommand(
+                $@"UPDATE {_tablePrefix}rfunctions
+                  SET status = {(int)Status.Postponed}, postponed_until = 0
+                  WHERE function_type_id = $1 AND function_instance_id = $2 AND epoch = $3"
+            )
+            {
+                Parameters =
+                {
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedEpoch }
+                }
+            }
+        );
         
-        var sql = $@"
+        batch.BatchCommands.Add(new NpgsqlBatchCommand($@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, scrapbook_json = $1, timestamp = $2
+            SET status = {(int)Status.Suspended}, scrapbook_json = $1, timestamp = $2
             WHERE             
                 function_type_id = $3 AND 
                 function_instance_id = $4 AND 
                 epoch = $5 AND
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $6 AND function_instance_id = $7) = $8";
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $6 AND function_instance_id = $7) = $8"
+            )
             {
-                new() { Value = scrapbookJson },
-                new() { Value = timestamp },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedMessageCount },
+                Parameters =
+                {
+                    new() { Value = scrapbookJson },
+                    new() { Value = timestamp },
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedEpoch },
+                    new() { Value = functionId.TypeId.Value },
+                    new() { Value = functionId.InstanceId.Value },
+                    new() { Value = expectedMessageCount },
+                }
             }
-        };
+        );
         
-        var affectedRows = await command.ExecuteNonQueryAsync();
-
-        await transaction.CommitAsync();
-        
-        if (affectedRows == 1)
-            return true;
-
-        var sf = await GetFunction(functionId);
-        if (sf == null) return false;
-
-        if (sf.Epoch == expectedEpoch)
-            return await PostponeFunction(
-                functionId,
-                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch,
-                complimentaryState
-            );
-
-        return false;
+        var affectedRows = await batch.ExecuteNonQueryAsync();
+        return affectedRows >= 1;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)

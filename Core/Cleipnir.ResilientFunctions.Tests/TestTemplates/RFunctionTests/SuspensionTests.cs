@@ -319,9 +319,7 @@ public abstract class SuspensionTests
                 return string.Join(" ", wordsList);
             });
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            parent.Invoke(parentFunctionId.InstanceId.Value, "hello world and universe")
-        );
+        await parent.Schedule(parentFunctionId.InstanceId.Value, "hello world and universe");
 
         var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
         controlPanel.ShouldNotBeNull();
@@ -367,9 +365,7 @@ public abstract class SuspensionTests
             }
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            parent.Invoke(parentFunctionId.InstanceId.Value, "hello world")
-        );
+        await parent.Schedule(parentFunctionId.InstanceId.Value, "hello world");
 
         var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
         controlPanel.ShouldNotBeNull();

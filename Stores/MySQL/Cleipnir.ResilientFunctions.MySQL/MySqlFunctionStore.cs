@@ -430,7 +430,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int)Status.Postponed}
+            SET status = {(int) Status.Postponed}, postponed_until = 0
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
 
             UPDATE {_tablePrefix}rfunctions
@@ -463,20 +463,8 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         var affectedRows = await command.ExecuteNonQueryAsync();
-
-        if (affectedRows == 2)
-            return true;
-
-        var sf = await GetFunction(functionId);
-        if (sf == null) return false;
         
-        if (sf.Epoch == expectedEpoch)
-            return await PostponeFunction(
-                functionId,
-                postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, complimentaryState
-            );
-
-        return false;
+        return affectedRows >= 1;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
