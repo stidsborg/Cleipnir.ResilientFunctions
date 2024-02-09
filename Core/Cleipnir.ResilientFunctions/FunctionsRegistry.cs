@@ -46,10 +46,10 @@ public class FunctionsRegistry : IDisposable
             )
         );
     
-    // ** SYNC W. CONTEXT ** //
+    // ** SYNC W. WORKFLOW ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Context, TReturn> inner,
+        Func<TParam, Workflow, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull =>
         new FuncRegistration<TParam, TReturn>(
@@ -74,10 +74,10 @@ public class FunctionsRegistry : IDisposable
             )
         );
     
-    // ** ASYNC W. CONTEXT * //
+    // ** ASYNC W. WORKFLOW * //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Context, Task<TReturn>> inner,
+        Func<TParam, Workflow, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull =>
         new FuncRegistration<TParam, TReturn>(
@@ -102,10 +102,10 @@ public class FunctionsRegistry : IDisposable
             )
         );
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
+    // ** SYNC W. RESULT AND WORKFLOW ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Context, Result<TReturn>> inner,
+        Func<TParam, Workflow, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull =>
         new FuncRegistration<TParam, TReturn>(
@@ -130,10 +130,10 @@ public class FunctionsRegistry : IDisposable
                 )
             );
 
-    // ** ASYNC W. RESULT AND CONTEXT ** //   
+    // ** ASYNC W. RESULT AND WORKFLOW ** //   
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Context, Task<Result<TReturn>>> inner,
+        Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull
         => new FuncRegistration<TParam, TReturn>(
@@ -159,10 +159,10 @@ public class FunctionsRegistry : IDisposable
                 )
             );
 
-    // ** SYNC W. CONTEXT ** //
+    // ** SYNC W. WORKFLOW ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Action<TParam, Context> inner,
+        Action<TParam, Workflow> inner,
         Settings? settings = null
     ) where TParam : notnull
         => new ActionRegistration<TParam>(
@@ -187,10 +187,10 @@ public class FunctionsRegistry : IDisposable
             )
         );
 
-    // ** ASYNC W. CONTEXT * //
+    // ** ASYNC W. WORKFLOW * //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Context, Task> inner,
+        Func<TParam, Workflow, Task> inner,
         Settings? settings = null
     ) where TParam : notnull
         => new ActionRegistration<TParam>(
@@ -215,10 +215,10 @@ public class FunctionsRegistry : IDisposable
             )
         );
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
+    // ** SYNC W. RESULT AND WORKFLOW ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Context, Result> inner,
+        Func<TParam, Workflow, Result> inner,
         Settings? settings = null
     ) where TParam : notnull
         => new ActionRegistration<TParam>(
@@ -243,10 +243,10 @@ public class FunctionsRegistry : IDisposable
                 )
             );
         
-        // ** ASYNC W. RESULT AND CONTEXT ** //   
+        // ** ASYNC W. RESULT AND WORKFLOW ** //   
         public ActionRegistration<TParam> RegisterAction<TParam>(
             FunctionTypeId functionTypeId,
-            Func<TParam, Context, Task<Result>> inner,
+            Func<TParam, Workflow, Task<Result>> inner,
             Settings? settings = null
         ) where TParam : notnull
             => new ActionRegistration<TParam>(
@@ -271,10 +271,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
 
-    // ** SYNC W. CONTEXT ** //
+    // ** SYNC W. WORKFLOW ** //
     public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, TReturn> inner,
+        Func<TParam, TScrapbook, Workflow, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
@@ -295,10 +295,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** ASYNC W. CONTEXT * //
+    // ** ASYNC W. WORKFLOW * //
     public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<TReturn>> inner,
+        Func<TParam, TScrapbook, Workflow, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
@@ -319,10 +319,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
+    // ** SYNC W. RESULT AND WORKFLOW ** //
     public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Result<TReturn>> inner,
+        Func<TParam, TScrapbook, Workflow, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterFunc(
@@ -343,10 +343,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** ASYNC W. RESULT AND CONTEXT ** //   
+    // ** ASYNC W. RESULT AND WORKFLOW ** //   
     public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
+        Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {
@@ -409,10 +409,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** SYNC W. CONTEXT ** //
+    // ** SYNC W. WORKFLOW ** //
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Action<TParam, TScrapbook, Context> inner,
+        Action<TParam, TScrapbook, Workflow> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
@@ -433,10 +433,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** ASYNC W. CONTEXT * //
+    // ** ASYNC W. WORKFLOW * //
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task> inner,
+        Func<TParam, TScrapbook, Workflow, Task> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new() 
         => RegisterAction(
@@ -457,10 +457,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
+    // ** SYNC W. RESULT AND WORKFLOW ** //
     public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Result> inner,
+        Func<TParam, TScrapbook, Workflow, Result> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
@@ -481,10 +481,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
 
-    // ** ASYNC W. RESULT AND CONTEXT ** //   
+    // ** ASYNC W. RESULT AND WORKFLOW ** //   
     internal RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<Result>> inner,
+        Func<TParam, TScrapbook, Workflow, Task<Result>> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
         => RegisterAction(
@@ -495,7 +495,7 @@ public class FunctionsRegistry : IDisposable
     
     private RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<Result<Unit>>> inner,
+        Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) where TParam : notnull where TScrapbook : RScrapbook, new()
     {

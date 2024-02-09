@@ -11,11 +11,11 @@ internal static class InnerMethodToAsyncResultAdapters
 {
     // ** !! FUNC !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
         Func<TEntity, Func<TParam, TReturn>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -29,17 +29,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
-        Func<TEntity, Func<TParam, Context, TReturn>> innerMethodSelector
+    // ** SYNC W. WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+        Func<TEntity, Func<TParam, Workflow, TReturn>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity); 
-                var result = inner(param, context);
+                var result = inner(param, workflow);
                 return Task.FromResult(new Result<TReturn>(result));
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
@@ -49,11 +49,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
         Func<TEntity, Func<TParam, Task<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -67,17 +67,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** ASYNC W. CONTEXT * //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
-        Func<TEntity, Func<TParam, Context, Task<TReturn>>> innerMethodSelector
+    // ** ASYNC W. WORKFLOW * //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+        Func<TEntity, Func<TParam, Workflow, Task<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);   
-                var result = await inner(param, context);
+                var result = await inner(param, workflow);
                 return Succeed.WithValue(result);
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
@@ -87,11 +87,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
         Func<TEntity, Func<TParam, Result<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -105,17 +105,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
-        Func<TEntity, Func<TParam, Context, Result<TReturn>>> innerMethodSelector
+    // ** SYNC W. RESULT AND WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+        Func<TEntity, Func<TParam, Workflow, Result<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);
-                var result = inner(param, context);
+                var result = inner(param, workflow);
                 return Task.FromResult(result);
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
@@ -125,11 +125,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
         Func<TEntity, Func<TParam, Task<Result<TReturn>>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -143,17 +143,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
 
-    // ** ASYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
-        Func<TEntity, Func<TParam, Context, Task<Result<TReturn>>>> innerMethodSelector
+    // ** ASYNC W. RESULT AND WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TReturn>(
+        Func<TEntity, Func<TParam, Workflow, Task<Result<TReturn>>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);
-                var result = await inner(param, context);
+                var result = await inner(param, workflow);
                 return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
@@ -164,11 +164,11 @@ internal static class InnerMethodToAsyncResultAdapters
     
     // ** !! FUNC WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
         Func<TEntity, Func<TParam, TScrapbook, TReturn>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -182,17 +182,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
-        Func<TEntity, Func<TParam, TScrapbook, Context, TReturn>> innerMethodSelector
+    // ** SYNC W. WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+        Func<TEntity, Func<TParam, TScrapbook, Workflow, TReturn>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity); 
-                var result = inner(param, scrapbook, context);
+                var result = inner(param, scrapbook, workflow);
                 return Task.FromResult(new Result<TReturn>(result));
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
@@ -202,11 +202,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
         Func<TEntity, Func<TParam, TScrapbook, Task<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -220,17 +220,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** ASYNC W. CONTEXT * //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
-        Func<TEntity, Func<TParam, TScrapbook, Context, Task<TReturn>>> innerMethodSelector
+    // ** ASYNC W. WORKFLOW * //
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+        Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);   
-                var result = await inner(param, scrapbook, context);
+                var result = await inner(param, scrapbook, workflow);
                 return Succeed.WithValue(result);
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
@@ -240,11 +240,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
         Func<TEntity, Func<TParam, TScrapbook, Result<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -258,17 +258,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
-        Func<TEntity, Func<TParam, TScrapbook, Context, Result<TReturn>>> innerMethodSelector
+    // ** SYNC W. RESULT AND WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+        Func<TEntity, Func<TParam, TScrapbook, Workflow, Result<TReturn>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);
-                var result = inner(param, scrapbook, context);
+                var result = inner(param, scrapbook, workflow);
                 return Task.FromResult(result);
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
@@ -278,11 +278,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook, TReturn>(
         Func<TEntity, Func<TParam, TScrapbook, Task<Result<TReturn>>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -298,11 +298,11 @@ internal static class InnerMethodToAsyncResultAdapters
 
     // ** !! ACTION !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Action<TParam>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -316,17 +316,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
-        Func<TEntity, Action<TParam, Context>> innerMethodSelector
+    // ** SYNC W. WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+        Func<TEntity, Action<TParam, Workflow>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity); 
-                inner(param, context);
+                inner(param, workflow);
                 return Task.FromResult(Result.Succeed.ToUnit());
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
@@ -336,11 +336,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Task>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -354,17 +354,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** ASYNC W. CONTEXT * //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
-        Func<TEntity, Func<TParam, Context, Task>> innerMethodSelector
+    // ** ASYNC W. WORKFLOW * //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+        Func<TEntity, Func<TParam, Workflow, Task>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);   
-                await inner(param, context);
+                await inner(param, workflow);
                 return Result.Succeed.ToUnit();
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>(); }
@@ -374,11 +374,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Result>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -392,17 +392,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
-        Func<TEntity, Func<TParam, Context, Result>> innerMethodSelector
+    // ** SYNC W. RESULT AND WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+        Func<TEntity, Func<TParam, Workflow, Result>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);
-                var result = inner(param, context);
+                var result = inner(param, workflow);
                 return Task.FromResult(result.ToUnit());
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
@@ -412,11 +412,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, RScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
+    public static Func<TEntity, Func<TParam, RScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam>(
         Func<TEntity, Func<TParam, Task<Result>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -432,11 +432,11 @@ internal static class InnerMethodToAsyncResultAdapters
     
     // ** !! ACTION WITH SCRAPBOOK !! ** //
     // ** SYNC ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Action<TParam, TScrapbook>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -450,17 +450,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. CONTEXT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
-        Func<TEntity, Action<TParam, TScrapbook, Context>> innerMethodSelector
+    // ** SYNC W. WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+        Func<TEntity, Action<TParam, TScrapbook, Workflow>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity); 
-                inner(param, scrapbook, context);
+                inner(param, scrapbook, workflow);
                 return Task.FromResult(Result.Succeed.ToUnit());
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
@@ -470,11 +470,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** ASYNC ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Task>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
@@ -488,17 +488,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** ASYNC W. CONTEXT * //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
-        Func<TEntity, Func<TParam, TScrapbook, Context, Task>> innerMethodSelector
+    // ** ASYNC W. WORKFLOW * //
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+        Func<TEntity, Func<TParam, TScrapbook, Workflow, Task>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);   
-                await inner(param, scrapbook, context);
+                await inner(param, scrapbook, workflow);
                 return Result.Succeed.ToUnit();
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>(); }
@@ -508,11 +508,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Result>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
@@ -526,17 +526,17 @@ internal static class InnerMethodToAsyncResultAdapters
         };
     }
     
-    // ** SYNC W. RESULT AND CONTEXT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
-        Func<TEntity, Func<TParam, TScrapbook, Context, Result>> innerMethodSelector
+    // ** SYNC W. RESULT AND WORKFLOW ** //
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+        Func<TEntity, Func<TParam, TScrapbook, Workflow, Result>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => (param, scrapbook, context) =>
+        return entity => (param, scrapbook, workflow) =>
         {
             try
             {
                 var inner = innerMethodSelector(entity);
-                var result = inner(param, scrapbook, context);
+                var result = inner(param, scrapbook, workflow);
                 return Task.FromResult(result.ToUnit());
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
@@ -546,11 +546,11 @@ internal static class InnerMethodToAsyncResultAdapters
     }
 
     // ** ASYNC W. RESULT ** //
-    public static Func<TEntity, Func<TParam, TScrapbook, Context, Task<Result<Unit>>>> ToInnerFToInnerWithTaskResultReturnuncWithTaskResultReturn<TEntity, TParam, TScrapbook>(
+    public static Func<TEntity, Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>>> ToInnerFToInnerWithTaskResultReturnuncWithTaskResultReturn<TEntity, TParam, TScrapbook>(
         Func<TEntity, Func<TParam, TScrapbook, Task<Result>>> innerMethodSelector
     ) where TParam : notnull
     {
-        return entity => async (param, scrapbook, context) =>
+        return entity => async (param, scrapbook, workflow) =>
         {
             try
             {

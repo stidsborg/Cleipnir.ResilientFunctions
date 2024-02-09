@@ -8,14 +8,14 @@ namespace ConsoleApp.SupportTicket;
 
 public class Saga
 {
-    public static async Task AcceptSupportTicket(SupportTicketRequest request, RScrapbook scrapbook, Context context)
+    public static async Task AcceptSupportTicket(SupportTicketRequest request, RScrapbook scrapbook, Workflow workflow)
     {
-        var messages = context.Messages;
+        var messages = workflow.Messages;
         
         var agents = request.CustomerSupportAgents.Length;
         for (var i = 0; ; i++)
         {
-            await context.Activities.Do("SendTakeSupportTicketRequest", async () =>
+            await workflow.Activities.Do("SendTakeSupportTicketRequest", async () =>
             {
                 var customerSupportAgentEmail = request.CustomerSupportAgents[i % agents];
                 await MessageBroker.Send(

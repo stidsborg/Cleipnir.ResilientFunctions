@@ -7,9 +7,9 @@ namespace ConsoleApp.CustomerSignUp;
 
 public static class SignupFlow
 {
-    public static async Task Start(string customerEmail, Context context)
+    public static async Task Start(string customerEmail, Workflow workflow)
     {
-        var (activities, messages) = context;
+        var (activities, messages) = workflow;
         
         await activities.Do("SendWelcomeMail", () => SendWelcomeMail(customerEmail));
 
@@ -25,7 +25,7 @@ public static class SignupFlow
                 throw new UserSignupFailedException($"User '{customerEmail}' did not activate within threshold");
         }
         
-        await context.Delay("DelayUntilTomorrow", TimeSpan.FromDays(1)); //uses activity and postpone functionality?!
+        await workflow.Delay("DelayUntilTomorrow", TimeSpan.FromDays(1)); //uses activity and postpone functionality?!
         await activities.Do("SendWelcomeMail", () => SendFollowUpMail(customerEmail));
     }
 

@@ -7,9 +7,9 @@ namespace ConsoleApp.Subscription;
 
 public class SubscriptionSaga
 {
-    public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, Scrapbook scrapbook, Context context)
+    public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, Scrapbook scrapbook, Workflow workflow)
     {
-        var monitor = context.Utilities.Monitor;
+        var monitor = workflow.Utilities.Monitor;
         var (subscriptionId, startSubscription) = subscriptionChange;
         await using var @lock = await monitor.Acquire(
             group: nameof(UpdateSubscription),

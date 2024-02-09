@@ -26,9 +26,9 @@ public abstract class MessagingTests
 
         var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
-            inner: async Task<string> (string _, Context context) =>
+            inner: async Task<string> (string _, Workflow workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 return await messages.OfType<string>().First();
             }
         );
@@ -56,9 +56,9 @@ public abstract class MessagingTests
 
         var rAction = functionsRegistry.RegisterFunc(
             functionId.TypeId,
-            inner: async Task<string> (string _, Context context) =>
+            inner: async Task<string> (string _, Workflow workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 return await messages.SuspendUntilFirstOfType<string>();
             }
         );
@@ -84,9 +84,9 @@ public abstract class MessagingTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionId.TypeId,
-            inner: async Task<Tuple<bool, string>> (string _, Context context) =>
+            inner: async Task<Tuple<bool, string>> (string _, Workflow workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
 
                 var timeoutOption = await messages
                     .OfType<string>()
@@ -137,15 +137,15 @@ public abstract class MessagingTests
 
         var child = functionsRegistry.RegisterAction(
             childFunctionId.TypeId,
-            inner: Task (string _, Context context) => context.PublishMessage(parentFunctionId, "hello world", idempotencyKey: null)
+            inner: Task (string _, Workflow workflow) => workflow.PublishMessage(parentFunctionId, "hello world", idempotencyKey: null)
         );
 
         var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.TypeId,
-            inner: async Task<string> (string _, Context context) =>
+            inner: async Task<string> (string _, Workflow workflow) =>
             {
                 await child.Schedule(childFunctionId.InstanceId.Value, param: "stuff");
-                return await context.Messages.SuspendUntilFirstOfType<string>();
+                return await workflow.Messages.SuspendUntilFirstOfType<string>();
             }
         );
         

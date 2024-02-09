@@ -430,7 +430,7 @@ public abstract class WatchdogCompoundTests
             _ = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (Param p, Scrapbook scrapbook, Context __) =>
+                    async (Param p, Scrapbook scrapbook, Workflow __) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
                         scrapbook.Scraps.Add(2);

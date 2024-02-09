@@ -8,12 +8,12 @@ namespace ConsoleApp.TravelAgency;
 
 public static class Saga
 {
-    public static async Task BookTravel(BookingRequest bookingRequest, RScrapbook scrapbook, Context context)
+    public static async Task BookTravel(BookingRequest bookingRequest, RScrapbook scrapbook, Workflow workflow)
     {
-        var messages = context.Messages;
+        var messages = workflow.Messages;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
-        await context.Activities.Do(
+        await workflow.Activities.Do(
             "SendRequests", 
             async () =>
             {

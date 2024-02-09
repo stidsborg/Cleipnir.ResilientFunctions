@@ -14,7 +14,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     where TScrapbook : RScrapbook, new() 
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Func<TParam,TScrapbook,Context,Task<Result<TReturn>>> _inner;
+    private readonly Func<TParam,TScrapbook,Workflow,Task<Result<TReturn>>> _inner;
     
     private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -23,7 +23,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
 
     internal Invoker(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> inner,
+        Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
         Utilities utilities,
@@ -41,7 +41,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param, TScrapbook? scrapbook = null)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
+        (var created, scrapbook, var workflow, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
         if (!created) return await WaitForFunctionResult(functionId);
         using var _ = disposables;
 
@@ -49,7 +49,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
         try
         {
             // *** USER FUNCTION INVOCATION *** 
-            result = await _inner(param, scrapbook, context);
+            result = await _inner(param, scrapbook, workflow);
         }
         catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook); throw; }
 
@@ -60,7 +60,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     public async Task ScheduleInvoke(string functionInstanceId, TParam param, TScrapbook? scrapbook)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
-        (var created, scrapbook, var context, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
+        (var created, scrapbook, var workflow, var disposables) = await PrepareForInvocation(functionId, param, scrapbook);
         if (!created) return;
 
         _ = Task.Run(async () =>
@@ -71,7 +71,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await _inner(param, scrapbook, context);
+                    result = await _inner(param, scrapbook, workflow);
                 }
                 catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook); throw; }
 
@@ -104,14 +104,14 @@ public class Invoker<TParam, TScrapbook, TReturn>
     public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
+        var (inner, param, scrapbook, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
         using var _ = disposables;
 
         Result<TReturn> result;
         try
         {
             // *** USER FUNCTION INVOCATION *** 
-            result = await inner(param, scrapbook, context);
+            result = await inner(param, scrapbook, workflow);
         }
         catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
 
@@ -122,7 +122,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
     public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
-        var (inner, param, scrapbook, context, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
+        var (inner, param, scrapbook, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
 
         _ = Task.Run(async () =>
         {
@@ -132,7 +132,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
                 try
                 {
                     // *** USER FUNCTION INVOCATION *** 
-                    result = await inner(param, scrapbook, context);
+                    result = await inner(param, scrapbook, workflow);
                 }
                 catch (Exception exception) { await PersistFailure(functionId, exception, param, scrapbook, epoch); throw; }
 
@@ -168,13 +168,13 @@ public class Invoker<TParam, TScrapbook, TReturn>
             success = persisted;
             var messages = await _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: false);
             var activity = await _invocationHelper.CreateActivities(functionId, sync: false);
-            var context = new Context(functionId, messages, activity, _utilities, _messageWriterFunc);
-            disposables.Add(context);
+            var workflow = new Workflow(functionId, messages, activity, _utilities, _messageWriterFunc);
+            disposables.Add(workflow);
 
             return new PreparedInvocation(
                 persisted,
                 scrapbook,
-                context,
+                workflow,
                 Disposable.Combine(disposables)
             );
         }
@@ -188,7 +188,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             if (!success) Disposable.Combine(disposables).Dispose();
         }
     }
-    private record PreparedInvocation(bool Persisted, TScrapbook Scrapbook, Context Context, IDisposable Disposables);
+    private record PreparedInvocation(bool Persisted, TScrapbook Scrapbook, Workflow Workflow, IDisposable Disposables);
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch)
     {
@@ -202,14 +202,14 @@ public class Invoker<TParam, TScrapbook, TReturn>
             
             var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: true));
             var activitiesTask = Task.Run(() => _invocationHelper.CreateActivities(functionId, sync: true));
-            var context = new Context(functionId, await messagesTask, await activitiesTask, _utilities, _messageWriterFunc);
-            disposables.Add(context);
+            var workflow = new Workflow(functionId, await messagesTask, await activitiesTask, _utilities, _messageWriterFunc);
+            disposables.Add(workflow);
 
             return new PreparedReInvocation(
                 _inner,
                 param,
                 scrapbook,
-                context,
+                workflow,
                 epoch,
                 Disposable.Combine(disposables)
             );
@@ -220,7 +220,7 @@ public class Invoker<TParam, TScrapbook, TReturn>
             throw;
         }
     }
-    private record PreparedReInvocation(Func<TParam, TScrapbook, Context, Task<Result<TReturn>>> Inner, TParam Param, TScrapbook Scrapbook, Context Context, int Epoch, IDisposable Disposables);
+    private record PreparedReInvocation(Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>> Inner, TParam Param, TScrapbook Scrapbook, Workflow Workflow, int Epoch, IDisposable Disposables);
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, int expectedEpoch = 0)
         => await _invocationHelper.PersistFailure(functionId, exception, param, scrapbook, expectedEpoch);

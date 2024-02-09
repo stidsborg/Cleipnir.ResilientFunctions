@@ -86,9 +86,9 @@ I.e. awaiting 2 external messages before completing an invocation can be accompl
 ```csharp
  var rAction = functionsRegistry.RegisterAction(
   functionTypeId: "MessageWaitingFunc",
-  async (string param, Context context) => 
+  async (string param, Workflow workflow) => 
   {
-    var messages = await context.Messages;
+    var messages = await workflow.Messages;
     await messages
       .OfTypes<FundsReserved, InventoryLocked>()
       .Take(2)

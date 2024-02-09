@@ -17,13 +17,13 @@ public class OrderProcessor
         _logisticsClient = logisticsClient;
     }
 
-    public async Task Execute(Order order, Scrapbook scrapbook, Context context)
+    public async Task Execute(Order order, Scrapbook scrapbook, Workflow workflow)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
 
         await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
 
-        var trackAndTrace = await context.Activities.Do(
+        var trackAndTrace = await workflow.Activities.Do(
             "ShipProducts",
             work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
         );

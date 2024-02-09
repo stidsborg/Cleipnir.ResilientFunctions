@@ -23,9 +23,9 @@ public abstract class ActivitiesTests
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = context;
+                var (activity, _) = workflow;
                 await activity.Do(
                     id: "Test",
                     work: () => syncedCounter.Increment()
@@ -61,9 +61,9 @@ public abstract class ActivitiesTests
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = context;
+                var (activity, _) = workflow;
                 await activity.Do(
                     id: "Test",
                     work: () => { syncedCounter.Increment(); return Task.CompletedTask; });
@@ -98,9 +98,9 @@ public abstract class ActivitiesTests
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = context;
+                var (activity, _) = workflow;
                 await activity.Do(
                     id: "Test",
                     work: () =>
@@ -143,9 +143,9 @@ public abstract class ActivitiesTests
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = context;
+                var (activity, _) = workflow;
                 await activity.Do(
                     id: "Test",
                     work: () =>
@@ -188,9 +188,9 @@ public abstract class ActivitiesTests
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = context;
+                var (activity, _) = workflow;
                 await activity.Do(
                     id: "Test",
                     work: () =>
@@ -234,9 +234,9 @@ public abstract class ActivitiesTests
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
-            async Task<int> (string param, Context context) =>
+            async Task<int> (string param, Workflow workflow) =>
             {
-                var (activity, _) = context;
+                var (activity, _) = workflow;
                 var t1 = new Task<int>(() => 1);
                 var t2 = Task.FromResult(2);
                 return await activity.WhenAny("WhenAny", t1, t2);
@@ -270,9 +270,9 @@ public abstract class ActivitiesTests
         
         var registration = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task (string param, Context context) =>
+            async Task (string param, Workflow workflow) =>
             {
-                var (activities, _) = context;
+                var (activities, _) = workflow;
                 await activities.Clear("SomeActivity");
             });
 

@@ -743,9 +743,9 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, RScrapbook _, Context context) =>
+            async Task(string param, RScrapbook _, Workflow workflow) =>
             {
-                using var messages = context.Messages;
+                using var messages = workflow.Messages;
                 await messages.AppendMessage(param);
             }
         );
@@ -776,9 +776,9 @@ public abstract class ControlPanelTests
         var syncedList = new SyncedList<string>();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, RScrapbook _, Context context) =>
+            async Task(string param, RScrapbook _, Workflow workflow) =>
             {
-                using var messages = context.Messages;
+                using var messages = workflow.Messages;
                 if (first)
                 {
                     invocationCount.Increment();
@@ -837,9 +837,9 @@ public abstract class ControlPanelTests
         var first = true;
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, RScrapbook _, Context context) =>
+            async Task(string param, RScrapbook _, Workflow workflow) =>
             {
-                using var messages = context.Messages;
+                using var messages = workflow.Messages;
                 if (first)
                 {
                     first = false;
@@ -878,7 +878,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+            Task(string param, RScrapbook _, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -911,7 +911,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+            Task(string param, RScrapbook _, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -949,7 +949,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+            Task(string param, RScrapbook _, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -982,7 +982,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, RScrapbook _, Context context) => Task.Delay(1)
+            Task(string param, RScrapbook _, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -1020,7 +1020,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, RScrapbook _, Context context) => Task.CompletedTask
+            Task(string param, RScrapbook _, Workflow workflow) => Task.CompletedTask
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -1061,8 +1061,8 @@ public abstract class ControlPanelTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            Task<string> (string param, RScrapbook _, Context context) 
-                => context.Activities.Do("Test", () => "ActivityResult")
+            Task<string> (string param, RScrapbook _, Workflow workflow) 
+                => workflow.Activities.Do("Test", () => "ActivityResult")
         );
 
         var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
@@ -1091,9 +1091,9 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task (string param, RScrapbook _, Context context) 
+            Task (string param, RScrapbook _, Workflow workflow) 
                 => runActivity 
-                    ? context.Activities.Do("Test", () => {}, ResiliencyLevel.AtMostOnce)
+                    ? workflow.Activities.Do("Test", () => {}, ResiliencyLevel.AtMostOnce)
                     : Task.CompletedTask
         );
 
@@ -1121,8 +1121,8 @@ public abstract class ControlPanelTests
 
         var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task (string param, RScrapbook _, Context context) 
-                => context.Activities.Do("Test", () => throw new InvalidOperationException("oh no"))
+            Task (string param, RScrapbook _, Workflow workflow) 
+                => workflow.Activities.Do("Test", () => throw new InvalidOperationException("oh no"))
         );
 
         await Should.ThrowAsync<Exception>(rFunc.Invoke(functionInstanceId.Value, param: "param"));
@@ -1149,8 +1149,8 @@ public abstract class ControlPanelTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            Task<string> (string param, RScrapbook _, Context context) =>
-                context.Activities.Do("Test", () =>
+            Task<string> (string param, RScrapbook _, Workflow workflow) =>
+                workflow.Activities.Do("Test", () =>
                 {
                     syncedCounter++;
                     return "ActivityResult";
@@ -1192,7 +1192,7 @@ public abstract class ControlPanelTests
 
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            (string _, Context _) => {}
+            (string _, Workflow _) => {}
         );
         await rAction.Invoke(functionInstanceId.Value, param: "param");
         
@@ -1224,8 +1224,8 @@ public abstract class ControlPanelTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            Task<string> (string param, RScrapbook _, Context context) =>
-                context.Activities.Do("Test", () =>
+            Task<string> (string param, RScrapbook _, Workflow workflow) =>
+                workflow.Activities.Do("Test", () =>
                 {
                     syncedCounter++;
                     return "ActivityResult";

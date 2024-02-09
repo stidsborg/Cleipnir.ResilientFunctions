@@ -204,9 +204,9 @@ public abstract class SuspensionTests
 
         var registration = functionsRegistry.RegisterFunc(
             nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
-            async Task<string> (string param, Context context) =>
+            async Task<string> (string param, Workflow workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 var next = await messages.SuspendUntilFirstOfType<string>();
                 return next;
             }
@@ -248,9 +248,9 @@ public abstract class SuspensionTests
 
         var registration = functionsRegistry.RegisterFunc(
             functionTypeId,
-            async Task<string> (string param, Context context) =>
+            async Task<string> (string param, Workflow workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 var next = await messages.SuspendUntilFirstOfType<string>();
                 return next;
             }
@@ -287,22 +287,22 @@ public abstract class SuspensionTests
 
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
-            inner: async Task (string param, Context context) =>
+            inner: async Task (string param, Workflow workflow) =>
             {
-                await context.PublishMessage(parentFunctionId, param.ToUpper(), context.FunctionId.ToString());
+                await workflow.PublishMessage(parentFunctionId, param.ToUpper(), workflow.FunctionId.ToString());
             }
         );
 
         var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.TypeId,
-            async Task<string> (string param, Context context) =>
+            async Task<string> (string param, Workflow workflow) =>
             {
                 var words = param.Split(" ");
                 await Task.WhenAll(
                     words.Select((word, i) => child.Schedule($"Child#{i}", $"{i}_{word}"))
                 );
 
-                var replies = await context
+                var replies = await workflow
                     .Messages
                     .OfType<string>()
                     .Take(words.Length)
@@ -344,8 +344,8 @@ public abstract class SuspensionTests
 
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param, Context context) =>
-                context.PublishMessage(
+            inner: (string param, Workflow workflow) =>
+                workflow.PublishMessage(
                     parentFunctionId,
                     message: "",
                     idempotencyKey: null
@@ -354,12 +354,12 @@ public abstract class SuspensionTests
 
         var parent = functionsRegistry.RegisterAction(
             parentFunctionId.TypeId,
-            inner: async Task (string param, Context context) =>
+            inner: async Task (string param, Workflow workflow) =>
             {
                 await child.Schedule("SomeChildInstance#1", "hallo world");
                 await child.Schedule("SomeChildInstance#2", "hallo world");
                 
-                await context.Messages.Take(2).SuspendUntilCompletion();
+                await workflow.Messages.Take(2).SuspendUntilCompletion();
             }
         );
 
@@ -386,8 +386,8 @@ public abstract class SuspensionTests
 
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param, Context context) =>
-                context.PublishMessage(
+            inner: (string param, Workflow workflow) =>
+                workflow.PublishMessage(
                     parentFunctionId,
                     message: param,
                     idempotencyKey: $"ChildFunction{Guid.NewGuid()}"
@@ -396,15 +396,15 @@ public abstract class SuspensionTests
 
         var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.TypeId,
-            inner: async Task<List<string>> (string param, Context context) =>
+            inner: async Task<List<string>> (string param, Workflow workflow) =>
             {
-                await context.Activities.Do("ScheduleChildren", async () =>
+                await workflow.Activities.Do("ScheduleChildren", async () =>
                 {
                     for (var i = 0; i < 100; i++)
                         await child.Schedule($"SomeChildInstance#{i}", i.ToString());
                 });
                 
-                var messages = await context.Messages
+                var messages = await workflow.Messages
                     .Take(100)
                     .Select(m => m.ToString()!)
                     .SuspendUntilCompletion();

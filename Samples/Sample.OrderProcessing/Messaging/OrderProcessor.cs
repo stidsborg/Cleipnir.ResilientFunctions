@@ -12,10 +12,10 @@ public class OrderProcessor
 
     public OrderProcessor(MessageBroker messageBroker) => _messageBroker = messageBroker;
 
-    public async Task Execute(Order order, Scrapbook scrapbook, Context context)
+    public async Task Execute(Order order, Scrapbook scrapbook, Workflow workflow)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-        using var messages = context.Messages;
+        using var messages = workflow.Messages;
 
         await _messageBroker.Send(new ReserveFunds(order.OrderId, order.TotalPrice, scrapbook.TransactionId, order.CustomerId));
         await messages.FirstOfType<FundsReserved>();

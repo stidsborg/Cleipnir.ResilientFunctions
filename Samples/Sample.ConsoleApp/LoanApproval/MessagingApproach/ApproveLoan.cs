@@ -7,9 +7,9 @@ namespace ConsoleApp.LoanApproval.MessagingApproach;
 
 public static class ApproveLoan
 {
-    public static async Task Execute(LoanApplication loanApplication, Context context)
+    public static async Task Execute(LoanApplication loanApplication, Workflow workflow)
     {
-        var messages = context.Messages;
+        var messages = workflow.Messages;
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));
 
         var outcomes = await messages

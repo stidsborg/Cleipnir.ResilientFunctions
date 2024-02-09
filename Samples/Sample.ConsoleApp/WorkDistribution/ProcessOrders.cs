@@ -14,9 +14,9 @@ public static class ProcessOrders
 {
     public static AsyncLocal<ActionRegistration<ProcessOrderRequest>>? ProcessOrder { get; } = new();
     
-    public static async Task Execute(List<string> orderIds, Context context)
+    public static async Task Execute(List<string> orderIds, Workflow workflow)
     {
-        var (activities, messages) = context;
+        var (activities, messages) = workflow;
         await activities.Do(
             "Log_ProcessingStarted",
             () => Console.WriteLine("Processing of orders started")
@@ -29,7 +29,7 @@ public static class ProcessOrders
                 foreach (var orderId in orderIds)
                     await ProcessOrder!.Value!.Schedule(
                         functionInstanceId: orderId,
-                        new ProcessOrderRequest(orderId, context.FunctionId)
+                        new ProcessOrderRequest(orderId, workflow.FunctionId)
                     );
             }
         );

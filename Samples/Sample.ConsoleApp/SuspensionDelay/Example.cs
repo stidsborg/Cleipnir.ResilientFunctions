@@ -27,9 +27,9 @@ public class Example
         Console.ReadLine();
     }
 
-    private static async Task SuspensionDelayWorkflow(string param, Context context)
+    private static async Task SuspensionDelayWorkflow(string param, Workflow workflow)
     {
-        var messages = context.Messages;
+        var messages = workflow.Messages;
         await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(5));
         Console.WriteLine("Completed!");
     }

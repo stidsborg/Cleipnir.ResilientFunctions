@@ -31,9 +31,9 @@ public abstract class TimeoutTests
         );
         var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
-            inner: async Task (string _, Context context) =>
+            inner: async Task (string _, Workflow workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 var timeoutTask = messages.OfType<TimeoutEvent>().First();
                 await messages.TimeoutProvider.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
                 timeoutTask.IsCompleted.ShouldBeFalse();

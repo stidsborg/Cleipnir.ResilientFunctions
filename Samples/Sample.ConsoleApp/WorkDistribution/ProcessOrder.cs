@@ -10,17 +10,17 @@ public record ProcessOrderRequest(string OrderId, FunctionId SendResultTo);
 
 public static class ProcessOrder
 {
-    public static async Task Execute(ProcessOrderRequest request, Context context)
+    public static async Task Execute(ProcessOrderRequest request, Workflow workflow)
     {
         var (orderId, sendResultTo) = request;
         await ReserveFunds(orderId);
         var trackingNumber = await ShipOrder(orderId);
         await CaptureFunds(orderId);
 
-        await context.PublishMessage(
+        await workflow.PublishMessage(
             sendResultTo,
-            new FunctionCompletion<string>(trackingNumber, context.FunctionId),
-            idempotencyKey: context.FunctionId.ToString()
+            new FunctionCompletion<string>(trackingNumber, workflow.FunctionId),
+            idempotencyKey: workflow.FunctionId.ToString()
         );
     }
 

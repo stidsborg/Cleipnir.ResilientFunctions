@@ -9,9 +9,9 @@ namespace ConsoleApp.FraudDetection.MessagingApproach;
 
 public static class Saga
 {
-    public static async Task StartFraudDetection(Transaction transaction, Context context)
+    public static async Task StartFraudDetection(Transaction transaction, Workflow workflow)
     {
-        var messages = context.Messages;
+        var messages = workflow.Messages;
         await MessageBroker.Send(new ApproveTransaction(transaction));
         
         var results = await messages
@@ -22,7 +22,7 @@ public static class Saga
 
         var approved = results.Count >= 2 && results.All(result => result.Approved);
 
-        await context.Activities.Do(
+        await workflow.Activities.Do(
             "PublishTransactionApproval",
             () => MessageBroker.Send(approved
                 ? new TransactionApproved(transaction)

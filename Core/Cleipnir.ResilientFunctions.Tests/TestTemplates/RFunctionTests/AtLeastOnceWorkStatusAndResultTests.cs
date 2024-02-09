@@ -23,9 +23,9 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "id",
                         work: () =>
@@ -62,9 +62,9 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            async Task<string>(string param, Context context) =>
+            async Task<string>(string param, Workflow workflow) =>
             {
-                return await context.Activities
+                return await workflow.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -102,9 +102,9 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            async Task<Person>(string param, Context context) =>
+            async Task<Person>(string param, Workflow workflow) =>
             {
-                return await context.Activities
+                return await workflow.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -145,9 +145,9 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "id",
                         work: () => { counter.Increment(); return 1.ToTask(); }
@@ -172,9 +172,9 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "someId",
                         work: () => { counter.Increment(); return "hello world".ToTask(); }

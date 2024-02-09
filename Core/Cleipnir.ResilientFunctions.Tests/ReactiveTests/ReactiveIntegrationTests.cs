@@ -26,9 +26,9 @@ public class ReactiveIntegrationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,
-            inner: async (_, context) =>
+            inner: async (_, workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
@@ -48,9 +48,9 @@ public class ReactiveIntegrationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,
-            inner: async (_, context) =>
+            inner: async (_, workflow) =>
             {
-                var messages = context.Messages;
+                var messages = workflow.Messages;
                 store.EventSubscriptionPulls.ShouldBe(0);
                 var __ = messages.First();
                 await Task.Delay(100);

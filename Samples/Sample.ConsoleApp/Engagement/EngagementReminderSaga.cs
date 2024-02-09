@@ -8,12 +8,12 @@ namespace ConsoleApp.Engagement;
 
 public static class EngagementReminderSaga
 {
-    public static async Task Start(StartCustomerEngagement startEngagement, Context context)
+    public static async Task Start(StartCustomerEngagement startEngagement, Workflow workflow)
     {
         var (candidateEmail, nextReminderTime) = startEngagement;
-        var messages = context.Messages;
+        var messages = workflow.Messages;
 
-        await context.Activities.Do(
+        await workflow.Activities.Do(
             "InitialCorrespondence",
             SendEngagementInitialCorrespondence
         );
@@ -38,7 +38,7 @@ public static class EngagementReminderSaga
             // if accepted notify hr and complete the flow
             if (either.Match(ea => true, er => false))
             {
-                await context.Activities.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
+                await workflow.Activities.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
                 await messages.CancelTimeoutEvent(timeoutId: i.ToString());
                 
                 return;

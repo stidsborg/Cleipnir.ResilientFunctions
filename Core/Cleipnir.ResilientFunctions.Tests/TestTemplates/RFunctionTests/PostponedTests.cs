@@ -787,8 +787,8 @@ public abstract class PostponedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
-    public abstract Task ContextDelayInvocationDelaysFunction();
-    protected async Task ContextDelayInvocationDelaysFunction(Task<IFunctionStore> storeTask)
+    public abstract Task WorkflowDelayInvocationDelaysFunction();
+    protected async Task WorkflowDelayInvocationDelaysFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -806,7 +806,7 @@ public abstract class PostponedTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 functionId.TypeId,
-                (string _, Context context) => context.Delay("Delay", TimeSpan.FromDays(1))
+                (string _, Workflow workflow) => workflow.Delay("Delay", TimeSpan.FromDays(1))
             );
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(

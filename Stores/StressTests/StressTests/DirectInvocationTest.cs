@@ -27,11 +27,11 @@ public class DirectInvocationTest
         );
         var rFunc1 = functionsRegistry.RegisterFunc(
             "DirectInvocationTest",
-            async Task<string> (string param, RScrapbook scrapbook, Context context) =>
+            async Task<string> (string param, RScrapbook scrapbook, Workflow workflow) =>
             {
                 try
                 {
-                    var messages = context.Messages;
+                    var messages = workflow.Messages;
                     await messages.AppendMessage(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();
@@ -51,11 +51,11 @@ public class DirectInvocationTest
         );
         var rFunc2 = functionsRegistry2.RegisterFunc(
             "DirectInvocationTest",
-            async Task<string> (string param, RScrapbook scrapbook, Context context) =>
+            async Task<string> (string param, RScrapbook scrapbook, Workflow workflow) =>
             {
                 try
                 {
-                    var messages = context.Messages;
+                    var messages = workflow.Messages;
                     await messages.AppendMessage(param);
                     scrapbook.StateDictionary["Param"] = param;
                     await scrapbook.Save();

@@ -23,9 +23,9 @@ public abstract class AtMostOnceWorkStatusTests
 
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "Id",
                         work: () =>
@@ -57,9 +57,9 @@ public abstract class AtMostOnceWorkStatusTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -91,9 +91,9 @@ public abstract class AtMostOnceWorkStatusTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         id: "id",
                         work: () =>

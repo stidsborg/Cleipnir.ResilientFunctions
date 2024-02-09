@@ -15,7 +15,7 @@ public sealed class TransferSagaV1
         _rAction = functionsRegistry
             .RegisterAction<Transfer, RScrapbook>(
                 functionTypeId: nameof(TransferSagaV1),
-                (transfer, scrapbook, context) => inner.Perform(transfer, scrapbook, context)
+                (transfer, scrapbook, workflow) => inner.Perform(transfer, scrapbook, workflow)
             );
     }
 
@@ -28,18 +28,18 @@ public sealed class TransferSagaV1
 
         public Inner(IBankCentralClient bankCentralClient) => BankCentralClient = bankCentralClient;
 
-        public async Task Perform(Transfer transfer, RScrapbook scrapbook, Context context)
+        public async Task Perform(Transfer transfer, RScrapbook scrapbook, Workflow workflow)
         {
-            var arbitrator = context.Utilities.Arbitrator;
+            var arbitrator = workflow.Utilities.Arbitrator;
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             
-            var deductTask = context.Activities.Do(
+            var deductTask = workflow.Activities.Do(
                 "DeductAmount",
                 () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
             );
             
-            var addTask = context.Activities.Do(
+            var addTask = workflow.Activities.Do(
                 "AddAmount",
                 () => BankCentralClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
             );

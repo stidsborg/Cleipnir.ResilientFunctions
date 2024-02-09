@@ -12,7 +12,7 @@ public static class Saga
     private static FraudDetector2 FraudDetector2 { get; } = new();
     private static FraudDetector3 FraudDetector3 { get; } = new();
     
-    public static async Task<bool> StartFraudDetection(Transaction transaction, Context context)
+    public static async Task<bool> StartFraudDetection(Transaction transaction, Workflow workflow)
     {
         var fraudDetector1 = FraudDetector1.Approve(transaction, timeout: TimeSpan.FromSeconds(5));
         var fraudDetector2 = FraudDetector2.Approve(transaction, timeout: TimeSpan.FromSeconds(5));

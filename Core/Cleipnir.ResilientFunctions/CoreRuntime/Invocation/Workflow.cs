@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public class Context : IDisposable
+public class Workflow : IDisposable
 {
     private readonly Func<FunctionId, MessageWriter> _messageWriterFunc;
     
@@ -15,7 +15,7 @@ public class Context : IDisposable
     public Activities Activities { get; }
     public Utilities Utilities { get; }
     
-    public Context(FunctionId functionId, Messages messages, Activities activities, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
+    public Workflow(FunctionId functionId, Messages messages, Activities activities, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
     {
         _messageWriterFunc = messageWriterFunc;
         FunctionId = functionId;

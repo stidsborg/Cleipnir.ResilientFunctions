@@ -23,9 +23,9 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "Id",
                         work: () =>
@@ -59,9 +59,9 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "someId",
                         work: () =>
@@ -95,9 +95,9 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "Id",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
@@ -120,9 +120,9 @@ public abstract class AtLeastOnceWorkStatusTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, Context context) =>
+            async Task(string param, Workflow workflow) =>
             {
-                await context.Activities
+                await workflow.Activities
                     .Do(
                         "someId",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
