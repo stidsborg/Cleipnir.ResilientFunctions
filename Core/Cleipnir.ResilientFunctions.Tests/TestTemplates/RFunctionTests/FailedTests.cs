@@ -34,7 +34,7 @@ public abstract class FailedTests
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new FunctionsRegistry
+            using var functionsRegistry = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -43,7 +43,7 @@ public abstract class FailedTests
                     postponedCheckFrequency: TimeSpan.Zero
                 )
             );
-            var rFunc = rFunctions
+            var rFunc = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     (string _) =>
@@ -58,7 +58,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -66,7 +66,7 @@ public abstract class FailedTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            var rFunc = rFunctions.RegisterFunc(
+            var rFunc = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 (string s) =>
                 {
@@ -104,7 +104,7 @@ public abstract class FailedTests
         var functionTypeId = callerMemberName.ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new FunctionsRegistry
+            using var functionsRegistry = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -113,7 +113,7 @@ public abstract class FailedTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
                 )
             );
-            var nonCompletingRFunctions = rFunctions
+            var nonCompletingFunctionsRegistry = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) =>
@@ -123,11 +123,11 @@ public abstract class FailedTests
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(PARAM, PARAM));
+            await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(PARAM, PARAM));
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
@@ -135,7 +135,7 @@ public abstract class FailedTests
                         postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                     )
                 );
-            var rAction = rFunctions.RegisterAction(functionTypeId,
+            var rAction = functionsRegistry.RegisterAction(functionTypeId,
                 (string _, Scrapbook _) =>
                 {
                     flag.Raise();
@@ -168,7 +168,7 @@ public abstract class FailedTests
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new FunctionsRegistry
+            using var functionsRegistry = new FunctionsRegistry
             (
                 store,
                 new Settings(
@@ -177,18 +177,18 @@ public abstract class FailedTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
                 )
             );
-            var nonCompletingRFunctions = rFunctions 
+            var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
                     functionTypeId,
                     (string _) => Task.FromException(new Exception())
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<Exception>(nonCompletingRFunctions(functionInstanceId.ToString(), PARAM));
+            await Should.ThrowAsync<Exception>(nonCompletingFunctionsRegistry(functionInstanceId.ToString(), PARAM));
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -196,7 +196,7 @@ public abstract class FailedTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            var rFunc = rFunctions
+            var rFunc = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     inner: (string _) => flag.Raise()
@@ -221,7 +221,7 @@ public abstract class FailedTests
         var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
@@ -229,7 +229,7 @@ public abstract class FailedTests
                 postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
             )
         );
-        var rFunc = rFunctions
+        var rFunc = functionsRegistry
             .RegisterAction(
                 functionTypeId,
                 inner: (string _) => flag.Raise()
@@ -263,11 +263,11 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.Zero)
             );
-            var nonCompletingRFunctions = rFunctions 
+            var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
                     functionTypeId,
                     (string _, Scrapbook _) => 
@@ -276,15 +276,15 @@ public abstract class FailedTests
                             : Task.FromException(new Exception())
                 ).Invoke;
 
-            await Should.ThrowAsync<Exception>(() => nonCompletingRFunctions(functionInstanceId.ToString(), param));
+            await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(functionInstanceId.ToString(), param));
         }
         {
             var flag = new SyncedFlag();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.FromMilliseconds(100))
             );
-            var rFunc = rFunctions.RegisterAction(
+            var rFunc = functionsRegistry.RegisterAction(
                 functionTypeId,
                 (string _, Scrapbook _) =>
                 {

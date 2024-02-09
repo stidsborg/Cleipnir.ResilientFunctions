@@ -26,7 +26,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -34,7 +34,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            var rFunc = rFunctions.RegisterFunc(
+            var rFunc = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 (Param p) =>
                 {
@@ -56,7 +56,7 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             var afterNextSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
 
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -64,7 +64,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterFunc<Param, string>(
+            _ = functionsRegistry.RegisterFunc<Param, string>(
                 functionTypeId,
                 (Param p) =>
                 {
@@ -81,7 +81,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -89,7 +89,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterFunc(
+            _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 (Param p) =>
                 {
@@ -104,7 +104,7 @@ public abstract class WatchdogCompoundTests
         }
         {
             //fourth invocation succeeds
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -112,7 +112,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterFunc(
+            _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 (Param p) => $"{p.Id}-{p.Value}".ToTask()
             );
@@ -138,7 +138,7 @@ public abstract class WatchdogCompoundTests
             //first invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -146,7 +146,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            var rFunc = rFunctions.RegisterFunc(
+            var rFunc = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -170,7 +170,7 @@ public abstract class WatchdogCompoundTests
 
             var afterNextPostponedSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
 
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -178,7 +178,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
+            _ = functionsRegistry.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
                 async (p, scrapbook) =>
                 {
@@ -197,7 +197,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -205,7 +205,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterFunc(
+            _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -222,7 +222,7 @@ public abstract class WatchdogCompoundTests
         }
         {
             //fourth invocation succeeds
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -230,7 +230,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
-            _ = rFunctions.RegisterFunc(
+            _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -268,7 +268,7 @@ public abstract class WatchdogCompoundTests
         {
             var crashableStore = store.ToCrashableFunctionStore();
             var tcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -276,7 +276,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            var rAction = rFunctions
+            var rAction = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     inner: (Param p) =>
@@ -298,7 +298,7 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             var afterSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
             
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -306,7 +306,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions
+            _ = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     inner: (Param p) =>
@@ -326,7 +326,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var invocationStarted = new TaskCompletionSource();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -334,7 +334,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterAction(
+            _ = functionsRegistry.RegisterAction(
                 functionTypeId,
                 (Param p) =>
                 {
@@ -351,7 +351,7 @@ public abstract class WatchdogCompoundTests
         //fourth invocation succeeds
         {
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -359,7 +359,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
-            _ = rFunctions
+            _ = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                 (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
@@ -388,7 +388,7 @@ public abstract class WatchdogCompoundTests
             //first invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -396,7 +396,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            var rFunc = rFunctions.RegisterAction(
+            var rFunc = functionsRegistry.RegisterAction(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -419,7 +419,7 @@ public abstract class WatchdogCompoundTests
             var paramTcs = new TaskCompletionSource<Param>();
             var afterNextPostponed = crashableStore.AfterPostponeFunctionStream.Take(1);
 
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -427,7 +427,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions
+            _ = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     async (Param p, Scrapbook scrapbook, Context __) =>
@@ -448,7 +448,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
             var invocationStarted = new TaskCompletionSource();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -456,7 +456,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = rFunctions.RegisterAction(
+            _ = functionsRegistry.RegisterAction(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {
@@ -476,7 +476,7 @@ public abstract class WatchdogCompoundTests
         {
             //fourth invocation succeeds
             var paramTcs = new TaskCompletionSource<Param>();
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -484,7 +484,7 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
                 )
             );
-            _ = rFunctions.RegisterAction(
+            _ = functionsRegistry.RegisterAction(
                 functionTypeId,
                 async (Param p, Scrapbook scrapbook) =>
                 {

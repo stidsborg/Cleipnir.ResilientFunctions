@@ -28,9 +28,9 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var rFunc = rFunctions
+        var rFunc = functionsRegistry
             .RegisterFunc(
                 functionTypeId,
                 (string s) => ToUpper(s)
@@ -67,8 +67,8 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var rFunc = rFunctions
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var rFunc = functionsRegistry
             .RegisterFunc(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
@@ -100,8 +100,8 @@ public abstract class SunshineTests
         var functionTypeId = nameof(SunshineScenarioAction).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var rAction = rFunctions
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var rAction = functionsRegistry
             .RegisterAction(
                 functionTypeId,
                 (string _) => Task.Delay(10)
@@ -129,8 +129,8 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var rFunc = rFunctions
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var rFunc = functionsRegistry
             .RegisterAction(
                 functionTypeId,
                 (string s, Scrapbook scrapbook) => scrapbook.Save()
@@ -155,9 +155,9 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string s) => default(string).ToTask()
         ).Invoke;
@@ -173,9 +173,9 @@ public abstract class SunshineTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string _, ListScrapbook<string> scrapbook) =>
             {
@@ -201,9 +201,9 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string _, ListScrapbook<string> scrapbook) =>
             {
@@ -225,10 +225,10 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var syncedInvocationMode = new Synced<InvocationMode>();
-        var rFunc = rFunctions.RegisterAction(
+        var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
             (string _) => syncedInvocationMode.Value = InvocationMode.Direct
         ).Invoke;

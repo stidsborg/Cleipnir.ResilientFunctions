@@ -20,14 +20,14 @@ public static class BrandExample
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             crashableStore, 
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(100)
             )
         );
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             "SaveOrder",
             async Task (OrderV1 order) =>
             {
@@ -44,7 +44,7 @@ public static class BrandExample
 
     private static void Version2()
     {
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             Store, 
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
@@ -52,7 +52,7 @@ public static class BrandExample
             )
         );
 
-        rFunctions.RegisterAction(
+        functionsRegistry.RegisterAction(
             "SaveOrder",
             async Task(Order order) =>
             {

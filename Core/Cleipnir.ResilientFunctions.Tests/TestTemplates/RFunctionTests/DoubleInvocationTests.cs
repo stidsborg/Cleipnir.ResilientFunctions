@@ -21,7 +21,7 @@ public abstract class DoubleInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var syncTask = new TaskCompletionSource();
-        var rFunctions = new FunctionsRegistry
+        var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -30,7 +30,7 @@ public abstract class DoubleInvocationTests
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
-        var rFunc = rFunctions .RegisterFunc(
+        var rFunc = functionsRegistry .RegisterFunc(
             functionTypeId,
             (string input) => syncTask.Task.ContinueWith(_ => input)
         );
@@ -58,7 +58,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var rFunctions = new FunctionsRegistry
+        var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -67,7 +67,7 @@ public abstract class DoubleInvocationTests
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string input) => Suspend.UntilAfter(0).ToResult<string>()
         );
@@ -90,7 +90,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var rFunctions = new FunctionsRegistry
+        var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -99,7 +99,7 @@ public abstract class DoubleInvocationTests
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string input) => Postpone.For(100_000).ToResult<string>()
         );
@@ -122,7 +122,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var rFunctions = new FunctionsRegistry
+        var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -131,7 +131,7 @@ public abstract class DoubleInvocationTests
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>()
         );

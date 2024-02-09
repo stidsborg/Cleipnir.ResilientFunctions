@@ -42,7 +42,7 @@ Secondly, setup the framework:
 ```csharp
  var store = new PostgreSqlFunctionStore(ConnStr);
  await store.Initialize();
- var rFunctions = new RFunctions(
+ var functionsRegistry = new FunctionsRegistry(
    store,
    new Settings(
      unhandledExceptionHandler: e => Console.WriteLine($"Unhandled framework exception occured: '{e}'"),
@@ -53,7 +53,7 @@ Secondly, setup the framework:
 
 Finally, register and invoke a function using the framework:
 ```csharp
-var rAction = rFunctions.RegisterAction(
+var rAction = functionsRegistry.RegisterAction(
   functionTypeId: "OrderProcessor",
   async (Order order, OrderScrapbook scrapbook) => 
   {
@@ -84,7 +84,7 @@ Congrats, any non-completed Order flows are now automatically restarted by the f
 It is also possible to implement message-based flows using the framework.
 I.e. awaiting 2 external messages before completing an invocation can be accomplished as follows:
 ```csharp
- var rAction = rFunctions.RegisterAction(
+ var rAction = functionsRegistry.RegisterAction(
   functionTypeId: "MessageWaitingFunc",
   async (string param, Context context) => 
   {
@@ -105,7 +105,7 @@ Firstly, the compulsory, ‘*hello world*’-example can be realized as follows:
 
 ```csharp
 var store = new InMemoryFunctionStore();
-var functions = new RFunctions(store, unhandledExceptionHandler: Console.WriteLine);
+var functions = new FunctionsRegistry(store, unhandledExceptionHandler: Console.WriteLine);
 
 var rFunc = functions.RegisterFunc(
   functionTypeId: "HelloWorld",
@@ -124,7 +124,7 @@ Invoking a HTTP-endpoint and storing the response in a database table:
 ```csharp
 public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionStore store)
 {
-  var functions = new RFunctions(store, new Settings(UnhandledExceptionHandler: Console.WriteLine));
+  var functions = new FunctionsRegistry(store, new Settings(UnhandledExceptionHandler: Console.WriteLine));
   var httpClient = new HttpClient();
 
   var rAction = functions.RegisterAction(

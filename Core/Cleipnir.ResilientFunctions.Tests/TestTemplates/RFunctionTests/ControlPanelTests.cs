@@ -24,8 +24,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             (string _) => { }
         );
@@ -51,8 +51,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             string(string _) => "hello"
         );
@@ -78,8 +78,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             (string _) => { }
         );
@@ -105,8 +105,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             string (string _) => "hello"
         );
@@ -136,8 +136,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void (string _) => throw new Exception("oh no")
         );
@@ -173,8 +173,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = rFunctions.RegisterFunc<string, string>(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             string (_) => throw new Exception("oh no")
         );
@@ -210,8 +210,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
@@ -245,8 +245,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = rFunctions.RegisterFunc<string, string>(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             string (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
@@ -280,8 +280,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void (string _) => throw new Exception("oh no")
         );
@@ -313,8 +313,8 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = rFunctions.RegisterFunc<string, string>(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             string (_) => throw new Exception("oh no")
         );
@@ -348,8 +348,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void(string param, RScrapbook scrapbook) =>
             {
@@ -388,8 +388,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
@@ -420,8 +420,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void(string param, RScrapbook scrapbook) =>
             {
@@ -462,8 +462,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
@@ -496,8 +496,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void (string _) => {}
         );
@@ -525,8 +525,8 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
@@ -554,9 +554,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             async Task<string> (string param) =>
             {
@@ -590,9 +590,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task(string param) => flag.WaitForRaised()
         );
@@ -622,9 +622,9 @@ public abstract class ControlPanelTests
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
         var flag = new SyncedFlag();
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             async Task<string> (string param) =>
             {
@@ -658,9 +658,9 @@ public abstract class ControlPanelTests
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
         var flag = new SyncedFlag();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param) =>
             {
@@ -691,9 +691,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rAction = rFunctions.RegisterFunc(
+        var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
             string (string param) => param
         );
@@ -715,9 +715,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             void(string _) => { }
         );
@@ -739,9 +739,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
@@ -769,12 +769,12 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
         var invocationCount = new SyncedCounter();
         var syncedList = new SyncedList<string>();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
@@ -832,10 +832,10 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, RScrapbook _, Context context) =>
             {
@@ -874,9 +874,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
@@ -907,9 +907,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
@@ -945,9 +945,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
@@ -978,9 +978,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task(string param, RScrapbook _, Context context) => Task.Delay(1)
         );
@@ -1016,9 +1016,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task(string param, RScrapbook _, Context context) => Task.CompletedTask
         );
@@ -1057,9 +1057,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Task<string> (string param, RScrapbook _, Context context) 
                 => context.Activities.Do("Test", () => "ActivityResult")
@@ -1086,10 +1086,10 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var runActivity = false;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task (string param, RScrapbook _, Context context) 
                 => runActivity 
@@ -1117,9 +1117,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterAction(
+        var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
             Task (string param, RScrapbook _, Context context) 
                 => context.Activities.Do("Test", () => throw new InvalidOperationException("oh no"))
@@ -1145,9 +1145,9 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Task<string> (string param, RScrapbook _, Context context) =>
                 context.Activities.Do("Test", () =>
@@ -1188,9 +1188,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             (string _, Context _) => {}
         );
@@ -1220,9 +1220,9 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Task<string> (string param, RScrapbook _, Context context) =>
                 context.Activities.Do("Test", () =>
@@ -1256,9 +1256,9 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterFunc<string, string>(
+        var rAction = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             inner: param => param
         );

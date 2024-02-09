@@ -92,7 +92,7 @@ public class SerializationTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store, 
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(1),
@@ -101,7 +101,7 @@ public class SerializationTests
         );
 
         var personCurr = default(PersonCurr);
-        _ = rFunctions
+        functionsRegistry
             .RegisterAction(
                 "typeId".ToFunctionTypeId(),
                 Task (PersonCurr p) =>

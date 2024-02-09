@@ -16,12 +16,12 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task AtMostOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -50,12 +50,12 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -87,12 +87,12 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -126,12 +126,12 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -153,12 +153,12 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -187,12 +187,12 @@ public abstract class AtMostOnceWorkStatusAndResultTests
     public async Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(250)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {

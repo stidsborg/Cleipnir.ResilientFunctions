@@ -53,26 +53,26 @@ public static class PostponedTest
         var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
         Console.WriteLine($"POSTPONED_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
 
-        using var rFunctions1 = new FunctionsRegistry(
+        using var functionsRegistry1 = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-        rFunctions1.RegisterFunc(
+        functionsRegistry1.RegisterFunc(
             nameof(PostponedTest),
             int (string param) => 1 
         );
 
-        using var rFunctions2 = new FunctionsRegistry(
+        using var functionsRegistry2 = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-        rFunctions2.RegisterFunc(
+        functionsRegistry2.RegisterFunc(
             nameof(PostponedTest),
             int (string param) => 2
         );

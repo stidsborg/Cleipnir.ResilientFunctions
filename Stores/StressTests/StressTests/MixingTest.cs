@@ -66,7 +66,7 @@ public static class MixingTest
         }
         
         Console.WriteLine("MIXING_TEST: Waiting for invocations to begin");
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
@@ -74,12 +74,12 @@ public static class MixingTest
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-        var _ = rFunctions.RegisterAction(
+        var _ = functionsRegistry.RegisterAction(
             "MixingTest",
             void(string param) => { }
         );
         
-        using var rFunctions2 = new FunctionsRegistry(
+        using var functionsRegistry2 = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
@@ -87,7 +87,7 @@ public static class MixingTest
                 postponedCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
-        _ = rFunctions2.RegisterAction(
+        functionsRegistry2.RegisterAction(
             "MixingTest",
             void(string param) => { }
         );

@@ -102,7 +102,7 @@ internal class PostponedWatchdog
             using var _ = _shutdownCoordinator.RegisterRunningRFunc();
             await _reInvoke(spf.InstanceId.Value, expectedEpoch: spf.Epoch);
         }
-        catch (ObjectDisposedException) { } //ignore when rfunctions has been disposed
+        catch (ObjectDisposedException) { } //ignore when functionsRegistry has been disposed
         catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
         catch (FunctionInvocationPostponedException) { }
         catch (FunctionInvocationSuspendedException) { }

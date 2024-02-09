@@ -19,7 +19,7 @@ public abstract class ScheduleReInvocationTests
         var functionType = TestFunctionId.Create().TypeId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -29,7 +29,7 @@ public abstract class ScheduleReInvocationTests
         );
         var syncedParameter = new Synced<string>();
 
-        var rFunc = rFunctions
+        var rFunc = functionsRegistry
             .RegisterAction(
                 functionType,
                 inner: async (string s) =>
@@ -71,7 +71,7 @@ public abstract class ScheduleReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -80,7 +80,7 @@ public abstract class ScheduleReInvocationTests
             )
         );
 
-        var rAction = rFunctions.RegisterAction<string, ListScrapbook<string>>(
+        var rAction = functionsRegistry.RegisterAction<string, ListScrapbook<string>>(
             functionTypeId,
             async (param, scrapbook) =>
             {
@@ -126,7 +126,7 @@ public abstract class ScheduleReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -135,7 +135,7 @@ public abstract class ScheduleReInvocationTests
             )
         );
 
-        var rFunc = rFunctions.RegisterFunc<string, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             async s =>
             {
@@ -174,7 +174,7 @@ public abstract class ScheduleReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -183,7 +183,7 @@ public abstract class ScheduleReInvocationTests
             )
         );
 
-        var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, ListScrapbook<string>, string>(
             functionTypeId,
             async (param, scrapbook) =>
             {

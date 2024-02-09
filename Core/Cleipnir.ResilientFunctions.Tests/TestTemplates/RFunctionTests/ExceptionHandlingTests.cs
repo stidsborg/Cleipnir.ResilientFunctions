@@ -15,9 +15,9 @@ public abstract class ExceptionHandlingTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
+        var rFunc = functionsRegistry.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
             string (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
@@ -31,9 +31,9 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
+        var rFunc = functionsRegistry.RegisterFunc<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
             string (string param, ListScrapbook<string> scrapbook) => throw new ArithmeticException("Division by zero")
         ).Invoke;
@@ -47,9 +47,9 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions
+        var rFunc = functionsRegistry
             .RegisterAction(
                 "typeId".ToFunctionTypeId(),
                 void (string _) => throw new ArithmeticException("Division by zero")
@@ -65,9 +65,9 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = rFunctions
+        var rFunc = functionsRegistry
             .RegisterAction(
                 "typeId".ToFunctionTypeId(),
                 void (string _) => throw new ArithmeticException("Division by zero")

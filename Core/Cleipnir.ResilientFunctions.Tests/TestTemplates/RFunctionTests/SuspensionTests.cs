@@ -22,13 +22,13 @@ public abstract class SuspensionTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch, postponedCheckFrequency: TimeSpan.FromSeconds(60))
         );
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Result(string _) => Suspend.UntilAfter(0)
         );
@@ -50,13 +50,13 @@ public abstract class SuspensionTests
         var functionId = TestFunctionId.Create();
         var (typeId, instanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch, postponedCheckFrequency: TimeSpan.FromSeconds(60))
         );
-
-        var rFunc = rFunctions.RegisterFunc(
+        
+        var rFunc = functionsRegistry.RegisterFunc(
             typeId,
             Result<string>(string _) => Suspend.UntilAfter(0)
         );
@@ -79,14 +79,14 @@ public abstract class SuspensionTests
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
 
         var invocations = 0;
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Result<string>(string _) =>
             {
@@ -120,14 +120,14 @@ public abstract class SuspensionTests
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
 
         var invocations = 0;
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Result<string>(string _) =>
             {
@@ -162,14 +162,14 @@ public abstract class SuspensionTests
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
 
         var flag = new SyncedFlag();
-        var rFunc = rFunctions.RegisterFunc<string, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             Result<string>(_) =>
             {
@@ -196,13 +196,13 @@ public abstract class SuspensionTests
         var functionInstanceId = "functionInstanceId";
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
 
-        var registration = rFunctions.RegisterFunc(
+        var registration = functionsRegistry.RegisterFunc(
             nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
             async Task<string> (string param, Context context) =>
             {
@@ -240,13 +240,13 @@ public abstract class SuspensionTests
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
 
-        var registration = rFunctions.RegisterFunc(
+        var registration = functionsRegistry.RegisterFunc(
             functionTypeId,
             async Task<string> (string param, Context context) =>
             {
@@ -283,9 +283,9 @@ public abstract class SuspensionTests
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var child = rFunctions.RegisterAction(
+        var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: async Task (string param, Context context) =>
             {
@@ -293,7 +293,7 @@ public abstract class SuspensionTests
             }
         );
 
-        var parent = rFunctions.RegisterFunc(
+        var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.TypeId,
             async Task<string> (string param, Context context) =>
             {
@@ -340,9 +340,9 @@ public abstract class SuspensionTests
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var child = rFunctions.RegisterAction(
+        var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: (string param, Context context) =>
                 context.PublishMessage(
@@ -352,7 +352,7 @@ public abstract class SuspensionTests
                 )
         );
 
-        var parent = rFunctions.RegisterAction(
+        var parent = functionsRegistry.RegisterAction(
             parentFunctionId.TypeId,
             inner: async Task (string param, Context context) =>
             {
@@ -382,9 +382,9 @@ public abstract class SuspensionTests
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var child = rFunctions.RegisterAction(
+        var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: (string param, Context context) =>
                 context.PublishMessage(
@@ -394,7 +394,7 @@ public abstract class SuspensionTests
                 )
         );
 
-        var parent = rFunctions.RegisterFunc(
+        var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.TypeId,
             inner: async Task<List<string>> (string param, Context context) =>
             {

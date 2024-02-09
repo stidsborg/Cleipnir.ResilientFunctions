@@ -17,7 +17,7 @@ internal static class Program
         var store = new PostgreSqlFunctionStore(connStr);
         await store.DropIfExists();
         await store.Initialize();
-        var rFunctions = new FunctionsRegistry(
+        var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: e => Log.Logger.Error(e, "Unhandled framework exception occured"),
@@ -26,7 +26,7 @@ internal static class Program
         );
         
         //await Rpc.Do.Execute(rFunctions);
-        await Messaging.Do.Execute(rFunctions);
+        await Messaging.Do.Execute(functionsRegistry);
         Console.WriteLine("Press enter to exit");
         Console.ReadLine();
     }

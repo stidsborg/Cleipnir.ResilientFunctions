@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
-    public abstract class RFunctionScrapbookTests
+    public abstract class ResilientFunctionScrapbookTests
     {
         private readonly DefaultSerializer _serializer = DefaultSerializer.Instance;
         public abstract Task SunshineScenario();
@@ -24,9 +24,9 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-            using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+            using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-            var rFunc = rFunctions
+            var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
                     (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)

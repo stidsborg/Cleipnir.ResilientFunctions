@@ -17,7 +17,7 @@ public class RFunctionsShutdownTests
     {
         var functionTypeId = "functionTypeId".ToFunctionTypeId();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -29,7 +29,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async (string _) =>
             {
@@ -43,7 +43,7 @@ public class RFunctionsShutdownTests
         
         await insideRFuncFlag.WaitForRaised();
 
-        var shutdownTask = rFunctions.ShutdownGracefully();
+        var shutdownTask = functionsRegistry.ShutdownGracefully();
         await Task.Delay(10);
         shutdownTask.IsCompleted.ShouldBeFalse();
         
@@ -59,7 +59,7 @@ public class RFunctionsShutdownTests
     {
         var functionTypeId = "functionTypeId".ToFunctionTypeId();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -70,7 +70,7 @@ public class RFunctionsShutdownTests
 
         var insideRFuncFlag = new SyncedFlag();
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
              (string _) =>
             {
@@ -83,7 +83,7 @@ public class RFunctionsShutdownTests
 
         await insideRFuncFlag.WaitForRaised();
 
-        var shutdownTask = rFunctions.ShutdownGracefully(TimeSpan.FromMilliseconds(100));
+        var shutdownTask = functionsRegistry.ShutdownGracefully(TimeSpan.FromMilliseconds(100));
         await Should.ThrowAsync<TimeoutException>(shutdownTask);
     }
     
@@ -103,7 +103,7 @@ public class RFunctionsShutdownTests
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -115,7 +115,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        rFunctions.RegisterAction(
+        functionsRegistry.RegisterAction(
             functionId.TypeId,
             async (string _) =>
             {
@@ -126,7 +126,7 @@ public class RFunctionsShutdownTests
 
         await insideRFuncFlag.WaitForRaised();
 
-        var shutdownTask = rFunctions.ShutdownGracefully();
+        var shutdownTask = functionsRegistry.ShutdownGracefully();
         await Task.Delay(10);
         shutdownTask.IsCompleted.ShouldBeFalse();
         
@@ -163,7 +163,7 @@ public class RFunctionsShutdownTests
         ).ShouldBeTrueAsync();
 
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -175,7 +175,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        rFunctions.RegisterAction(
+        functionsRegistry.RegisterAction(
             functionId.TypeId,
             async (string _) =>
             {
@@ -187,7 +187,7 @@ public class RFunctionsShutdownTests
 
         await insideRFuncFlag.WaitForRaised();
 
-        var shutdownTask = rFunctions.ShutdownGracefully();
+        var shutdownTask = functionsRegistry.ShutdownGracefully();
         await Task.Delay(10);
         shutdownTask.IsCompleted.ShouldBeFalse();
         
@@ -202,7 +202,7 @@ public class RFunctionsShutdownTests
         var functionTypeId = "functionTypeId".ToFunctionTypeId();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -213,7 +213,7 @@ public class RFunctionsShutdownTests
 
         var counter = new SyncedCounter();
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Result (string _) =>
             {
@@ -226,7 +226,7 @@ public class RFunctionsShutdownTests
 
         await BusyWait.UntilAsync(() => counter.Current == 1);
 
-        var shutdownTask = rFunctions.ShutdownGracefully();
+        var shutdownTask = functionsRegistry.ShutdownGracefully();
         await Task.Delay(10);
         shutdownTask.IsCompleted.ShouldBeTrue();
 

@@ -17,11 +17,11 @@ public abstract class ActivitiesTests
     public async Task SunshineActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -55,11 +55,11 @@ public abstract class ActivitiesTests
     public async Task SunshineAsyncActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -92,11 +92,11 @@ public abstract class ActivitiesTests
     public async Task SunshineFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -137,11 +137,11 @@ public abstract class ActivitiesTests
     public async Task SunshineAsyncFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -182,11 +182,11 @@ public abstract class ActivitiesTests
     public async Task ExceptionThrowingActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task(string param, Context context) =>
             {
@@ -229,10 +229,10 @@ public abstract class ActivitiesTests
     public async Task TaskWhenAnyFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
-        var rAction = rFunctions.RegisterFunc(
+        var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
             async Task<int> (string param, Context context) =>
             {
@@ -255,7 +255,7 @@ public abstract class ActivitiesTests
     public async Task ClearActivityTest(Task<IFunctionStore> storeTask)
     {  
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
 
@@ -268,7 +268,7 @@ public abstract class ActivitiesTests
             timestamp: DateTime.Now.Ticks
         );
         
-        var registration = rFunctions.RegisterAction(
+        var registration = functionsRegistry.RegisterAction(
             functionTypeId,
             async Task (string param, Context context) =>
             {

@@ -19,7 +19,7 @@ public abstract class TimeoutTests
         var store = await storeTask;
         var functionTypeId = nameof(ExpiredTimeoutIsAddedToMessages).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry
+        using var functionsRegistry = new FunctionsRegistry
         (
             store,
             new Settings(
@@ -29,7 +29,7 @@ public abstract class TimeoutTests
                 timeoutEventsCheckFrequency: TimeSpan.FromMilliseconds(1)
             )
         );
-        var rFunc = rFunctions.RegisterAction(
+        var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
             inner: async Task (string _, Context context) =>
             {

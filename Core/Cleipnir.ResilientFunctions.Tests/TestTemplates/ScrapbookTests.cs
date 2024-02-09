@@ -138,13 +138,13 @@ public abstract class ScrapbookTests
     protected async Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = new FunctionId(
             functionTypeId: nameof(ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration),
             functionInstanceId: "instance"
         );
         var synced = new Synced<ParentScrapbook>();
-        var rAction = rFunctions.RegisterAction<string, ParentScrapbook>(
+        var rAction = functionsRegistry.RegisterAction<string, ParentScrapbook>(
             functionId.TypeId,
             (_, scrapbook) => synced.Value = scrapbook
         ).Invoke;
@@ -162,9 +162,9 @@ public abstract class ScrapbookTests
     protected async Task ChangesToStateDictionaryArePersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         
-        var rAction = rFunctions.RegisterAction<string, RScrapbook>(
+        var rAction = functionsRegistry.RegisterAction<string, RScrapbook>(
             nameof(ChangesToStateDictionaryArePersisted),
             (_, scrapbook) => scrapbook.StateDictionary["hello"] = "world"
         ).Invoke;

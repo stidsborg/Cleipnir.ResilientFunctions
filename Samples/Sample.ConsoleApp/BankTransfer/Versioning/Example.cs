@@ -9,9 +9,9 @@ public static class Example
 {
     public static async Task Perform()
     {
-        var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        var functionsRegistry = new FunctionsRegistry(new InMemoryFunctionStore());
 
-        var transferSaga = new TransferSagaV1(rFunctions);
+        var transferSaga = new TransferSagaV1(functionsRegistry);
         var transfer = new Transfer(
             TransferId: Guid.NewGuid(),
             FromAccount: "FAccount",

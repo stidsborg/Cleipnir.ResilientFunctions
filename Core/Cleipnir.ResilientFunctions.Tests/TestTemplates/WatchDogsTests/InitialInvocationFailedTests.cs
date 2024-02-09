@@ -26,8 +26,8 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = rFunctions.RegisterAction(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        _ = functionsRegistry.RegisterAction(
             functionId.TypeId,
             void(string param) => flag.Raise()
         );
@@ -54,8 +54,8 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = rFunctions.RegisterAction<string, Scrapbook>(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        _ = functionsRegistry.RegisterAction<string, Scrapbook>(
             functionId.TypeId,
             void(string param, Scrapbook scrapbook) => flag.Raise()
         );
@@ -85,8 +85,8 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        _ = functionsRegistry.RegisterFunc(
             functionId.TypeId,
             string (string param) =>
             {
@@ -119,8 +119,8 @@ public abstract class InitialInvocationFailedTests
         );
 
         var flag = new SyncedFlag();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = rFunctions.RegisterFunc(
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        _ = functionsRegistry.RegisterFunc(
             functionId.TypeId,
             string (string param, Scrapbook scrapbook) =>
             {

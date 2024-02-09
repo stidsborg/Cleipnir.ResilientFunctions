@@ -37,7 +37,7 @@ public abstract class CrashedTests
             _ = nonCompletingRFunctions(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -45,7 +45,7 @@ public abstract class CrashedTests
                 )
             );
 
-            var rFunc = rFunctions
+            var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
                     (string s) => s.ToUpper().ToTask()
@@ -76,7 +76,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var rFunctions = new FunctionsRegistry
+            using var functionsRegistry = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -85,16 +85,16 @@ public abstract class CrashedTests
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
-            var nonCompletingRFunctions = rFunctions    
+            var nonCompletingFunctionsRegistry = functionsRegistry    
                 .RegisterFunc(
                     functionTypeId,
                     (string _, Scrapbook _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
+            _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -102,7 +102,7 @@ public abstract class CrashedTests
                 )
             );
 
-            var rFunc = rFunctions
+            var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
                     async (string s, Scrapbook scrapbook) =>
@@ -141,7 +141,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new FunctionsRegistry
+            var nonCompletingFunctionsRegistry = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -156,10 +156,10 @@ public abstract class CrashedTests
                 )
                 .Invoke;
 
-            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
+            _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -167,7 +167,7 @@ public abstract class CrashedTests
                 )
             );
 
-            var rAction = rFunctions
+            var rAction = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     (string _) => Task.CompletedTask
@@ -198,7 +198,7 @@ public abstract class CrashedTests
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            var nonCompletingRFunctions = new FunctionsRegistry
+            var nonCompletingFunctionsRegistry = new FunctionsRegistry
                 (
                     store, 
                     new Settings(
@@ -212,10 +212,10 @@ public abstract class CrashedTests
                     (string _, Scrapbook _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
+            _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
         }
         {
-            using var rFunctions = new FunctionsRegistry(
+            using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -223,7 +223,7 @@ public abstract class CrashedTests
                 )
             );
 
-            var rAction = rFunctions
+            var rAction = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
                     async (string _, Scrapbook scrapbook) =>

@@ -58,23 +58,23 @@ public class SuspensionTest
         Console.WriteLine($"SUSPENSION_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
 
         Console.WriteLine("SUSPENSION_TEST: Waiting for invocations to begin");
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
-        var _ = rFunctions.RegisterAction(
+        var _ = functionsRegistry.RegisterAction(
             "SuspensionTest",
             void(string param) => { }
         );
         
-        using var rFunctions2 = new FunctionsRegistry(
+        using var functionsRegistry2 = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 leaseLength: TimeSpan.FromSeconds(1)
             )
         );
-        _ = rFunctions2.RegisterAction(
+        functionsRegistry2.RegisterAction(
             "SuspensionTest",
             void(string param) => { }
         );

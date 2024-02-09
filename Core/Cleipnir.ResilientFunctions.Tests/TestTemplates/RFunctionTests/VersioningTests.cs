@@ -16,7 +16,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(250), 
@@ -40,7 +40,7 @@ public abstract class VersioningTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        _ = rFunctions.RegisterFunc(
+        _ = functionsRegistry.RegisterFunc(
             nameof(NonExistingParameterTypeResultsInFailedFunction),
             string(PersonV1 p) => p.Name
         );
@@ -58,7 +58,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(250), 
@@ -79,7 +79,7 @@ public abstract class VersioningTests
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
-        _ = rFunctions.RegisterAction(
+        _ = functionsRegistry.RegisterAction(
             nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown),
             void (int _) => flag.Raise()
         );
@@ -100,7 +100,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(10), 
@@ -121,7 +121,7 @@ public abstract class VersioningTests
         ).ShouldBeTrueAsync();
 
         var flag = new SyncedFlag();
-        _ = rFunctions.RegisterAction(
+        _ = functionsRegistry.RegisterAction(
             nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown),
             void (string param, Scrapbook2 scrapbook) => flag.Raise()
         );
@@ -144,7 +144,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(250), 
@@ -179,7 +179,7 @@ public abstract class VersioningTests
         ).ShouldBeTrueAsync();
 
         var invocations = new SyncedList<Person>();
-        rFunctions.RegisterAction(
+        functionsRegistry.RegisterAction(
             functionTypeId: v1FunctionId.TypeId,
             void (Person p) => invocations.Add(p)
         );
@@ -196,7 +196,7 @@ public abstract class VersioningTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 leaseLength: TimeSpan.FromMilliseconds(10), 
@@ -208,7 +208,7 @@ public abstract class VersioningTests
             "instance"
         );
 
-        var rFunc = rFunctions.RegisterFunc<string, object>(
+        var rFunc = functionsRegistry.RegisterFunc<string, object>(
             functionId.TypeId.Value,
             param => param
         ).Invoke;

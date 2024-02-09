@@ -22,9 +22,9 @@ public abstract class MessagingTests
         var store = await functionStore;
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var rAction = rFunctions.RegisterFunc(
+        var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
             inner: async Task<string> (string _, Context context) =>
             {
@@ -52,9 +52,9 @@ public abstract class MessagingTests
 
         var functionId = TestFunctionId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var rAction = rFunctions.RegisterFunc(
+        var rAction = functionsRegistry.RegisterFunc(
             functionId.TypeId,
             inner: async Task<string> (string _, Context context) =>
             {
@@ -80,9 +80,9 @@ public abstract class MessagingTests
 
         var functionId = new FunctionId(nameof(TimeoutEventCausesSuspendedFunctionToBeReInvoked),"instanceId");
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var rFunc = rFunctions.RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionId.TypeId,
             inner: async Task<Tuple<bool, string>> (string _, Context context) =>
             {
@@ -133,14 +133,14 @@ public abstract class MessagingTests
         var childFunctionId = TestFunctionId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var child = rFunctions.RegisterAction(
+        var child = functionsRegistry.RegisterAction(
             childFunctionId.TypeId,
             inner: Task (string _, Context context) => context.PublishMessage(parentFunctionId, "hello world", idempotencyKey: null)
         );
 
-        var parent = rFunctions.RegisterFunc(
+        var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.TypeId,
             inner: async Task<string> (string _, Context context) =>
             {

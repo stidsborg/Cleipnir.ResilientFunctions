@@ -21,7 +21,7 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -31,7 +31,7 @@ public abstract class ReInvocationTests
         );
         var syncedParameter = new Synced<string>();
 
-        var rFunc = rFunctions
+        var rFunc = functionsRegistry
             .RegisterAction(
                 functionType, (string s) =>
                 {
@@ -66,7 +66,7 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -75,7 +75,7 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rAction = rFunctions.RegisterAction<string, ListScrapbook<string>>(
+        var rAction = functionsRegistry.RegisterAction<string, ListScrapbook<string>>(
             functionTypeId,
             async (param, scrapbook) =>
             {
@@ -120,7 +120,7 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -130,7 +130,7 @@ public abstract class ReInvocationTests
         );
 
         var syncedParam = new Synced<object>();
-        var rAction = rFunctions.RegisterAction<object>(
+        var rAction = functionsRegistry.RegisterAction<object>(
             functionTypeId,
             param =>
             {
@@ -168,7 +168,7 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -178,7 +178,7 @@ public abstract class ReInvocationTests
         );
 
         var syncedParam = new Synced<Tuple<object, RScrapbook>>();
-        var rAction = rFunctions.RegisterAction<object, RScrapbook>(
+        var rAction = functionsRegistry.RegisterAction<object, RScrapbook>(
             functionTypeId,
             (p, s) =>
             {
@@ -221,9 +221,9 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = rFunctions.RegisterAction<string, Scrapbook>(
+        var rAction = functionsRegistry.RegisterAction<string, Scrapbook>(
             functionTypeId,
             inner: (_, scrapbook) =>
             {
@@ -265,9 +265,9 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, Scrapbook, string>(
             functionTypeId,
             inner: (param, scrapbook) =>
             {
@@ -317,7 +317,7 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -326,7 +326,7 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rFunc = rFunctions.RegisterFunc<string, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
             async s =>
             {
@@ -361,7 +361,7 @@ public abstract class ReInvocationTests
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -370,7 +370,7 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rFunc = rFunctions.RegisterFunc<string, ListScrapbook<string>, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, ListScrapbook<string>, string>(
             functionTypeId,
             async (param, scrapbook) =>
             {
@@ -414,7 +414,7 @@ public abstract class ReInvocationTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var rFunctions = new FunctionsRegistry(
+        using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -423,7 +423,7 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rAction = rFunctions.RegisterAction(
+        var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             (string _) => {}
         );

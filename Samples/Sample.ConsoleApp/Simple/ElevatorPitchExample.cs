@@ -17,7 +17,7 @@ public static class ElevatorPitchExample
         var store = new SqlServerFunctionStore(connectionString); //simple to use SqlServer as function storage layer - other stores also exist!
         await store.Initialize(); //create table in database - btw the invocation is idempotent!
 
-        var rFunctions = new FunctionsRegistry( //this is where you register different resilient function types
+        var functionsRegistry = new FunctionsRegistry( //this is where you register different resilient function types
             store,
             new Settings(
                 unhandledExceptionHandler: //framework exceptions are simply to log and handle otherwise - just register a handler
@@ -27,7 +27,7 @@ public static class ElevatorPitchExample
             )
         );
 
-        var registration = rFunctions.RegisterFunc( //making a function resilient is simply a matter of registering it
+        var registration = functionsRegistry.RegisterFunc( //making a function resilient is simply a matter of registering it
             functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
             inner: async Task<string>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
         ); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
@@ -38,7 +38,7 @@ public static class ElevatorPitchExample
         var responseBody = await rFunc(functionInstanceId: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
         Log.Information("Resilient Function getting {Url} completed successfully with body: {Body}", url, responseBody);
         
-        await rFunctions.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!
+        await functionsRegistry.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!
     }
 }
 
