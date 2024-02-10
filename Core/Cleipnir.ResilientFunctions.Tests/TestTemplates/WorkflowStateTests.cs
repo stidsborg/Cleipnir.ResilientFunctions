@@ -157,25 +157,4 @@ public abstract class WorkflowStateTests
 
     private class ParentState : Domain.WorkflowState { }
     private class ChildState : ParentState { }
-
-    public abstract Task ChangesToStateDictionaryArePersisted();
-    protected async Task ChangesToStateDictionaryArePersisted(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
-        
-        var rAction = functionsRegistry.RegisterAction<string, Domain.WorkflowState>(
-            nameof(ChangesToStateDictionaryArePersisted),
-            (_, state) => state.StateDictionary["hello"] = "world"
-        ).Invoke;
-
-        await rAction.Invoke("instance", "test");
-        var sf = await store.GetFunction(
-            new FunctionId(nameof(ChangesToStateDictionaryArePersisted), "instance")
-        ).ShouldNotBeNullAsync();
-
-        var state = sf.State.Deserialize<Domain.WorkflowState>(DefaultSerializer.Instance);
-        state.StateDictionary.Count.ShouldBe(1);
-        state.StateDictionary["hello"].ShouldBe("world");
-    }
 }

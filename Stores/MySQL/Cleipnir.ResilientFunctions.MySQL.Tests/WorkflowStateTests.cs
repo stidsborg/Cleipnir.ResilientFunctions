@@ -16,8 +16,4 @@ public class WorkflowStateTests : ResilientFunctions.Tests.TestTemplates.Workflo
     [TestMethod]
     public override Task ConcreteStateTypeIsUsedWhenSpecifiedAtRegistration()
         => ConcreteStateTypeIsUsedWhenSpecifiedAtRegistration(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ChangesToStateDictionaryArePersisted()
-        => ChangesToStateDictionaryArePersisted(FunctionStoreFactory.Create());
 }

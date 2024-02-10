@@ -25,10 +25,6 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             => ConcreteStateTypeIsUsedWhenSpecifiedAtRegistration(
                 FunctionStoreFactory.Create()
             );
-
-        [TestMethod]
-        public override Task ChangesToStateDictionaryArePersisted()
-            => ChangesToStateDictionaryArePersisted(FunctionStoreFactory.Create());
         
         [TestMethod]
         public void StateThrowsExceptionIsInitializedMultipleTimes()

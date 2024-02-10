@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -7,7 +6,6 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class WorkflowState
 {
     private Func<Task>? OnSave { get; set; }
-    public ConcurrentDictionary<string, string> StateDictionary { get; set; } = new(); //allows for state accessible from middleware etc
     
     private bool _initialized;
 

@@ -351,18 +351,14 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            void(string param, WorkflowState state) =>
-            {
-                state.StateDictionary.Clear();
-                state.StateDictionary["Value"] = param;
-            }
+            void(string param, TestState state) => state.Value = param
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.StateDictionary["Value"].ShouldBe("first");
+        controlPanel.State.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -371,13 +367,18 @@ public abstract class ControlPanelTests
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.StateDictionary["Value"].ShouldBe("second");
+        controlPanel.State.Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+
+    private class TestState : WorkflowState
+    {
+        public string? Value { get; set; }
     }
     
     public abstract Task ReInvokingExistingFunctionFromControlPanelSucceeds();
@@ -423,18 +424,14 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            void(string param, WorkflowState state) =>
-            {
-                state.StateDictionary.Clear();
-                state.StateDictionary["Value"] = param;
-            }
+            void(string param, TestState state) => state.Value = param
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.StateDictionary["Value"].ShouldBe("first");
+        controlPanel.State.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -445,7 +442,7 @@ public abstract class ControlPanelTests
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.StateDictionary["Value"].ShouldBe("second");
+        controlPanel.State.Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();

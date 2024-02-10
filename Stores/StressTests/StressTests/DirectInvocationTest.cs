@@ -33,7 +33,7 @@ public class DirectInvocationTest
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
-                    state.StateDictionary["Param"] = param;
+                    
                     await state.Save();
                     return await messages.FirstOfType<string>();
                 }
@@ -57,7 +57,7 @@ public class DirectInvocationTest
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
-                    state.StateDictionary["Param"] = param;
+                    
                     await state.Save();
                     return await messages.FirstOfType<string>();
                 }
