@@ -40,11 +40,11 @@ public class RActionRegistrationTests
         public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
             => Default.DeserializeParameter<TParam>(json, type);
 
-        public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
-            => Default.SerializeScrapbook(scrapbook);
-        public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type)
-            where TScrapbook : RScrapbook
-            => Default.DeserializeScrapbook<TScrapbook>(json, type);
+        public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
+            => Default.SerializeState(state);
+        public TState DeserializeState<TState>(string json, string type)
+            where TState : WorkflowState
+            => Default.DeserializeState<TState>(json, type);
 
         public StoredException SerializeException(Exception exception)
             => Default.SerializeException(exception);

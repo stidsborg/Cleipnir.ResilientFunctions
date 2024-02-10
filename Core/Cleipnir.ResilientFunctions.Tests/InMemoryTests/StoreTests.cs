@@ -77,12 +77,12 @@ public class StoreTests : TestTemplates.StoreTests
         => IncrementEpochFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
-        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
+    public override Task SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
+        => SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
-        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
+    public override Task SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
+        => SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeletingExistingFunctionSucceeds()

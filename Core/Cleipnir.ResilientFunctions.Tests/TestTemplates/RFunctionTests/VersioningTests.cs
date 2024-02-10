@@ -34,7 +34,7 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -72,7 +72,7 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-           new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+           new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
            leaseExpiration: DateTime.UtcNow.Ticks,
            postponeUntil: null,
            timestamp: DateTime.UtcNow.Ticks
@@ -95,8 +95,8 @@ public abstract class VersioningTests
         unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
     }
     
-    public abstract Task WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown();
-    protected async Task WhenScrapbookOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Task<IFunctionStore> storeTask)
+    public abstract Task WhenStateOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown();
+    protected async Task WhenStateOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
@@ -114,7 +114,7 @@ public abstract class VersioningTests
                 "Hello World".ToJson(),
                 typeof(string).SimpleQualifiedName()
             ),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -123,7 +123,7 @@ public abstract class VersioningTests
         var flag = new SyncedFlag();
         _ = functionsRegistry.RegisterAction(
             nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown),
-            void (string param, Scrapbook2 scrapbook) => flag.Raise()
+            void (string param, State2 state) => flag.Raise()
         );
 
         await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0, maxWait: TimeSpan.FromSeconds(5));
@@ -136,8 +136,8 @@ public abstract class VersioningTests
         
         unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
     }
-    private class Scrapbook1 : RScrapbook {}
-    private class Scrapbook2 : RScrapbook {}
+    private class State1 : WorkflowState {}
+    private class State2 : WorkflowState {}
 
     public abstract Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype();
     protected async Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(Task<IFunctionStore> storeTask)
@@ -159,7 +159,7 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -172,7 +172,7 @@ public abstract class VersioningTests
                 new PersonV2(Name: "Ole", Age: 35).ToJson(),
                 typeof(PersonV2).SimpleQualifiedName()
             ),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks

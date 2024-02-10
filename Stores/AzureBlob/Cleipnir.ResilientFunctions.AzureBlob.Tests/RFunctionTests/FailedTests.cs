@@ -15,11 +15,11 @@ public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests
         => UnhandledExceptionThrowingFuncIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog()
+        => ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
-    public override Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task UnhandledExceptionThrowingFuncWithStateIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingActionIsNotCompletedByWatchDog()
@@ -30,12 +30,12 @@ public class FailedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests
         => PassingInNullParameterResultsInException(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task ExceptionThrowingActionWithStateIsNotCompletedByWatchDog()
+        => ExceptionThrowingActionWithStateIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog()
-        => UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task UnhandledExceptionThrowingActionWithStateIsNotCompletedByWatchDog()
+        => UnhandledExceptionThrowingActionWithStateIsNotCompletedByWatchDog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task FuncReturningTaskThrowsSerialization()

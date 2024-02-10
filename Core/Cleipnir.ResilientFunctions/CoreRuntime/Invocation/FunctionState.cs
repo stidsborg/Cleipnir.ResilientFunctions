@@ -3,14 +3,14 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public record FunctionState<TParam, TScrapbook, TReturn>(
+public record FunctionState<TParam, TState, TReturn>(
     FunctionId FunctionId, 
     Status Status,
     int Epoch,
     long LeaseExpiration,
     TParam Param, 
-    TScrapbook Scrapbook, 
+    TState State, 
     TReturn? Result,
     DateTime? PostponedUntil,
     PreviouslyThrownException? PreviouslyThrownException
-) where TParam : notnull where TScrapbook : RScrapbook, new();
+) where TParam : notnull where TState : WorkflowState, new();

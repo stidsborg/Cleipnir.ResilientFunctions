@@ -58,8 +58,8 @@ public abstract class ReInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task ActionWithScrapbookReInvocationSunshineScenario();
-    protected async Task ActionWithScrapbookReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
+    public abstract Task ActionWithStateReInvocationSunshineScenario();
+    protected async Task ActionWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -75,18 +75,18 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rAction = functionsRegistry.RegisterAction<string, ListScrapbook<string>>(
+        var rAction = functionsRegistry.RegisterAction<string, ListState<string>>(
             functionTypeId,
-            async (param, scrapbook) =>
+            async (param, state) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
                 {
-                    scrapbook.List.Add("hello");
-                    await scrapbook.Save();
+                    state.List.Add("hello");
+                    await state.Save();
                     flag.Raise();
                     throw new Exception("oh no");
                 }
-                scrapbook.List.Add("world");
+                state.List.Add("world");
             }
         );
 
@@ -94,11 +94,11 @@ public abstract class ReInvocationTests
             rAction.Invoke(functionInstanceId.Value, "something")
         );
 
-        var syncedListFromScrapbook = new Synced<List<string>>();
+        var syncedListFromState = new Synced<List<string>>();
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
             
-        syncedListFromScrapbook.Value = new List<string>(controlPanel.Scrapbook.List);
-        controlPanel.Scrapbook.List.Clear();
+        syncedListFromState.Value = new List<string>(controlPanel.State.List);
+        controlPanel.State.List.Clear();
         await controlPanel.SaveChanges();
         
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -106,8 +106,8 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
-        scrapbook.List.Single().ShouldBe("world");
+        var state = function.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
+        state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -160,8 +160,8 @@ public abstract class ReInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario();
-    protected async Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
+    public abstract Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario();
+    protected async Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -177,8 +177,8 @@ public abstract class ReInvocationTests
             )
         );
 
-        var syncedParam = new Synced<Tuple<object, RScrapbook>>();
-        var rAction = functionsRegistry.RegisterAction<object, RScrapbook>(
+        var syncedParam = new Synced<Tuple<object, Domain.WorkflowState>>();
+        var rAction = functionsRegistry.RegisterAction<object, Domain.WorkflowState>(
             functionTypeId,
             (p, s) =>
             {
@@ -193,28 +193,28 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(functionInstanceId.Value, "something", new ListScrapbook<string>())
+            rAction.Invoke(functionInstanceId.Value, "something", new ListState<string>())
         );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = 10;
-        (controlPanel.Scrapbook is ListScrapbook<string>).ShouldBeTrue();
-        controlPanel.Scrapbook = new ListScrapbook<int>();
+        (controlPanel.State is ListState<string>).ShouldBeTrue();
+        controlPanel.State = new ListState<int>();
         await controlPanel.SaveChanges();
        
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
         
-        var (param, scrapbook) = syncedParam.Value!;
+        var (param, state) = syncedParam.Value!;
         param.ShouldBe(10);
-        (scrapbook is ListScrapbook<int>).ShouldBeTrue();
+        (state is ListState<int>).ShouldBeTrue();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction();
-    protected async Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(Task<IFunctionStore> storeTask)
+    public abstract Task StateUpdaterIsCalledBeforeReInvokeOnAction();
+    protected async Task StateUpdaterIsCalledBeforeReInvokeOnAction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -223,27 +223,27 @@ public abstract class ReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rAction = functionsRegistry.RegisterAction<string, Scrapbook>(
+        var rAction = functionsRegistry.RegisterAction<string, WorkflowState>(
             functionTypeId,
-            inner: (_, scrapbook) =>
+            inner: (_, state) =>
             {
-                scrapbook.Value++;
+                state.Value++;
                 if (flag.Position == FlagPosition.Lowered)
                     throw new Exception("oh no");
             }
         );
 
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, "something"));
-        var sfScrapbook = await store
+        var state = await store
             .GetFunction(functionId)
-            .Map(sf => sf?.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>());
+            .Map(sf => sf?.State.StateJson.DeserializeFromJsonTo<WorkflowState>());
 
-        sfScrapbook.ShouldNotBeNull();
-        sfScrapbook.Value.ShouldBe(1);
+        state.ShouldNotBeNull();
+        state.Value.ShouldBe(1);
         
         flag.Raise();
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        controlPanel.Scrapbook.Value = -1;
+        controlPanel.State.Value = -1;
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.ReInvoke();
@@ -251,14 +251,14 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>();
-        scrapbook.Value.ShouldBe(0);
+        var s = function.State.StateJson.DeserializeFromJsonTo<WorkflowState>();
+        s.Value.ShouldBe(0);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc();
-    protected async Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(Task<IFunctionStore> storeTask)
+    public abstract Task StateUpdaterIsCalledBeforeReInvokeOnFunc();
+    protected async Task StateUpdaterIsCalledBeforeReInvokeOnFunc(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -267,11 +267,11 @@ public abstract class ReInvocationTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
-        var rFunc = functionsRegistry.RegisterFunc<string, Scrapbook, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, WorkflowState, string>(
             functionTypeId,
-            inner: (param, scrapbook) =>
+            inner: (param, state) =>
             {
-                scrapbook.Value++;
+                state.Value++;
                 if (flag.Position == FlagPosition.Lowered)
                     throw new Exception("oh no");
 
@@ -280,16 +280,16 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
-        var sfScrapbook = await store
+        var sfState = await store
             .GetFunction(functionId)
-            .Map(sf => sf?.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>());
+            .Map(sf => sf?.State.StateJson.DeserializeFromJsonTo<WorkflowState>());
 
-        sfScrapbook.ShouldNotBeNull();
-        sfScrapbook.Value.ShouldBe(1);
+        sfState.ShouldNotBeNull();
+        sfState.Value.ShouldBe(1);
         
         flag.Raise();
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        controlPanel.Scrapbook.Value = -1;
+        controlPanel.State.Value = -1;
         await controlPanel.SaveChanges();
 
         await controlPanel.Refresh();
@@ -299,12 +299,12 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<Scrapbook>();
-        scrapbook.Value.ShouldBe(0);
+        var state = function.State.StateJson.DeserializeFromJsonTo<WorkflowState>();
+        state.Value.ShouldBe(0);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
-    private class Scrapbook : RScrapbook
+    private class WorkflowState : Domain.WorkflowState
     {
         public int Value { get; set; }
     }
@@ -353,8 +353,8 @@ public abstract class ReInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task FuncWithScrapbookReInvocationSunshineScenario();
-    protected async Task FuncWithScrapbookReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
+    public abstract Task FuncWithStateReInvocationSunshineScenario();
+    protected async Task FuncWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -370,19 +370,19 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rFunc = functionsRegistry.RegisterFunc<string, ListScrapbook<string>, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, ListState<string>, string>(
             functionTypeId,
-            async (param, scrapbook) =>
+            async (param, state) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
                 {
-                    scrapbook.List.Add("hello");
-                    await scrapbook.Save();
+                    state.List.Add("hello");
+                    await state.Save();
                     flag.Raise();
                     throw new Exception("oh no");
                 }
 
-                scrapbook.List.Add("world");
+                state.List.Add("world");
                 return param;
             }
         );
@@ -390,7 +390,7 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        controlPanel.Scrapbook.List.Clear();
+        controlPanel.State.List.Clear();
         await controlPanel.SaveChanges();
         
         controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -401,8 +401,8 @@ public abstract class ReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
-        var scrapbook = function.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
-        scrapbook.List.Single().ShouldBe("world");
+        var state = function.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
+        state.List.Single().ShouldBe("world");
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

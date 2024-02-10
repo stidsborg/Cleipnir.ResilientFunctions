@@ -257,14 +257,14 @@ public class FunctionsRegistry : IDisposable
                 )
             );
 
-    // ** !! FUNC WITH SCRAPBOOK !! ** //
+    // ** !! FUNC WITH STATE !! ** //
     
     // ** SYNC ** //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, TReturn> inner,
+        Func<TParam, TState, TReturn> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -272,11 +272,11 @@ public class FunctionsRegistry : IDisposable
         );
 
     // ** SYNC W. WORKFLOW ** //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, TReturn> inner,
+        Func<TParam, TState, Workflow, TReturn> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -284,11 +284,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC ** //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<TReturn>> inner,
+        Func<TParam, TState, Task<TReturn>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -296,11 +296,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. WORKFLOW * //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Task<TReturn>> inner,
+        Func<TParam, TState, Workflow, Task<TReturn>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -308,11 +308,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT ** //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Result<TReturn>> inner,
+        Func<TParam, TState, Result<TReturn>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -320,11 +320,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT AND WORKFLOW ** //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Result<TReturn>> inner,
+        Func<TParam, TState, Workflow, Result<TReturn>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -332,11 +332,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. RESULT ** //
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Result<TReturn>>> inner,
+        Func<TParam, TState, Task<Result<TReturn>>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterFunc(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -344,11 +344,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
-    public FuncRegistration<TParam, TScrapbook, TReturn> RegisterFunc<TParam, TScrapbook, TReturn>(
+    public FuncRegistration<TParam, TState, TReturn> RegisterFunc<TParam, TState, TReturn>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Task<Result<TReturn>>> inner,
+        Func<TParam, TState, Workflow, Task<Result<TReturn>>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
@@ -356,11 +356,11 @@ public class FunctionsRegistry : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-                throw new ArgumentException($"Function <{typeof(FuncRegistration<TParam, TScrapbook, TReturn>).SimpleQualifiedName()}> has already been registered");
+                throw new ArgumentException($"Function <{typeof(FuncRegistration<TParam, TState, TReturn>).SimpleQualifiedName()}> has already been registered");
         
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
-            var rFuncInvoker = new Invoker<TParam, TScrapbook, TReturn>(
+            var invocationHelper = new InvocationHelper<TParam, TState, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
+            var rFuncInvoker = new Invoker<TParam, TState, TReturn>(
                 functionTypeId, 
                 inner,
                 invocationHelper,
@@ -377,12 +377,12 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanels = new ControlPanels<TParam, TScrapbook, TReturn>(
+            var controlPanels = new ControlPanels<TParam, TState, TReturn>(
                 functionTypeId,
                 rFuncInvoker,
                 invocationHelper
             );
-            var registration = new FuncRegistration<TParam, TScrapbook, TReturn>(
+            var registration = new FuncRegistration<TParam, TState, TReturn>(
                 functionTypeId,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
@@ -396,13 +396,13 @@ public class FunctionsRegistry : IDisposable
         }
     }
 
-    // ** !! ACTION WITH SCRAPBOOK !! ** //
+    // ** !! ACTION WITH STATE !! ** //
     // ** SYNC ** //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Action<TParam, TScrapbook> inner,
+        Action<TParam, TState> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -410,11 +410,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. WORKFLOW ** //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Action<TParam, TScrapbook, Workflow> inner,
+        Action<TParam, TState, Workflow> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -422,11 +422,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC ** //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task> inner,
+        Func<TParam, TState, Task> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+    ) where TParam : notnull where TState : WorkflowState, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -434,11 +434,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. WORKFLOW * //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Task> inner,
+        Func<TParam, TState, Workflow, Task> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+    ) where TParam : notnull where TState : WorkflowState, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -446,11 +446,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT ** //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Result> inner,
+        Func<TParam, TState, Result> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -458,11 +458,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** SYNC W. RESULT AND WORKFLOW ** //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Result> inner,
+        Func<TParam, TState, Workflow, Result> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -470,11 +470,11 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** ASYNC W. RESULT ** //
-    public RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    public ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Task<Result>> inner,
+        Func<TParam, TState, Task<Result>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new() 
+    ) where TParam : notnull where TState : WorkflowState, new() 
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
@@ -482,22 +482,22 @@ public class FunctionsRegistry : IDisposable
         );
 
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
-    internal RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    internal ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Task<Result>> inner,
+        Func<TParam, TState, Workflow, Task<Result>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
         => RegisterAction(
             functionTypeId,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
     
-    private RAction<TParam, TScrapbook> RegisterAction<TParam, TScrapbook>(
+    private ActionRegistration<TParam, TState> RegisterAction<TParam, TState>(
         FunctionTypeId functionTypeId,
-        Func<TParam, TScrapbook, Workflow, Task<Result<Unit>>> inner,
+        Func<TParam, TState, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new()
+    ) where TParam : notnull where TState : WorkflowState, new()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
@@ -505,11 +505,11 @@ public class FunctionsRegistry : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-                    throw new ArgumentException($"Action <{typeof(FuncRegistration<TParam, TScrapbook>).SimpleQualifiedName()}> has already been registered");
+                    throw new ArgumentException($"Action <{typeof(FuncRegistration<TParam, TState>).SimpleQualifiedName()}> has already been registered");
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TScrapbook, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
-            var rActionInvoker = new Invoker<TParam, TScrapbook, Unit>(
+            var invocationHelper = new InvocationHelper<TParam, TState, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
+            var rActionInvoker = new Invoker<TParam, TState, Unit>(
                 functionTypeId, 
                 inner, 
                 invocationHelper,
@@ -526,12 +526,12 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanels = new ControlPanels<TParam, TScrapbook>(
+            var controlPanels = new ControlPanels<TParam, TState>(
                 functionTypeId,
                 rActionInvoker,
                 invocationHelper
             );
-            var registration = new RAction<TParam, TScrapbook>(
+            var registration = new ActionRegistration<TParam, TState>(
                 functionTypeId,
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,

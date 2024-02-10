@@ -27,15 +27,15 @@ public static class PostponedTest
                 ParamJson: JsonSerializer.Serialize("hello world"),
                 ParamType: typeof(string).SimpleQualifiedName()
             );
-            var storedScrapbook = new StoredScrapbook(
-                ScrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
-                ScrapbookType: typeof(RScrapbook).SimpleQualifiedName()
+            var storedState = new StoredState(
+                StateJson: JsonSerializer.Serialize(new WorkflowState()),
+                StateType: typeof(WorkflowState).SimpleQualifiedName()
             );
             var functionId = new FunctionId(nameof(PostponedTest), i.ToString());
             await store.CreateFunction(
                 functionId,
                 storedParameter,
-                storedScrapbook,
+                storedState,
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -43,10 +43,10 @@ public static class PostponedTest
             await store.PostponeFunction(
                 functionId,
                 postponeUntil: start.Ticks,
-                scrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
+                stateJson: JsonSerializer.Serialize(new WorkflowState()),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0)
+                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedState, LeaseLength: 0)
             );
         }
         stopWatch.Stop();

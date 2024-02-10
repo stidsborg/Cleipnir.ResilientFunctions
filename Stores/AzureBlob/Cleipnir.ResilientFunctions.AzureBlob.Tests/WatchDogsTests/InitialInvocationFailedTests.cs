@@ -11,14 +11,14 @@ public class InitialInvocationFailedTests : Cleipnir.ResilientFunctions.Tests.Te
         => CreatedActionIsCompletedByWatchdog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task CreatedActionWithScrapbookIsCompletedByWatchdog()
-        => CreatedActionWithScrapbookIsCompletedByWatchdog(FunctionStoreFactory.Create());
+    public override Task CreatedActionWithStateIsCompletedByWatchdog()
+        => CreatedActionWithStateIsCompletedByWatchdog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task CreatedFuncIsCompletedByWatchdog()
         => CreatedFuncIsCompletedByWatchdog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task CreatedFuncWithScrapbookIsCompletedByWatchdog()
-        => CreatedFuncWithScrapbookIsCompletedByWatchdog(FunctionStoreFactory.Create());
+    public override Task CreatedFuncWithStateIsCompletedByWatchdog()
+        => CreatedFuncWithStateIsCompletedByWatchdog(FunctionStoreFactory.Create());
 }

@@ -10,12 +10,12 @@ public class ScheduledInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTe
         => ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(FunctionStoreFactory.Create());
+    public override Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted()
+        => ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(FunctionStoreFactory.Create());
+    public override Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted()
+        => ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted()

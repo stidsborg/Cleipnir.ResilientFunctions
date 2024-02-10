@@ -8,19 +8,19 @@ namespace ConsoleApp.BankTransfer.Versioning;
 
 public sealed class TransferSagaV2
 {
-    private readonly RAction<Transfer, RScrapbook> _rAction;
+    private readonly ActionRegistration<Transfer, WorkflowState> _actionRegistration;
     public TransferSagaV2(FunctionsRegistry functionsRegistry)
     {
         var saga = new Inner(new BankCentralClient());
-        _rAction = functionsRegistry
-            .RegisterAction<Transfer, RScrapbook>(
+        _actionRegistration = functionsRegistry
+            .RegisterAction<Transfer, WorkflowState>(
                 functionTypeId: nameof(TransferSagaV2),
-                (transfer, scrapbook, workflow) => saga.Perform(transfer, scrapbook, workflow)
+                (transfer, state, workflow) => saga.Perform(transfer, state, workflow)
             );
     }
 
     public Task Perform(Transfer transfer)
-        => _rAction.Invoke(transfer.TransferId.ToString(), transfer);
+        => _actionRegistration.Invoke(transfer.TransferId.ToString(), transfer);
 
     public class Inner
     {
@@ -28,7 +28,7 @@ public sealed class TransferSagaV2
         
         public Inner(IBankCentralClient bankCentralClient) => BankCentralClient = bankCentralClient;
 
-        public async Task Perform(Transfer transfer, RScrapbook scrapbook, Workflow workflow)
+        public async Task Perform(Transfer transfer, WorkflowState state, Workflow workflow)
         {
             var arbitrator = workflow.Utilities.Arbitrator;
             var (activity, messages) = workflow;

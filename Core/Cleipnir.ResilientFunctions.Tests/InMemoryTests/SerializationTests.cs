@@ -55,22 +55,22 @@ public class SerializationTests
     }
 
     [TestMethod]
-    public void ConcreteTypeOfScrapbookIsSerializedAndDeserializedByDefaultSerializer()
+    public void ConcreteTypeOfStateIsSerializedAndDeserializedByDefaultSerializer()
     {
         var serializer = DefaultSerializer.Instance;
-        RScrapbook rScrapbook = new Scrapbook { Value = "Hello World" };
-        var serialized = serializer.SerializeScrapbook(rScrapbook);
-        var deserializedEvent = serializer.DeserializeParameter<RScrapbook>(serialized.ScrapbookJson, serialized.ScrapbookType);
-        if (deserializedEvent is not Scrapbook scrapbook)
+        Domain.WorkflowState workflowState = new WorkflowState { Value = "Hello World" };
+        var serialized = serializer.SerializeState(workflowState);
+        var deserializedEvent = serializer.DeserializeParameter<Domain.WorkflowState>(serialized.StateJson, serialized.StateType);
+        if (deserializedEvent is not WorkflowState state)
             throw new Exception("Expected event to be of child-type");
         
-        scrapbook.Value.ShouldBe("Hello World");
+        state.Value.ShouldBe("Hello World");
     }
     
     public record Parent;
     public record Child(string Value) : Parent;
 
-    public class Scrapbook : RScrapbook
+    public class WorkflowState : Domain.WorkflowState
     {
         public string Value { get; set; } = "";
     }
@@ -86,7 +86,7 @@ public class SerializationTests
         await store.CreateFunction(
             new FunctionId("typeId", "instanceId"),
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -148,10 +148,10 @@ public class SerializationTests
             )!;
         }
 
-        public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
-            => _defaultSerializer.SerializeScrapbook(scrapbook);
-        public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type) where TScrapbook : RScrapbook
-            => _defaultSerializer.DeserializeScrapbook<TScrapbook>(json, type);
+        public StoredState SerializeState<TState>(TState state) where TState : Domain.WorkflowState
+            => _defaultSerializer.SerializeState(state);
+        public TState DeserializeState<TState>(string? json, string type) where TState : Domain.WorkflowState
+            => _defaultSerializer.DeserializeState<TState>(json, type);
 
         public StoredException SerializeException(Exception exception)
             => _defaultSerializer.SerializeException(exception);

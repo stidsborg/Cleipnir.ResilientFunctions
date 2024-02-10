@@ -27,14 +27,14 @@ public class DirectInvocationTest
         );
         var rFunc1 = functionsRegistry.RegisterFunc(
             "DirectInvocationTest",
-            async Task<string> (string param, RScrapbook scrapbook, Workflow workflow) =>
+            async Task<string> (string param, WorkflowState state, Workflow workflow) =>
             {
                 try
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
-                    scrapbook.StateDictionary["Param"] = param;
-                    await scrapbook.Save();
+                    state.StateDictionary["Param"] = param;
+                    await state.Save();
                     return await messages.FirstOfType<string>();
                 }
                 catch (Exception exception)
@@ -51,14 +51,14 @@ public class DirectInvocationTest
         );
         var rFunc2 = functionsRegistry2.RegisterFunc(
             "DirectInvocationTest",
-            async Task<string> (string param, RScrapbook scrapbook, Workflow workflow) =>
+            async Task<string> (string param, WorkflowState state, Workflow workflow) =>
             {
                 try
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
-                    scrapbook.StateDictionary["Param"] = param;
-                    await scrapbook.Save();
+                    state.StateDictionary["Param"] = param;
+                    await state.Save();
                     return await messages.FirstOfType<string>();
                 }
                 catch (Exception exception)
@@ -80,7 +80,7 @@ public class DirectInvocationTest
         return new TestResult(0, executionAverageSpeed);
     }
 
-    private static async Task Invoke(FuncRegistration<string, RScrapbook, string> funcRegistration, int i)
+    private static async Task Invoke(FuncRegistration<string, WorkflowState, string> funcRegistration, int i)
     {
         try
         {

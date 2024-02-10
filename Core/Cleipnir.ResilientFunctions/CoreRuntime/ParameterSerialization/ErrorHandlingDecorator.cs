@@ -36,13 +36,13 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
-        => _inner.SerializeScrapbook(scrapbook);
-    public TScrapbook DeserializeScrapbook<TScrapbook>(string json, string type) where TScrapbook : RScrapbook
+    public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
+        => _inner.SerializeState(state);
+    public TState DeserializeState<TState>(string json, string type) where TState : WorkflowState
     {
         try
         {
-            return _inner.DeserializeScrapbook<TScrapbook>(json, type);
+            return _inner.DeserializeState<TState>(json, type);
         }
         catch (DeserializationException)
         {
@@ -51,7 +51,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize scrapbook with type: '{type}' and json: '{MinifyJson(json)}'", 
+                $"Unable to deserialize state with type: '{type}' and json: '{MinifyJson(json)}'", 
                 e
             );
         }

@@ -7,37 +7,37 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class FuncRegistration
 {
-    public delegate Task<TReturn> Invoke<in TParam, in TScrapbook, TReturn>(
+    public delegate Task<TReturn> Invoke<in TParam, in TState, TReturn>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+        TState? state = null
+    ) where TParam : notnull where TState : WorkflowState, new();
     
-    public delegate Task Schedule<in TParam, TScrapbook>(
+    public delegate Task Schedule<in TParam, TState>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+        TState? state = null
+    ) where TParam : notnull where TState : WorkflowState, new();
     
-    public delegate Task ScheduleAt<in TParam, TScrapbook>(
+    public delegate Task ScheduleAt<in TParam, TState>(
         string functionInstanceId, 
         TParam param,
         DateTime delayUntil,
-        TScrapbook? scrapbook = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+        TState? state = null
+    ) where TParam : notnull where TState : WorkflowState, new();
 }
 
 public class FuncRegistration<TParam, TReturn> where TParam : notnull
 {
     public FunctionTypeId TypeId { get; }
     
-    public FuncRegistration.Invoke<TParam, RScrapbook, TReturn> Invoke { get; }
-    public FuncRegistration.Schedule<TParam, RScrapbook> Schedule { get; }
-    public FuncRegistration.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }
-    private readonly FuncRegistration<TParam, RScrapbook, TReturn> _funcRegistration; 
+    public FuncRegistration.Invoke<TParam, WorkflowState, TReturn> Invoke { get; }
+    public FuncRegistration.Schedule<TParam, WorkflowState> Schedule { get; }
+    public FuncRegistration.ScheduleAt<TParam, WorkflowState> ScheduleAt { get; }
+    private readonly FuncRegistration<TParam, WorkflowState, TReturn> _funcRegistration; 
     public MessageWriters MessageWriters { get; }
 
-    public FuncRegistration(FuncRegistration<TParam, RScrapbook, TReturn> funcRegistration)
+    public FuncRegistration(FuncRegistration<TParam, WorkflowState, TReturn> funcRegistration)
     {
         TypeId = funcRegistration.TypeId;
         
@@ -49,38 +49,38 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         MessageWriters = funcRegistration.MessageWriters;
     }
 
-    public Task<ControlPanel<TParam, RScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
+    public Task<ControlPanel<TParam, WorkflowState, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
         => _funcRegistration.ControlPanel(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
         TParam param,
         TimeSpan delay,
-        RScrapbook? scrapbook = null
+        WorkflowState? state = null
     ) => ScheduleAt(
         functionInstanceId,
         param,
         delayUntil: DateTime.UtcNow.Add(delay),
-        scrapbook
+        state
     );
 }
 
-public class FuncRegistration<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class FuncRegistration<TParam, TState, TReturn> where TParam : notnull where TState : WorkflowState, new()
 {
     public FunctionTypeId TypeId { get; }
     
-    public FuncRegistration.Invoke<TParam, TScrapbook, TReturn> Invoke { get; }
-    public FuncRegistration.Schedule<TParam, TScrapbook> Schedule { get; }
-    public FuncRegistration.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
-    private ControlPanels<TParam, TScrapbook, TReturn> ControlPanels { get; }
+    public FuncRegistration.Invoke<TParam, TState, TReturn> Invoke { get; }
+    public FuncRegistration.Schedule<TParam, TState> Schedule { get; }
+    public FuncRegistration.ScheduleAt<TParam, TState> ScheduleAt { get; }
+    private ControlPanels<TParam, TState, TReturn> ControlPanels { get; }
     public MessageWriters MessageWriters { get; }
 
     public FuncRegistration(
         FunctionTypeId functionTypeId,
-        FuncRegistration.Invoke<TParam, TScrapbook, TReturn> invoke,
-        FuncRegistration.Schedule<TParam, TScrapbook> schedule,
-        FuncRegistration.ScheduleAt<TParam, TScrapbook> scheduleAt,
-        ControlPanels<TParam, TScrapbook, TReturn> controlPanel, 
+        FuncRegistration.Invoke<TParam, TState, TReturn> invoke,
+        FuncRegistration.Schedule<TParam, TState> schedule,
+        FuncRegistration.ScheduleAt<TParam, TState> scheduleAt,
+        ControlPanels<TParam, TState, TReturn> controlPanel, 
         MessageWriters messageWriters)
     {
         TypeId = functionTypeId;
@@ -93,18 +93,18 @@ public class FuncRegistration<TParam, TScrapbook, TReturn> where TParam : notnul
         MessageWriters = messageWriters;
     }
 
-    public Task<ControlPanel<TParam, TScrapbook, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
+    public Task<ControlPanel<TParam, TState, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
         => ControlPanels.For(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
         TParam param,
         TimeSpan delay,
-        TScrapbook? scrapbook = null
+        TState? state = null
     ) => ScheduleAt(
         functionInstanceId,
         param,
         delayUntil: DateTime.UtcNow.Add(delay),
-        scrapbook
+        state
     );
 }

@@ -12,26 +12,26 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     public override Task ActionReInvocationSunshineScenario()
         => ActionReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task ActionWithScrapbookReInvocationSunshineScenario()
-        => ActionWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
+    public override Task ActionWithStateReInvocationSunshineScenario()
+        => ActionWithStateReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
     public override Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario()
         => UpdatedParameterIsPassedInOnReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario()
-        => UpdatedParameterAndScrapbookIsPassedInOnReInvocationSunshineScenario(CreateInMemoryStore());
+    public override Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario()
+        => UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnAction()
-        => ScrapbookUpdaterIsCalledBeforeReInvokeOnAction(CreateInMemoryStore());
+    public override Task StateUpdaterIsCalledBeforeReInvokeOnAction()
+        => StateUpdaterIsCalledBeforeReInvokeOnAction(CreateInMemoryStore());
     [TestMethod]
-    public override Task ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc()
-        => ScrapbookUpdaterIsCalledBeforeReInvokeOnFunc(CreateInMemoryStore());
+    public override Task StateUpdaterIsCalledBeforeReInvokeOnFunc()
+        => StateUpdaterIsCalledBeforeReInvokeOnFunc(CreateInMemoryStore());
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task FuncWithScrapbookReInvocationSunshineScenario()
-        => FuncWithScrapbookReInvocationSunshineScenario(CreateInMemoryStore());
+    public override Task FuncWithStateReInvocationSunshineScenario()
+        => FuncWithStateReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(CreateInMemoryStore());

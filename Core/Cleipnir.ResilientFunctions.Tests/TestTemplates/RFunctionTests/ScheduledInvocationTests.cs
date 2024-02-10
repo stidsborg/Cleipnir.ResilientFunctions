@@ -33,11 +33,11 @@ public abstract class ScheduledInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted();
-    protected async Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(Task<IFunctionStore> storeTask)
+    public abstract Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted();
+    protected async Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
@@ -45,7 +45,7 @@ public abstract class ScheduledInvocationTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string _, Scrapbook _) => NeverCompletingTask.OfType<Result<string>>()
+            (string _, WorkflowState _) => NeverCompletingTask.OfType<Result<string>>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
@@ -54,17 +54,17 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Scrapbook.ShouldNotBeNull();
-        storedFunction.Scrapbook.ScrapbookType.ResolveType().ShouldBe(typeof(Scrapbook));
+        storedFunction.State.ShouldNotBeNull();
+        storedFunction.State.StateType.ResolveType().ShouldBe(typeof(WorkflowState));
         storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    public abstract Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted();
-    protected async Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(Task<IFunctionStore> storeTask)
+    public abstract Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted();
+    protected async Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted).ToFunctionTypeId();
         const string functionInstanceId = "someFunctionId";
         var functionId = new FunctionId(functionTypeId, functionInstanceId);
         
@@ -72,7 +72,7 @@ public abstract class ScheduledInvocationTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterAction(
             functionTypeId,
-            (string _, Scrapbook _) => NeverCompletingTask.OfType<Result>()
+            (string _, WorkflowState _) => NeverCompletingTask.OfType<Result>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
@@ -81,8 +81,8 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Scrapbook.ShouldNotBeNull();
-        storedFunction.Scrapbook.ScrapbookType.ResolveType().ShouldBe(typeof(Scrapbook));
+        storedFunction.State.ShouldNotBeNull();
+        storedFunction.State.StateType.ResolveType().ShouldBe(typeof(WorkflowState));
         storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -112,5 +112,5 @@ public abstract class ScheduledInvocationTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    private class Scrapbook : RScrapbook {}
+    private class WorkflowState : Domain.WorkflowState {}
 }

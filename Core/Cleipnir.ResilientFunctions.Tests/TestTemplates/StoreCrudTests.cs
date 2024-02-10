@@ -14,10 +14,10 @@ public abstract class StoreCrudTests
     private FunctionId FunctionId { get; } = new FunctionId("funcType1", "funcInstance1");
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
     private StoredParameter Param => new(TestParam.ToJson(), typeof(TestParameters).SimpleQualifiedName());
-    private StoredScrapbook Scrapbook => new(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName());
+    private StoredState State => new(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName());
     private record TestParameters(string Name, int Age);
 
-    private class TestScrapbook : RScrapbook
+    private class TestWorkflowState : WorkflowState
     {
         public string? Note { get; set; }
     }
@@ -33,7 +33,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -43,8 +43,8 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Scrapbook.ShouldNotBeNull();
-        stored.Scrapbook.ScrapbookType.ShouldBe(typeof(RScrapbook).SimpleQualifiedName());
+        stored.State.ShouldNotBeNull();
+        stored.State.StateType.ShouldBe(typeof(WorkflowState).SimpleQualifiedName());
         stored.Result.ResultJson.ShouldBeNull();
         stored.Result.ResultJson.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -61,7 +61,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -71,9 +71,9 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Scrapbook.ShouldNotBeNull();
-        stored.Scrapbook.ScrapbookJson.ShouldNotBeNull();
-        stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
+        stored.State.ShouldNotBeNull();
+        stored.State.StateJson.ShouldNotBeNull();
+        stored.State.StateType.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
         stored.Result.ResultJson.ShouldBeNull();
         stored.Result.ResultType.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -82,15 +82,15 @@ public abstract class StoreCrudTests
         stored.LeaseExpiration.ShouldBe(leaseExpiration);
     }
         
-    public abstract Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully();
-    protected async Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully();
+    protected async Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -100,9 +100,9 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Scrapbook.ShouldNotBeNull();
-        stored.Scrapbook.ScrapbookJson.ShouldNotBeNull();
-        stored.Scrapbook.ScrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
+        stored.State.ShouldNotBeNull();
+        stored.State.StateJson.ShouldNotBeNull();
+        stored.State.StateType.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
         stored.Result.ResultJson.ShouldBeNull();
         stored.Result.ResultType.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -125,7 +125,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -146,7 +146,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -159,63 +159,63 @@ public abstract class StoreCrudTests
         storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
     }
 
-    public abstract Task UpdateScrapbookSunshineScenario();
-    protected async Task UpdateScrapbookSunshineScenario(Task<IFunctionStore> storeTask)
+    public abstract Task UpdateStateSunshineScenario();
+    protected async Task UpdateStateSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var scrapbook = new TestScrapbook { Note = "something is still something" };
-        var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
+        var state = new TestWorkflowState { Note = "something is still something" };
+        var storedState = DefaultSerializer.Instance.SerializeState(state);
         var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
-        await store.SaveScrapbookForExecutingFunction(
+        await store.SaveStateForExecutingFunction(
             FunctionId, 
-            storedScrapbook.ScrapbookJson, 
+            storedState.StateJson, 
             expectedEpoch: 0, 
-            complimentaryState: new ComplimentaryState(() => storedParam, () => storedScrapbook, LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(() => storedParam, () => storedState, LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(FunctionId);
-        storedFunction!.Scrapbook.ShouldNotBeNull();
-        var (scrapbookJson, scrapbookType) = storedFunction.Scrapbook;
+        storedFunction!.State.ShouldNotBeNull();
+        var (stateJson, s) = storedFunction.State;
             
-        scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-        scrapbookJson.ShouldBe(scrapbook.ToJson());
+        s.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
+        stateJson.ShouldBe(state.ToJson());
     }
         
-    public abstract Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected();
-    protected async Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    public abstract Task StateUpdateFailsWhenEpochIsNotAsExpected();
+    protected async Task StateUpdateFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var scrapbook = new TestScrapbook { Note = "something is still something" };
+        var state = new TestWorkflowState { Note = "something is still something" };
         var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
-        var storedScrapbook = DefaultSerializer.Instance.SerializeScrapbook(scrapbook);
-        await store.SaveScrapbookForExecutingFunction(
+        var storedState = DefaultSerializer.Instance.SerializeState(state);
+        await store.SaveStateForExecutingFunction(
             FunctionId, 
-            storedScrapbook.ScrapbookJson, 
+            storedState.StateJson, 
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState(() => storedParam, () => storedScrapbook, LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(() => storedParam, () => storedState, LeaseLength: 0)
         ).ShouldBeFalseAsync();
 
-        var (scrapbookJson, scrapbookType) = (await store.GetFunction(FunctionId))!.Scrapbook;
-        scrapbookType.ShouldBe(typeof(TestScrapbook).SimpleQualifiedName());
-        scrapbookJson.ShouldNotBeNull();
+        var (stateJson, stateType) = (await store.GetFunction(FunctionId))!.State;
+        stateType.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
+        stateJson.ShouldNotBeNull();
     }
 
     public abstract Task ExistingFunctionCanBeDeleted();
@@ -225,7 +225,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -250,7 +250,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredScrapbook(new TestScrapbook().ToJson(), typeof(TestScrapbook).SimpleQualifiedName()),
+            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -265,14 +265,14 @@ public abstract class StoreCrudTests
         await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
     }
 
-    public abstract Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction();
-    public async Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
+    public abstract Task ParameterAndStateCanBeUpdatedOnExistingFunction();
+    public async Task ParameterAndStateCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
-            Scrapbook,
+            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -282,16 +282,16 @@ public abstract class StoreCrudTests
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName()
         );
-        var updatedStoredScrapbook = new StoredScrapbook(
-            new ScrapbookVersion2 { Name = "Peter" }.ToJson(),
-            typeof(ScrapbookVersion2).SimpleQualifiedName()
+        var updatedStoredState = new StoredState(
+            new StateVersion2 { Name = "Peter" }.ToJson(),
+            typeof(StateVersion2).SimpleQualifiedName()
         );
 
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            updatedStoredScrapbook,
+            updatedStoredState,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -301,8 +301,8 @@ public abstract class StoreCrudTests
         var param = (string) sf.Parameter.DefaultDeserialize();
         param.ShouldBe("hello world");
 
-        var scrapbook = (ScrapbookVersion2) sf.Scrapbook.DefaultDeserialize();
-        scrapbook.Name.ShouldBe("Peter");
+        var state = (StateVersion2) sf.State.DefaultDeserialize();
+        state.Name.ShouldBe("Peter");
     }
     
     public abstract Task ParameterCanBeUpdatedOnExistingFunction();
@@ -312,7 +312,7 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            Scrapbook,
+            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -326,7 +326,7 @@ public abstract class StoreCrudTests
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            storedScrapbook: Scrapbook,
+            storedState: State,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -336,31 +336,31 @@ public abstract class StoreCrudTests
         var param = (string) sf.Parameter.DefaultDeserialize();
         param.ShouldBe("hello world");
 
-        (sf.Scrapbook.DefaultDeserialize() is TestScrapbook).ShouldBeTrue();
+        (sf.State.DefaultDeserialize() is TestWorkflowState).ShouldBeTrue();
     }
     
-    public abstract Task ScrapbookCanBeUpdatedOnExistingFunction();
-    public async Task ScrapbookCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
+    public abstract Task StateCanBeUpdatedOnExistingFunction();
+    public async Task StateCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
-            Scrapbook,
+            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
-        var updatedStoredScrapbook = new StoredScrapbook(
-            new ScrapbookVersion2 { Name = "Peter" }.ToJson(),
-            typeof(ScrapbookVersion2).SimpleQualifiedName()
+        var updatedStoredState = new StoredState(
+            new StateVersion2 { Name = "Peter" }.ToJson(),
+            typeof(StateVersion2).SimpleQualifiedName()
         );
         
         await store.SetParameters(
             FunctionId,
             storedParameter: Param,
-            updatedStoredScrapbook,
+            updatedStoredState,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -369,18 +369,18 @@ public abstract class StoreCrudTests
         sf.ShouldNotBeNull();
         (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
 
-        var scrapbook = (ScrapbookVersion2) sf.Scrapbook.DefaultDeserialize();
-        scrapbook.Name.ShouldBe("Peter");
+        var state = (StateVersion2) sf.State.DefaultDeserialize();
+        state.Name.ShouldBe("Peter");
     }
     
-    public abstract Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch();
-    public async Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(Task<IFunctionStore> storeTask)
+    public abstract Task ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch();
+    public async Task ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         await store.CreateFunction(
             FunctionId,
             Param,
-            Scrapbook,
+            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -395,15 +395,15 @@ public abstract class StoreCrudTests
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName()
         );
-        var updatedStoredScrapbook = new StoredScrapbook(
-            new ScrapbookVersion2 { Name = "Peter" }.ToJson(),
-            typeof(ScrapbookVersion2).SimpleQualifiedName()
+        var updatedStoredState = new StoredState(
+            new StateVersion2 { Name = "Peter" }.ToJson(),
+            typeof(StateVersion2).SimpleQualifiedName()
         );
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            updatedStoredScrapbook,
+            updatedStoredState,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeFalseAsync();
@@ -411,10 +411,10 @@ public abstract class StoreCrudTests
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
         (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
-        (sf.Scrapbook.DefaultDeserialize() is TestScrapbook).ShouldBeTrue();
+        (sf.State.DefaultDeserialize() is TestWorkflowState).ShouldBeTrue();
     }
 
-    private class ScrapbookVersion2 : RScrapbook
+    private class StateVersion2 : WorkflowState
     {
         public string Name { get; set; } = "";
     } 

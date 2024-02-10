@@ -8,7 +8,7 @@ namespace ConsoleApp.SupportTicket;
 
 public class Saga
 {
-    public static async Task AcceptSupportTicket(SupportTicketRequest request, RScrapbook scrapbook, Workflow workflow)
+    public static async Task AcceptSupportTicket(SupportTicketRequest request, WorkflowState state, Workflow workflow)
     {
         var messages = workflow.Messages;
         
@@ -32,7 +32,7 @@ public class Saga
             if (supportTicketTakenOption.HasValue)
                 return;
             
-            await scrapbook.Save();
+            await state.Save();
         }
     }
 }

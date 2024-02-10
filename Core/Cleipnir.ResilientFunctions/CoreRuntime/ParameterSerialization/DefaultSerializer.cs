@@ -16,16 +16,16 @@ public class DefaultSerializer : ISerializer
     public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
         => (TParam) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
-    public StoredScrapbook SerializeScrapbook<TScrapbook>(TScrapbook scrapbook) where TScrapbook : RScrapbook
-        => new(JsonSerializer.Serialize(scrapbook, scrapbook.GetType()), scrapbook.GetType().SimpleQualifiedName());
-    public TScrapbook DeserializeScrapbook<TScrapbook>(string? json, string type)
-        where TScrapbook : RScrapbook
+    public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
+        => new(JsonSerializer.Serialize(state, state.GetType()), state.GetType().SimpleQualifiedName());
+    public TState DeserializeState<TState>(string? json, string type)
+        where TState : WorkflowState
     {
-        var scrapbookType = Type.GetType(type, throwOnError: true)!;
+        var stateType = Type.GetType(type, throwOnError: true)!;
         if (json == null)
-            return (TScrapbook) Activator.CreateInstance(scrapbookType)!;
+            return (TState) Activator.CreateInstance(stateType)!;
         
-        return (TScrapbook) JsonSerializer.Deserialize(json, scrapbookType)!;
+        return (TState) JsonSerializer.Deserialize(json, stateType)!;
     }
 
     public StoredException SerializeException(Exception exception)

@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
-public class ListScrapbook<T> : RScrapbook
+public class ListState<T> : WorkflowState
 {
     public List<T> List { get; set; } = new();
 }

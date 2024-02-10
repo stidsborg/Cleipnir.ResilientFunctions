@@ -15,8 +15,8 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
         => FunctionCanBeCreatedWithTwoParametersSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully()
-        => FunctionCanBeCreatedWithTwoParametersAndScrapbookSuccessfully(FunctionStoreFactory.Create());
+    public override Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully()
+        => FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FetchingNonExistingFunctionReturnsNull()
@@ -31,12 +31,12 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
         => LeaseIsNotUpdatedWhenCurrentEpochIsDifferent(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task UpdateScrapbookSunshineScenario()
-        => UpdateScrapbookSunshineScenario(FunctionStoreFactory.Create());
+    public override Task UpdateStateSunshineScenario()
+        => UpdateStateSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ScrapbookUpdateFailsWhenEpochIsNotAsExpected()
-        => ScrapbookUpdateFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
+    public override Task StateUpdateFailsWhenEpochIsNotAsExpected()
+        => StateUpdateFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingFunctionCanBeDeleted()
@@ -51,18 +51,18 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
         => ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ParameterAndScrapbookCanBeUpdatedOnExistingFunction()
-        => ParameterAndScrapbookCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
+    public override Task ParameterAndStateCanBeUpdatedOnExistingFunction()
+        => ParameterAndStateCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ParameterCanBeUpdatedOnExistingFunction()
         => ParameterCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ScrapbookCanBeUpdatedOnExistingFunction()
-        => ScrapbookCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
+    public override Task StateCanBeUpdatedOnExistingFunction()
+        => StateCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch()
-        => ParameterAndScrapbookAreNotUpdatedWhenEpochDoesNotMatch(FunctionStoreFactory.Create());
+    public override Task ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch()
+        => ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch(FunctionStoreFactory.Create());
 }

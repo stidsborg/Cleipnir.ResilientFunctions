@@ -13,14 +13,14 @@ public class CrashedTests : TestTemplates.RFunctionTests.CrashedTests
         => NonCompletedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task NonCompletedFuncWithStateIsCompletedByWatchDog()
+        => NonCompletedFuncWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task NonCompletedActionIsCompletedByWatchDog()
         => NonCompletedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task NonCompletedActionWithScrapbookIsCompletedByWatchDog()
-        => NonCompletedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task NonCompletedActionWithStateIsCompletedByWatchDog()
+        => NonCompletedActionWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
 }

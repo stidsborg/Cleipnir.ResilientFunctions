@@ -4,27 +4,27 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ControlPanels<TParam, TState> where TParam : notnull where TState : WorkflowState, new()
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Invoker<TParam, TScrapbook, Unit> _invoker;
-    private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
+    private readonly Invoker<TParam, TState, Unit> _invoker;
+    private readonly InvocationHelper<TParam, TState, Unit> _invocationHelper;
 
-    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TScrapbook, Unit> invoker, InvocationHelper<TParam, TScrapbook, Unit> invocationHelper)
+    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TState, Unit> invoker, InvocationHelper<TParam, TState, Unit> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _functionTypeId = functionTypeId;
     }
     
-    public async Task<ControlPanel<TParam, TScrapbook>?> For(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel<TParam, TState>?> For(FunctionInstanceId functionInstanceId)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var functionState = await _invocationHelper.GetFunction(functionId);
         if (functionState == null)
             return null;
         
-        return new ControlPanel<TParam, TScrapbook>(
+        return new ControlPanel<TParam, TState>(
             _invoker,
             _invocationHelper,
             functionId,
@@ -32,7 +32,7 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
             functionState.Epoch,
             functionState.LeaseExpiration,
             functionState.Param,
-            functionState.Scrapbook,
+            functionState.State,
             functionState.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
             await _invocationHelper.GetExistingMessages(functionId),
@@ -41,30 +41,30 @@ public class ControlPanels<TParam, TScrapbook> where TParam : notnull where TScr
     }
 }
 
-public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ControlPanels<TParam, TState, TReturn> where TParam : notnull where TState : WorkflowState, new()
 {
     public delegate Task<TReturn> ReInvoke(string functionInstanceId, int expectedEpoch);
     public delegate Task ScheduleReInvoke(string functionInstanceId, int expectedEpoch);
     
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Invoker<TParam, TScrapbook, TReturn> _invoker;
-    private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
+    private readonly Invoker<TParam, TState, TReturn> _invoker;
+    private readonly InvocationHelper<TParam, TState, TReturn> _invocationHelper;
 
-    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TScrapbook, TReturn> invoker, InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper)
+    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TState, TReturn> invoker, InvocationHelper<TParam, TState, TReturn> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _functionTypeId = functionTypeId;
     }
 
-    public async Task<ControlPanel<TParam, TScrapbook, TReturn>?> For(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel<TParam, TState, TReturn>?> For(FunctionInstanceId functionInstanceId)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var f = await _invocationHelper.GetFunction(functionId);
         if (f == null)
             return null;
         
-        return new ControlPanel<TParam, TScrapbook, TReturn>(
+        return new ControlPanel<TParam, TState, TReturn>(
             _invoker,
             _invocationHelper,
             functionId,
@@ -72,7 +72,7 @@ public class ControlPanels<TParam, TScrapbook, TReturn> where TParam : notnull w
             f.Epoch,
             f.LeaseExpiration,
             f.Param,
-            f.Scrapbook,
+            f.State,
             f.Result,
             f.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),

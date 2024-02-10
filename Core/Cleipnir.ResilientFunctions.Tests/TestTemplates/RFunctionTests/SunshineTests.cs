@@ -54,14 +54,14 @@ public abstract class SunshineTests
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
         
-    public abstract Task SunshineScenarioFuncWithScrapbook();
-    public async Task SunshineScenarioFuncWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task SunshineScenarioFuncWithState();
+    public async Task SunshineScenarioFuncWithState(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(SunshineScenarioFuncWithScrapbook).ToFunctionTypeId();
-        async Task<string> ToUpper(string s, Scrapbook scrapbook)
+        var functionTypeId = nameof(SunshineScenarioFuncWithState).ToFunctionTypeId();
+        async Task<string> ToUpper(string s, WorkflowState state)
         {
-            await scrapbook.Save();
+            await state.Save();
             return s.ToUpper();
         }
 
@@ -71,7 +71,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterFunc(
                 functionTypeId,
-                (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
+                (string s, WorkflowState state) => ToUpper(s, state)
             )
             .Invoke;
 
@@ -121,11 +121,11 @@ public abstract class SunshineTests
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
         
-    public abstract Task SunshineScenarioActionWithScrapbook();
-    public async Task SunshineScenarioActionWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task SunshineScenarioActionWithState();
+    public async Task SunshineScenarioActionWithState(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(SunshineScenarioActionWithScrapbook).ToFunctionTypeId();
+        var functionTypeId = nameof(SunshineScenarioActionWithState).ToFunctionTypeId();
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
@@ -133,7 +133,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 functionTypeId,
-                (string s, Scrapbook scrapbook) => scrapbook.Save()
+                (string s, WorkflowState state) => state.Save()
             ).Invoke;
 
         await rFunc("hello", "hello");
@@ -166,8 +166,8 @@ public abstract class SunshineTests
         result.ShouldBeNull();
     }
 
-    public abstract Task SunshineScenarioNullReturningFuncWithScrapbook();
-    protected async Task SunshineScenarioNullReturningFuncWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task SunshineScenarioNullReturningFuncWithState();
+    protected async Task SunshineScenarioNullReturningFuncWithState(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -177,9 +177,9 @@ public abstract class SunshineTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string _, ListScrapbook<string> scrapbook) =>
+            (string _, ListState<string> state) =>
             {
-                scrapbook.List.Add("hello world");
+                state.List.Add("hello world");
                 return default(string).ToTask();
             }
         ).Invoke;
@@ -191,8 +191,8 @@ public abstract class SunshineTests
             .GetFunction(functionId)
             .ShouldNotBeNullAsync();
 
-        var scrapbook = storedFunction.Scrapbook.ScrapbookJson.DeserializeFromJsonTo<ListScrapbook<string>>();
-        scrapbook.List.Single().ShouldBe("hello world");
+        var state = storedFunction.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
+        state.List.Single().ShouldBe("hello world");
     }
     
     public abstract Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully();
@@ -205,9 +205,9 @@ public abstract class SunshineTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string _, ListScrapbook<string> scrapbook) =>
+            (string _, ListState<string> state) =>
             {
-                scrapbook.List.Add("hello world");
+                state.List.Add("hello world");
                 return default(string).ToTask();
             }
         ).Invoke;
@@ -238,5 +238,5 @@ public abstract class SunshineTests
         syncedInvocationMode.Value.ShouldBe(InvocationMode.Direct);
     }
 
-    private class Scrapbook : RScrapbook {}
+    private class WorkflowState : Domain.WorkflowState {}
 }

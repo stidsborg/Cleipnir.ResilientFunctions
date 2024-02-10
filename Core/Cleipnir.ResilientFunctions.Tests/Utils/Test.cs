@@ -9,6 +9,6 @@ public static class Test
     public static StoredParameter SimpleStoredParameter { get; } = 
         new(ParamJson: "hello world".ToJson(), ParamType: typeof(string).SimpleQualifiedName());
 
-    public static StoredScrapbook SimpleStoredScrapbook { get; }
-        = new(ScrapbookJson: new RScrapbook().ToJson(), ScrapbookType: typeof(RScrapbook).SimpleQualifiedName());
+    public static StoredState SimpleStoredState { get; }
+        = new(StateJson: new WorkflowState().ToJson(), StateType: typeof(WorkflowState).SimpleQualifiedName());
 }

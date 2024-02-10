@@ -126,8 +126,8 @@ public abstract class WatchdogCompoundTests
         }
     }
 
-    public abstract Task FunctionWithScrapbookCompoundTest();
-    public async Task FunctionWithScrapbookCompoundTest(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionWithStateCompoundTest();
+    public async Task FunctionWithStateCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -148,10 +148,10 @@ public abstract class WatchdogCompoundTests
             );
             var rFunc = functionsRegistry.RegisterFunc(
                 functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
+                async (Param p, WorkflowState state) =>
                 {
-                    scrapbook.Scraps.Add(1);
-                    await scrapbook.Save();
+                    state.Scraps.Add(1);
+                    await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     return await NeverCompletingTask.OfType<string>();
                 }
@@ -178,13 +178,13 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = functionsRegistry.RegisterFunc<Param, Scrapbook, string>(  //explicit generic parameters to satisfy Rider-ide
+            _ = functionsRegistry.RegisterFunc<Param, WorkflowState, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
-                async (p, scrapbook) =>
+                async (p, state) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    scrapbook.Scraps.Add(2);
-                    await scrapbook.Save();
+                    state.Scraps.Add(2);
+                    await state.Save();
                     return Postpone.For(100);
                 });
             
@@ -207,10 +207,10 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
+                async (Param p, WorkflowState state) =>
                 {
-                    scrapbook.Scraps.Add(3);
-                    await scrapbook.Save();
+                    state.Scraps.Add(3);
+                    await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     return await NeverCompletingTask.OfType<string>();
                 }
@@ -232,10 +232,10 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
+                async (Param p, WorkflowState state) =>
                 {
-                    scrapbook.Scraps.Add(4);
-                    await scrapbook.Save();
+                    state.Scraps.Add(4);
+                    await state.Save();
                     return $"{p.Id}-{p.Value}";
                 }
             );
@@ -249,8 +249,8 @@ public abstract class WatchdogCompoundTests
             storedFunction!.Result.DefaultDeserialize()!
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
-            storedFunction.Scrapbook.DefaultDeserialize()
-                .CastTo<Scrapbook>()
+            storedFunction.State.DefaultDeserialize()
+                .CastTo<WorkflowState>()
                 .Scraps
                 .ShouldBe(new [] {1,2,3,4});
         }
@@ -376,8 +376,8 @@ public abstract class WatchdogCompoundTests
         }
     }
 
-    public abstract Task ActionWithScrapbookCompoundTest();
-    public async Task ActionWithScrapbookCompoundTest(Task<IFunctionStore> storeTask)
+    public abstract Task ActionWithStateCompoundTest();
+    public async Task ActionWithStateCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -398,10 +398,10 @@ public abstract class WatchdogCompoundTests
             );
             var rFunc = functionsRegistry.RegisterAction(
                 functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
+                async (Param p, WorkflowState state) =>
                 {
-                    scrapbook.Scraps.Add(1);
-                    await scrapbook.Save();
+                    state.Scraps.Add(1);
+                    await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     await NeverCompletingTask.OfVoidType;
                 }
@@ -430,11 +430,11 @@ public abstract class WatchdogCompoundTests
             _ = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (Param p, Scrapbook scrapbook, Workflow __) =>
+                    async (Param p, WorkflowState state, Workflow __) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
-                        scrapbook.Scraps.Add(2);
-                        await scrapbook.Save();
+                        state.Scraps.Add(2);
+                        await state.Save();
                         return Postpone.For(100);
                     });
             
@@ -458,10 +458,10 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterAction(
                 functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
+                async (Param p, WorkflowState state) =>
                 {
-                    scrapbook.Scraps.Add(3);
-                    var savedTask = scrapbook.Save();
+                    state.Scraps.Add(3);
+                    var savedTask = state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     _ = Task.Run(() => invocationStarted.SetResult());
                     await savedTask;
@@ -486,11 +486,11 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterAction(
                 functionTypeId,
-                async (Param p, Scrapbook scrapbook) =>
+                async (Param p, WorkflowState state) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    scrapbook.Scraps.Add(4);
-                    await scrapbook.Save();
+                    state.Scraps.Add(4);
+                    await state.Save();
                 }
             );
 
@@ -502,14 +502,14 @@ public abstract class WatchdogCompoundTests
             
             var storedFunction = await store.GetFunction(functionId);
             storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
-            storedFunction.Scrapbook.DefaultDeserialize()
-                .CastTo<Scrapbook>()
+            storedFunction.State.DefaultDeserialize()
+                .CastTo<WorkflowState>()
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});
         }
     }
 
-    private class Scrapbook : RScrapbook
+    private class WorkflowState : Domain.WorkflowState
     {
         public List<int> Scraps { get; set; } = new();
     }

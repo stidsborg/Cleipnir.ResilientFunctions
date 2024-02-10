@@ -11,8 +11,8 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-internal class InvocationHelper<TParam, TScrapbook, TReturn> 
-    where TParam : notnull where TScrapbook : RScrapbook, new() 
+internal class InvocationHelper<TParam, TState, TReturn> 
+    where TParam : notnull where TState : WorkflowState, new() 
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
@@ -38,7 +38,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
         FunctionId functionId, 
         TParam param, 
-        TScrapbook scrapbook,
+        TState state,
         DateTime? scheduleAt)
     {
         ArgumentNullException.ThrowIfNull(param);
@@ -46,13 +46,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         try
         {
             var storedParameter = Serializer.SerializeParameter(param);
-            var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
+            var storedState = Serializer.SerializeState(state);
 
             var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(
                 functionId,
                 storedParameter,
-                storedScrapbook,
+                storedState,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
                 timestamp: utcNowTicks
@@ -104,43 +104,43 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    public void InitializeScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch) 
-        => scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, epoch, _settings.LeaseLength.Ticks));
+    public void InitializeState(FunctionId functionId, TParam param, TState state, int epoch) 
+        => state.Initialize(onSave: () => SaveState(functionId, param, state, epoch, _settings.LeaseLength.Ticks));
 
-    private async Task SaveScrapbook(FunctionId functionId, TParam param, TScrapbook scrapbook, int epoch, long leaseLength)
+    private async Task SaveState(FunctionId functionId, TParam param, TState state, int epoch, long leaseLength)
     {
         var storedParameter = Serializer.SerializeParameter(param);
-        var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
+        var storedState = Serializer.SerializeState(state);
         
-        var success = await _functionStore.SaveScrapbookForExecutingFunction(
+        var success = await _functionStore.SaveStateForExecutingFunction(
             functionId,
-            storedScrapbook.ScrapbookJson,
+            storedState.StateJson,
             expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, leaseLength) 
+            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedState, leaseLength) 
         );
 
         if (!success)
-            throw new ScrapbookSaveFailedException(
+            throw new StateSaveFailedException(
                 functionId,
-                $"Unable to save '{functionId}'-scrapbook due to concurrent modification"
+                $"Unable to save '{functionId}'-state due to concurrent modification"
             );
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TScrapbook scrapbook, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TState state, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
-        var storedScrapbook = serializer.SerializeScrapbook(scrapbook);
+        var storedState = serializer.SerializeState(state);
         var storedException = serializer.SerializeException(exception);
         
         var success = await _functionStore.FailFunction(
             functionId,
             storedException,
-            storedScrapbook.ScrapbookJson,
+            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
             complimentaryState: new ComplimentaryState(
                 () => serializer.SerializeParameter(param), 
-                () => storedScrapbook, 
+                () => storedState, 
                 _settings.LeaseLength.Ticks
             )
         );
@@ -152,13 +152,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId,
         Result<TReturn> result,
         TParam param,
-        TScrapbook scrapbook,
+        TState state,
         int expectedEpoch)
     {
-        var storedScrapbook = Serializer.SerializeScrapbook(scrapbook);
+        var storedState = Serializer.SerializeState(state);
         var complementaryState = new ComplimentaryState(
             () => Serializer.SerializeParameter(param),
-            () => storedScrapbook,
+            () => storedState,
             _settings.LeaseLength.Ticks
         );
         switch (result.Outcome)
@@ -167,7 +167,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 return await _functionStore.SucceedFunction(
                     functionId,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
-                    scrapbookJson: storedScrapbook.ScrapbookJson,
+                    stateJson: storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -176,7 +176,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 return await _functionStore.PostponeFunction(
                     functionId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
-                    scrapbookJson: storedScrapbook.ScrapbookJson,
+                    stateJson: storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -185,7 +185,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 return await _functionStore.FailFunction(
                     functionId,
                     storedException: Serializer.SerializeException(result.Fail!),
-                    scrapbookJson: storedScrapbook.ScrapbookJson,
+                    stateJson: storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -194,7 +194,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
                 return await _functionStore.SuspendFunction(
                     functionId,
                     result.Suspend!.ExpectedMessageCount,
-                    storedScrapbook.ScrapbookJson,
+                    storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -259,13 +259,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
 
-            var scrapbook = Serializer.DeserializeScrapbook<TScrapbook>(
-                sf.Scrapbook.ScrapbookJson,
-                sf.Scrapbook.ScrapbookType
+            var storedState = Serializer.DeserializeState<TState>(
+                sf.State.StateJson,
+                sf.State.StateType
             );
-            scrapbook.Initialize(onSave: () => SaveScrapbook(functionId, param, scrapbook, sf.Epoch, _settings.LeaseLength.Ticks));
+            storedState.Initialize(onSave: () => SaveState(functionId, param, storedState, sf.Epoch, _settings.LeaseLength.Ticks));
             
-            return new PreparedReInvocation(param, sf.Epoch, scrapbook, runningFunction);
+            return new PreparedReInvocation(param, sf.Epoch, storedState, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -274,12 +274,12 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             await _functionStore.FailFunction(
                 functionId,
                 storedException: Serializer.SerializeException(e),
-                scrapbookJson: sf!.Scrapbook.ScrapbookJson,
+                stateJson: sf!.State.StateJson,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
                 complimentaryState: new ComplimentaryState(
     () => sf.Parameter, 
-    () => sf.Scrapbook, 
+    () => sf.State, 
                     _settings.LeaseLength.Ticks
                 )
             );
@@ -292,7 +292,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, TScrapbook Scrapbook, IDisposable RunningFunction);
+    internal record PreparedReInvocation(TParam Param, int Epoch, TState State, IDisposable RunningFunction);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
@@ -301,7 +301,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId,
         Status status,
         TParam param,
-        TScrapbook scrapbook,
+        TState state,
         DateTime? postponeUntil,
         Exception? exception,
         int expectedEpoch
@@ -312,7 +312,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             status,
             storedParameter: serializer.SerializeParameter(param),
-            storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            storedState: serializer.SerializeState(state),
             storedResult: StoredResult.Null,
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
@@ -324,7 +324,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         FunctionId functionId,
         Status status,
         TParam param,
-        TScrapbook scrapbook,
+        TState state,
         TReturn? result,
         DateTime? postponeUntil,
         Exception? exception,
@@ -336,7 +336,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
             functionId,
             status,
             storedParameter: serializer.SerializeParameter(param),
-            storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            storedState: serializer.SerializeState(state),
             storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
@@ -347,7 +347,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     public async Task<bool> SaveControlPanelChanges(
         FunctionId functionId, 
         TParam param, 
-        TScrapbook scrapbook,
+        TState state,
         TReturn? @return,
         int expectedEpoch)
     {
@@ -355,7 +355,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         return await _functionStore.SetParameters(
             functionId,
             storedParameter: serializer.SerializeParameter(param),
-            storedScrapbook: serializer.SerializeScrapbook(scrapbook),
+            storedState: serializer.SerializeState(state),
             storedResult: serializer.SerializeResult(@return),
             expectedEpoch
         );
@@ -370,7 +370,7 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
     }
         
 
-    public async Task<FunctionState<TParam, TScrapbook, TReturn>?> GetFunction(FunctionId functionId)
+    public async Task<FunctionState<TParam, TState, TReturn>?> GetFunction(FunctionId functionId)
     {
         var serializer = _settings.Serializer;
         
@@ -378,13 +378,13 @@ internal class InvocationHelper<TParam, TScrapbook, TReturn>
         if (sf == null) 
             return null;
 
-        return new FunctionState<TParam, TScrapbook, TReturn>(
+        return new FunctionState<TParam, TState, TReturn>(
             functionId,
             sf.Status,
             sf.Epoch,
             sf.LeaseExpiration,
             Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
-            Scrapbook: serializer.DeserializeScrapbook<TScrapbook>(sf.Scrapbook.ScrapbookJson, sf.Scrapbook.ScrapbookType),
+            State: serializer.DeserializeState<TState>(sf.State.StateJson, sf.State.StateType),
             Result: sf.Result.ResultType == null 
                 ? default 
                 : serializer.DeserializeResult<TReturn>(sf.Result.ResultJson!, sf.Result.ResultType),

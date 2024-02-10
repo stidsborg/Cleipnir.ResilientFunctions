@@ -17,25 +17,25 @@ public class OrderProcessor
         _logisticsClient = logisticsClient;
     }
 
-    public async Task Execute(Order order, Scrapbook scrapbook, Workflow workflow)
+    public async Task Execute(Order order, State state, Workflow workflow)
     {
         Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
 
-        await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
+        await _paymentProviderClient.Reserve(order.CustomerId, state.TransactionId, order.TotalPrice);
 
         var trackAndTrace = await workflow.Activities.Do(
             "ShipProducts",
             work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
         );
 
-        await _paymentProviderClient.Capture(scrapbook.TransactionId);
+        await _paymentProviderClient.Capture(state.TransactionId);
 
         await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds, trackAndTrace);
 
         Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
     }
 
-    public class Scrapbook : RScrapbook
+    public class State : WorkflowState
     {
         public Guid TransactionId { get; set; } = Guid.NewGuid();
         public Work<TrackAndTrace> ProductsShippedStatus { get; set; }

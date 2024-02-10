@@ -57,8 +57,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 function_instance_id VARCHAR(200) NOT NULL,
                 param_json TEXT NOT NULL,
                 param_type VARCHAR(255) NOT NULL,
-                scrapbook_json TEXT NOT NULL,
-                scrapbook_type VARCHAR(255) NOT NULL,
+                state_json TEXT NOT NULL,
+                state_type VARCHAR(255) NOT NULL,
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
                 result_type VARCHAR(255) NULL,
@@ -111,7 +111,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, 
-        StoredScrapbook storedScrapbook, 
+        StoredState storedState, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -120,7 +120,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, status, param_json, param_type, scrapbook_json, scrapbook_type, lease_expiration, postponed_until, timestamp)
+                (function_type_id, function_instance_id, status, param_json, param_type, state_json, state_type, lease_expiration, postponed_until, timestamp)
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT DO NOTHING;";
@@ -133,8 +133,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = (int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                 new() {Value = param.ParamJson},
                 new() {Value = param.ParamType},
-                new() {Value = storedScrapbook.ScrapbookJson},
-                new() {Value = storedScrapbook.ScrapbookType},
+                new() {Value = storedState.StateJson},
+                new() {Value = storedState.StateType},
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil == null ? DBNull.Value : postponeUntil.Value},
                 new() {Value = timestamp}
@@ -156,8 +156,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             RETURNING               
                 param_json, 
                 param_type,
-                scrapbook_json, 
-                scrapbook_type,
+                state_json, 
+                state_type,
                 status,
                 result_json, 
                 result_type,
@@ -271,7 +271,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult, 
+        StoredParameter storedParameter, StoredState storedState, StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil,
         int expectedEpoch)
@@ -282,7 +282,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}rfunctions
             SET status = $1,
                 param_json = $2, param_type = $3,
-                scrapbook_json = $4, scrapbook_type = $5, 
+                state_json = $4, state_type = $5, 
                 result_json = $6, result_type = $7, 
                 exception_json = $8, postponed_until = $9,
                 epoch = epoch + 1
@@ -297,8 +297,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = (int) status},
                 new() {Value = storedParameter.ParamJson},
                 new() {Value = storedParameter.ParamType},
-                new() {Value = storedScrapbook.ScrapbookJson},
-                new() {Value = storedScrapbook.ScrapbookType},
+                new() {Value = storedState.StateJson},
+                new() {Value = storedState.StateType},
                 new() {Value = storedResult.ResultJson ?? (object) DBNull.Value},
                 new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
@@ -313,16 +313,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> SaveScrapbookForExecutingFunction( 
+    public async Task<bool> SaveStateForExecutingFunction( 
         FunctionId functionId,
-        string scrapbookJson,
+        string stateJson,
         int expectedEpoch,
         ComplimentaryState _)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET scrapbook_json = $1
+            SET state_json = $1
             WHERE 
                 function_type_id = $2 AND 
                 function_instance_id = $3 AND 
@@ -331,7 +331,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = scrapbookJson},
+                new() {Value = stateJson},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = expectedEpoch},
@@ -344,7 +344,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetParameters(
         FunctionId functionId,
-        StoredParameter storedParameter, StoredScrapbook storedScrapbook, StoredResult storedResult,
+        StoredParameter storedParameter, StoredState storedState, StoredResult storedResult,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
@@ -352,7 +352,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET param_json = $1, param_type = $2, 
-                scrapbook_json = $3, scrapbook_type = $4, 
+                state_json = $3, state_type = $4, 
                 result_json = $5, result_type = $6,
                 epoch = epoch + 1
             WHERE function_type_id = $7 AND function_instance_id = $8 AND epoch = $9";
@@ -363,8 +363,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = storedParameter.ParamJson },
                 new() { Value = storedParameter.ParamType },
-                new() { Value = storedScrapbook.ScrapbookJson },
-                new() { Value = storedScrapbook.ScrapbookType },
+                new() { Value = storedState.StateJson },
+                new() { Value = storedState.StateType },
                 new() { Value = storedResult.ResultJson ?? (object) DBNull.Value },
                 new() { Value = storedResult.ResultType ?? (object) DBNull.Value },
                 new() { Value = functionId.TypeId.Value },
@@ -381,7 +381,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SucceedFunction(
         FunctionId functionId, 
         StoredResult result, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -389,7 +389,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, scrapbook_json = $3, timestamp = $4
+            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, state_json = $3, timestamp = $4
             WHERE 
                 function_type_id = $5 AND 
                 function_instance_id = $6 AND 
@@ -400,7 +400,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() {Value = result?.ResultJson ?? (object) DBNull.Value},
                 new() {Value = result?.ResultType ?? (object) DBNull.Value},
-                new() { Value = scrapbookJson },
+                new() { Value = stateJson },
                 new() { Value = timestamp },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
@@ -415,7 +415,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> PostponeFunction(
         FunctionId functionId, 
         long postponeUntil, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -423,7 +423,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = $1, scrapbook_json = $2, timestamp = $3
+            SET status = {(int) Status.Postponed}, postponed_until = $1, state_json = $2, timestamp = $3
             WHERE 
                 function_type_id = $4 AND 
                 function_instance_id = $5 AND 
@@ -433,7 +433,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = postponeUntil },
-                new() { Value = scrapbookJson },
+                new() { Value = stateJson },
                 new() { Value = timestamp },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
@@ -448,7 +448,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SuspendFunction(
         FunctionId functionId, 
         int expectedMessageCount, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -473,7 +473,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         batch.BatchCommands.Add(new NpgsqlBatchCommand($@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int)Status.Suspended}, scrapbook_json = $1, timestamp = $2
+            SET status = {(int)Status.Suspended}, state_json = $1, timestamp = $2
             WHERE             
                 function_type_id = $3 AND 
                 function_instance_id = $4 AND 
@@ -483,7 +483,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 Parameters =
                 {
-                    new() { Value = scrapbookJson },
+                    new() { Value = stateJson },
                     new() { Value = timestamp },
                     new() { Value = functionId.TypeId.Value },
                     new() { Value = functionId.InstanceId.Value },
@@ -526,12 +526,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string scrapbookJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, exception_json = $1, scrapbook_json = $2, timestamp = $3
+            SET status = {(int) Status.Failed}, exception_json = $1, state_json = $2, timestamp = $3
             WHERE 
                 function_type_id = $4 AND 
                 function_instance_id = $5 AND 
@@ -541,7 +541,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = JsonSerializer.Serialize(storedException) },
-                new() { Value = scrapbookJson },
+                new() { Value = stateJson },
                 new() { Value = timestamp },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
@@ -560,8 +560,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             SELECT               
                 param_json, 
                 param_type,
-                scrapbook_json, 
-                scrapbook_type,
+                state_json, 
+                state_type,
                 status,
                 result_json, 
                 result_type,
@@ -595,7 +595,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             return new StoredFunction(
                 functionId,
                 new StoredParameter(reader.GetString(0), reader.GetString(1)),
-                Scrapbook: new StoredScrapbook(reader.GetString(2),reader.GetString(3)),
+                State: new StoredState(reader.GetString(2),reader.GetString(3)),
                 Status: (Status) reader.GetInt32(4),
                 Result: new StoredResult(
                     hasResult ? reader.GetString(5) : null, 

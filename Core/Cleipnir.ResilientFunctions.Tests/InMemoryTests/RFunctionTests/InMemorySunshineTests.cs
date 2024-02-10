@@ -159,13 +159,13 @@ public class InMemorySunshineTests
 
     #endregion
     
-    #region Func_with_Scrapbook
+    #region Func_with_State
 
     // ** SYNC ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncSunshineTest()
+    public async Task SyncStateFuncSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
                 callback
@@ -175,24 +175,24 @@ public class InMemorySunshineTests
     
     // ** SYNC W. WORKFLOW ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncWithWorkflowSunshineTest()
+    public async Task SyncStateFuncWithWorkflowSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
-                string (string param, Scrapbook scrapbook, Workflow workflow) => callback(param, scrapbook)
+                string (string param, WorkflowState state, Workflow workflow) => callback(param, state)
             )
         );
     }
         
     // ** ASYNC ** //
     [TestMethod]
-    public async Task AsyncScrapbookFuncSunshineTest()
+    public async Task AsyncStateFuncSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
-                Task<string>(string param, Scrapbook scrapbook) => Task.FromResult(callback(param, scrapbook))
+                Task<string>(string param, WorkflowState state) => Task.FromResult(callback(param, state))
             )
         );
     }
@@ -200,120 +200,120 @@ public class InMemorySunshineTests
     
     // ** ASYNC W. WORKFLOW * //
     [TestMethod]
-    public async Task AsyncScrapbookFuncWithWorkflowSunshineTest()
+    public async Task AsyncStateFuncWithWorkflowSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
-                Task<string>(string param, Scrapbook scrapbook, Workflow workflow)
-                    => Task.FromResult(callback(param, scrapbook))
+                Task<string>(string param, WorkflowState state, Workflow workflow)
+                    => Task.FromResult(callback(param, state))
             )
         );
     }
     
     // ** SYNC W. RESULT ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncWithResultSunshineTest()
+    public async Task SyncStateFuncWithResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
-            => rFunctions.RegisterFunc<string, Scrapbook, string>(
+        await ExecuteStateFunc((rFunctions, callback)
+            => rFunctions.RegisterFunc<string, WorkflowState, string>(
                 functionTypeId: "",
-                Result<string> (param, scrapbook) => callback(param, scrapbook)
+                Result<string> (param, state) => callback(param, state)
             )
         );
     }
 
     // ** SYNC W. RESULT AND WORKFLOW ** //
     [TestMethod]
-    public async Task SyncScrapbookFuncWithWorkflowAndResultSunshineTest()
+    public async Task SyncStateFuncWithWorkflowAndResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
-                Result<string>(string param, Scrapbook scrapbook, Workflow workflow)
-                    => callback(param, scrapbook)
+                Result<string>(string param, WorkflowState state, Workflow workflow)
+                    => callback(param, state)
             )
         );
     }    
    
     // ** ASYNC W. RESULT ** //
     [TestMethod]
-    public async Task AsyncScrapbookFuncWithResultSunshineTest()
+    public async Task AsyncStateFuncWithResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
-                Task<Result<string>>(string param, Scrapbook scrapbook)
-                    => Task.FromResult(Result.SucceedWithValue(callback(param, scrapbook)))
+                Task<Result<string>>(string param, WorkflowState state)
+                    => Task.FromResult(Result.SucceedWithValue(callback(param, state)))
             )
         );
     }    
 
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
     [TestMethod]
-    public async Task AsyncScrapbookFuncWithWorkflowAndResultSunshineTest()
+    public async Task AsyncStateFuncWithWorkflowAndResultSunshineTest()
     {
-        await ExecuteScrapbookFunc((rFunctions, callback)
+        await ExecuteStateFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 functionTypeId: "",
-                Task<Result<string>>(string param, Scrapbook scrapbook, Workflow workflow)
-                    => Task.FromResult(Result.SucceedWithValue(callback(param, scrapbook)))
+                Task<Result<string>>(string param, WorkflowState state, Workflow workflow)
+                    => Task.FromResult(Result.SucceedWithValue(callback(param, state)))
             )
         );
     }    
 
-    private async Task ExecuteScrapbookFunc(Func<FunctionsRegistry, Func<string, Scrapbook, string>, FuncRegistration<string, Scrapbook, string>> createRegistration)
+    private async Task ExecuteStateFunc(Func<FunctionsRegistry, Func<string, WorkflowState, string>, FuncRegistration<string, WorkflowState, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
-        var syncedScrapbook = new Synced<Scrapbook>();
+        var syncedState = new Synced<WorkflowState>();
         var toReturn = "returned";
         // ReSharper disable once AccessToModifiedClosure
         var registration = createRegistration(
             rFunctions,
-            (param, scrapbook) =>
+            (param, state) =>
             {
                 syncedParam.Value = param;
-                syncedScrapbook.Value = scrapbook;
+                syncedState.Value = state;
                 return toReturn;
             });
 
         var returned = await registration.Invoke("id1", "hello world");
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
 
         syncedParam = new Synced<string>();
-        syncedScrapbook = new Synced<Scrapbook>();
+        syncedState = new Synced<WorkflowState>();
         var controlPanel = await registration.ControlPanel("id1").ShouldNotBeNullAsync();
         returned = await controlPanel.ReInvoke();
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
         
         syncedParam = new Synced<string>();
-        syncedScrapbook = new Synced<Scrapbook>();
+        syncedState = new Synced<WorkflowState>();
         await registration.Schedule("id2", "hello universe");
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
         returned = await registration.Invoke("id2", "hello universe");
         returned.ShouldBe(toReturn);
         
         syncedParam = new Synced<string>();
-        syncedScrapbook = new Synced<Scrapbook>();
+        syncedState = new Synced<WorkflowState>();
         controlPanel = await registration.ControlPanel("id2").ShouldNotBeNullAsync();
         await controlPanel.ScheduleReInvoke();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
         returned = await registration.Invoke("id2", "hello universe");
         returned.ShouldBe(toReturn);
     }
 
-    private class Scrapbook : RScrapbook { }
+    private class WorkflowState : Domain.WorkflowState { }
     
     #endregion
     
@@ -452,42 +452,42 @@ public class InMemorySunshineTests
 
     #endregion
     
-    #region Action_with_Scrapbook
+    #region Action_with_State
 
     // ** SYNC ** //
     [TestMethod]
-    public async Task SyncScrapbookActionSunshineTest()
+    public async Task SyncStateActionSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                void (string param, Scrapbook scrapbook) => callback(param, scrapbook)
+                void (string param, WorkflowState state) => callback(param, state)
             )
         );
     }
     
     // ** SYNC W. WORKFLOW ** //
     [TestMethod]
-    public async Task SyncScrapbookActionWithWorkflowSunshineTest()
+    public async Task SyncStateActionWithWorkflowSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                void (string param, Scrapbook scrapbook, Workflow workflow) => callback(param, scrapbook)
+                void (string param, WorkflowState state, Workflow workflow) => callback(param, state)
             )
         );
     }
         
     // ** ASYNC ** //
     [TestMethod]
-    public async Task AsyncScrapbookActionSunshineTest()
+    public async Task AsyncStateActionSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                Task (string param, Scrapbook scrapbook) =>
+                Task (string param, WorkflowState state) =>
                 {
-                    callback(param, scrapbook);
+                    callback(param, state);
                     return Task.CompletedTask;
                 })
         );
@@ -496,14 +496,14 @@ public class InMemorySunshineTests
     
     // ** ASYNC W. WORKFLOW * //
     [TestMethod]
-    public async Task AsyncScrapbookActionWithWorkflowSunshineTest()
+    public async Task AsyncStateActionWithWorkflowSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                Task (string param, Scrapbook scrapbook, Workflow workflow) =>
+                Task (string param, WorkflowState state, Workflow workflow) =>
                 {
-                    callback(param, scrapbook);
+                    callback(param, state);
                     return Task.CompletedTask;
                 })
         );
@@ -511,14 +511,14 @@ public class InMemorySunshineTests
     
     // ** SYNC W. RESULT ** //
     [TestMethod]
-    public async Task SyncScrapbookActionWithResultSunshineTest()
+    public async Task SyncStateActionWithResultSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                Result(string param, Scrapbook scrapbook) =>
+                Result(string param, WorkflowState state) =>
                 {
-                    callback(param, scrapbook);
+                    callback(param, state);
                     return Result.Succeed;
                 })
         );
@@ -526,14 +526,14 @@ public class InMemorySunshineTests
 
     // ** SYNC W. RESULT AND WORKFLOW ** //
     [TestMethod]
-    public async Task SyncScrapbookActionWithWorkflowAndResultSunshineTest()
+    public async Task SyncStateActionWithWorkflowAndResultSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                Result(string param, Scrapbook scrapbook, Workflow workflow) =>
+                Result(string param, WorkflowState state, Workflow workflow) =>
                 {
-                    callback(param, scrapbook);
+                    callback(param, state);
                     return Result.Succeed;
                 })
         );
@@ -541,14 +541,14 @@ public class InMemorySunshineTests
    
     // ** ASYNC W. RESULT ** //
     [TestMethod]
-    public async Task AsyncScrapbookActionWithResultSunshineTest()
+    public async Task AsyncStateActionWithResultSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                Task<Result> (string param, Scrapbook scrapbook) =>
+                Task<Result> (string param, WorkflowState state) =>
                 {
-                    callback(param, scrapbook);
+                    callback(param, state);
                     return Task.FromResult(Result.Succeed);
                 })
         );
@@ -556,59 +556,59 @@ public class InMemorySunshineTests
 
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
     [TestMethod]
-    public async Task AsyncScrapbookActionWithWORKFLOWAndResultSunshineTest()
+    public async Task AsyncStateActionWithWorkflowAndResultSunshineTest()
     {
-        await ExecuteScrapbookAction((rFunctions, callback)
+        await ExecuteStateAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 functionTypeId: "",
-                Task<Result> (string param, Scrapbook scrapbook, Workflow workflow) =>
+                Task<Result> (string param, WorkflowState state, Workflow workflow) =>
                 {
-                    callback(param, scrapbook);
+                    callback(param, state);
                     return Task.FromResult(Result.Succeed);
                 })
         );
     }    
 
-    private async Task ExecuteScrapbookAction(Func<FunctionsRegistry, Action<string, Scrapbook>, RAction<string, Scrapbook>> createRegistration)
+    private async Task ExecuteStateAction(Func<FunctionsRegistry, Action<string, WorkflowState>, ActionRegistration<string, WorkflowState>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
-        var syncedScrapbook = new Synced<Scrapbook>();
+        var syncedState = new Synced<WorkflowState>();
         // ReSharper disable once AccessToModifiedClosure
         var registration = createRegistration(
             rFunctions,
-            (param, scrapbook) =>
+            (param, state) =>
             {
                 syncedParam.Value = param;
-                syncedScrapbook.Value = scrapbook;
+                syncedState.Value = state;
             });
 
         await registration.Invoke("id1", "hello world");
         syncedParam.Value.ShouldBe("hello world");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
 
         syncedParam = new Synced<string>();
-        syncedScrapbook = new Synced<Scrapbook>();
+        syncedState = new Synced<WorkflowState>();
         await registration.ControlPanel("id1").Result!.ReInvoke();
         syncedParam.Value.ShouldBe("hello world");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
         
         syncedParam = new Synced<string>();
-        syncedScrapbook = new Synced<Scrapbook>();
+        syncedState = new Synced<WorkflowState>();
         await registration.Schedule("id2", "hello universe");
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
         await registration.Invoke("id2", "hello universe");
         
         syncedParam = new Synced<string>();
-        syncedScrapbook = new Synced<Scrapbook>();
+        syncedState = new Synced<WorkflowState>();
         await registration.ControlPanel("id2").Result!.ScheduleReInvoke();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
-        syncedScrapbook.Value.ShouldNotBeNull();
+        syncedState.Value.ShouldNotBeNull();
     }
 
     #endregion

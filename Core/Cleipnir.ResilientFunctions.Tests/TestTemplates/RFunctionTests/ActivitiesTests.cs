@@ -262,7 +262,7 @@ public abstract class ActivitiesTests
         await store.CreateFunction(
             functionId,
             Test.SimpleStoredParameter,
-            Test.SimpleStoredScrapbook,
+            Test.SimpleStoredState,
             leaseExpiration: (DateTime.Now + TimeSpan.FromMinutes(1)).Ticks,
             postponeUntil: null,
             timestamp: DateTime.Now.Ticks

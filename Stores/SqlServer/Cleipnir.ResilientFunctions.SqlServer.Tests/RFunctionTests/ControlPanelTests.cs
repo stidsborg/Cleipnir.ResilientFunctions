@@ -87,12 +87,12 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => LeaseIsUpdatedForExecutingAction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook()
-        => ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndScrapbook(FunctionStoreFactory.Create());
+    public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndState()
+        => ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndState(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook()
-        => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndScrapbook(FunctionStoreFactory.Create());
+    public override Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndState()
+        => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndState(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages()

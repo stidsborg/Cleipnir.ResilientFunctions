@@ -7,18 +7,18 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
-    public abstract class ResilientFunctionScrapbookTests
+    public abstract class ResilientFunctionStateTests
     {
         private readonly DefaultSerializer _serializer = DefaultSerializer.Instance;
         public abstract Task SunshineScenario();
         public async Task SunshineScenario(IFunctionStore store)
         {
             var functionTypeId = nameof(SunshineScenario).ToFunctionTypeId();
-            async Task<string> ToUpper(string s, Scrapbook scrapbook)
+            async Task<string> ToUpper(string s, WorkflowState state)
             {
                 var toReturn = s.ToUpper();
-                scrapbook.Scrap = toReturn;
-                await scrapbook.Save();
+                state.Scrap = toReturn;
+                await state.Save();
                 return s.ToUpper();
             }
 
@@ -29,7 +29,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
-                    (string s, Scrapbook scrapbook) => ToUpper(s, scrapbook)
+                    (string s, WorkflowState state) => ToUpper(s, state)
                 ).Invoke;
 
             var result = await rFunc("hello", "hello");
@@ -45,14 +45,14 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             storedFunction.Result.ShouldNotBeNull();
             var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
             storedResult.ShouldBe("HELLO");
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            var scrapbook = storedFunction.Scrapbook.Deserialize<Scrapbook>(_serializer);
-            scrapbook.Scrap.ShouldBe("HELLO");
+            storedFunction.State.ShouldNotBeNull();
+            var state = storedFunction.State.Deserialize<WorkflowState>(_serializer);
+            state.Scrap.ShouldBe("HELLO");
             
             unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
         }
 
-        private class Scrapbook : RScrapbook
+        private class WorkflowState : Domain.WorkflowState
         {
             public string Scrap { get; set; } = "";
         }

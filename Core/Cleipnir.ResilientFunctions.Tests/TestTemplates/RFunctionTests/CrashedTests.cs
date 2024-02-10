@@ -67,8 +67,8 @@ public abstract class CrashedTests
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
 
-    public abstract Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog();
-    protected async Task NonCompletedFuncWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
+    public abstract Task NonCompletedFuncWithStateIsCompletedByWatchDog();
+    protected async Task NonCompletedFuncWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -88,7 +88,7 @@ public abstract class CrashedTests
             var nonCompletingFunctionsRegistry = functionsRegistry    
                 .RegisterFunc(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfType<Result<string>>()
+                    (string _, WorkflowState _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
             _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
@@ -105,10 +105,10 @@ public abstract class CrashedTests
             var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
-                    async (string s, Scrapbook scrapbook) =>
+                    async (string s, WorkflowState state) =>
                     {
-                        scrapbook.Value = 1;
-                        await scrapbook.Save();
+                        state.Value = 1;
+                        await state.Save();
                         return s.ToUpper();
                     }
                 ).Invoke;
@@ -123,8 +123,8 @@ public abstract class CrashedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.State.ShouldNotBeNull();
+            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
             await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
         }
 
@@ -189,8 +189,8 @@ public abstract class CrashedTests
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
 
-    public abstract Task NonCompletedActionWithScrapbookIsCompletedByWatchDog();
-    protected async Task NonCompletedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
+    public abstract Task NonCompletedActionWithStateIsCompletedByWatchDog();
+    protected async Task NonCompletedActionWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -209,7 +209,7 @@ public abstract class CrashedTests
                 )
                 .RegisterAction(
                     functionTypeId,
-                    (string _, Scrapbook _) => NeverCompletingTask.OfVoidType
+                    (string _, WorkflowState _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
             _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
@@ -226,10 +226,10 @@ public abstract class CrashedTests
             var rAction = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (string _, Scrapbook scrapbook) =>
+                    async (string _, WorkflowState state) =>
                     {
-                        scrapbook.Value = 1;
-                        await scrapbook.Save();
+                        state.Value = 1;
+                        await state.Save();
                     }
                 ).Invoke;
 
@@ -243,8 +243,8 @@ public abstract class CrashedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.State.ShouldNotBeNull();
+            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
             await rAction(functionInstanceId.Value, param);
         }
 
@@ -252,7 +252,7 @@ public abstract class CrashedTests
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
     
-    private class Scrapbook : RScrapbook
+    private class WorkflowState : Domain.WorkflowState
     {
         public int Value { get; set; }
     }

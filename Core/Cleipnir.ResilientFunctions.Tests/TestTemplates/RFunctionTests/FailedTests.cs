@@ -87,14 +87,14 @@ public abstract class FailedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
-    public abstract Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
-    public abstract Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask) 
-        => ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
+    public abstract Task ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog();
+    protected Task ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
+    public abstract Task UnhandledExceptionThrowingFuncWithStateIsNotCompletedByWatchDog();
+    protected Task UnhandledExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask) 
+        => ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
     
-    private async Task ExceptionThrowingFuncWithScrapbookIsNotCompletedByWatchDog(
+    private async Task ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(
         Task<IFunctionStore> storeTask,
         bool throwUnhandledException, 
         [CallerMemberName] string callerMemberName = ""
@@ -116,7 +116,7 @@ public abstract class FailedTests
             var nonCompletingFunctionsRegistry = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    (string _, Scrapbook _) =>
+                    (string _, WorkflowState _) =>
                         throwUnhandledException 
                             ? throw new Exception()
                             : Task.FromException(new Exception())
@@ -136,7 +136,7 @@ public abstract class FailedTests
                     )
                 );
             var rAction = functionsRegistry.RegisterAction(functionTypeId,
-                (string _, Scrapbook _) =>
+                (string _, WorkflowState _) =>
                 {
                     flag.Raise();
                     return Task.CompletedTask;
@@ -151,8 +151,8 @@ public abstract class FailedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
 
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
+            storedFunction.State.ShouldNotBeNull();
+            storedFunction.State.DefaultDeserialize().ShouldBeOfType<WorkflowState>();
 
             await Should.ThrowAsync<Exception>(() => rAction(PARAM, PARAM));
         }
@@ -244,14 +244,14 @@ public abstract class FailedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
 
-    public abstract Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog();
-    protected Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
-    public abstract Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog();
-    protected Task UnhandledExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
-        => ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
+    public abstract Task ExceptionThrowingActionWithStateIsNotCompletedByWatchDog();
+    protected Task ExceptionThrowingActionWithStateIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingActionWithStateIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
+    public abstract Task UnhandledExceptionThrowingActionWithStateIsNotCompletedByWatchDog();
+    protected Task UnhandledExceptionThrowingActionWithStateIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
+        => ExceptionThrowingActionWithStateIsNotCompletedByWatchDog(storeTask, throwUnhandledException: true);
     
-    private async Task ExceptionThrowingActionWithScrapbookIsNotCompletedByWatchDog(
+    private async Task ExceptionThrowingActionWithStateIsNotCompletedByWatchDog(
         Task<IFunctionStore> storeTask,
         bool throwUnhandledException,
         [CallerMemberName] string callerMemberName = ""
@@ -270,7 +270,7 @@ public abstract class FailedTests
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
                     functionTypeId,
-                    (string _, Scrapbook _) => 
+                    (string _, WorkflowState _) => 
                         throwUnhandledException
                             ? throw new Exception()
                             : Task.FromException(new Exception())
@@ -286,7 +286,7 @@ public abstract class FailedTests
             );
             var rFunc = functionsRegistry.RegisterAction(
                 functionTypeId,
-                (string _, Scrapbook _) =>
+                (string _, WorkflowState _) =>
                 {
                     flag.Raise();
                     return Succeed.WithoutValue.ToTask();
@@ -300,8 +300,8 @@ public abstract class FailedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
 
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.DefaultDeserialize().ShouldBeOfType<Scrapbook>();
+            storedFunction.State.ShouldNotBeNull();
+            storedFunction.State.DefaultDeserialize().ShouldBeOfType<WorkflowState>();
 
             await Should.ThrowAsync<Exception>(() => rFunc(functionInstanceId.ToString(), param));
         }
@@ -349,5 +349,5 @@ public abstract class FailedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
 
-    private class Scrapbook : RScrapbook { }
+    private class WorkflowState : Domain.WorkflowState { }
 }

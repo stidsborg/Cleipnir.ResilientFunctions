@@ -30,13 +30,13 @@ public class RegisterWithExplicitReturnTests
     }
     
     [TestMethod]
-    public async Task FuncWithScrapbookAndExplicitReturnIsInvokedSuccessfully()
+    public async Task FuncWithStateAndExplicitReturnIsInvokedSuccessfully()
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rFunc = rFunctions.RegisterFunc<string, Scrapbook, string>(
+        var rFunc = rFunctions.RegisterFunc<string, WorkflowState, string>(
             "FunctionTypeId".ToFunctionTypeId(),
-            inner: async (param, scrapbook) =>
+            inner: async (param, state) =>
             {
                 await Task.CompletedTask;
                 syncedParam.Value = param;
@@ -69,14 +69,14 @@ public class RegisterWithExplicitReturnTests
     }
     
     [TestMethod]
-    public async Task ActionWithScrapbookAndExplicitReturnIsInvokedSuccessfully()
+    public async Task ActionWithStateAndExplicitReturnIsInvokedSuccessfully()
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
-            .RegisterAction<string, Scrapbook>(
+            .RegisterAction<string, WorkflowState>(
                 "FunctionTypeId".ToFunctionTypeId(),
-                inner: async (param, scrapbook, _) =>
+                inner: async (param, state, _) =>
                 {
                     await Task.CompletedTask;
                     syncedParam.Value = param;
@@ -88,5 +88,5 @@ public class RegisterWithExplicitReturnTests
         syncedParam.Value.ShouldBe("hello world");
     }
     
-    private class Scrapbook : RScrapbook {}
+    private class WorkflowState : Domain.WorkflowState {}
 }

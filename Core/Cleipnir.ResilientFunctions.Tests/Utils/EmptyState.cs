@@ -2,4 +2,4 @@
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
-public class EmptyScrapbook : RScrapbook { }
+public class EmptyState : WorkflowState { }

@@ -96,7 +96,7 @@ public class RFunctionsShutdownTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -142,12 +142,12 @@ public class RFunctionsShutdownTests
         var functionId = new FunctionId("someFunctionType", "someFunctionInstanceId");
 
         var storedParameter = new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
+        var storedState = new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedScrapbook,
+            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -156,10 +156,10 @@ public class RFunctionsShutdownTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
-            scrapbookJson: storedScrapbook.ScrapbookJson,
+            stateJson: storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0)
+            new ComplimentaryState(() => storedParameter, () => storedState, LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

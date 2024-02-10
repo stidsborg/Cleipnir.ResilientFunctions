@@ -19,7 +19,7 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -39,15 +39,15 @@ public abstract class InitialInvocationFailedTests
         );
     }
 
-    public abstract Task CreatedActionWithScrapbookIsCompletedByWatchdog();
-    protected async Task CreatedActionWithScrapbookIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
+    public abstract Task CreatedActionWithStateIsCompletedByWatchdog();
+    protected async Task CreatedActionWithStateIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -55,9 +55,9 @@ public abstract class InitialInvocationFailedTests
 
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = functionsRegistry.RegisterAction<string, Scrapbook>(
+        _ = functionsRegistry.RegisterAction<string, WorkflowState>(
             functionId.TypeId,
-            void(string param, Scrapbook scrapbook) => flag.Raise()
+            void(string param, WorkflowState state) => flag.Raise()
         );
 
         await flag.WaitForRaised();
@@ -65,9 +65,9 @@ public abstract class InitialInvocationFailedTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var scrapbook = await store.GetFunction(functionId).Map(sf => sf?.Scrapbook);
-        scrapbook.ShouldNotBeNull();
-        scrapbook.ScrapbookJson.ShouldNotBeNull();
+        var state = await store.GetFunction(functionId).Map(sf => sf?.State);
+        state.ShouldNotBeNull();
+        state.StateJson.ShouldNotBeNull();
     }
 
     public abstract Task CreatedFuncIsCompletedByWatchdog();
@@ -78,7 +78,7 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -104,15 +104,15 @@ public abstract class InitialInvocationFailedTests
         JsonConvert.DeserializeObject<string>(resultJson).ShouldBe("HELLO WORLD");
     }
 
-    public abstract Task CreatedFuncWithScrapbookIsCompletedByWatchdog();
-    protected async Task CreatedFuncWithScrapbookIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
+    public abstract Task CreatedFuncWithStateIsCompletedByWatchdog();
+    protected async Task CreatedFuncWithStateIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredScrapbook(new Scrapbook().ToJson(), typeof(Scrapbook).SimpleQualifiedName()),
+            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -122,7 +122,7 @@ public abstract class InitialInvocationFailedTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterFunc(
             functionId.TypeId,
-            string (string param, Scrapbook scrapbook) =>
+            string (string param, WorkflowState state) =>
             {
                 flag.Raise();
                 return param.ToUpper();
@@ -133,14 +133,14 @@ public abstract class InitialInvocationFailedTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var scrapbook = await store.GetFunction(functionId).Map(sf => sf?.Scrapbook);
-        scrapbook.ShouldNotBeNull();
-        scrapbook.ScrapbookJson.ShouldNotBeNull();
+        var state = await store.GetFunction(functionId).Map(sf => sf?.State);
+        state.ShouldNotBeNull();
+        state.StateJson.ShouldNotBeNull();
         
         var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result?.ResultJson);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson).ShouldBe("HELLO WORLD");
     }
     
-    private class Scrapbook : RScrapbook {}
+    private class WorkflowState : Domain.WorkflowState {}
 }

@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 {
-    private readonly Dictionary<FunctionId, State> _states = new();
+    private readonly Dictionary<FunctionId, InnerState> _states = new();
     private readonly Dictionary<FunctionId, List<StoredMessage>> _messages = new();
     private readonly object _sync = new();
 
@@ -41,7 +41,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> CreateFunction(
         FunctionId functionId,
         StoredParameter param,
-        StoredScrapbook storedScrapbook,
+        StoredState storedState,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -51,11 +51,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (_states.ContainsKey(functionId))
                 return false.ToTask();
 
-            _states[functionId] = new State
+            _states[functionId] = new InnerState
             {
                 FunctionId = functionId,
                 Param = param,
-                Scrapbook = storedScrapbook,
+                State = storedState,
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,
                 Exception = null,
@@ -142,7 +142,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         FunctionId functionId,
         Status status,
         StoredParameter storedParameter,
-        StoredScrapbook storedScrapbook,
+        StoredState storedState,
         StoredResult storedResult,
         StoredException? storedException,
         long? postponeUntil,
@@ -159,7 +159,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = status;
             state.Param = storedParameter;
-            state.Scrapbook = storedScrapbook;
+            state.State = storedState;
             state.Result = storedResult;
             state.Exception = storedException;
             state.PostponeUntil = postponeUntil;
@@ -170,9 +170,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public virtual Task<bool> SaveScrapbookForExecutingFunction( 
+    public virtual Task<bool> SaveStateForExecutingFunction( 
         FunctionId functionId,
-        string scrapbookJson,
+        string stateJson,
         int expectedEpoch,
         ComplimentaryState _)
     {
@@ -182,7 +182,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.State = state.State with { StateJson = stateJson };
             return true.ToTask();
         }
     }
@@ -190,7 +190,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SetParameters(
         FunctionId functionId, 
         StoredParameter storedParameter, 
-        StoredScrapbook storedScrapbook, 
+        StoredState storedState, 
         StoredResult storedResult, 
         int expectedEpoch)
     {
@@ -201,7 +201,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Epoch != expectedEpoch) return false.ToTask();
             
             state.Param = storedParameter;
-            state.Scrapbook = storedScrapbook;
+            state.State = storedState;
             state.Result = storedResult;
             
             state.Epoch += 1;
@@ -213,7 +213,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SucceedFunction(
         FunctionId functionId, 
         StoredResult result, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -227,7 +227,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Succeeded;
             state.Result = result;
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
 
             return true.ToTask();
@@ -237,7 +237,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> PostponeFunction(
         FunctionId functionId, 
         long postponeUntil, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -251,7 +251,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Postponed;
             state.PostponeUntil = postponeUntil;
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
             
             return true.ToTask();
@@ -261,7 +261,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SuspendFunction(
         FunctionId functionId, 
         int expectedMessageCount, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -276,10 +276,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             if (_messages[functionId].Count > expectedMessageCount)
-                return PostponeFunction(functionId, postponeUntil: 0, scrapbookJson, timestamp, expectedEpoch, complimentaryState);
+                return PostponeFunction(functionId, postponeUntil: 0, stateJson, timestamp, expectedEpoch, complimentaryState);
                 
             state.Status = Status.Suspended;
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
             
             return true.ToTask();
@@ -301,7 +301,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> FailFunction(
         FunctionId functionId, 
         StoredException storedException, 
-        string scrapbookJson,
+        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -315,7 +315,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Failed;
             state.Exception = storedException;
-            state.Scrapbook = state.Scrapbook with { ScrapbookJson = scrapbookJson };
+            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
             
             return true.ToTask();
@@ -334,7 +334,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return new StoredFunction(
                     functionId,
                     state.Param,
-                    state.Scrapbook,
+                    state.State,
                     state.Status,
                     state.Result,
                     state.Exception,
@@ -374,11 +374,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    private class State
+    private class InnerState
     {
         public FunctionId FunctionId { get; init; } = null!;
         public StoredParameter Param { get; set; } = null!;
-        public StoredScrapbook Scrapbook { get; set; } = null!;
+        public StoredState State { get; set; } = null!;
         public Status Status { get; set; }
         public StoredResult Result { get; set; } = new StoredResult(ResultJson: null, ResultType: null);
         public StoredException? Exception { get; set; }

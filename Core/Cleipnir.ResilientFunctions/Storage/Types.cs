@@ -6,7 +6,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public record StoredFunction(
     FunctionId FunctionId,
     StoredParameter Parameter,
-    StoredScrapbook Scrapbook,
+    StoredState State,
     Status Status,
     StoredResult Result,
     StoredException? Exception,
@@ -24,7 +24,7 @@ public record StoredResult(string? ResultJson, string? ResultType)
 {
     public static StoredResult Null { get; } = new(ResultJson: null, ResultType: null);
 };
-public record StoredScrapbook(string ScrapbookJson, string ScrapbookType);
+public record StoredState(string StateJson, string StateType);
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);
 
@@ -36,9 +36,9 @@ internal static class StorageTypeExtensions
         where TParam : notnull 
         => serializer.DeserializeParameter<TParam>(parameter.ParamJson, parameter.ParamType);
         
-    public static TScrapbook Deserialize<TScrapbook>(this StoredScrapbook scrapbook, ISerializer serializer)
-        where TScrapbook : RScrapbook
-        => serializer.DeserializeScrapbook<TScrapbook>(scrapbook.ScrapbookJson!, scrapbook.ScrapbookType);
+    public static TState Deserialize<TState>(this StoredState state, ISerializer serializer)
+        where TState : WorkflowState
+        => serializer.DeserializeState<TState>(state.StateJson, state.StateType);
 
     public static TResult? Deserialize<TResult>(this StoredResult result, ISerializer serializer)
         => result.ResultJson == null || result.ResultType == null

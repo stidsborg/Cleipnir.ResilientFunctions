@@ -12,12 +12,12 @@ public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestT
     public override Task ActionReInvocationSunshineScenario()
         => ActionReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
-    public override Task ActionWithScrapbookReInvocationSunshineScenario()
-        => ActionWithScrapbookReInvocationSunshineScenario(FunctionStoreFactory.Create());
+    public override Task ActionWithStateReInvocationSunshineScenario()
+        => ActionWithStateReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
-    public override Task FuncWithScrapbookReInvocationSunshineScenario()
-        => FuncWithScrapbookReInvocationSunshineScenario(FunctionStoreFactory.Create());
+    public override Task FuncWithStateReInvocationSunshineScenario()
+        => FuncWithStateReInvocationSunshineScenario(FunctionStoreFactory.Create());
 }

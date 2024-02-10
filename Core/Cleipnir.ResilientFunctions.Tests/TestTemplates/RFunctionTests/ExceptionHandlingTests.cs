@@ -26,16 +26,16 @@ public abstract class ExceptionHandlingTests
         await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
-    public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook();
-    protected async Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithState();
+    protected async Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithState(Task<IFunctionStore> storeTask)
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = functionsRegistry.RegisterFunc<string, ListScrapbook<string>, string>( //explicit generic parameters to satisfy Rider-ide
+        var rFunc = functionsRegistry.RegisterFunc<string, ListState<string>, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFunctionTypeId(),
-            string (string param, ListScrapbook<string> scrapbook) => throw new ArithmeticException("Division by zero")
+            string (string param, ListState<string> state) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
@@ -60,8 +60,8 @@ public abstract class ExceptionHandlingTests
         await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
-    public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook();
-    protected async Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithState();
+    protected async Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithState(Task<IFunctionStore> storeTask)
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

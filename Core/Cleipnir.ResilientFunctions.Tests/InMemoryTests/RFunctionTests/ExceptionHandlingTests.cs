@@ -15,8 +15,8 @@ public class ExceptionHandlingTests : Cleipnir.ResilientFunctions.Tests.TestTemp
         );
 
     [TestMethod]
-    public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook()
-        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithScrapbook(
+    public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithState()
+        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithState(
             FunctionStoreFactory.Create()
         );
     
@@ -27,8 +27,8 @@ public class ExceptionHandlingTests : Cleipnir.ResilientFunctions.Tests.TestTemp
         );
 
     [TestMethod]
-    public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook()
-        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithScrapbook(
+    public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithState()
+        => UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithState(
             FunctionStoreFactory.Create()
         );
 }

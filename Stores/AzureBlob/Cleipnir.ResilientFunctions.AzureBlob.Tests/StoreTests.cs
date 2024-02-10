@@ -87,12 +87,12 @@ public class StoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.StoreT
         => IncrementEpochFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
-    public override Task SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
-        => SaveScrapbookOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    public override Task SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
+        => SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
-    public override Task SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
-        => SaveScrapbookOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
+    public override Task SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
+        => SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStore.CastTo<IFunctionStore>().ToTask());
     
     [TestMethod]
     public override Task DeletingExistingFunctionSucceeds()

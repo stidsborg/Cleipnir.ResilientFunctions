@@ -8,21 +8,21 @@ using Shouldly;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
 {
     [TestClass]
-    public class ScrapbookTests : TestTemplates.ScrapbookTests
+    public class WorkflowStateTests : TestTemplates.WorkflowStateTests
     {
         [TestMethod]
         public override Task SunshineScenario()
             => SunshineScenario(FunctionStoreFactory.Create());
 
         [TestMethod]
-        public override Task ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected()
-            => ScrapbookIsNotUpdatedWhenEpochIsNotAsExpected(
+        public override Task StateIsNotUpdatedWhenEpochIsNotAsExpected()
+            => StateIsNotUpdatedWhenEpochIsNotAsExpected(
                 FunctionStoreFactory.Create()
             );
 
         [TestMethod]
-        public override Task ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration()
-            => ConcreteScrapbookTypeIsUsedWhenSpecifiedAtRegistration(
+        public override Task ConcreteStateTypeIsUsedWhenSpecifiedAtRegistration()
+            => ConcreteStateTypeIsUsedWhenSpecifiedAtRegistration(
                 FunctionStoreFactory.Create()
             );
 
@@ -31,18 +31,18 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests
             => ChangesToStateDictionaryArePersisted(FunctionStoreFactory.Create());
         
         [TestMethod]
-        public void ScrapbookThrowsExceptionIsInitializedMultipleTimes()
+        public void StateThrowsExceptionIsInitializedMultipleTimes()
         {
-            var scrapbook = new RScrapbook();
-            scrapbook.Initialize(() => Task.CompletedTask);
-            Should.Throw<InvalidOperationException>(() => scrapbook.Initialize(() => Task.CompletedTask));
+            var state = new WorkflowState();
+            state.Initialize(() => Task.CompletedTask);
+            Should.Throw<InvalidOperationException>(() => state.Initialize(() => Task.CompletedTask));
         }
         
         [TestMethod]
-        public void ScrapbookThrowsExceptionIfSavedBeforeInitialized()
+        public void StateThrowsExceptionIfSavedBeforeInitialized()
         {
-            var scrapbook = new RScrapbook();
-            Should.ThrowAsync<InvalidOperationException>(() => scrapbook.Save());
+            var state = new WorkflowState();
+            Should.ThrowAsync<InvalidOperationException>(() => state.Save());
         }
     }
 }

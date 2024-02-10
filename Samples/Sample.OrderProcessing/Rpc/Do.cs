@@ -11,7 +11,7 @@ public static class Do
             new EmailClientStub(),
             new LogisticsClientStub()
         );
-        var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.Scrapbook>(
+        var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.State>(
             "OrderProcessorRpc",
             orderProcessor.Execute
         );

@@ -13,24 +13,24 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
         => SunshineScenarioFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SunshineScenarioFuncWithScrapbook()
-        => SunshineScenarioFuncWithScrapbook(FunctionStoreFactory.Create());
+    public override Task SunshineScenarioFuncWithState()
+        => SunshineScenarioFuncWithState(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioAction()
         => SunshineScenarioAction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SunshineScenarioActionWithScrapbook()
-        => SunshineScenarioActionWithScrapbook(FunctionStoreFactory.Create());
+    public override Task SunshineScenarioActionWithState()
+        => SunshineScenarioActionWithState(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioNullReturningFunc()
         => SunshineScenarioNullReturningFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SunshineScenarioNullReturningFuncWithScrapbook()
-        => SunshineScenarioNullReturningFuncWithScrapbook(FunctionStoreFactory.Create());
+    public override Task SunshineScenarioNullReturningFuncWithState()
+        => SunshineScenarioNullReturningFuncWithState(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully()

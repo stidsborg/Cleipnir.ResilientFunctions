@@ -10,14 +10,14 @@ namespace ConsoleApp.EmailOffers;
 
 public static class EmailSenderSaga
 {
-    public static async Task Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
+    public static async Task Start(MailAndRecipients mailAndRecipients, State state)
     {
         var (recipients, subject, content) = mailAndRecipients;
 
         using var client = new SmtpClient();
         await client.ConnectAsync("mail.smtpbucket.com", 8025);
         
-        for (var atRecipient = scrapbook.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
+        for (var atRecipient = state.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
         {
             var recipient = recipients[atRecipient];
             var message = new MimeMessage();
@@ -28,12 +28,12 @@ public static class EmailSenderSaga
             message.Body = new TextPart(TextFormat.Html) { Text = content };
             await client.SendAsync(message);
 
-            scrapbook.AtRecipient = atRecipient;
-            await scrapbook.Save();
+            state.AtRecipient = atRecipient;
+            await state.Save();
         }
     }
 
-    public class Scrapbook : RScrapbook
+    public class State : WorkflowState
     {
         public int AtRecipient { get; set; }
     }

@@ -27,16 +27,16 @@ public class SuspensionTest
                 ParamJson: JsonSerializer.Serialize("hello world"),
                 ParamType: typeof(string).SimpleQualifiedName()
             );
-            var storedScrapbook = new StoredScrapbook(
-                ScrapbookJson: JsonSerializer.Serialize(new RScrapbook()),
-                ScrapbookType: typeof(RScrapbook).SimpleQualifiedName()
+            var storedState = new StoredState(
+                StateJson: JsonSerializer.Serialize(new WorkflowState()),
+                StateType: typeof(WorkflowState).SimpleQualifiedName()
             );
                 
             var functionId = new FunctionId("SuspensionTest", i.ToString()); 
             await store.CreateFunction(
                 functionId,
                 storedParameter,
-                storedScrapbook,
+                storedState,
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -44,10 +44,10 @@ public class SuspensionTest
             await store.SuspendFunction(
                 functionId,
                 expectedMessageCount: 1,
-                scrapbookJson: new RScrapbook().ToJson(),
+                stateJson: new WorkflowState().ToJson(),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedScrapbook, LeaseLength: 0)
+                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedState, LeaseLength: 0)
             );
 
             await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());

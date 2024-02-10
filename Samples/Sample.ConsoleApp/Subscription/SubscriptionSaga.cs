@@ -7,14 +7,14 @@ namespace ConsoleApp.Subscription;
 
 public class SubscriptionSaga
 {
-    public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, Scrapbook scrapbook, Workflow workflow)
+    public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, State state, Workflow workflow)
     {
         var monitor = workflow.Utilities.Monitor;
         var (subscriptionId, startSubscription) = subscriptionChange;
         await using var @lock = await monitor.Acquire(
             group: nameof(UpdateSubscription),
             name: subscriptionChange.SubscriptionId,
-            lockId: scrapbook.LockId
+            lockId: state.LockId
         );
         if (@lock == null)
             return Postpone.For(10_000);
@@ -51,7 +51,7 @@ public class SubscriptionSaga
 
     public record SubscriptionChange(string SubscriptionId, bool StartSubscription);
 
-    public class Scrapbook : RScrapbook
+    public class State : WorkflowState
     {
         public string LockId { get; set; } = Guid.NewGuid().ToString();
     }

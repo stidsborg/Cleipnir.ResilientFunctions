@@ -8,7 +8,6 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
-using UnitScrapbook = Cleipnir.ResilientFunctions.Helpers.UnitScrapbook;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
@@ -66,11 +65,11 @@ public abstract class PostponedTests
         }
     }
     
-    public abstract Task PostponedFuncWithScrapbookIsCompletedByWatchDog();
-    protected async Task PostponedFuncWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
+    public abstract Task PostponedFuncWithStateIsCompletedByWatchDog();
+    protected async Task PostponedFuncWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(PostponedFuncWithScrapbookIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionTypeId = nameof(PostponedFuncWithStateIsCompletedByWatchDog).ToFunctionTypeId();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
@@ -83,7 +82,7 @@ public abstract class PostponedTests
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
-            var rFunc = functionsRegistry.RegisterFunc<string, Scrapbook, string>(
+            var rFunc = functionsRegistry.RegisterFunc<string, WorkflowState, string>(
                     functionTypeId,
                     (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
                 )
@@ -105,10 +104,10 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
-                    async (string s, Scrapbook scrapbook) =>
+                    async (string s, WorkflowState state) =>
                     {
-                        scrapbook.Value = 1;
-                        await scrapbook.Save();
+                        state.Value = 1;
+                        await state.Save();
                         return s.ToUpper();
                     }
                 ).Invoke;
@@ -118,8 +117,8 @@ public abstract class PostponedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.State.ShouldNotBeNull();
+            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
             
             await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -174,8 +173,8 @@ public abstract class PostponedTests
         }
     }
     
-    public abstract Task PostponedActionWithScrapbookIsCompletedByWatchDog();
-    protected async Task PostponedActionWithScrapbookIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
+    public abstract Task PostponedActionWithStateIsCompletedByWatchDog();
+    protected async Task PostponedActionWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFunctionId.Create();
@@ -194,7 +193,7 @@ public abstract class PostponedTests
             );
             var rAction = functionsRegistry.RegisterAction(
                 functionTypeId,
-                (string _, Scrapbook _) => Postpone.For(1_000)
+                (string _, WorkflowState _) => Postpone.For(1_000)
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
@@ -215,10 +214,10 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (string _, Scrapbook scrapbook) =>
+                    async (string _, WorkflowState state) =>
                     {
-                        scrapbook.Value = 1;
-                        await scrapbook.Save();
+                        state.Value = 1;
+                        await state.Save();
                     }
                 ).Invoke;
             
@@ -226,8 +225,8 @@ public abstract class PostponedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
-            storedFunction.Scrapbook.ShouldNotBeNull();
-            storedFunction.Scrapbook.DefaultDeserialize().CastTo<Scrapbook>().Value.ShouldBe(1);
+            storedFunction.State.ShouldNotBeNull();
+            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
 
             await rFunc(functionInstanceId.Value, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -327,7 +326,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -349,7 +348,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -367,19 +366,19 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook();
-    protected async Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task ThrownPostponeExceptionResultsInPostponedActionWithState();
+    protected async Task ThrownPostponeExceptionResultsInPostponedActionWithState(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedActionWithScrapbook);
+        var functionTypeId = nameof(ThrownPostponeExceptionResultsInPostponedActionWithState);
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            (string _, UnitScrapbook _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
+            (string _, UnitState _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
         );
 
         //invoke
@@ -414,7 +413,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
+                new StoredState(new UnitState().ToJson(), typeof(UnitState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -436,7 +435,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new UnitScrapbook().ToJson(), typeof(UnitScrapbook).SimpleQualifiedName()),
+                new StoredState(new UnitState().ToJson(), typeof(UnitState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -505,7 +504,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -525,7 +524,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -545,8 +544,8 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook();
-    protected async Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(Task<IFunctionStore> storeTask)
+    public abstract Task ThrownPostponeExceptionResultsInPostponedFuncWithState();
+    protected async Task ThrownPostponeExceptionResultsInPostponedFuncWithState(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
@@ -593,7 +592,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -614,7 +613,7 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName()),
+                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -645,12 +644,12 @@ public abstract class PostponedTests
         var store = await storeTask;
 
         var storedParameter = new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedScrapbook = new StoredScrapbook(new RScrapbook().ToJson(), typeof(RScrapbook).SimpleQualifiedName());
+        var storedState = new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName());
         
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedScrapbook,
+            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -659,10 +658,10 @@ public abstract class PostponedTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
-            scrapbookJson: new RScrapbook().ToJson(),
+            stateJson: new Domain.WorkflowState().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedScrapbook.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         using var functionsRegistry = new FunctionsRegistry(
@@ -688,7 +687,7 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    private class Scrapbook : RScrapbook
+    private class WorkflowState : Domain.WorkflowState
     {
         public int Value { get; set; }
     }

@@ -7,22 +7,22 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ControlPanel<TParam, TState> where TParam : notnull where TState : WorkflowState, new()
 {
-    private readonly Invoker<TParam, TScrapbook, Unit> _invoker;
-    private readonly InvocationHelper<TParam, TScrapbook, Unit> _invocationHelper;
+    private readonly Invoker<TParam, TState, Unit> _invoker;
+    private readonly InvocationHelper<TParam, TState, Unit> _invocationHelper;
 
     private bool _changed;
     
     internal ControlPanel(
-        Invoker<TParam, TScrapbook, Unit> invoker,
-        InvocationHelper<TParam, TScrapbook, Unit> invocationHelper,
+        Invoker<TParam, TState, Unit> invoker,
+        InvocationHelper<TParam, TState, Unit> invocationHelper,
         FunctionId functionId, 
         Status status, 
         int epoch,
         long leaseExpiration,
         TParam param, 
-        TScrapbook scrapbook, 
+        TState state, 
         DateTime? postponedUntil, 
         ExistingActivities existingActivities,
         ExistingMessages existingMessages,
@@ -35,7 +35,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Epoch = epoch;
         LeaseExpiration = new DateTime(leaseExpiration, DateTimeKind.Utc);
         _param = param;
-        _scrapbook = scrapbook;
+        _state = state;
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
         Activities = existingActivities;
@@ -66,18 +66,18 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         }
     }
 
-    private TScrapbook _scrapbook;
-    public TScrapbook Scrapbook
+    private TState _state;
+    public TState State
     {
         get
         {
             _changed = true;
-            return _scrapbook;
+            return _state;
         }
         set
         {
             _changed = true;
-            _scrapbook = value;
+            _state = value;
         }
     }
 
@@ -87,7 +87,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public async Task Succeed()
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, Scrapbook, postponeUntil: null, exception: null, 
+            FunctionId, Status.Succeeded, Param, State, postponeUntil: null, exception: null, 
             Epoch
         );
 
@@ -101,7 +101,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public async Task Postpone(DateTime until)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, Scrapbook, until, exception: null,
+            FunctionId, Status.Postponed, Param, State, until, exception: null,
             Epoch
         );
 
@@ -119,7 +119,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public async Task Fail(Exception exception)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, Scrapbook, postponeUntil: null, exception,
+            FunctionId, Status.Failed, Param, State, postponeUntil: null, exception,
             Epoch
         );
 
@@ -134,7 +134,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, @return: default, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, State, @return: default, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         
@@ -169,7 +169,7 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
         Epoch = sf.Epoch;
         LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
         Param = sf.Param;
-        Scrapbook = sf.Scrapbook;
+        State = sf.State;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
@@ -180,21 +180,21 @@ public class ControlPanel<TParam, TScrapbook> where TParam : notnull where TScra
     public async Task WaitForCompletion(bool allowPostponedAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponedAndSuspended);
 }
 
-public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where TState : WorkflowState, new()
 {
-    private readonly Invoker<TParam, TScrapbook, TReturn> _invoker;
-    private readonly InvocationHelper<TParam, TScrapbook, TReturn> _invocationHelper;
+    private readonly Invoker<TParam, TState, TReturn> _invoker;
+    private readonly InvocationHelper<TParam, TState, TReturn> _invocationHelper;
     private bool _changed;
 
     internal ControlPanel(
-        Invoker<TParam, TScrapbook, TReturn> invoker, 
-        InvocationHelper<TParam, TScrapbook, TReturn> invocationHelper,
+        Invoker<TParam, TState, TReturn> invoker, 
+        InvocationHelper<TParam, TState, TReturn> invocationHelper,
         FunctionId functionId, 
         Status status, 
         int epoch,
         long leaseExpiration,
         TParam param, 
-        TScrapbook scrapbook, 
+        TState state, 
         TReturn? result,
         DateTime? postponedUntil, 
         ExistingActivities activities,
@@ -209,7 +209,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         LeaseExpiration = new DateTime(leaseExpiration, DateTimeKind.Utc);
         
         _param = param;
-        _scrapbook = scrapbook;
+        _state = state;
         Result = result;
         PostponedUntil = postponedUntil;
         Activities = activities;
@@ -243,18 +243,18 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         }
     }
 
-    private TScrapbook _scrapbook;
-    public TScrapbook Scrapbook
+    private TState _state;
+    public TState State
     {
         get
         {
             _changed = true;
-            return _scrapbook;
+            return _state;
         }
         set
         {
             _changed = true;
-            _scrapbook = value;
+            _state = value;
         }
     }
 
@@ -266,7 +266,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Succeeded, 
-            Param, Scrapbook, 
+            Param, State, 
             result, 
             PostponedUntil, exception: null, 
             Epoch
@@ -284,7 +284,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Postponed, 
-            Param, Scrapbook, 
+            Param, State, 
             result: default, until, 
             exception: null, 
             Epoch
@@ -305,7 +305,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Failed, 
-            Param, Scrapbook, 
+            Param, State, 
             result: default, postponeUntil: null, exception, 
             Epoch
         );
@@ -321,7 +321,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Scrapbook, Result, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, State, Result, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         
@@ -356,7 +356,7 @@ public class ControlPanel<TParam, TScrapbook, TReturn> where TParam : notnull wh
         Epoch = sf.Epoch;
         LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
         Param = sf.Param;
-        Scrapbook = sf.Scrapbook;
+        State = sf.State;
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;

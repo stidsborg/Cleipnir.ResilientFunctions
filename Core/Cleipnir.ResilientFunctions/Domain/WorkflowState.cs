@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class RScrapbook
+public class WorkflowState
 {
     private Func<Task>? OnSave { get; set; }
     public ConcurrentDictionary<string, string> StateDictionary { get; set; } = new(); //allows for state accessible from middleware etc
@@ -16,7 +16,7 @@ public class RScrapbook
         ArgumentNullException.ThrowIfNull(onSave);
         
         if (_initialized)
-            throw new InvalidOperationException("Scrapbook has already been initialized");
+            throw new InvalidOperationException("State has already been initialized");
         
         _initialized = true;
         OnSave = onSave;
@@ -25,16 +25,16 @@ public class RScrapbook
     public virtual async Task Save()
     {
         if (!_initialized)
-            throw new InvalidOperationException("Scrapbook must be initialized before save");
+            throw new InvalidOperationException("State must be initialized before save");
         
         await OnSave!.Invoke();  
     } 
 }
 
-public sealed class ScrapbookSaveFailedException : Exception
+public sealed class StateSaveFailedException : Exception
 {
     public FunctionId FunctionId { get; }
     
-    public ScrapbookSaveFailedException(FunctionId functionId, string message) : base(message) 
+    public StateSaveFailedException(FunctionId functionId, string message) : base(message) 
         => FunctionId = functionId;
 }

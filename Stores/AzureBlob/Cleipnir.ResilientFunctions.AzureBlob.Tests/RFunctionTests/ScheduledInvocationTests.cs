@@ -12,13 +12,13 @@ public class
         => ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterFuncWithScrapbookStateHasBeenPersisted(FunctionStoreFactory
+    public override Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted()
+        => ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted(FunctionStoreFactory
             .FunctionStoreTask);
 
     [TestMethod]
-    public override Task ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted()
-        => ScheduledFunctionIsInvokedAfterActionWithScrapbookStateHasBeenPersisted(FunctionStoreFactory
+    public override Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted()
+        => ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted(FunctionStoreFactory
             .FunctionStoreTask);
 
     [TestMethod]

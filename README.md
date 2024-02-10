@@ -55,16 +55,16 @@ Finally, register and invoke a function using the framework:
 ```csharp
 var rAction = functionsRegistry.RegisterAction(
   functionTypeId: "OrderProcessor",
-  async (Order order, OrderScrapbook scrapbook) => 
+  async (Order order, OrderState state) => 
   {
-    await _paymentProviderClient.Reserve(order.CustomerId, scrapbook.TransactionId, order.TotalPrice);
+    await _paymentProviderClient.Reserve(order.CustomerId, state.TransactionId, order.TotalPrice);
 
-    await scrapbook.DoAtMostOnce(
+    await state.DoAtMostOnce(
       workStatus: s => s.ProductsShippedStatus,
       work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
     );
 
-    await _paymentProviderClient.Capture(scrapbook.TransactionId);
+    await _paymentProviderClient.Capture(state.TransactionId);
     await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
   }
 );
@@ -151,14 +151,14 @@ Consider a travel agency which wants to send a promotional email to its customer
 ```csharp
 public static class EmailSenderSaga
 {
-  public static async Task Start(MailAndRecipients mailAndRecipients, Scrapbook scrapbook)
+  public static async Task Start(MailAndRecipients mailAndRecipients, State state)
   {
     var (recipients, subject, content) = mailAndRecipients;
 
     using var client = new SmtpClient();
     await client.ConnectAsync("mail.smtpbucket.com", 8025);
         
-    for (var atRecipient = scrapbook.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
+    for (var atRecipient = state.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
     {
       var recipient = recipients[atRecipient];
       var message = new MimeMessage();
@@ -169,12 +169,12 @@ public static class EmailSenderSaga
       message.Body = new TextPart(TextFormat.Html) { Text = content };
       await client.SendAsync(message);
 
-      scrapbook.AtRecipient = atRecipient;
-      await scrapbook.Save();
+      state.AtRecipient = atRecipient;
+      await state.Save();
     }
   }
 
-  public class Scrapbook : RScrapbook
+  public class State : WorkflowState
   {
     public int AtRecipient { get; set; }
   }

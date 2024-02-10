@@ -4,6 +4,6 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public record ComplimentaryState(
     Func<StoredParameter> StoredParameterFunc, 
-    Func<StoredScrapbook> StoredScrapbookFunc, 
+    Func<StoredState> StoredStateFunc, 
     long LeaseLength
 );

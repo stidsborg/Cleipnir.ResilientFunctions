@@ -6,4 +6,4 @@ public class Unit
 {
     public static Unit Instance { get; } = new();
 }
-public class UnitScrapbook : RScrapbook { }
+public class UnitState : WorkflowState { }

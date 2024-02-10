@@ -7,80 +7,80 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class ActionRegistration
 {
-    public delegate Task Invoke<in TParam, in TScrapbook>(
+    public delegate Task Invoke<in TParam, in TState>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+        TState? state = null
+    ) where TParam : notnull where TState : WorkflowState, new();
 
-    public delegate Task Schedule<in TParam, TScrapbook>(
+    public delegate Task Schedule<in TParam, TState>(
         string functionInstanceId, 
         TParam param, 
-        TScrapbook? scrapbook = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+        TState? state = null
+    ) where TParam : notnull where TState : WorkflowState, new();
     
-    public delegate Task ScheduleAt<in TParam, TScrapbook>(
+    public delegate Task ScheduleAt<in TParam, TState>(
         string functionInstanceId, 
         TParam param,
         DateTime delayUntil,
-        TScrapbook? scrapbook = null
-    ) where TParam : notnull where TScrapbook : RScrapbook, new();
+        TState? state = null
+    ) where TParam : notnull where TState : WorkflowState, new();
 }
 
 public class ActionRegistration<TParam> where TParam : notnull
 {
     public FunctionTypeId TypeId { get; }
     
-    private readonly RAction<TParam,RScrapbook> _rAction;
-    public ActionRegistration.Invoke<TParam, RScrapbook> Invoke { get; }
-    public ActionRegistration.Schedule<TParam, RScrapbook> Schedule { get; }
-    public ActionRegistration.ScheduleAt<TParam, RScrapbook> ScheduleAt { get; }    
+    private readonly ActionRegistration<TParam,WorkflowState> _actionRegistration;
+    public ActionRegistration.Invoke<TParam, WorkflowState> Invoke { get; }
+    public ActionRegistration.Schedule<TParam, WorkflowState> Schedule { get; }
+    public ActionRegistration.ScheduleAt<TParam, WorkflowState> ScheduleAt { get; }    
     public MessageWriters MessageWriters { get; }
     
-    public ActionRegistration(RAction<TParam, RScrapbook> rAction)
+    public ActionRegistration(ActionRegistration<TParam, WorkflowState> actionRegistration)
     {
-        TypeId = rAction.TypeId;
+        TypeId = actionRegistration.TypeId;
         
-        _rAction = rAction;
-        Invoke = rAction.Invoke;
-        Schedule = rAction.Schedule;
-        ScheduleAt = rAction.ScheduleAt;
+        _actionRegistration = actionRegistration;
+        Invoke = actionRegistration.Invoke;
+        Schedule = actionRegistration.Schedule;
+        ScheduleAt = actionRegistration.ScheduleAt;
         
-        MessageWriters = rAction.MessageWriters;
+        MessageWriters = actionRegistration.MessageWriters;
     }
 
-    public Task<ControlPanel<TParam, RScrapbook>?> ControlPanel(FunctionInstanceId functionInstanceId)
-        => _rAction.ControlPanel(functionInstanceId);
+    public Task<ControlPanel<TParam, WorkflowState>?> ControlPanel(FunctionInstanceId functionInstanceId)
+        => _actionRegistration.ControlPanel(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
         TParam param,
         TimeSpan delay,
-        RScrapbook? scrapbook = null
+        WorkflowState? state = null
     ) => ScheduleAt(
         functionInstanceId,
         param,
         delayUntil: DateTime.UtcNow.Add(delay),
-        scrapbook
+        state
     );
 }
 
-public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook : RScrapbook, new()
+public class ActionRegistration<TParam, TState> where TParam : notnull where TState : WorkflowState, new()
 {
     public FunctionTypeId TypeId { get; }
     
-    public ActionRegistration.Invoke<TParam, TScrapbook> Invoke { get; }
-    public ActionRegistration.Schedule<TParam, TScrapbook> Schedule { get; }
-    public ActionRegistration.ScheduleAt<TParam, TScrapbook> ScheduleAt { get; }
-    private ControlPanels<TParam, TScrapbook> ControlPanels { get; }
+    public ActionRegistration.Invoke<TParam, TState> Invoke { get; }
+    public ActionRegistration.Schedule<TParam, TState> Schedule { get; }
+    public ActionRegistration.ScheduleAt<TParam, TState> ScheduleAt { get; }
+    private ControlPanels<TParam, TState> ControlPanels { get; }
     public MessageWriters MessageWriters { get; }
 
-    public RAction(
+    public ActionRegistration(
         FunctionTypeId functionTypeId,
-        ActionRegistration.Invoke<TParam, TScrapbook> invoke,
-        ActionRegistration.Schedule<TParam, TScrapbook> schedule,
-        ActionRegistration.ScheduleAt<TParam, TScrapbook> scheduleAt,
-        ControlPanels<TParam, TScrapbook> controlPanels, 
+        ActionRegistration.Invoke<TParam, TState> invoke,
+        ActionRegistration.Schedule<TParam, TState> schedule,
+        ActionRegistration.ScheduleAt<TParam, TState> scheduleAt,
+        ControlPanels<TParam, TState> controlPanels, 
         MessageWriters messageWriters)
     {
         TypeId = functionTypeId;
@@ -92,18 +92,18 @@ public class RAction<TParam, TScrapbook> where TParam : notnull where TScrapbook
         MessageWriters = messageWriters;
     }
     
-    public Task<ControlPanel<TParam, TScrapbook>?> ControlPanel(FunctionInstanceId functionInstanceId)
+    public Task<ControlPanel<TParam, TState>?> ControlPanel(FunctionInstanceId functionInstanceId)
         => ControlPanels.For(functionInstanceId);
     
     public Task ScheduleIn(
         string functionInstanceId,
         TParam param,
         TimeSpan delay,
-        TScrapbook? scrapbook = null
+        TState? state = null
     ) => ScheduleAt(
         functionInstanceId,
         param,
         delayUntil: DateTime.UtcNow.Add(delay),
-        scrapbook
+        state
     );
 }

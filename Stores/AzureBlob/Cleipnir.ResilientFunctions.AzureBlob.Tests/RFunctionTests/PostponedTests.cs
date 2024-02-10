@@ -11,16 +11,16 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
         => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task PostponedFuncWithScrapbookIsCompletedByWatchDog()
-        => PostponedFuncWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task PostponedFuncWithStateIsCompletedByWatchDog()
+        => PostponedFuncWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
         => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task PostponedActionWithScrapbookIsCompletedByWatchDog()
-        => PostponedActionWithScrapbookIsCompletedByWatchDog(FunctionStoreFactory.Create());
+    public override Task PostponedActionWithStateIsCompletedByWatchDog()
+        => PostponedActionWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()
@@ -31,16 +31,16 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
         => ThrownPostponeExceptionResultsInPostponedAction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ThrownPostponeExceptionResultsInPostponedActionWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedActionWithScrapbook(FunctionStoreFactory.Create());
+    public override Task ThrownPostponeExceptionResultsInPostponedActionWithState()
+        => ThrownPostponeExceptionResultsInPostponedActionWithState(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ThrownPostponeExceptionResultsInPostponedFunc()
         => ThrownPostponeExceptionResultsInPostponedFunc(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook()
-        => ThrownPostponeExceptionResultsInPostponedFuncWithScrapbook(FunctionStoreFactory.Create());
+    public override Task ThrownPostponeExceptionResultsInPostponedFuncWithState()
+        => ThrownPostponeExceptionResultsInPostponedFuncWithState(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp()
