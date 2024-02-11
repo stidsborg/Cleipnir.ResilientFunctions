@@ -10,10 +10,10 @@ public interface IMessageStore
 
     Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage);
     Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null);
-    Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages);
+
+    Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage);
     
     Task Truncate(FunctionId functionId);
-    Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount);
 
     Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId);
     MessagesSubscription SubscribeToMessages(FunctionId functionId);

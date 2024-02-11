@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -40,10 +39,8 @@ public class PostgreSqlMessageStore : IMessageStore
                 message_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position)
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_{_tablePrefix}rfunctions_messages_idempotencykeys
-            ON {_tablePrefix}rfunctions_messages(function_type_id, function_instance_id, idempotency_key)";
+            );";
+        
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -140,107 +137,37 @@ public class PostgreSqlMessageStore : IMessageStore
     
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
         => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
-    
-    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
+
+    public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
-        await AppendMessages(functionId, storedMessages, conn, transaction);
-        await transaction.CommitAsync();
-        
-        return await GetSuspensionStatus(functionId);
-    }
+        var sql = @$"    
+                UPDATE {_tablePrefix}rfunctions_messages
+                SET message_json = $1, message_type = $2, idempotency_key = $3
+                WHERE function_type_id = $4 AND function_instance_id = $5 AND position = $6";
 
-    internal async Task AppendMessages(
-        FunctionId functionId, 
-        IEnumerable<StoredMessage> storedMessages,
-        NpgsqlConnection connection, 
-        NpgsqlTransaction? transaction)
-    {
-        var batch = new NpgsqlBatch(connection, transaction);
-        foreach (var (messageJson, messageType, idempotencyKey) in storedMessages)
+        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var command = new NpgsqlCommand(sql, conn)
         {
-            string sql;
-            if (idempotencyKey == null)
-                sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_messages
-                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
-                VALUES
-                    ($1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5);";
-            else
-                sql = @$"
-                    INSERT INTO {_tablePrefix}rfunctions_messages
-                    SELECT $1, $2, (SELECT (COALESCE(MAX(position), -1) + 1) FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $1 AND function_instance_id = $2), $3, $4, $5
-                    WHERE NOT EXISTS (
-                        SELECT 1
-                        FROM {_tablePrefix}rfunctions_messages
-                        WHERE function_type_id = $1 AND
-                        function_instance_id = $2 AND
-                        idempotency_key = $5
-                    );";
-            
-            var command = new NpgsqlBatchCommand(sql)
+            Parameters =
             {
-                Parameters =
-                {
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value},
-                    new() {Value = messageJson},
-                    new() {Value = messageType},
-                    new() {Value = idempotencyKey ?? (object) DBNull.Value}
-                }
-            };
-            batch.BatchCommands.Add(command);
-        }
+                new() {Value = messageJson},
+                new() {Value = messageType},
+                new() {Value = idempotencyKey ?? (object) DBNull.Value},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+                new() {Value = position},
+            }
+        };
         
-        await batch.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
-
+    
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
         await Truncate(functionId, conn, transaction: null);
-    }
-
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
-    {
-        await using var conn = await CreateConnection();
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
-
-        if (expectedMessageCount != null)
-        {
-            var existingCount = await GetMessagesCount(functionId, conn, transaction);
-            if (existingCount != expectedMessageCount)
-                return false;
-        }
-        
-        await Truncate(functionId, conn, transaction);
-        await AppendMessages(functionId, storedMessages, conn, transaction);
-
-        await transaction.CommitAsync();
-        return true;
-    }
-
-    private async Task<int> GetMessagesCount(FunctionId functionId, NpgsqlConnection conn, NpgsqlTransaction transaction)
-    {
-        var sql = @$"    
-            SELECT (COALESCE(MAX(position), -1) + 1) 
-            FROM {_tablePrefix}rfunctions_messages 
-            WHERE function_type_id = $1 AND function_instance_id = $2";
-        
-        await using var command = new NpgsqlCommand(sql, conn, transaction)
-        {
-            Parameters =
-            {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
-            }
-        };
-        
-        var count = (int?) await command.ExecuteScalarAsync();
-        ArgumentNullException.ThrowIfNull(count);
-        
-        return count.Value;
     }
     
     internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
@@ -309,7 +236,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
                 var messages = await InnerGetMessages(functionId, skip);
                 skip += messages.Count;
-
+                
                 return messages;
             },
             dispose: () =>

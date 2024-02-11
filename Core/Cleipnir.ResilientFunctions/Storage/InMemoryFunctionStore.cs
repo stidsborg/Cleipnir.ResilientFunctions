@@ -392,12 +392,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     #region MessageStore
 
     public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
-        => AppendMessages(functionId, new[] { storedMessage });
-
-    public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
-        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
-
-    public virtual Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
         lock (_sync)
         {
@@ -405,14 +399,26 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 _messages[functionId] = new List<StoredMessage>();
 
             var messages = _messages[functionId];
-            foreach (var storedMessage in storedMessages)
-                if (storedMessage.IdempotencyKey == null ||
-                    messages.All(e => e.IdempotencyKey != storedMessage.IdempotencyKey))
-                    messages.Add(storedMessage);
-
+            messages.Add(storedMessage);
+            
             return Task.FromResult(
                 new FunctionStatus(_states[functionId].Status, Epoch: _states[functionId].Epoch)
             );
+        }
+    }
+
+    public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
+        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
+
+    public Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
+    {
+        lock (_sync)
+        {
+            if (!_messages.ContainsKey(functionId) || _messages[functionId].Count <= position)
+                return false.ToTask();
+            
+            _messages[functionId][position] = storedMessage;
+            return true.ToTask();
         }
     }
 
@@ -422,27 +428,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             _messages[functionId] = new List<StoredMessage>();
 
         return Task.CompletedTask;
-    }
-
-    public Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
-    {
-        lock (_sync)
-        {
-            if (expectedMessageCount == null)
-            {
-                _messages[functionId] = storedMessages.ToList();
-                return true.ToTask();
-            }
-                
-            var success = _messages.TryGetValue(functionId, out var existingMessages);
-            if (!success) return false.ToTask();
-
-            if (existingMessages == null || existingMessages.Count != expectedMessageCount)
-                return false.ToTask();
-            
-            _messages[functionId] = storedMessages.ToList();
-            return true.ToTask();
-        }
     }
 
     public virtual Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)

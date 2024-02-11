@@ -28,7 +28,10 @@ public class AzureBlobMessageStore : IMessageStore
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
         => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
 
-    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
+    public Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
+        => throw new InvalidOperationException("AzureBlobMessageStore does not support replacing existing messages");
+
+    private async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
     {
         var marshalledString = SimpleMarshaller.Serialize(storedMessages
             .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
@@ -37,25 +40,7 @@ public class AzureBlobMessageStore : IMessageStore
         
         return await AppendOrCreate(functionId, marshalledString);
     }
-
-    public async Task CreateMessage(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
-    {
-        var marshalledString = SimpleMarshaller.Serialize(storedMessages
-            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
-            .ToArray()
-        );
-        
-        var messagesBlobName = functionId.GetMessagesBlobName();
-        var messagesBlobClient = _blobContainerClient.GetAppendBlobClient(messagesBlobName);
-        
-        await messagesBlobClient.CreateAsync(
-            new AppendBlobCreateOptions { Conditions = new AppendBlobRequestConditions { IfNoneMatch = new ETag("*") } }
-        );
-        
-        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
-        await messagesBlobClient.AppendBlockAsync(ms);
-    }
-
+    
     public async Task Truncate(FunctionId functionId)
     {
         var blobName = functionId.GetMessagesBlobName();
@@ -64,76 +49,7 @@ public class AzureBlobMessageStore : IMessageStore
             .GetAppendBlobClient(blobName)
             .DeleteIfExistsAsync();
     }
-
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
-    {
-        var blobName = functionId.GetMessagesBlobName();
-        var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
-
-        if (expectedMessageCount != null)
-        {
-            BlobLeaseClient? messagesLeaseClient = null;
-            
-            try
-            {
-                var messagesBlobName = functionId.GetMessagesBlobName();
-                var messagesBlobClient = _blobContainerClient.GetAppendBlobClient(messagesBlobName);
-                await messagesBlobClient.CreateIfNotExistsAsync();
-            
-                messagesLeaseClient = messagesBlobClient.GetBlobLeaseClient();
-                var messagesLeaseResponse = await messagesLeaseClient.AcquireAsync(TimeSpan.FromSeconds(-1)); //acquire infinite messages lease
-                var messagesLeaseId = messagesLeaseResponse.Value.LeaseId;
-
-                var (existingMessages, _, _) = await InnerGetMessages(functionId, offset: 0, leaseId: messagesLeaseId);
-                if (expectedMessageCount != existingMessages.Count)
-                    return false;
-
-                await Replace(functionId, storedMessages, messagesLeaseId);
-                return true;
-            }
-            finally
-            {
-                if (messagesLeaseClient != null)
-                    await messagesLeaseClient.ReleaseAsync();
-            }
-        }
-
-        await blobClient.CreateAsync(); //overwrites existing blob with empty file
-        
-        var marshalledString = SimpleMarshaller.Serialize(storedMessages
-            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
-            .ToArray()
-        );
-        
-        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
-        await blobClient.AppendBlockAsync(ms);
-        return true;
-    }
-
-    internal async Task Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, string leaseId)
-    {
-        var blobName = functionId.GetMessagesBlobName();
-        var blobClient = _blobContainerClient.GetAppendBlobClient(blobName);
-        await blobClient
-            .CreateAsync(new AppendBlobCreateOptions
-            {
-                Conditions = new AppendBlobRequestConditions {LeaseId = leaseId}
-            });
-        
-        var marshalledString = SimpleMarshaller.Serialize(storedMessages
-            .SelectMany(storedMessage => new[] { storedMessage.MessageJson, storedMessage.MessageType, storedMessage.IdempotencyKey })
-            .ToArray()
-        );
-        
-        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(marshalledString));
-        await blobClient.AppendBlockAsync(
-            ms, 
-            new AppendBlobAppendBlockOptions
-            {
-                Conditions = new AppendBlobRequestConditions {LeaseId = leaseId}
-            });
-    }
-
+    
     public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
         => InnerGetMessages(functionId, offset: 0)
             .SelectAsync(fetchedMessages => (IEnumerable<StoredMessage>) fetchedMessages.Messages);

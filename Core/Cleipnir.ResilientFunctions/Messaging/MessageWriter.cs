@@ -76,21 +76,5 @@ public class MessageWriter
             await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
     }
 
-    public async Task AppendMessages(IEnumerable<MessageAndIdempotencyKey> events)
-    {
-        var (status, epoch) = await _messageStore.AppendMessages(
-            _functionId,
-            storedMessages: events.Select(eventAndIdempotencyKey =>
-            {
-                var (@event, idempotencyKey) = eventAndIdempotencyKey;
-                var (json, type) = _serializer.SerializeMessage(@event);
-                return new StoredMessage(json, type, idempotencyKey);
-            })
-        );
-
-        if (status is Status.Suspended or Status.Postponed)
-            await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
-    } 
-
     public Task Truncate() => _messageStore.Truncate(_functionId);
 }

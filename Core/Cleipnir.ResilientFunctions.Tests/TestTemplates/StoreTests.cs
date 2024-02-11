@@ -736,32 +736,11 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         var message1 = new StoredMessage(
-            "hello world".ToJson(),
-            typeof(string).SimpleQualifiedName(),
+            "hello everyone".ToJson(),
+            MessageType: typeof(string).SimpleQualifiedName(),
             IdempotencyKey: "idempotency_key_1"
         );
-        var message2 = new StoredMessage(
-            "hello universe".ToJson(),
-            typeof(string).SimpleQualifiedName(),
-            IdempotencyKey: "idempotency_key_2"
-        );
-        await messages.AppendMessages(
-            functionId,
-            new[] { message1, message2 }
-        );
-
-        await messages.Replace(
-            functionId,
-            new[]
-            {
-                new StoredMessage(
-                    "hello everyone".ToJson(),
-                    MessageType: typeof(string).SimpleQualifiedName(),
-                    IdempotencyKey: "idempotency_key_1"
-                ),
-            },
-            expectedMessageCount: 2
-        ).ShouldBeTrueAsync();
+        await messages.AppendMessage(functionId, message1);
         
         await store.SetFunctionState(
             functionId,
@@ -828,9 +807,9 @@ public abstract class StoreTests
 
         await Task.Delay(500);
 
-        var functionStatus = await store.MessageStore.AppendMessages(
+        var functionStatus = await store.MessageStore.AppendMessage(
             functionId,
-            storedMessages: new[] { new StoredMessage("hello world".ToJson(), MessageType: typeof(string).SimpleQualifiedName()) }
+            new StoredMessage("hello world".ToJson(), MessageType: typeof(string).SimpleQualifiedName())
         );
         functionStatus.Status.ShouldBe(Status.Suspended);
     }
@@ -881,14 +860,9 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.MessageStore.AppendMessages(
-            functionId,
-            new[]
-            {
-                new StoredMessage("Hello".ToJson(), MessageType: typeof(string).SimpleQualifiedName()),
-                new StoredMessage("World".ToJson(), MessageType: typeof(string).SimpleQualifiedName())
-            }
-        );
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson(), MessageType: typeof(string).SimpleQualifiedName()));
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson(), MessageType: typeof(string).SimpleQualifiedName()));
+        
         var messages = await store.MessageStore.GetMessages(functionId).ToListAsync();
         messages.Count.ShouldBe(2);
         messages[0].DefaultDeserialize().ShouldBe("Hello");

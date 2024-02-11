@@ -122,7 +122,7 @@ public abstract class MessagessTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(2);
+        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(3);
     }
     
     public abstract Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully();
@@ -152,19 +152,17 @@ public abstract class MessagessTests
         
         await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
-        await messages.AppendMessages(new MessageAndIdempotencyKey[]
-        {
-            new("hello world", "1"),
-            new("hello world", "1"),
-            new("hello universe")
-        });
+        await messages.AppendMessage("hello world", "1");
+        await messages.AppendMessage("hello world", "1");
+        await messages.AppendMessage("hello universe");
 
-        task.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        
         task.Result.Count.ShouldBe(2);
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(2);
+        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(3);
     }
 
     public abstract Task MessagessSunshineScenarioUsingMessageStore();
@@ -248,7 +246,7 @@ public abstract class MessagessTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await messageStore.GetMessages(functionId)).Count().ShouldBe(2);
+        (await messageStore.GetMessages(functionId)).Count().ShouldBe(3);
     }
     
     public abstract Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();

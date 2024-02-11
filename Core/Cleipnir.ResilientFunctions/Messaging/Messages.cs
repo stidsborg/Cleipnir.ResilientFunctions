@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
-using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -47,12 +46,6 @@ public class Messages : IReactiveChain<object>, IDisposable
         await Sync();
     }
 
-    public async Task AppendMessages(IEnumerable<MessageAndIdempotencyKey> events)
-    {
-        await _messageWriter.AppendMessages(events);
-        await Sync();
-    }
-
     public Task Sync() => _messagePullerAndEmitter.PullEvents();
 
     public void Dispose() => _messagePullerAndEmitter.Dispose();
@@ -72,7 +65,8 @@ public class Messages : IReactiveChain<object>, IDisposable
         private int _subscribers;
         private bool _running;
         private volatile bool _disposed;
-        private int _toSkip;
+        
+        private readonly HashSet<string> _idempotencyKeys = new();
         
         private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
         private readonly object _sync = new();
@@ -107,8 +101,6 @@ public class Messages : IReactiveChain<object>, IDisposable
             {
                 while (true)
                 {
-                    await Task.Delay(_delay);
-
                     lock (_sync)
                         if (_subscribers == 0)
                         {
@@ -117,6 +109,8 @@ public class Messages : IReactiveChain<object>, IDisposable
                         }
                     
                     await PullEvents();
+                    
+                    await Task.Delay(_delay);
                 }                
             }
             catch (Exception)
@@ -152,13 +146,20 @@ public class Messages : IReactiveChain<object>, IDisposable
             try
             {
                 var storedMessages = await _messagesSubscription.PullNewEvents();
+
+                var filterStoredMessages = new List<StoredMessage>(storedMessages.Count);
+                foreach (var storedMessage in storedMessages)
+                    if (storedMessage.IdempotencyKey == null || !_idempotencyKeys.Contains(storedMessage.IdempotencyKey))
+                    {
+                        filterStoredMessages.Add(storedMessage);
+                        if (storedMessage.IdempotencyKey != null)
+                            _idempotencyKeys.Add(storedMessage.IdempotencyKey);
+                    }
                 
-                if (_toSkip != 0)
-                {
-                    storedMessages = storedMessages.Skip(_toSkip).ToList();
-                    _toSkip = 0;
-                }
-                    
+                storedMessages = filterStoredMessages;
+                if (storedMessages.Count == 0)
+                    return;
+                
                 var events = storedMessages.Select(
                     storedEvent => _serializer.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType)
                 );

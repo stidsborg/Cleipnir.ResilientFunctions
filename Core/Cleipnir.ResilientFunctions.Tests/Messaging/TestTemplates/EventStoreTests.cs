@@ -74,11 +74,13 @@ public abstract class MessageStoreTests
         
         var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
         var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
+        await messageStore.AppendMessage(functionId, storedEvent1);
+        await messageStore.AppendMessage(functionId, storedEvent2);
 
         var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
         var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await messageStore.AppendMessages(functionId, new []{storedEvent3, storedEvent4});
+        await messageStore.AppendMessage(functionId, storedEvent3);
+        await messageStore.AppendMessage(functionId, storedEvent4);
         
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(4);
@@ -114,7 +116,8 @@ public abstract class MessageStoreTests
         
         var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
         var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
+        await messageStore.AppendMessage(functionId, storedEvent1);
+        await messageStore.AppendMessage(functionId, storedEvent2);
 
         await messageStore
             .GetMessages(functionId)
@@ -123,11 +126,8 @@ public abstract class MessageStoreTests
         
         var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
         var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await messageStore.Replace(
-            functionId,
-            storedMessages: new[] { storedEvent3, storedEvent4 },
-            expectedMessageCount: null
-        ).ShouldBeTrueAsync();
+        await messageStore.ReplaceMessage(functionId, position: 0, storedEvent3).ShouldBeTrueAsync();
+        await messageStore.ReplaceMessage(functionId, position: 1, storedEvent4).ShouldBeTrueAsync();
         
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -159,7 +159,8 @@ public abstract class MessageStoreTests
         
         var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
         var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
+        await messageStore.AppendMessage(functionId, storedEvent1);
+        await messageStore.AppendMessage(functionId, storedEvent2);
 
         await messageStore
             .GetMessages(functionId)
@@ -168,11 +169,8 @@ public abstract class MessageStoreTests
         
         var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
         var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await messageStore.Replace(
-            functionId,
-            storedMessages: new[] { storedEvent3, storedEvent4 },
-            expectedMessageCount: 2
-        ).ShouldBeTrueAsync();
+        await messageStore.ReplaceMessage(functionId, position: 0, storedEvent3).ShouldBeTrueAsync();
+        await messageStore.ReplaceMessage(functionId, position: 1, storedEvent4).ShouldBeTrueAsync();
         
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -182,8 +180,8 @@ public abstract class MessageStoreTests
         events[1].IdempotencyKey.ShouldBeNull();
     }
     
-    public abstract Task EventsAreNotReplacedWhenCountIsNotAsExpected();
-    protected async Task EventsAreNotReplacedWhenCountIsNotAsExpected(Task<IFunctionStore> functionStoreTask)
+    public abstract Task EventsAreNotReplacedWhenPositionIsNotAsExpected();
+    protected async Task EventsAreNotReplacedWhenPositionIsNotAsExpected(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
@@ -200,11 +198,11 @@ public abstract class MessageStoreTests
         const string msg1 = "hello here";
         const string msg2 = "hello world";
         const string msg3 = "hello universe";
-        const string msg4 = "hello multiverse";
         
         var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
         var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
+        await messageStore.AppendMessage(functionId, storedEvent1);
+        await messageStore.AppendMessage(functionId, storedEvent2);
 
         await messageStore
             .GetMessages(functionId)
@@ -212,12 +210,7 @@ public abstract class MessageStoreTests
             .ShouldBeAsync(2);
         
         var storedEvent3 = new StoredMessage(msg3.ToJson(), msg3.GetType().SimpleQualifiedName(), "3");
-        var storedEvent4 = new StoredMessage(msg4.ToJson(), msg4.GetType().SimpleQualifiedName(), null);
-        await messageStore.Replace(
-            functionId,
-            storedMessages: new[] { storedEvent3, storedEvent4 },
-            expectedMessageCount: 3
-        ).ShouldBeFalseAsync();
+        await messageStore.ReplaceMessage(functionId, position: 2, storedEvent3).ShouldBeFalseAsync();
         
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -245,14 +238,8 @@ public abstract class MessageStoreTests
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
 
-        await messageStore.AppendMessages(
-            functionId,
-            new StoredMessage[]
-            {
-                new (msg1.ToJson(), typeof(string).SimpleQualifiedName()),
-                new (msg2.ToJson(), typeof(string).SimpleQualifiedName())
-            }
-        );
+        await messageStore.AppendMessage(functionId, new (msg1.ToJson(), typeof(string).SimpleQualifiedName()));
+        await messageStore.AppendMessage(functionId, new (msg2.ToJson(), typeof(string).SimpleQualifiedName()));
 
         var events = (await messageStore.GetMessages(functionId)).Skip(1).ToList();
         events.Count.ShouldBe(1);
@@ -280,7 +267,8 @@ public abstract class MessageStoreTests
 
         var storedEvent1 = new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName(), "1");
         var storedEvent2 = new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName(), "2");
-        await messageStore.AppendMessages(functionId, new []{storedEvent1, storedEvent2});
+        await messageStore.AppendMessage(functionId, storedEvent1);
+        await messageStore.AppendMessage(functionId, storedEvent2);
 
         await messageStore.Truncate(functionId);
         var events = await messageStore.GetMessages(functionId);
@@ -335,14 +323,8 @@ public abstract class MessageStoreTests
         );
 
         await messageStore.Truncate(functionId);
-        await messageStore.AppendMessages(
-            functionId,
-            new StoredMessage[]
-            {
-                new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
-                new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
-            }
-        );
+        await messageStore.AppendMessage(functionId, new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()));
+        await messageStore.AppendMessage(functionId, new("hello from me".ToJson(), typeof(string).SimpleQualifiedName()));
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -369,14 +351,8 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
 
         await messageStore.Truncate(functionId);
-        await messageStore.AppendMessages(
-            functionId,
-            new StoredMessage[]
-            {
-                new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()),
-                new("hello from me".ToJson(), typeof(string).SimpleQualifiedName())
-            }
-        );
+        await messageStore.AppendMessage(functionId, new("hello to you".ToJson(), typeof(string).SimpleQualifiedName()));
+        await messageStore.AppendMessage(functionId, new("hello from me".ToJson(), typeof(string).SimpleQualifiedName()));
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -416,10 +392,12 @@ public abstract class MessageStoreTests
         await messageStore.AppendMessage(functionId, event1);
         await messageStore.AppendMessage(functionId, event2);
 
-        var events = await TaskLinq.ToListAsync(messageStore.GetMessages(functionId));
-        events.Count.ShouldBe(1);
+        var events = await messageStore.GetMessages(functionId).ToListAsync();
+        events.Count.ShouldBe(2);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
+        events[1].IdempotencyKey.ShouldBe("idempotency_key");
+        events[1].DefaultDeserialize().ShouldBe("hello universe");
     }
     
     public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion();
@@ -448,12 +426,15 @@ public abstract class MessageStoreTests
         );
         var messageStore = functionStore.MessageStore;
 
-        await messageStore.AppendMessages(functionId, new [] {event1, event2});
+        await messageStore.AppendMessage(functionId, event1);
+        await messageStore.AppendMessage(functionId, event2);
 
-        var events = await TaskLinq.ToListAsync(messageStore.GetMessages(functionId));
-        events.Count.ShouldBe(1);
+        var events = await messageStore.GetMessages(functionId).ToListAsync();
+        events.Count.ShouldBe(2);
         events[0].IdempotencyKey.ShouldBe("idempotency_key");
         events[0].DefaultDeserialize().ShouldBe("hello world");
+        events[1].IdempotencyKey.ShouldBe("idempotency_key");
+        events[1].DefaultDeserialize().ShouldBe("hello universe");
     }
 
     public abstract Task FetchNonExistingEventsSucceeds();
@@ -561,7 +542,8 @@ public abstract class MessageStoreTests
         await messageStore.AppendMessage(functionId, event2);
         
         newEvents = await subscription.PullNewEvents();
-        newEvents.Count.ShouldBe(0);
+        newEvents.Count.ShouldBe(1);
+        newEvents.Single().IdempotencyKey.ShouldBe("idempotency_key_1");
         
         newEvents = await subscription.PullNewEvents();
         newEvents.Count.ShouldBe(0);

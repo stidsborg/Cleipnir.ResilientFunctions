@@ -107,8 +107,10 @@ public abstract class EventSubscriptionTests
         using var subscription = functionStore.MessageStore.SubscribeToMessages(functionId);
 
         var newEvents = await subscription.PullNewEvents();
-        newEvents.Count.ShouldBe(1);
+        newEvents.Count.ShouldBe(2);
         newEvents[0].IdempotencyKey.ShouldBe("someIdempotencyKey");
         newEvents[0].DefaultDeserialize().ShouldBe("hello");
+        newEvents[1].IdempotencyKey.ShouldBe("someIdempotencyKey");
+        newEvents[1].DefaultDeserialize().ShouldBe("world");
     }
 }

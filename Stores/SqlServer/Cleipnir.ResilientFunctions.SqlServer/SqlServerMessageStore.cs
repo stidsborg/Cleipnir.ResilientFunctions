@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -34,10 +34,7 @@ public class SqlServerMessageStore : IMessageStore
             MessageType NVARCHAR(255) NOT NULL,   
             IdempotencyKey NVARCHAR(255),          
             PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
-        );
-        CREATE UNIQUE INDEX uidx_{_tablePrefix}RFunctions_Messages
-            ON {_tablePrefix}RFunctions_Messages (FunctionTypeId, FunctionInstanceId, IdempotencyKey)
-            WHERE IdempotencyKey IS NOT NULL;";
+        );";
         var command = new SqlCommand(sql, conn);
         try
         {
@@ -103,56 +100,25 @@ public class SqlServerMessageStore : IMessageStore
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
         => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
 
-    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
+    public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
-        await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
-
-        await AppendMessages(functionId, storedMessages, conn, transaction);
-        var suspensionStatus = await GetSuspensionStatus(functionId);
-        await transaction.CommitAsync();
-        return suspensionStatus;
-    }
-    
-    internal async Task AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, SqlConnection connection, SqlTransaction transaction)
-    {
-        foreach (var storedMessage in storedMessages)
-        {
-            string sql;
-            if (storedMessage.IdempotencyKey == null)
-                sql = @$"    
-                    INSERT INTO {_tablePrefix}RFunctions_Messages
-                        (FunctionTypeId, FunctionInstanceId, Position, MessageJson, MessageType, IdempotencyKey)
-                    VALUES ( 
-                        @FunctionTypeId, 
-                        @FunctionInstanceId, 
-                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                        @MessageJson, @MessageType, @IdempotencyKey
-                    );";
-            else
-                sql = @$"
-                    INSERT INTO {_tablePrefix}RFunctions_Messages
-                    SELECT 
-                        @FunctionTypeId, 
-                        @FunctionInstanceId, 
-                        (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
-                        @MessageJson, @MessageType, @IdempotencyKey
-                    WHERE NOT EXISTS (
-                        SELECT 1
-                        FROM {_tablePrefix}RFunctions_Messages
-                        WHERE FunctionTypeId = @FunctionTypeId AND
-                        FunctionInstanceId = @FunctionInstanceId AND
-                        IdempotencyKey = @IdempotencyKey
-                    );";
-
-            await using var command = new SqlCommand(sql, connection, transaction);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
-            command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
-            command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object) DBNull.Value);
-            await command.ExecuteNonQueryAsync();
-        }
+        
+        var sql = @$"    
+            UPDATE {_tablePrefix}RFunctions_Messages
+            SET MessageJson = @MessageJson, MessageType = @MessageType, IdempotencyKey = @IdempotencyKey
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position = @Position";
+        
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@Position", position);
+        command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
+        command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
+        command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
     public async Task Truncate(FunctionId functionId)
@@ -175,42 +141,6 @@ public class SqlServerMessageStore : IMessageStore
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         return await command.ExecuteNonQueryAsync();
-    }
-    
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
-    {
-        await using var conn = await CreateConnection();
-        await using var transaction = conn.BeginTransaction(IsolationLevel.Serializable);
-
-        if (expectedMessageCount != null)
-        {
-            var count = await GetMessagesCount(functionId, conn, transaction);
-            if (count != expectedMessageCount.Value)
-                return false;
-        }
-        
-        await Truncate(functionId, conn, transaction);
-        await AppendMessages(functionId, storedMessages, conn, transaction);
-
-        await transaction.CommitAsync();
-        return true;
-    }
-
-    private async Task<long> GetMessagesCount(FunctionId functionId, SqlConnection conn, SqlTransaction transaction)
-    {
-        var sql = @$"    
-            SELECT COALESCE(MAX(position), -1) + 1 
-            FROM {_tablePrefix}RFunctions_Messages
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        
-        await using var command = new SqlCommand(sql, conn, transaction);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        
-        var count = (int?) await command.ExecuteScalarAsync();
-        ArgumentNullException.ThrowIfNull(count);
-        
-        return count.Value;
     }
     
     public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
@@ -269,7 +199,7 @@ public class SqlServerMessageStore : IMessageStore
                 
                 var messages = await InnerGetMessages(functionId, skip);
                 skip += messages.Count;
-
+                
                 return messages;
             },
             dispose: () =>

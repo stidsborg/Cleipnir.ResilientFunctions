@@ -753,7 +753,7 @@ public abstract class ControlPanelTests
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(1);
         existingMessages[0].ShouldBe("param");
-        existingMessages[0] = "hello";
+        await existingMessages.Replace(0, "hello");
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -797,10 +797,10 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Succeeded);
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(2);
-        existingMessages.Clear();
-        existingMessages.MessagesWithIdempotencyKeys.Add(new MessageAndIdempotencyKey("hello to you", "1"));
-        existingMessages.MessagesWithIdempotencyKeys.Add(new MessageAndIdempotencyKey("hello from me", "2"));
-        await existingMessages.SaveChanges(verifyNoChangesBeforeSave: true);
+        await existingMessages.Clear();
+
+        await existingMessages.Append("hello to you", "1");
+        await existingMessages.Append("hello from me", "2");
         
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
@@ -887,11 +887,9 @@ public abstract class ControlPanelTests
 
         await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
         
-        existingMessages.Clear();
-        existingMessages.Add("hej verden");
-        existingMessages.Add("hej univers");
-        
-        await Should.ThrowAsync<ConcurrentModificationException>(() => existingMessages.SaveChanges(verifyNoChangesBeforeSave: true));
+        await existingMessages.Clear();
+        await existingMessages.Append("hej verden");
+        await existingMessages.Append("hej univers");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -958,11 +956,9 @@ public abstract class ControlPanelTests
 
         await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
         
-        existingMessages.Clear();
-        existingMessages.Add("hej verden");
-        existingMessages.Add("hej univers");
-
-        await Should.ThrowAsync<ConcurrentModificationException>(() => existingMessages.SaveChanges(verifyNoChangesBeforeSave: true));
+        await existingMessages.Clear();
+        await existingMessages.Append("hej verden");
+        await existingMessages.Append("hej univers");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -1031,10 +1027,8 @@ public abstract class ControlPanelTests
         message.ShouldBe("hello world");
         idempotencyKey.ShouldBe("first");
 
-        existingMessages.Clear();
-        existingMessages.MessagesWithIdempotencyKeys.Add(new MessageAndIdempotencyKey("hello universe", IdempotencyKey: "second"));
-
-        await existingMessages.SaveChanges();
+        await existingMessages.Clear();
+        await existingMessages.Append("hello universe", idempotencyKey: "second");
 
         await controlPanel.Refresh();
 

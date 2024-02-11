@@ -29,8 +29,7 @@ public class MySqlMessageStore : IMessageStore
                 message_json TEXT NOT NULL,
                 message_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
-                PRIMARY KEY (function_type_id, function_instance_id, position),
-                UNIQUE INDEX (function_type_id, function_instance_id, idempotency_key)
+                PRIMARY KEY (function_type_id, function_instance_id, position)
             );";
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -80,10 +79,6 @@ public class MySqlMessageStore : IMessageStore
         {
             await command.ExecuteNonQueryAsync();
         }
-        catch (MySqlException e) when (e.Number == 1062)
-        {
-            //ignore duplicate idempotency key
-        } 
         catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
         {
             await conn.DisposeAsync();
@@ -97,116 +92,31 @@ public class MySqlMessageStore : IMessageStore
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
         => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
     
-    public async Task<FunctionStatus> AppendMessages(FunctionId functionId, IEnumerable<StoredMessage> storedMessages)
+    public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
-        var existingCount = await GetNumberOfMessages(functionId);
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
-
-        try
-        {
-            await AppendMessages(functionId, storedMessages, existingCount, conn, transaction);
-            var suspensionStatus = await GetSuspensionStatus(functionId);
-            await transaction.CommitAsync();
-            return suspensionStatus;
-        }
-        catch (MySqlException e) when (e.Number == 1213)
-        {
-            await transaction.RollbackAsync();
-            return await AppendMessages(functionId, storedMessages);
-        }
-    }
-
-    internal async Task AppendMessages(
-        FunctionId functionId,
-        IEnumerable<StoredMessage> storedMessages,
-        long existingCount,
-        MySqlConnection connection,
-        MySqlTransaction transaction)
-    {
-        var existingIdempotencyKeys = new HashSet<string>();
-        storedMessages = storedMessages.ToList();
-        if (storedMessages.Any(se => se.IdempotencyKey != null))
-            existingIdempotencyKeys = await GetExistingIdempotencyKeys(functionId, connection, transaction);
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var (messageJson, messageType, idempotencyKey) = storedMessage;
         
-        foreach (var (messageJson, messageType, idempotencyKey) in storedMessages)
-        {
-            if (idempotencyKey != null && existingIdempotencyKeys.Contains(idempotencyKey))
-                continue;
-            if (idempotencyKey != null)
-                existingIdempotencyKeys.Add(idempotencyKey);
-            
-            var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_messages
-                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
-                VALUES
-                    (?, ?, ?, ?, ?, ?);";
-           
-            await using var command = new MySqlCommand(sql, connection, transaction)
-            {
-                Parameters =
-                {
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value},
-                    new() {Value = existingCount++},
-                    new() {Value = messageJson},
-                    new() {Value = messageType},
-                    new() {Value = idempotencyKey ?? (object) DBNull.Value}
-                }
-            };
-
-            await command.ExecuteNonQueryAsync();
-        }
-    }
-
-    private async Task<HashSet<string>> GetExistingIdempotencyKeys(
-        FunctionId functionId,
-        MySqlConnection connection, MySqlTransaction transaction)
-    {
         var sql = @$"    
-            SELECT idempotency_key
-            FROM {_tablePrefix}rfunctions_messages
-            WHERE function_type_id = ? AND function_instance_id = ? AND idempotency_key IS NOT NULL";
-        await using var command = new MySqlCommand(sql, connection, transaction)
+                UPDATE {_tablePrefix}rfunctions_messages
+                SET message_json = ?, message_type = ?, idempotency_key = ?
+                WHERE function_type_id = ? AND function_instance_id = ? AND position = ?";
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = messageJson},
+                new() {Value = messageType},
+                new() {Value = idempotencyKey ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
+                new() {Value = position}
             }
         };
-        
-        var idempotencyKeys = new HashSet<string>();
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var idempotencyKey = reader.GetString(0);
-            idempotencyKeys.Add(idempotencyKey);
-        }
-
-        return idempotencyKeys;
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
-
-    public async Task<long> GetNumberOfMessages(FunctionId functionId)
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        return await GetNumberOfMessages(functionId, conn, transaction: null);
-    }
-
-    private async Task<long> GetNumberOfMessages(FunctionId functionId, MySqlConnection conn, MySqlTransaction? transaction)
-    {
-        var sql = $"SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = ? AND function_instance_id = ?";
-        await using var command =
-            transaction == null
-                ? new MySqlCommand(sql, conn)
-                : new MySqlCommand(sql, conn, transaction);
-        
-        command.Parameters.Add(new() {Value = functionId.TypeId.Value});
-        command.Parameters.Add(new() {Value = functionId.InstanceId.Value});
-        
-        return (long) (await command.ExecuteScalarAsync())!;
-    }
-
+    
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
@@ -230,26 +140,7 @@ public class MySqlMessageStore : IMessageStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows;
     }
-    
-    public async Task<bool> Replace(FunctionId functionId, IEnumerable<StoredMessage> storedMessages, int? expectedMessageCount)
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var transaction = await conn.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        if (expectedMessageCount != null)
-        {
-            var count = await GetNumberOfMessages(functionId, conn, transaction);
-            if (count != expectedMessageCount)
-                return false;
-        }
-        
-        await Truncate(functionId, conn, transaction);
-        await AppendMessages(functionId, storedMessages, existingCount: 0, conn, transaction);
-
-        await transaction.CommitAsync();
-        return true;
-    }
-    
     public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
         => InnerGetMessages(functionId, skip: 0).SelectAsync(messages => (IEnumerable<StoredMessage>)messages);
     
@@ -299,6 +190,7 @@ public class MySqlMessageStore : IMessageStore
                 
                 var messages = await InnerGetMessages(functionId, skip);
                 skip += messages.Count;
+                
                 return messages;
             },
             dispose: () =>
