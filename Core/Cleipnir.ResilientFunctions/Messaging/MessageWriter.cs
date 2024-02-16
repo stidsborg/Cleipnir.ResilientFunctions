@@ -30,18 +30,13 @@ public class MessageWriter
     public async Task AppendMessage<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
     {
         var (eventJson, eventType) = _serializer.SerializeMessage(@event);
-        await _messageStore.AppendMessage(
+        var (status, epoch) = await _messageStore.AppendMessage(
             _functionId,
             eventJson,
             eventType,
             idempotencyKey
         );
-
-        var statusAndEpoch = await _functionStore.GetFunctionStatus(_functionId);
-        if (statusAndEpoch == null)
-            throw new UnexpectedFunctionState(_functionId, $"Function '{_functionId}' not found");
-
-        var (status, epoch) = statusAndEpoch;
+        
         if (status == Status.Suspended || status == Status.Postponed)
         {
             try
