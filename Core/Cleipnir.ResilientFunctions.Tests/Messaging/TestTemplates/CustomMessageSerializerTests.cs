@@ -10,7 +10,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
-public abstract class CustomEventSerializerTests
+public abstract class CustomMessageSerializerTests
 {
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
     protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> functionStoreTask)

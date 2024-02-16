@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.InMemoryTests;
 
 [TestClass]
-public class CustomEventSerializerTests : TestTemplates.CustomEventSerializerTests
+public class CustomMessageSerializerTests : TestTemplates.CustomMessageSerializerTests
 {
     [TestMethod]
     public override Task CustomEventSerializerIsUsedWhenSpecified()

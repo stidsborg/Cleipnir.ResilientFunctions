@@ -3,11 +3,11 @@
 namespace Cleipnir.ResilientFunctions.MySQL.Tests.Messaging;
 
 [TestClass]
-public class MessagessTests : ResilientFunctions.Tests.Messaging.TestTemplates.MessagessTests
+public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.MessagesTests
 {
     [TestMethod]
-    public override Task MessagessSunshineScenario() 
-        => MessagessSunshineScenario(FunctionStoreFactory.Create());
+    public override Task MessagesSunshineScenario() 
+        => MessagesSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()

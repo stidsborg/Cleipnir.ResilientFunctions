@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MySQL.Tests.Messaging;
 
 [TestClass]
-public class CustomEventSerializerTests : ResilientFunctions.Tests.Messaging.TestTemplates.CustomEventSerializerTests
+public class CustomMessageSerializerTests : ResilientFunctions.Tests.Messaging.TestTemplates.CustomMessageSerializerTests
 {
     [TestMethod]
     public override Task CustomEventSerializerIsUsedWhenSpecified()

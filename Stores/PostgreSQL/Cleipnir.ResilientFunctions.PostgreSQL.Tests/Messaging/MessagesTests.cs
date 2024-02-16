@@ -1,14 +1,14 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests.Messaging;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.Messaging;
 
 [TestClass]
-public class MessagessTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.MessagessTests
+public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.MessagesTests
 {
     [TestMethod]
-    public override Task MessagessSunshineScenario() 
-        => MessagessSunshineScenario(FunctionStoreFactory.Create());
+    public override Task MessagesSunshineScenario() 
+        => MessagesSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
@@ -21,7 +21,7 @@ public class MessagessTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTe
     [TestMethod]
     public override Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully()
         => MessagesBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.Create());
-    
+
     [TestMethod]
     public override Task MessagessSunshineScenarioUsingMessageStore()
         => MessagessSunshineScenarioUsingMessageStore(FunctionStoreFactory.Create());
@@ -29,7 +29,7 @@ public class MessagessTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTe
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore()
         => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore(FunctionStoreFactory.Create());
-    
+
     [TestMethod]
     public override Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
         => MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(FunctionStoreFactory.Create());

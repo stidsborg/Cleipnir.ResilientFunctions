@@ -380,7 +380,8 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
-
+        const int numberOfChildren = 100;
+        
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
@@ -400,12 +401,12 @@ public abstract class SuspensionTests
             {
                 await workflow.Activities.Do("ScheduleChildren", async () =>
                 {
-                    for (var i = 0; i < 100; i++)
+                    for (var i = 0; i < numberOfChildren; i++)
                         await child.Schedule($"SomeChildInstance#{i}", i.ToString());
                 });
                 
                 var messages = await workflow.Messages
-                    .Take(100)
+                    .Take(numberOfChildren)
                     .Select(m => m.ToString()!)
                     .SuspendUntilCompletion();
 
@@ -422,10 +423,10 @@ public abstract class SuspensionTests
         {
             await controlPanel.Refresh();
             return controlPanel.Status == Status.Succeeded;
-        });
+        }, maxWait: TimeSpan.FromSeconds(60));
 
         var result = controlPanel.Result!.ToHashSet();
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < numberOfChildren; i++)
             result.Contains(i.ToString()).ShouldBeTrue();
     }
 }

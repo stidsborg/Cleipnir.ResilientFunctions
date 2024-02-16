@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.InMemoryTests;
 
 [TestClass]
-public class MessagesSubscriptionTests : TestTemplates.EventSubscriptionTests
+public class MessagesSubscriptionTests : TestTemplates.MessagesSuscriptionTests
 {
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()

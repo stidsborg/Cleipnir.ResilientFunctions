@@ -706,7 +706,7 @@ public abstract class PostponedTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
         var rAction = functionsRegistry
@@ -753,7 +753,7 @@ public abstract class PostponedTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
         var rFunc = functionsRegistry
@@ -799,7 +799,7 @@ public abstract class PostponedTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(250)
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
         var rFunc = functionsRegistry

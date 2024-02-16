@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.UtilTests;
 
 [TestClass]
-public class RegistrerTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.UtilsTests.RegisterTests
+public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.UtilsTests.RegisterTests
 {
     [TestMethod]
     public override Task SetValueWithNoExistingValueSucceeds()

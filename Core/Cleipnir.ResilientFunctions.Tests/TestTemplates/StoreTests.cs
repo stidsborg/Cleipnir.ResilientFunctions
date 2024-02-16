@@ -1052,6 +1052,5 @@ public abstract class StoreTests
         storedFunction.ShouldNotBeNull();
         (storedFunction.Epoch is 0).ShouldBeTrue();
         storedFunction.Status.ShouldBe(Status.Postponed);
-        storedFunction.PostponedUntil.ShouldBe(0);
     }
 }

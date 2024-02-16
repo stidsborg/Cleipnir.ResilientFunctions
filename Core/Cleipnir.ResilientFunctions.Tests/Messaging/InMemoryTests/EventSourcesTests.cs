@@ -7,11 +7,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.InMemoryTests;
 
 [TestClass]
-public class MessagessTests : TestTemplates.MessagessTests
+public class MessagesTests : TestTemplates.MessagesTests
 {
     [TestMethod]
-    public override Task MessagessSunshineScenario() 
-        => MessagessSunshineScenario(FunctionStoreFactory.Create());
+    public override Task MessagesSunshineScenario() 
+        => MessagesSunshineScenario(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()

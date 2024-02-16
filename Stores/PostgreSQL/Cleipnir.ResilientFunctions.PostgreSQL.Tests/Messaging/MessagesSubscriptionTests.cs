@@ -1,14 +1,15 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.MySQL.Tests.Messaging;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.Messaging;
 
 [TestClass]
-public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.EventSubscriptionTests
+public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.MessagesSuscriptionTests
 {
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()
         => EventsSubscriptionSunshineScenario(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task EventsWithSameIdempotencyKeyAreFilterOut()
         => EventsWithSameIdempotencyKeyAreFilterOut(FunctionStoreFactory.Create());

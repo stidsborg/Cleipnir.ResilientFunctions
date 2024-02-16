@@ -14,10 +14,10 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
-public abstract class MessagessTests
+public abstract class MessagesTests
 {
-    public abstract Task MessagessSunshineScenario();
-    protected async Task MessagessSunshineScenario(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessagesSunshineScenario();
+    protected async Task MessagesSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestFunctionId.Create();
         var functionStore = await functionStoreTask;
