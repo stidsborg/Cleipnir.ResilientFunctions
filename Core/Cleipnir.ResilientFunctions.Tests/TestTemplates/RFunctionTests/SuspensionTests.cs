@@ -37,6 +37,10 @@ public abstract class SuspensionTests
             () => rAction.Invoke(functionInstanceId.Value, "hello world")
         );
 
+        await BusyWait.Until(() =>
+            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Suspended)
+        );
+        
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
@@ -63,6 +67,10 @@ public abstract class SuspensionTests
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
             () => rFunc.Invoke(instanceId.Value, "hello world")
+        );
+        
+        await BusyWait.Until(() =>
+            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Suspended)
         );
 
         var sf = await store.GetFunction(functionId);
