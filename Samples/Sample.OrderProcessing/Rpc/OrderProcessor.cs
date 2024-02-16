@@ -10,6 +10,8 @@ public class OrderProcessor
     private readonly IEmailClient _emailClient;
     private readonly ILogisticsClient _logisticsClient;
 
+    private ILogger Logger => Log.Logger.ForContext<OrderProcessor>();
+
     public OrderProcessor(IPaymentProviderClient paymentProviderClient, IEmailClient emailClient, ILogisticsClient logisticsClient)
     {
         _paymentProviderClient = paymentProviderClient;
@@ -17,27 +19,23 @@ public class OrderProcessor
         _logisticsClient = logisticsClient;
     }
 
-    public async Task Execute(Order order, State state, Workflow workflow)
+    public async Task Execute(Order order, Workflow workflow)
     {
-        Log.Logger.Information($"ORDER_PROCESSOR: Processing of order '{order.OrderId}' started");
-
-        await _paymentProviderClient.Reserve(order.CustomerId, state.TransactionId, order.TotalPrice);
+        Logger.Information($"Processing of order '{order.OrderId}' started");
+        
+        var transactionId = await workflow.Activities.Do("TransactionId", Guid.NewGuid);
+        await _paymentProviderClient.Reserve(order.CustomerId, transactionId, order.TotalPrice);
 
         var trackAndTrace = await workflow.Activities.Do(
             "ShipProducts",
-            work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
+            work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds),
+            ResiliencyLevel.AtMostOnce
         );
 
-        await _paymentProviderClient.Capture(state.TransactionId);
+        await _paymentProviderClient.Capture(transactionId);
 
         await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds, trackAndTrace);
 
-        Log.Logger.ForContext<OrderProcessor>().Information($"Processing of order '{order.OrderId}' completed");
-    }
-
-    public class State : WorkflowState
-    {
-        public Guid TransactionId { get; set; } = Guid.NewGuid();
-        public Work<TrackAndTrace> ProductsShippedStatus { get; set; }
+        Logger.Information($"Processing of order '{order.OrderId}' completed");
     }
 }
