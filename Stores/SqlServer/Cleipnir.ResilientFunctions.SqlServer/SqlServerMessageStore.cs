@@ -85,16 +85,16 @@ public class SqlServerMessageStore : IMessageStore
         catch (SqlException e)
         {
             if (e.Number == SqlError.UNIQUENESS_INDEX_VIOLATION) //idempotency key already exists
-                return await GetSuspensionStatus(functionId);
+                return await GetSuspensionStatus(functionId, conn);
             if (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION) 
                 throw;
             
+            await conn.DisposeAsync();
             await Task.Delay(Random.Shared.Next(50, 250));
-            conn.Dispose();
             return await AppendMessage(functionId, storedMessage); 
         }
         
-        return await GetSuspensionStatus(functionId);
+        return await GetSuspensionStatus(functionId, conn);
     }
 
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
@@ -221,14 +221,13 @@ public class SqlServerMessageStore : IMessageStore
         return conn;
     }
     
-    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)
+    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId, SqlConnection connection)
     {
-        await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT Epoch, Status
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
 
