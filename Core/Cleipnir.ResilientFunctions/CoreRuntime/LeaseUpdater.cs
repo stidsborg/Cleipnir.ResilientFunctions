@@ -68,6 +68,13 @@ internal class LeaseUpdater : IDisposable
                     leaseExpiration: DateTime.UtcNow.Ticks + _leaseLength.Ticks
                 );
 
+                _unhandledExceptionHandler.Invoke(
+                    new UnexpectedFunctionState(
+                        _functionId,
+                        $"{nameof(LeaseUpdater)} failed to update lease for executing function: '{_functionId}'"
+                    )
+                );
+                
                 _disposed = !success;
             }
             catch (Exception e)
