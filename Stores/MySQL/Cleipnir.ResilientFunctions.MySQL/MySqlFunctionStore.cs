@@ -344,7 +344,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_instance_id = ? AND 
                 epoch = ?";
 
-        var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -360,7 +360,6 @@ public class MySqlFunctionStore : IFunctionStore
             }
         };
             
-        await using var _ = command;
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
@@ -463,7 +462,6 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         var affectedRows = await command.ExecuteNonQueryAsync();
-        
         return affectedRows >= 1;
     }
 

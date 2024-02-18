@@ -82,11 +82,11 @@ public class MySqlMessageStore : IMessageStore
         catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
         {
             await conn.DisposeAsync();
-            await Task.Delay(Random.Shared.Next(100, 250));
-            await AppendMessage(functionId, storedMessage);
+            await Task.Delay(Random.Shared.Next(10, 250));
+            return await AppendMessage(functionId, storedMessage);
         }
 
-        return await GetSuspensionStatus(functionId);
+        return await GetSuspensionStatus(functionId, conn);
     }
 
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
@@ -205,14 +205,13 @@ public class MySqlMessageStore : IMessageStore
         return subscription;
     }
     
-    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)
+    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId, MySqlConnection connection)
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString); 
         var sql = @$"    
             SELECT epoch, status
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(sql, connection)
         {
             Parameters = { 
                 new() {Value = functionId.TypeId.Value},
