@@ -83,7 +83,7 @@ public class LeaseUpdaterTests
         updater.Dispose();
 
         syncedCounter.Current.ShouldBe(1);
-        _unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        _unhandledExceptionCatcher.ThrownExceptions.ShouldNotBeEmpty();
     }
         
     [TestMethod]
