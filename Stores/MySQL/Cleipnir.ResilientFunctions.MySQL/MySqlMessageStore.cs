@@ -1,5 +1,4 @@
-﻿using System.Data;
-using Cleipnir.ResilientFunctions.Domain;
+﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -50,43 +49,66 @@ public class MySqlMessageStore : IMessageStore
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
     public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, idempotencyKey) = storedMessage;
-        
-        var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_messages
-                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
-                SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
-                    FROM {_tablePrefix}rfunctions_messages
-                    WHERE function_type_id = ? AND function_instance_id = ?";
-        await using var command = new MySqlCommand(sql, conn)
-        {
-            Parameters =
+        for (var i = 0; i < 10; i++) //retry if deadlock is occurs
+            try
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = messageJson},
-                new() {Value = messageType},
-                new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
-            }
-        };
-        try
-        {
-            await command.ExecuteNonQueryAsync();
-        }
-        catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
-        {
-            await conn.DisposeAsync();
-            await Task.Delay(Random.Shared.Next(10, 250));
-            return await AppendMessage(functionId, storedMessage);
-        }
+                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+                var (messageJson, messageType, idempotencyKey) = storedMessage;
+                //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
+                var lockName = functionId.ToString().GenerateSHA256Hash();
+                var sql = @$"    
+                    SELECT GET_LOCK(?, 10);
+                    INSERT INTO {_tablePrefix}rfunctions_messages
+                        (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
+                    SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
+                        FROM {_tablePrefix}rfunctions_messages
+                        WHERE function_type_id = ? AND function_instance_id = ?;
+                    SELECT RELEASE_LOCK(?);
 
-        return await GetSuspensionStatus(functionId, conn);
+                    SELECT epoch, status
+                    FROM {_tablePrefix}rfunctions
+                    WHERE function_type_id = ? AND function_instance_id = ?;";
+
+                await using var command = new MySqlCommand(sql, conn)
+                {
+                    Parameters =
+                    {
+                        new() { Value = lockName },
+                        new() { Value = functionId.TypeId.Value },
+                        new() { Value = functionId.InstanceId.Value },
+                        new() { Value = messageJson },
+                        new() { Value = messageType },
+                        new() { Value = idempotencyKey ?? (object)DBNull.Value },
+                        new() { Value = functionId.TypeId.Value },
+                        new() { Value = functionId.InstanceId.Value },
+                        new() { Value = lockName },
+                        new() { Value = functionId.TypeId.Value },
+                        new() { Value = functionId.InstanceId.Value },
+                    }
+                };
+                
+                await using var reader = await command.ExecuteReaderAsync();
+                await reader.NextResultAsync();
+                await reader.NextResultAsync();
+                while (await reader.ReadAsync())
+                {
+                    var epoch = reader.GetInt32(0);
+                    var status = (Status)reader.GetInt32(1);
+                    return new FunctionStatus(status, epoch);
+                }
+            }
+            catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
+            {
+                if (i == 9)
+                    throw;
+
+                await Task.Delay(Random.Shared.Next(10, 250));
+            }
+        
+        throw new ConcurrentModificationException(functionId);
     }
 
     public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
@@ -203,30 +225,5 @@ public class MySqlMessageStore : IMessageStore
         );
 
         return subscription;
-    }
-    
-    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId, MySqlConnection connection)
-    {
-        var sql = @$"    
-            SELECT epoch, status
-            FROM {_tablePrefix}rfunctions
-            WHERE function_type_id = ? AND function_instance_id = ?;";
-        await using var command = new MySqlCommand(sql, connection)
-        {
-            Parameters = { 
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
-            }
-        };
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var epoch = reader.GetInt32(0);
-            var status = (Status) reader.GetInt32(1);
-            return new FunctionStatus(status, epoch);
-        }
-        
-        throw new ConcurrentModificationException(functionId);
     }
 }
