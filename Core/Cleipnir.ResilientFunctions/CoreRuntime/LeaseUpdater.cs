@@ -49,10 +49,7 @@ internal class LeaseUpdater : IDisposable
     private async Task Start()
     {
         if (_leaseLength == TimeSpan.Zero)
-        {
             _disposed = true;
-            return;
-        }
         
         while (!_disposed)
         {
@@ -68,14 +65,16 @@ internal class LeaseUpdater : IDisposable
                     leaseExpiration: DateTime.UtcNow.Ticks + _leaseLength.Ticks
                 );
 
-                _unhandledExceptionHandler.Invoke(
-                    new UnexpectedFunctionState(
-                        _functionId,
-                        $"{nameof(LeaseUpdater)} failed to update lease for executing function: '{_functionId}'"
-                    )
-                );
-                
-                _disposed = !success;
+                if (!success)
+                {
+                    _disposed = true;
+                    _unhandledExceptionHandler.Invoke(
+                        new UnexpectedFunctionState(
+                            _functionId,
+                            $"{nameof(LeaseUpdater)} failed to update lease for executing function: '{_functionId}'"
+                        )
+                    );
+                }
             }
             catch (Exception e)
             {
