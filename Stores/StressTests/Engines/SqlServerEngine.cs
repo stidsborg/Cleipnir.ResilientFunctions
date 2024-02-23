@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 
 public class SqlServerEngine : IEngine
 {
-    private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;";
+    private const string ConnectionString = "Server=localhost;Database=rfunctions_stresstest;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;Max Pool Size=200;";
 
     public Task RecreateDatabase() => DatabaseHelper.RecreateDatabase(ConnectionString);
 
