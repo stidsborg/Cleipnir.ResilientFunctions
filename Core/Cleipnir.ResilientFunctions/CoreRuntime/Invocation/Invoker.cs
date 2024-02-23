@@ -43,7 +43,6 @@ public class Invoker<TParam, TState, TReturn>
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         (var created, state, var workflow, var disposables) = await PrepareForInvocation(functionId, param, state);
         if (!created) return await WaitForFunctionResult(functionId);
-        using var _ = disposables;
 
         Result<TReturn> result;
         try
@@ -52,6 +51,7 @@ public class Invoker<TParam, TState, TReturn>
             result = await _inner(param, state, workflow);
         }
         catch (Exception exception) { await PersistFailure(functionId, exception, param, state); throw; }
+        finally{ disposables.Dispose(); }
 
         await PersistResultAndEnsureSuccess(functionId, result, param, state);
         return result.SucceedWithValue!;
@@ -74,11 +74,11 @@ public class Invoker<TParam, TState, TReturn>
                     result = await _inner(param, state, workflow);
                 }
                 catch (Exception exception) { await PersistFailure(functionId, exception, param, state); throw; }
+                finally{ disposables.Dispose(); }
 
                 await PersistResultAndEnsureSuccess(functionId, result, param, state, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally{ disposables.Dispose(); }
         });
     }
     
@@ -105,7 +105,6 @@ public class Invoker<TParam, TState, TReturn>
     {
         var functionId = new FunctionId(_functionTypeId, instanceId);
         var (inner, param, state, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
-        using var _ = disposables;
 
         Result<TReturn> result;
         try
@@ -114,7 +113,8 @@ public class Invoker<TParam, TState, TReturn>
             result = await inner(param, state, workflow);
         }
         catch (Exception exception) { await PersistFailure(functionId, exception, param, state, epoch); throw; }
-
+        finally{ disposables.Dispose(); }
+        
         await PersistResultAndEnsureSuccess(functionId, result, param, state, epoch);
         return result.SucceedWithValue!;
     }
@@ -135,11 +135,11 @@ public class Invoker<TParam, TState, TReturn>
                     result = await inner(param, state, workflow);
                 }
                 catch (Exception exception) { await PersistFailure(functionId, exception, param, state, epoch); throw; }
-
+                finally{ disposables.Dispose(); }
+                
                 await PersistResultAndEnsureSuccess(functionId, result, param, state, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
-            finally{ disposables.Dispose(); }
         });
     }
     
