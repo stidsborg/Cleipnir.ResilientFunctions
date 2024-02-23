@@ -1,7 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
@@ -22,7 +20,7 @@ public class DirectInvocationTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(1)
+                leaseLength: TimeSpan.FromSeconds(10)
             )
         );
         var rFunc1 = functionsRegistry.RegisterFunc(
@@ -47,7 +45,7 @@ public class DirectInvocationTest
         
         using var functionsRegistry2 = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine, leaseLength: TimeSpan.FromSeconds(1))
+            new Settings(unhandledExceptionHandler: Console.WriteLine, leaseLength: TimeSpan.FromSeconds(10))
         );
         var rFunc2 = functionsRegistry2.RegisterFunc(
             "DirectInvocationTest",

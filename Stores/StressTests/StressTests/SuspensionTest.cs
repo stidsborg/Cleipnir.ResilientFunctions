@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
@@ -16,69 +15,34 @@ public class SuspensionTest
 
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
-
+        
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        Console.WriteLine("SUSPENSION_TEST: Initializing");
-        for (var i = 0; i < testSize; i++)
-        {
-            var storedParameter = new StoredParameter(
-                ParamJson: JsonSerializer.Serialize("hello world"),
-                ParamType: typeof(string).SimpleQualifiedName()
-            );
-            var storedState = new StoredState(
-                StateJson: JsonSerializer.Serialize(new WorkflowState()),
-                StateType: typeof(WorkflowState).SimpleQualifiedName()
-            );
-                
-            var functionId = new FunctionId("SuspensionTest", i.ToString()); 
-            await store.CreateFunction(
-                functionId,
-                storedParameter,
-                storedState,
-                leaseExpiration: DateTime.UtcNow.Ticks,
-                postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
-            );
-            await store.SuspendFunction(
-                functionId,
-                expectedMessageCount: 1,
-                stateJson: new WorkflowState().ToJson(),
-                timestamp: DateTime.UtcNow.Ticks,
-                expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState(() => storedParameter, () => storedState, LeaseLength: 0)
-            );
-
-            await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        }
-        
-        stopWatch.Stop();
-        var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
-        Console.WriteLine($"SUSPENSION_TEST: Initialization took: {stopWatch.Elapsed} with average speed (s): {insertionAverageSpeed}");
-
-        Console.WriteLine("SUSPENSION_TEST: Waiting for invocations to begin");
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-        var _ = functionsRegistry.RegisterAction(
+        );        
+        var actionRegistration = functionsRegistry.RegisterAction(
             "SuspensionTest",
-            void(string param) => { }
+            async Task (string param, Workflow workflow) =>
+                await workflow.Messages.SuspendUntilFirst()
         );
         
-        using var functionsRegistry2 = new FunctionsRegistry(
-            store,
-            new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(1)
-            )
-        );
-        functionsRegistry2.RegisterAction(
-            "SuspensionTest",
-            void(string param) => { }
-        );
-
+        Console.WriteLine("SUSPENSION_TEST: Initializing");
+        for (var i = 0; i < testSize; i++)
+            await actionRegistration.Schedule(i.ToString(), "hello world");
+        
+        stopWatch.Stop();
+        var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
+        
+        Console.WriteLine("SUSPENSION_TEST: Appending messages to functions...");
+        _ = Task.Run(async () =>
+        {
+            for (var i = 0; i < testSize; i++)
+                await actionRegistration.MessageWriters.For(i.ToString()).AppendMessage("some message");
+        });
+        
         var executionAverageSpeed = await 
             WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "SUSPENSION_TEST: ");
 

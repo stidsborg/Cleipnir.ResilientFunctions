@@ -16,7 +16,7 @@ public static class WaitFor
             Console.WriteLine($"{logPrefix} Completed: {completed}/{testSize}");
             await Task.Delay(250);
 
-            if (completed == testSize) break;
+            if (completed >= testSize) break;
         }
 
         var averageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
