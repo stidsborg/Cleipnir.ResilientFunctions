@@ -13,7 +13,7 @@ public static class Hashing
         var hashBytes = sha256.ComputeHash(bytes);
 
         // Convert the byte array to a hexadecimal string.
-        var builder = new StringBuilder();
+        var builder = new StringBuilder(capacity: 64);
         foreach (var hashByte in hashBytes)
             builder.Append(hashByte.ToString("x2")); // "x2" for lowercase
 
