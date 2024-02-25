@@ -57,6 +57,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL,
                 lease_expiration BIGINT NOT NULL,
+                signal_count BIGINT NOT NULL DEFAULT 0,
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id),
                 INDEX (function_type_id, status, function_instance_id)   
@@ -145,6 +146,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
+                signal_count,
                 timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
@@ -487,6 +489,27 @@ public class MySqlFunctionStore : IFunctionStore
         return true;
     }
 
+    public async Task IncrementSignalCount(FunctionId functionId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET signal_count = signal_count + 1
+            WHERE function_type_id = ? AND function_instance_id = ?;";
+
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+            }
+        };
+        
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -560,6 +583,7 @@ public class MySqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
+                signal_count,
                 timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
@@ -598,7 +622,8 @@ public class MySqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
                 LeaseExpiration: reader.GetInt64(10),
-                Timestamp: reader.GetInt64(11)
+                SignalCount: reader.GetInt64(11),
+                Timestamp: reader.GetInt64(12)
             );
         }
 

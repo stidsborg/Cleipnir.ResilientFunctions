@@ -1087,4 +1087,31 @@ public abstract class StoreTests
         (storedFunction.Epoch is 0).ShouldBeTrue();
         storedFunction.Status.ShouldBe(Status.Postponed);
     }
+    
+    public abstract Task SignalCountCanBeIncrementedForFunction();
+    protected async Task SignalCountCanBeIncrementedForFunction(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedState: Test.SimpleStoredState,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.SignalCount.ShouldBe(0);
+        
+        await store.IncrementSignalCount(functionId);
+        
+        storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.SignalCount.ShouldBe(1);
+        storedFunction.Status.ShouldBe(Status.Executing);
+    }
 }

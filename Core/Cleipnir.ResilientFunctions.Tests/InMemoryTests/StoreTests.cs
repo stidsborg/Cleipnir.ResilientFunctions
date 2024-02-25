@@ -143,4 +143,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch()
         => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SignalCountCanBeIncrementedForFunction()
+        => SignalCountCanBeIncrementedForFunction(FunctionStoreFactory.Create());
 }

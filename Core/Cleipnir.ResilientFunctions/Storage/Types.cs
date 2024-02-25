@@ -13,7 +13,8 @@ public record StoredFunction(
     long? PostponedUntil,
     int Epoch,
     long LeaseExpiration,
-    long Timestamp
+    long Timestamp,
+    long SignalCount
 );
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, long LeaseExpiration);
@@ -23,7 +24,7 @@ public record StoredParameter(string ParamJson, string ParamType);
 public record StoredResult(string? ResultJson, string? ResultType)
 {
     public static StoredResult Null { get; } = new(ResultJson: null, ResultType: null);
-};
+}
 public record StoredState(string StateJson, string StateType);
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);

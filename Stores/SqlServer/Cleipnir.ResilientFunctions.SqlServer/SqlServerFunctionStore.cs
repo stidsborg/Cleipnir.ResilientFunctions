@@ -70,6 +70,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
                 LeaseExpiration BIGINT NOT NULL,
+                SignalCount BIGINT NOT NULL DEFAULT 0,
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
@@ -186,6 +187,7 @@ public class SqlServerFunctionStore : IFunctionStore
                    PostponedUntil,
                    Epoch, 
                    LeaseExpiration,
+                   SignalCount,
                    Timestamp
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
@@ -497,6 +499,21 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
 
+    public async Task IncrementSignalCount(FunctionId functionId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+                UPDATE {_tablePrefix}RFunctions
+                SET SignalCount = SignalCount + 1
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {
         await using var conn = await _connFunc();
@@ -563,6 +580,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     PostponedUntil,
                     Epoch, 
                     LeaseExpiration,
+                    SignalCount,
                     Timestamp
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
@@ -596,7 +614,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
                 var epoch = reader.GetInt32(9);
                 var leaseExpiration = reader.GetInt64(10);
-                var timestamp = reader.GetInt64(11);
+                var signalCount = reader.GetInt64(11);
+                var timestamp = reader.GetInt64(12);
 
                 return new StoredFunction(
                     functionId,
@@ -608,7 +627,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     postponedUntil,
                     epoch,
                     leaseExpiration,
-                    timestamp
+                    timestamp,
+                    signalCount
                 );
             }
         }
