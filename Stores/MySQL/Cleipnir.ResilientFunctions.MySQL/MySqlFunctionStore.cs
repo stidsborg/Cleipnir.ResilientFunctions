@@ -429,27 +429,27 @@ public class MySqlFunctionStore : IFunctionStore
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = 0
+            SET status = {(int) Status.Postponed}, postponed_until = ?, state_json = ?, timestamp = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
 
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}, state_json = ?, timestamp = ?
+            SET status = {(int) Status.Suspended}
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
-                epoch = ? AND
+                epoch = ? AND 
                 (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = ? AND function_instance_id = ?) = ?";
 
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() { Value = DateTime.UtcNow.AddSeconds(30).Ticks },
+                new() { Value = stateJson },
+                new() { Value = timestamp },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
-                
-                new() { Value = stateJson },
-                new() { Value = timestamp },
                 
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
@@ -462,7 +462,29 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows >= 1;
+        if (affectedRows == 0)
+            return false;
+        if (affectedRows == 2)
+            return true;
+        
+        // affectedRows == 1
+        sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Postponed}, postponed_until = 0
+            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;";
+
+        await using var postponeCommand = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+        
+        await postponeCommand.ExecuteNonQueryAsync();
+        return true;
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)

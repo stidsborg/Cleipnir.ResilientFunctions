@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -27,7 +28,7 @@ public class Source : IReactiveChain<object>
             var toReturn = new List<object>(emittedSoFar.Length);
             foreach (var emittedEvent in emittedSoFar)
             {
-                if (emittedEvent.Event != null)
+                if (emittedEvent.Event != null && emittedEvent.Event is not NoOp)
                     toReturn.Add(emittedEvent.Event);
             }
 

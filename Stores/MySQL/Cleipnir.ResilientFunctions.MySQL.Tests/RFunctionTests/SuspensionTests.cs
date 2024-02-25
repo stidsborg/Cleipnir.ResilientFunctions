@@ -22,6 +22,18 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
         => PostponedFunctionIsResumedAfterEventIsAppendedToMessages(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task SuspendedFunctionIsResumedAfterPublishedNoOpMessage()
+        => SuspendedFunctionIsResumedAfterPublishedNoOpMessage(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task NoOpMessageDoesNotCauseWaitingSuspendUntilFirstLeafOperatorToComplete()
+        => NoOpMessageDoesNotCauseWaitingSuspendUntilFirstLeafOperatorToComplete(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task NoOpMessageDoesNotCauseWaitingUntilFirstLeafOperatorToComplete()
+        => NoOpMessageDoesNotCauseWaitingUntilFirstLeafOperatorToComplete(FunctionStoreFactory.Create());
+    
+    [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(FunctionStoreFactory.Create());
     

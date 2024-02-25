@@ -1020,6 +1020,40 @@ public abstract class StoreTests
         (storedFunction.Epoch is 0).ShouldBeTrue();
     }
     
+    public abstract Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction();
+    protected async Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedState: Test.SimpleStoredState,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.MessageStore.AppendMessage(
+            functionId, "some message".ToJson(), typeof(string).SimpleQualifiedName()
+        );
+
+        await store.SuspendFunction(
+            functionId,
+            expectedMessageCount: 0,
+            Test.SimpleStoredState.StateJson,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        (storedFunction.Status is Status.Postponed).ShouldBeTrue();
+        storedFunction.PostponedUntil.ShouldBe(0);
+    }
+    
     public abstract Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch();
     protected async Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch(Task<IFunctionStore> storeTask)
     {

@@ -450,30 +450,51 @@ public class SqlServerFunctionStore : IFunctionStore
         int expectedEpoch,
         ComplimentaryState _)
     {
-
         await using var conn = await _connFunc();
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int)Status.Postponed}, PostponedUntil = 0
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;
+        {
+            var sql = @$"
+                UPDATE {_tablePrefix}RFunctions
+                SET Status = {(int)Status.Postponed}, PostponedUntil = @PostponeUntil, StateJson = @StateJson, Timestamp = @Timestamp
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;
 
-            UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int)Status.Suspended}, StateJson = @StateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
-            AND FunctionTypeId = @FunctionTypeId
-            AND FunctionInstanceId = @FunctionInstanceId
-            AND Epoch = @ExpectedEpoch";
+                UPDATE {_tablePrefix}RFunctions
+                SET Status = {(int)Status.Suspended}
+                WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
+                    AND FunctionTypeId = @FunctionTypeId
+                    AND FunctionInstanceId = @FunctionInstanceId
+                    AND Epoch = @ExpectedEpoch";
 
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@StateJson", stateJson);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-        command.Parameters.AddWithValue("@ExpectedCount", expectedMessageCount);
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@PostponeUntil", DateTime.UtcNow.AddSeconds(30).Ticks);
+            command.Parameters.AddWithValue("@StateJson", stateJson);
+            command.Parameters.AddWithValue("@Timestamp", timestamp);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+            command.Parameters.AddWithValue("@ExpectedCount", expectedMessageCount);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows >= 1;
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            if (affectedRows == 0)
+                return false;
+            if (affectedRows == 2)
+                return true;
+        }
+        
+        //otherwise affectedRows == 1
+        {
+            var sql = @$"
+                UPDATE {_tablePrefix}RFunctions
+                SET Status = {(int)Status.Postponed}, PostponedUntil = 0
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;";
+
+            await using var command = new SqlCommand(sql, conn);
+            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+            await command.ExecuteNonQueryAsync();
+            return true;
+        }
     }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)

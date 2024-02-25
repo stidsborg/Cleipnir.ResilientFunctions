@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -45,6 +46,8 @@ public abstract class SuspensionTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         (sf.Epoch is 0).ShouldBeTrue();
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task FunctionCanBeSuspended();
@@ -77,6 +80,8 @@ public abstract class SuspensionTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         (sf.Epoch is 0).ShouldBeTrue();
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded();
@@ -118,6 +123,8 @@ public abstract class SuspensionTests
         await messagesWriter.AppendMessage("hello multiverse");
 
         await BusyWait.UntilAsync(() => invocations == 2);
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages();
@@ -159,6 +166,150 @@ public abstract class SuspensionTests
         await messagesWriter.AppendMessage("hello multiverse");
 
         await BusyWait.UntilAsync(() => invocations == 2);
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task SuspendedFunctionIsResumedAfterPublishedNoOpMessage();
+
+    protected async Task SuspendedFunctionIsResumedAfterPublishedNoOpMessage(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var actionRegistration = functionsRegistry.RegisterAction(
+            functionTypeId,
+            async (string _, Workflow workflow) =>
+            {
+                await workflow.Messages.First();
+                using var subscription = workflow.Messages.Subscribe(
+                    onNext: _ => { },
+                    onCompletion: () => { },
+                    onError: _ => { }
+                );
+                subscription.DeliverExisting();
+                if (subscription.EmittedFromSource == 1)
+                {
+                    await workflow.Messages.Sync();
+                    workflow.Messages.Existing.Any().ShouldBeFalse();
+                    return;
+                }
+
+                throw new SuspendInvocationException(expectedEventCount: 0);
+            }
+        );
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+
+    public abstract Task NoOpMessageDoesNotCauseWaitingSuspendUntilFirstLeafOperatorToComplete();
+    protected async Task NoOpMessageDoesNotCauseWaitingSuspendUntilFirstLeafOperatorToComplete(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var syncedList = new SyncedList<SuspendInvocationException>();
+
+        var actionRegistration = functionsRegistry.RegisterAction(
+            functionTypeId,
+            async (string _, Workflow workflow) =>
+            {
+                try
+                {
+                    await workflow.Messages.SuspendUntilFirst();
+                }
+                catch (SuspendInvocationException exception)
+                {
+                    syncedList.Add(exception);
+                    throw;
+                }
+            });
+
+        await actionRegistration.Schedule(functionInstanceId.Value, param: "");
+
+        await BusyWait.UntilAsync(() => syncedList.Any());
+        
+        await actionRegistration
+            .MessageWriters
+            .For(functionInstanceId)
+            .AppendMessage(NoOp.Instance); 
+
+        await BusyWait.UntilAsync(() => syncedList.Count == 2);
+        
+        syncedList[1].ExpectedEventCount.ShouldBe(1);
+        
+        var controlPanel = await actionRegistration.ControlPanel(functionInstanceId);
+        controlPanel.ShouldNotBeNull();
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Suspended;
+        });
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task NoOpMessageDoesNotCauseWaitingUntilFirstLeafOperatorToComplete();
+    protected async Task NoOpMessageDoesNotCauseWaitingUntilFirstLeafOperatorToComplete(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var actionRegistration = functionsRegistry.RegisterAction(
+            functionTypeId,
+            async (string _, Workflow workflow) => await workflow.Messages.First()
+        );
+
+        await actionRegistration.Schedule(functionInstanceId.Value, param: "");
+        
+        await actionRegistration
+            .MessageWriters
+            .For(functionInstanceId)
+            .AppendMessage(NoOp.Instance);
+
+        await Task.Delay(100);
+        
+        var controlPanel = await actionRegistration.ControlPanel(functionInstanceId);
+        controlPanel.ShouldNotBeNull();
+        controlPanel.Status.ShouldBe(Status.Executing);
+        
+        await actionRegistration
+            .MessageWriters
+            .For(functionInstanceId)
+            .AppendMessage("Some Message");
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task EligibleSuspendedFunctionIsPickedUpByWatchdog();
@@ -195,6 +346,8 @@ public abstract class SuspensionTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag();
@@ -238,6 +391,8 @@ public abstract class SuspensionTests
 
         await controlPanel.Refresh();
         controlPanel.Result.ShouldBe("hello universe");
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog();
@@ -282,6 +437,8 @@ public abstract class SuspensionTests
 
         await controlPanel.Refresh();
         controlPanel.Result.ShouldBe("hello universe");
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task StartedChildFuncInvocationPublishesResultSuccessfully();
@@ -339,6 +496,7 @@ public abstract class SuspensionTests
         });
 
         controlPanel.Result.ShouldBe("hello world and universe".ToUpper());
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task StartedChildActionInvocationPublishesResultSuccessfully();
@@ -381,6 +539,8 @@ public abstract class SuspensionTests
             await controlPanel.Refresh();
             return controlPanel.Status == Status.Succeeded;
         });
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
     public abstract Task PublishFromChildActionStressTest();
@@ -436,5 +596,7 @@ public abstract class SuspensionTests
         var result = controlPanel.Result!.ToHashSet();
         for (var i = 0; i < numberOfChildren; i++)
             result.Contains(i.ToString()).ShouldBeTrue();
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
 }

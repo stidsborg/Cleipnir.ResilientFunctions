@@ -135,7 +135,11 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task EpochIsNotIncrementedOnSuspension()
         => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction()
+        => SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch()
         => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());

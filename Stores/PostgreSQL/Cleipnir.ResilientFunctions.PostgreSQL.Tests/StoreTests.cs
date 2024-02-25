@@ -129,6 +129,10 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction()
+        => SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch()
         => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());
 }

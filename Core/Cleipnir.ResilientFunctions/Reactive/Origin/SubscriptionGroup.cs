@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
 
@@ -65,6 +66,9 @@ internal class SubscriptionGroup
         foreach (var toEmit in toEmits)
         foreach (var subscription in _subscriptions)
         {
+            if(toEmit.Event is NoOp)
+                continue;
+            
             if (toEmit.Completion)
                 subscription.OnCompletion();
             else if (toEmit.EmittedException != null)
@@ -99,6 +103,9 @@ internal class SubscriptionGroup
                 foreach (var toEmit in toEmits)
                 foreach (var subscription in _subscriptions)
                 {
+                    if(toEmit.Event is NoOp)
+                        continue;
+                    
                     if (toEmit.Completion)
                         subscription.OnCompletion();
                     else if (toEmit.EmittedException != null)
