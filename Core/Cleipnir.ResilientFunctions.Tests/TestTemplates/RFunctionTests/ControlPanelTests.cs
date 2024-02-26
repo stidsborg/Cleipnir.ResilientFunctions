@@ -879,13 +879,19 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+        );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(1);
 
-        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+        );
         
         await existingMessages.Clear();
         await existingMessages.Append("hej verden");
@@ -910,11 +916,17 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+        );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
 
-        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+        );
 
         controlPanel.Param = "PARAM";
         await controlPanel.SaveChanges();
@@ -948,13 +960,19 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+        );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(1);
 
-        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+        );
         
         await existingMessages.Clear();
         await existingMessages.Append("hej verden");
@@ -979,11 +997,17 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
-        await store.MessageStore.AppendMessage(functionId, "hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+        );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
 
-        await store.MessageStore.AppendMessage(functionId, "hello universe".ToJson(), typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+        );
 
         controlPanel.Param = "PARAM";
         await controlPanel.Succeed();

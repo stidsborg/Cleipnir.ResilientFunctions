@@ -96,10 +96,7 @@ public class SqlServerMessageStore : IMessageStore
         
         return await GetSuspensionStatus(functionId, conn);
     }
-
-    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
-        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
-
+    
     public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();

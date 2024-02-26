@@ -420,10 +420,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             );
         }
     }
-
-    public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
-        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
-
+    
     public Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         lock (_sync)

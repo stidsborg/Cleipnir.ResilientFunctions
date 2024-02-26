@@ -35,7 +35,9 @@ public class ExistingMessages : IEnumerable<object>
     public async Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
     {
         var (json, type) = _serializer.SerializeMessage(message);
-        await _messageStore.AppendMessage(_functionId, json, type, idempotencyKey);
+        await _messageStore.AppendMessage(
+            _functionId, new StoredMessage(json, type, idempotencyKey)
+        );
         
         _receivedMessages.Add(new MessageAndIdempotencyKey(message, idempotencyKey));  
     } 

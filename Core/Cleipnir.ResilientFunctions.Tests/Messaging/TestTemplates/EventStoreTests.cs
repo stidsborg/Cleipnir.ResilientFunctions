@@ -34,14 +34,12 @@ public abstract class MessageStoreTests
 
         await messageStore.AppendMessage(
             functionId,
-            msg1.ToJson(),
-            msg1.GetType().SimpleQualifiedName()
+            new StoredMessage(msg1.ToJson(), msg1.GetType().SimpleQualifiedName())
         );
         
         await messageStore.AppendMessage(
             functionId,
-            msg2.ToJson(),
-            msg2.GetType().SimpleQualifiedName()
+            new StoredMessage(msg2.ToJson(), msg2.GetType().SimpleQualifiedName())
         );
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
@@ -312,14 +310,12 @@ public abstract class MessageStoreTests
 
         await messageStore.AppendMessage(
             functionId,
-            "hello world".ToJson(),
-            typeof(string).SimpleQualifiedName()
+            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
         
         await messageStore.AppendMessage(
             functionId,
-            "hello universe".ToJson(),
-            typeof(string).SimpleQualifiedName()
+            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
         await messageStore.Truncate(functionId);

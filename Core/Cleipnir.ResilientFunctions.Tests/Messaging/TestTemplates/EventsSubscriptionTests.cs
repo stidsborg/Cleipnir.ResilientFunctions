@@ -34,8 +34,7 @@ public abstract class MessagesSuscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            messageJson: JsonExtensions.ToJson("hello world"),
-            messageType: typeof(string).SimpleQualifiedName()
+            new StoredMessage("hello world". ToJson(), typeof(string).SimpleQualifiedName())
         );
 
         events = await subscription.PullNewEvents();
@@ -50,8 +49,7 @@ public abstract class MessagesSuscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            messageJson: JsonExtensions.ToJson("hello universe"),
-            messageType: typeof(string).SimpleQualifiedName()
+            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
         events = await subscription.PullNewEvents();
@@ -66,8 +64,7 @@ public abstract class MessagesSuscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            messageJson: JsonExtensions.ToJson("should not be received"),
-            messageType: typeof(string).SimpleQualifiedName()
+            new StoredMessage("should not be received".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
         events = await subscription.PullNewEvents();

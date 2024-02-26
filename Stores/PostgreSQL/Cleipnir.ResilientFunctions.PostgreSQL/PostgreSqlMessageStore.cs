@@ -135,9 +135,6 @@ public class PostgreSqlMessageStore : IMessageStore
         throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
     }
     
-    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
-        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
-
     public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();

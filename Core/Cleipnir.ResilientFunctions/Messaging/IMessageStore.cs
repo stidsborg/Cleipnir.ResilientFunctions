@@ -9,7 +9,6 @@ public interface IMessageStore
     Task Initialize();
 
     Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage);
-    Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null);
 
     Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage);
     

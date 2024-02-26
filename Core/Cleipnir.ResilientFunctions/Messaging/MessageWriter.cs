@@ -32,9 +32,7 @@ public class MessageWriter
         var (eventJson, eventType) = _serializer.SerializeMessage(@event);
         var (status, epoch) = await _messageStore.AppendMessage(
             _functionId,
-            eventJson,
-            eventType,
-            idempotencyKey
+            new StoredMessage(eventJson, eventType, idempotencyKey)
         );
         
         if (status == Status.Suspended || status == Status.Postponed)
@@ -57,9 +55,7 @@ public class MessageWriter
         var (eventJson, eventType) = _serializer.SerializeMessage(@event);
         await _messageStore.AppendMessage(
             _functionId,
-            eventJson,
-            eventType,
-            idempotencyKey
+            new StoredMessage(eventJson, eventType, idempotencyKey)
         );
 
         var statusAndEpoch = await _functionStore.GetFunctionStatus(_functionId);

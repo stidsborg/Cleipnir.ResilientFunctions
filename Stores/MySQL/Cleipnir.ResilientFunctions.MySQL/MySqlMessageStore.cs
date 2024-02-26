@@ -110,9 +110,6 @@ public class MySqlMessageStore : IMessageStore
         
         throw new ConcurrentModificationException(functionId);
     }
-
-    public Task<FunctionStatus> AppendMessage(FunctionId functionId, string messageJson, string messageType, string? idempotencyKey = null)
-        => AppendMessage(functionId, new StoredMessage(messageJson, messageType, idempotencyKey));
     
     public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {

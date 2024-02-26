@@ -1036,7 +1036,8 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessage(
-            functionId, "some message".ToJson(), typeof(string).SimpleQualifiedName()
+            functionId,
+            new StoredMessage("some message".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
         await store.SuspendFunction(
@@ -1069,7 +1070,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.MessageStore.AppendMessage(functionId, messageJson: "hello world".ToJson(), messageType: typeof(string).SimpleQualifiedName());
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+        );
         
         var success = await store.SuspendFunction(
             functionId,
