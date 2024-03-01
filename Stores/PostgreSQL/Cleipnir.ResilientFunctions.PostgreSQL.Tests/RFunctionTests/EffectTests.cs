@@ -1,9 +1,10 @@
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.MySQL.Tests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivitiesTests
+public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.EffectTests
 {
     [TestMethod]
     public override Task SunshineActionTest()
@@ -20,7 +21,7 @@ public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
     [TestMethod]
     public override Task SunshineAsyncFuncTest()
         => SunshineAsyncFuncTest(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task ExceptionThrowingActionTest()
         => ExceptionThrowingActionTest(FunctionStoreFactory.Create());
@@ -30,6 +31,6 @@ public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
         => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task ClearActivityTest()
-        => ClearActivityTest(FunctionStoreFactory.Create());
+    public override Task ClearEffectsTest()
+        => ClearEffectsTest(FunctionStoreFactory.Create());
 }

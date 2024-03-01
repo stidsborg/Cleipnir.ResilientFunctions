@@ -31,16 +31,16 @@ public sealed class TransferSagaV2
         public async Task Perform(Transfer transfer, WorkflowState state, Workflow workflow)
         {
             var arbitrator = workflow.Utilities.Arbitrator;
-            var (activity, messages) = workflow;
+            var (effect, messages) = workflow;
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             
-            var deductTask = activity.Do(
+            var deductTask = effect.Capture(
                 "DeductAmount",
                 () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
             );
             
-            var addTask = activity.Do(
+            var addTask = effect.Capture(
                 "AddAmount",
                 () => BankCentralClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
             );

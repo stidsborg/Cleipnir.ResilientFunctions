@@ -17,8 +17,8 @@ public class MySqlFunctionStore : IFunctionStore
 
     private readonly MySqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
-    private readonly MySqlActivityStore _activityStore;
-    public IActivityStore ActivityStore => _activityStore;
+    private readonly MySqlEffectsStore _effectsStore;
+    public IEffectsStore EffectsStore => _effectsStore;
     private readonly MySqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     public Utilities Utilities { get; }
@@ -29,7 +29,7 @@ public class MySqlFunctionStore : IFunctionStore
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _messageStore = new MySqlMessageStore(connectionString, tablePrefix);
-        _activityStore = new MySqlActivityStore(connectionString, tablePrefix);
+        _effectsStore = new MySqlEffectsStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new(connectionString, _tablePrefix);
         Utilities = new Utilities(_mySqlUnderlyingRegister);
@@ -39,7 +39,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await _mySqlUnderlyingRegister.Initialize();
         await MessageStore.Initialize();
-        await ActivityStore.Initialize();
+        await EffectsStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         var sql = $@"

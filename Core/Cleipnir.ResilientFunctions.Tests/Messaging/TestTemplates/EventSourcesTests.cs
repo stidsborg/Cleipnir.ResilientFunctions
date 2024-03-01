@@ -322,9 +322,9 @@ public abstract class MessagesTests
             return DefaultSerializer.Instance.DeserializeMessage(json, type);
         }
 
-        public string SerializeActivityResult<TResult>(TResult result)
-            => DefaultSerializer.Instance.SerializeActivityResult(result);
-        public TResult DeserializeActivityResult<TResult>(string json)
-            => DefaultSerializer.Instance.DeserializeActivityResult<TResult>(json);
+        public string SerializeEffectResult<TResult>(TResult result)
+            => DefaultSerializer.Instance.SerializeEffectResult(result);
+        public TResult DeserializeEffectResult<TResult>(string json)
+            => DefaultSerializer.Instance.DeserializeEffectResult<TResult>(json);
     }
 }

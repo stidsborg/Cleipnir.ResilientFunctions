@@ -18,8 +18,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
-    private readonly PostgresActivityStore _activityStore;
-    public IActivityStore ActivityStore => _activityStore;
+    private readonly PostgresEffectsStore _effectsStore;
+    public IEffectsStore EffectsStore => _effectsStore;
 
     private readonly PostgreSqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
@@ -31,7 +31,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _messageStore = new PostgreSqlMessageStore(connectionString, tablePrefix);
-        _activityStore = new PostgresActivityStore(connectionString, tablePrefix);
+        _effectsStore = new PostgresEffectsStore(connectionString, tablePrefix);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, tablePrefix);
         _postgresSqlUnderlyingRegister = new(connectionString, _tablePrefix);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
@@ -48,7 +48,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _postgresSqlUnderlyingRegister.Initialize();
         await _messageStore.Initialize();
-        await _activityStore.Initialize();
+        await _effectsStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await CreateConnection();
         var sql = $@"

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests;
 
 [TestClass]
-public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivitiesTests
+public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.EffectTests
 {
     [TestMethod]
     public override Task SunshineActionTest()
@@ -31,6 +31,6 @@ public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
         => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task ClearActivityTest()
-        => ClearActivityTest(FunctionStoreFactory.Create());
+    public override Task ClearEffectsTest()
+        => ClearEffectsTest(FunctionStoreFactory.Create());
 }

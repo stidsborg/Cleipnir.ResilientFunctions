@@ -126,30 +126,30 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ExistingMessagesCanBeReplaced(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeReplacedWithValue()
-        => ExistingActivityCanBeReplacedWithValue(FunctionStoreFactory.Create());
+    public override Task ExistingEffectCanBeReplacedWithValue()
+        => ExistingEffectCanBeReplacedWithValue(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ActivityCanBeStarted()
-        => ActivityCanBeStarted(FunctionStoreFactory.Create());
+    public override Task EffectCanBeStarted()
+        => EffectCanBeStarted(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeReplaced()
-        => ExistingActivityCanBeReplaced(FunctionStoreFactory.Create());
+    public override Task ExistingEffectCanBeReplaced()
+        => ExistingEffectCanBeReplaced(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ActivitiesAreUpdatedAfterRefresh()
-        => ActivitiesAreUpdatedAfterRefresh(FunctionStoreFactory.Create());
+    public override Task EffectsAreUpdatedAfterRefresh()
+        => EffectsAreUpdatedAfterRefresh(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeSetToFailed()
-        => ExistingActivityCanBeSetToFailed(FunctionStoreFactory.Create());
+    public override Task ExistingEffectCanBeSetToFailed()
+        => ExistingEffectCanBeSetToFailed(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SaveChangesPersistsChangedResult()
         => SaveChangesPersistsChangedResult(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task ExistingActivityCanBeRemoved()
-        => ExistingActivityCanBeRemoved(FunctionStoreFactory.Create());
+    public override Task ExistingEffectCanBeRemoved()
+        => ExistingEffectCanBeRemoved(FunctionStoreFactory.Create());
 }

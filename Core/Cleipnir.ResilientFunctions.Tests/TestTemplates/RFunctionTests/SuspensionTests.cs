@@ -567,7 +567,7 @@ public abstract class SuspensionTests
             parentFunctionId.TypeId,
             inner: async Task<List<string>> (string param, Workflow workflow) =>
             {
-                await workflow.Activities.Do("ScheduleChildren", async () =>
+                await workflow.Effect.Capture("ScheduleChildren", async () =>
                 {
                     for (var i = 0; i < numberOfChildren; i++)
                         await child.Schedule($"SomeChildInstance#{i}", i.ToString());

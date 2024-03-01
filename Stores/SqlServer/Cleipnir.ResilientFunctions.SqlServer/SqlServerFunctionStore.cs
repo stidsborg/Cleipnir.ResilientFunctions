@@ -18,8 +18,8 @@ public class SqlServerFunctionStore : IFunctionStore
 
     private readonly SqlServerTimeoutStore _timeoutStore;
     
-    private readonly SqlServerActivityStore _activityStore;
-    public IActivityStore ActivityStore => _activityStore;
+    private readonly SqlServerEffectsStore _effectsStore;
+    public IEffectsStore EffectsStore => _effectsStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
 
     private readonly SqlServerMessageStore _messageStore;
@@ -34,7 +34,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _messageStore = new SqlServerMessageStore(connectionString, tablePrefix);
         _timeoutStore = new SqlServerTimeoutStore(connectionString, tablePrefix);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, tablePrefix);
-        _activityStore = new SqlServerActivityStore(connectionString, tablePrefix);
+        _effectsStore = new SqlServerEffectsStore(connectionString, tablePrefix);
         Utilities = new Utilities(_underlyingRegister);
     }
     
@@ -52,7 +52,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _underlyingRegister.Initialize();
         await _messageStore.Initialize();
-        await _activityStore.Initialize();
+        await _effectsStore.Initialize();
         await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
         var sql = @$"    

@@ -129,15 +129,15 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public string SerializeActivityResult<TResult>(TResult result)
-        => _inner.SerializeActivityResult(result);
-    public TResult DeserializeActivityResult<TResult>(string json)
+    public string SerializeEffectResult<TResult>(TResult result)
+        => _inner.SerializeEffectResult(result);
+    public TResult DeserializeEffectResult<TResult>(string json)
     {
         try
         {
-            return _inner.DeserializeActivityResult<TResult>(json)
+            return _inner.DeserializeEffectResult<TResult>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized activity result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized Effect's result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -148,7 +148,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Deserialized activity result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'",  
+                $"Deserialized Effect's result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'",  
                 e
             );
         }

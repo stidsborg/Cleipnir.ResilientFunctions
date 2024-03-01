@@ -29,7 +29,7 @@ public record StoredState(string StateJson, string StateType);
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);
 
-public record StoredActivity(string ActivityId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
+public record StoredEffect(string EffectId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
 
 internal static class StorageTypeExtensions
 {

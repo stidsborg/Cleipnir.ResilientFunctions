@@ -11,7 +11,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-public abstract class ActivitiesTests
+public abstract class EffectTests
 {
     public abstract Task SunshineActionTest();
     public async Task SunshineActionTest(Task<IFunctionStore> storeTask)
@@ -25,8 +25,8 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = workflow;
-                await activity.Do(
+                var (effect, _) = workflow;
+                await effect.Capture(
                     id: "Test",
                     work: () => syncedCounter.Increment()
                 );
@@ -39,15 +39,15 @@ public abstract class ActivitiesTests
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        activityResults.Single(r => r.ActivityId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
         var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
-        activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        activityResults.Single(r => r.ActivityId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -63,8 +63,8 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = workflow;
-                await activity.Do(
+                var (effect, _) = workflow;
+                await effect.Capture(
                     id: "Test",
                     work: () => { syncedCounter.Increment(); return Task.CompletedTask; });
             });
@@ -76,15 +76,15 @@ public abstract class ActivitiesTests
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        activityResults.Single(r => r.ActivityId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
         var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
-        activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        activityResults.Single(r => r.ActivityId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -100,8 +100,8 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = workflow;
-                await activity.Do(
+                var (effect, _) = workflow;
+                await effect.Capture(
                     id: "Test",
                     work: () =>
                     {
@@ -117,19 +117,19 @@ public abstract class ActivitiesTests
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        var storedActivity = activityResults.Single(r => r.ActivityId == "Test");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedActivity.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var storedEffect = effectResults.Single(r => r.EffectId == "Test");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
         var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
-        activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        storedActivity = activityResults.Single(r => r.ActivityId == "Test");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedActivity.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        storedEffect = effectResults.Single(r => r.EffectId == "Test");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -145,8 +145,8 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = workflow;
-                await activity.Do(
+                var (effect, _) = workflow;
+                await effect.Capture(
                     id: "Test",
                     work: () =>
                     {
@@ -162,19 +162,19 @@ public abstract class ActivitiesTests
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        var storedActivity = activityResults.Single(r => r.ActivityId == "Test");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedActivity.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var storedEffect = effectResults.Single(r => r.EffectId == "Test");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
         var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
-        activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        storedActivity = activityResults.Single(r => r.ActivityId == "Test");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedActivity.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        storedEffect = effectResults.Single(r => r.EffectId == "Test");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -190,8 +190,8 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (activity, _) = workflow;
-                await activity.Do(
+                var (effect, _) = workflow;
+                await effect.Capture(
                     id: "Test",
                     work: () =>
                     {
@@ -207,21 +207,21 @@ public abstract class ActivitiesTests
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        var storedActivity = activityResults.Single(r => r.ActivityId == "Test");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Failed);
-        storedActivity.StoredException.ShouldNotBeNull();
-        storedActivity.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var storedEffect = effectResults.Single(r => r.EffectId == "Test");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
+        storedEffect.StoredException.ShouldNotBeNull();
+        storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
 
         var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
-        await Should.ThrowAsync<ActivityException>(() => controlPanel.ReInvoke());
+        await Should.ThrowAsync<EffectException>(() => controlPanel.ReInvoke());
         
-        activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        storedActivity = activityResults.Single(r => r.ActivityId == "Test");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Failed);
-        storedActivity.StoredException.ShouldNotBeNull();
-        storedActivity.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
+        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        storedEffect = effectResults.Single(r => r.EffectId == "Test");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
+        storedEffect.StoredException.ShouldNotBeNull();
+        storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -236,23 +236,23 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task<int> (string param, Workflow workflow) =>
             {
-                var (activity, _) = workflow;
+                var (effect, _) = workflow;
                 var t1 = new Task<int>(() => 1);
                 var t2 = Task.FromResult(2);
-                return await activity.WhenAny("WhenAny", t1, t2);
+                return await effect.WhenAny("WhenAny", t1, t2);
             });
 
         var result = await rAction.Invoke(functionInstanceId.ToString(), param: "hello");
         result.ShouldBe(2);
         
-        var activityResults = await store.ActivityStore.GetActivityResults(functionId);
-        var storedActivity = activityResults.Single(r => r.ActivityId == "WhenAny");
-        storedActivity.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedActivity.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var storedEffect = effectResults.Single(r => r.EffectId == "WhenAny");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedEffect.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
     }
     
-    public abstract Task ClearActivityTest();
-    public async Task ClearActivityTest(Task<IFunctionStore> storeTask)
+    public abstract Task ClearEffectsTest();
+    public async Task ClearEffectsTest(Task<IFunctionStore> storeTask)
     {  
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
@@ -272,17 +272,17 @@ public abstract class ActivitiesTests
             functionTypeId,
             async Task (string param, Workflow workflow) =>
             {
-                var (activities, _) = workflow;
-                await activities.Clear("SomeActivity");
+                var (effect, _) = workflow;
+                await effect.Clear("SomeEffect");
             });
 
         var controlPanel = await registration.ControlPanel(functionId.InstanceId);
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.Activities.SetSucceeded("SomeActivity");
+        await controlPanel.Effects.SetSucceeded("SomeEffect");
         await controlPanel.ReInvoke();
 
         await controlPanel.Refresh();
-        controlPanel.Activities.All.Count.ShouldBe(0);
+        controlPanel.Effects.All.Count.ShouldBe(0);
     }
 }

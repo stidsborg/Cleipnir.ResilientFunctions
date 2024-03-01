@@ -9,12 +9,12 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerActivityStore : IActivityStore
+public class SqlServerEffectsStore : IEffectsStore
 {
     private readonly string _tablePrefix;
     private readonly Func<Task<SqlConnection>> _connFunc;
 
-    public SqlServerActivityStore(string connectionString, string tablePrefix = "")
+    public SqlServerEffectsStore(string connectionString, string tablePrefix = "")
     {
         _tablePrefix = tablePrefix;
         _connFunc = CreateConnection(connectionString);
@@ -38,7 +38,7 @@ public class SqlServerActivityStore : IActivityStore
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
     
-    public async Task SetActivityResult(FunctionId functionId, StoredActivity storedActivity)
+    public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
@@ -54,16 +54,16 @@ public class SqlServerActivityStore : IActivityStore
                     VALUES (source.Id, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(sql, conn);
-        var escapedId = Escaper.Escape("|", functionTypeId.ToString(), functionInstanceId.ToString(), storedActivity.ActivityId);    
+        var escapedId = Escaper.Escape("|", functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId);    
         command.Parameters.AddWithValue("@Id", escapedId);
-        command.Parameters.AddWithValue("@Status", storedActivity.WorkStatus);
-        command.Parameters.AddWithValue("@Result", storedActivity.Result ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@Exception", JsonHelper.ToJson(storedActivity.StoredException) ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
+        command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Exception", JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IEnumerable<StoredActivity>> GetActivityResults(FunctionId functionId)
+    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -75,32 +75,32 @@ public class SqlServerActivityStore : IActivityStore
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
 
-        var storedActivities = new List<StoredActivity>();
+        var storedActivities = new List<StoredEffect>();
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
             var id = reader.GetString(0);
-            var activityId = Escaper.Unescape(id, '|', 3)[2];
+            var effectId = Escaper.Unescape(id, '|', 3)[2];
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? default : reader.GetString(2);
             var exception = reader.IsDBNull(3) ? default : reader.GetString(3);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedActivity = new StoredActivity(activityId, status, result, storedException);
-            storedActivities.Add(storedActivity);
+            var storedEffect = new StoredEffect(effectId, status, result, storedException);
+            storedActivities.Add(storedEffect);
         }
 
         return storedActivities;
     }
 
-    public async Task DeleteActivityResult(FunctionId functionId, string activityId)
+    public async Task DeleteEffectResult(FunctionId functionId, string effectId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             DELETE FROM {_tablePrefix}Activities
             WHERE Id = @Id";
 
-        var id = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value, activityId);
+        var id = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId);
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

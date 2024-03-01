@@ -6,39 +6,39 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class InMemoryActivityStore : IActivityStore
+public class InMemoryEffectsStore : IEffectsStore
 {
-    private readonly Dictionary<FunctionId, Dictionary<string, StoredActivity>> _activities = new();
+    private readonly Dictionary<FunctionId, Dictionary<string, StoredEffect>> _activities = new();
     private readonly object _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task SetActivityResult(FunctionId functionId, StoredActivity storedActivity)
+    public Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         lock (_sync)
         {
             if (!_activities.ContainsKey(functionId))
-                _activities[functionId] = new Dictionary<string, StoredActivity>();
+                _activities[functionId] = new Dictionary<string, StoredEffect>();
                 
-            _activities[functionId][storedActivity.ActivityId] = storedActivity;
+            _activities[functionId][storedEffect.EffectId] = storedEffect;
         }
         
         return Task.CompletedTask;
     }
 
-    public Task<IEnumerable<StoredActivity>> GetActivityResults(FunctionId functionId)
+    public Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         lock (_sync)
             return !_activities.ContainsKey(functionId)
-                ? Enumerable.Empty<StoredActivity>().ToTask()
+                ? Enumerable.Empty<StoredEffect>().ToTask()
                 : _activities[functionId].Values.ToList().AsEnumerable().ToTask();
     }
 
-    public Task DeleteActivityResult(FunctionId functionId, string activityId)
+    public Task DeleteEffectResult(FunctionId functionId, string effectId)
     {
         lock (_sync)
             if (_activities.ContainsKey(functionId))
-                _activities[functionId].Remove(activityId);
+                _activities[functionId].Remove(effectId);
 
         return Task.CompletedTask;
     }

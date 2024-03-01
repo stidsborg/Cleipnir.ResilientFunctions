@@ -414,24 +414,24 @@ internal class InvocationHelper<TParam, TState, TReturn>
         return messages;
     }
 
-    public async Task<Activities> CreateActivities(FunctionId functionId, bool sync)
+    public async Task<Effect> CreateEffect(FunctionId functionId, bool sync)
     {
-        var activityStore = _functionStore.ActivityStore;
+        var effectsStore = _functionStore.EffectsStore;
         var existingActivities = sync 
-            ? await activityStore.GetActivityResults(functionId)
-            : Enumerable.Empty<StoredActivity>();
+            ? await effectsStore.GetEffectResults(functionId)
+            : Enumerable.Empty<StoredEffect>();
         
-        return new Activities(functionId, existingActivities, activityStore, _settings.Serializer);
+        return new Effect(functionId, existingActivities, effectsStore, _settings.Serializer);
     }
 
-    public async Task<ExistingActivities> GetExistingActivities(FunctionId functionId)
+    public async Task<ExistingEffects> GetExistingActivities(FunctionId functionId)
     {
-        var activityStore = _functionStore.ActivityStore;
-        var existingActivities = await activityStore.GetActivityResults(functionId);
-        return new ExistingActivities(
+        var effectsStore = _functionStore.EffectsStore;
+        var existingActivities = await effectsStore.GetEffectResults(functionId);
+        return new ExistingEffects(
             functionId,
-            existingActivities.ToDictionary(sa => sa.ActivityId, sa => sa),
-            activityStore,
+            existingActivities.ToDictionary(sa => sa.EffectId, sa => sa),
+            effectsStore,
             _settings.Serializer
         );
     }

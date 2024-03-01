@@ -13,7 +13,7 @@ public static class EngagementReminderSaga
         var (candidateEmail, nextReminderTime) = startEngagement;
         var messages = workflow.Messages;
 
-        await workflow.Activities.Do(
+        await workflow.Effect.Capture(
             "InitialCorrespondence",
             SendEngagementInitialCorrespondence
         );
@@ -38,7 +38,7 @@ public static class EngagementReminderSaga
             // if accepted notify hr and complete the flow
             if (either.Match(ea => true, er => false))
             {
-                await workflow.Activities.Do("NotifyHR", work: () => NotifyHR(candidateEmail));
+                await workflow.Effect.Capture("NotifyHR", work: () => NotifyHR(candidateEmail));
                 await messages.CancelTimeoutEvent(timeoutId: i.ToString());
                 
                 return;

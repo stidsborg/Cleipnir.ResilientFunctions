@@ -12,21 +12,21 @@ public class Workflow : IDisposable
     
     public FunctionId FunctionId { get; }
     public Messages Messages { get; }
-    public Activities Activities { get; }
+    public Effect Effect { get; }
     public Utilities Utilities { get; }
     
-    public Workflow(FunctionId functionId, Messages messages, Activities activities, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
+    public Workflow(FunctionId functionId, Messages messages, Effect effect, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
     {
         _messageWriterFunc = messageWriterFunc;
         FunctionId = functionId;
         Utilities = utilities;
         Messages = messages;
-        Activities = activities;
+        Effect = effect;
     }
 
-    public void Deconstruct(out Activities activities, out Messages messages)
+    public void Deconstruct(out Effect effect, out Messages messages)
     {
-        activities = Activities;
+        effect = Effect;
         messages = Messages;
     }
     
@@ -38,9 +38,9 @@ public class Workflow : IDisposable
         await messageWriter.AppendMessage(message, idempotencyKey);
     }
 
-    public async Task Delay(string activityId, TimeSpan @for)
+    public async Task Delay(string effectId, TimeSpan @for)
     {
-        var expiry = await Activities.Do(activityId, () => DateTime.UtcNow + @for);
+        var expiry = await Effect.Capture(effectId, () => DateTime.UtcNow + @for);
         if (expiry <= DateTime.UtcNow)
             return;
 

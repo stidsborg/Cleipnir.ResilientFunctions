@@ -86,10 +86,10 @@ public class RFuncWithStateRegistrationTests
         public object DeserializeMessage(string json, string type)
             => Default.DeserializeMessage(json, type);
 
-        public string SerializeActivityResult<TResult>(TResult result)
-            => Default.SerializeActivityResult(result);
-        public TResult DeserializeActivityResult<TResult>(string json)
-            => Default.DeserializeActivityResult<TResult>(json);
+        public string SerializeEffectResult<TResult>(TResult result)
+            => Default.SerializeEffectResult(result);
+        public TResult DeserializeEffectResult<TResult>(string json)
+            => Default.DeserializeEffectResult<TResult>(json);
     }
 
     private class WorkflowState : Domain.WorkflowState { }

@@ -25,8 +25,8 @@ public abstract class AtMostOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         "Id",
                         work: () =>
                         {
@@ -59,8 +59,8 @@ public abstract class AtMostOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         "someId",
                         work: () =>
                         {
@@ -93,8 +93,8 @@ public abstract class AtMostOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         id: "id",
                         work: () =>
                         {

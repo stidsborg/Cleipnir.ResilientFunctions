@@ -168,9 +168,9 @@ public class SerializationTests
         public object DeserializeMessage(string json, string type)
             => _defaultSerializer.DeserializeMessage(json, type);
 
-        public string SerializeActivityResult<TResult>(TResult result)
-            => _defaultSerializer.SerializeActivityResult(result);
-        public TResult DeserializeActivityResult<TResult>(string json)
-            => _defaultSerializer.DeserializeActivityResult<TResult>(json);
+        public string SerializeEffectResult<TResult>(TResult result)
+            => _defaultSerializer.SerializeEffectResult(result);
+        public TResult DeserializeEffectResult<TResult>(string json)
+            => _defaultSerializer.DeserializeEffectResult<TResult>(json);
     }
 }

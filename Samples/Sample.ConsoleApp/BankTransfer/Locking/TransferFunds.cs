@@ -14,13 +14,13 @@ public static class TransferFunds
     {
         var monitor = workflow.Utilities.Monitor;
         
-        var lockId = await workflow.Activities.Do("lockId", () => Guid.NewGuid().ToString());
+        var lockId = await workflow.Effect.Capture("lockId", () => Guid.NewGuid().ToString());
         await using var _ = await monitor.Acquire(
             new LockInfo("Account", transfer.FromAccount, lockId),
             new LockInfo("Account", transfer.ToAccount, lockId)
         );
 
-        var deductTask = workflow.Activities.Do(
+        var deductTask = workflow.Effect.Capture(
             "DeductAmount",
             () => BankCentralClient
                 .PostTransaction(
@@ -30,7 +30,7 @@ public static class TransferFunds
                 )
         );
 
-        var addTask = workflow.Activities.Do(
+        var addTask = workflow.Effect.Capture(
             "AddAmount",
             () => BankCentralClient.PostTransaction(
                 transfer.ToAccountTransactionId, 

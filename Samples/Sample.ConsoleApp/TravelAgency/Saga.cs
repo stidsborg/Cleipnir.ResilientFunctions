@@ -13,7 +13,7 @@ public static class Saga
         var messages = workflow.Messages;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
-        await workflow.Activities.Do(
+        await workflow.Effect.Capture(
             "SendRequests", 
             async () =>
             {

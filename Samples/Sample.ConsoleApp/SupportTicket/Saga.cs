@@ -15,7 +15,7 @@ public class Saga
         var agents = request.CustomerSupportAgents.Length;
         for (var i = 0; ; i++)
         {
-            await workflow.Activities.Do("SendTakeSupportTicketRequest", async () =>
+            await workflow.Effect.Capture("SendTakeSupportTicketRequest", async () =>
             {
                 var customerSupportAgentEmail = request.CustomerSupportAgents[i % agents];
                 await MessageBroker.Send(

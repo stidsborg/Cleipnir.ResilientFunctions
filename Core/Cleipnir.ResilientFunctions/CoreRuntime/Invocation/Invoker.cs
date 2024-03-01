@@ -167,8 +167,8 @@ public class Invoker<TParam, TState, TReturn>
 
             success = persisted;
             var messages = await _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: false);
-            var activity = await _invocationHelper.CreateActivities(functionId, sync: false);
-            var workflow = new Workflow(functionId, messages, activity, _utilities, _messageWriterFunc);
+            var effect = await _invocationHelper.CreateEffect(functionId, sync: false);
+            var workflow = new Workflow(functionId, messages, effect, _utilities, _messageWriterFunc);
             disposables.Add(workflow);
 
             return new PreparedInvocation(
@@ -201,7 +201,7 @@ public class Invoker<TParam, TState, TReturn>
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
             
             var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: true));
-            var activitiesTask = Task.Run(() => _invocationHelper.CreateActivities(functionId, sync: true));
+            var activitiesTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
             var workflow = new Workflow(functionId, await messagesTask, await activitiesTask, _utilities, _messageWriterFunc);
             disposables.Add(workflow);
 

@@ -24,7 +24,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         TParam param, 
         TState state, 
         DateTime? postponedUntil, 
-        ExistingActivities existingActivities,
+        ExistingEffects existingEffects,
         ExistingMessages existingMessages,
         PreviouslyThrownException? previouslyThrownException)
     {
@@ -38,7 +38,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         _state = state;
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
-        Activities = existingActivities;
+        Effects = existingEffects;
         Messages = existingMessages;
     }
 
@@ -48,7 +48,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
     public int Epoch { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
     public ExistingMessages Messages { get; private set; }
-    public ExistingActivities Activities { get; private set; } 
+    public ExistingEffects Effects { get; private set; } 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
     
     private TParam _param;
@@ -174,7 +174,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
         Messages = await _invocationHelper.GetExistingMessages(FunctionId);
-        Activities = await _invocationHelper.GetExistingActivities(FunctionId);
+        Effects = await _invocationHelper.GetExistingActivities(FunctionId);
     }
 
     public async Task WaitForCompletion(bool allowPostponedAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponedAndSuspended);
@@ -197,7 +197,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         TState state, 
         TReturn? result,
         DateTime? postponedUntil, 
-        ExistingActivities activities,
+        ExistingEffects effects,
         ExistingMessages messages,
         PreviouslyThrownException? previouslyThrownException)
     {
@@ -212,7 +212,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         _state = state;
         Result = result;
         PostponedUntil = postponedUntil;
-        Activities = activities;
+        Effects = effects;
         Messages = messages;
         PreviouslyThrownException = previouslyThrownException;
     }
@@ -224,7 +224,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
     public DateTime LeaseExpiration { get; private set; }
     
     public ExistingMessages Messages { get; private set; }
-    public ExistingActivities Activities { get; private set; } 
+    public ExistingEffects Effects { get; private set; } 
 
     public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
 
@@ -360,7 +360,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
-        Activities = await _invocationHelper.GetExistingActivities(FunctionId);
+        Effects = await _invocationHelper.GetExistingActivities(FunctionId);
 
         _changed = false;
     }

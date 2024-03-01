@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ActivitiesTests
+public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.EffectTests
 {
     [TestMethod]
     public override Task SunshineActionTest()
@@ -33,6 +33,6 @@ public class ActivitiesTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.R
         => TaskWhenAnyFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
-    public override Task ClearActivityTest()
-        => ClearActivityTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+    public override Task ClearEffectsTest()
+        => ClearEffectsTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

@@ -127,28 +127,28 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ExistingMessagesCanBeReplaced(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeReplacedWithValue()
-        => ExistingActivityCanBeReplacedWithValue(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingEffectCanBeReplacedWithValue()
+        => ExistingEffectCanBeReplacedWithValue(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ActivityCanBeStarted()
-        => ActivityCanBeStarted(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task EffectCanBeStarted()
+        => EffectCanBeStarted(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeReplaced()
-        => ExistingActivityCanBeReplaced(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingEffectCanBeReplaced()
+        => ExistingEffectCanBeReplaced(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeRemoved()
-        => ExistingActivityCanBeRemoved(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingEffectCanBeRemoved()
+        => ExistingEffectCanBeRemoved(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ActivitiesAreUpdatedAfterRefresh()
-        => ActivitiesAreUpdatedAfterRefresh(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task EffectsAreUpdatedAfterRefresh()
+        => EffectsAreUpdatedAfterRefresh(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingActivityCanBeSetToFailed()
-        => ExistingActivityCanBeSetToFailed(Utils.CreateInMemoryFunctionStoreTask());
+    public override Task ExistingEffectCanBeSetToFailed()
+        => ExistingEffectCanBeSetToFailed(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task SaveChangesPersistsChangedResult()

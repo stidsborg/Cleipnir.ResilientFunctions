@@ -25,8 +25,8 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         "Id",
                         work: () =>
                         {
@@ -61,8 +61,8 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         "someId",
                         work: () =>
                         {
@@ -97,8 +97,8 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         "Id",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });
@@ -122,8 +122,8 @@ public abstract class AtLeastOnceWorkStatusTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Activities
-                    .Do(
+                await workflow.Effect
+                    .Capture(
                         "someId",
                         work: () => { counter.Increment(); return Task.CompletedTask; });
             });

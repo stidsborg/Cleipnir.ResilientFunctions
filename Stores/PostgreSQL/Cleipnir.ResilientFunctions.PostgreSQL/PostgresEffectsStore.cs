@@ -1,16 +1,19 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
-using MySqlConnector;
+using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class MySqlActivityStore : IActivityStore
+public class PostgresEffectsStore : IEffectsStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
 
-    public MySqlActivityStore(string connectionString, string tablePrefix = "")
+    public PostgresEffectsStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
@@ -18,6 +21,7 @@ public class MySqlActivityStore : IActivityStore
 
     public async Task Initialize()
     {
+        
         await using var conn = await CreateConnection();
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_activities (
@@ -26,11 +30,11 @@ public class MySqlActivityStore : IActivityStore
                 result TEXT NULL,
                 exception TEXT NULL
             );";
-        var command = new MySqlCommand(sql, conn);
+        var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task SetActivityResult(FunctionId functionId, StoredActivity storedActivity)
+    public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await CreateConnection();
@@ -38,32 +42,33 @@ public class MySqlActivityStore : IActivityStore
           INSERT INTO {_tablePrefix}rfunction_activities 
               (id, status, result, exception)
           VALUES
-              (?, ?, ?, ?)  
-           ON DUPLICATE KEY UPDATE
-                status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
+              ($1, $2, $3, $4) 
+          ON CONFLICT (id) 
+          DO 
+            UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(delimiter: "|", functionTypeId.Value, functionInstanceId.Value, storedActivity.ActivityId)},
-                new() {Value = (int) storedActivity.WorkStatus},
-                new() {Value = storedActivity.Result ?? (object) DBNull.Value},
-                new() {Value = JsonHelper.ToJson(storedActivity.StoredException) ?? (object) DBNull.Value}
+                new() {Value = Escaper.Escape(delimiter: "|", functionTypeId.Value, functionInstanceId.Value, storedEffect.EffectId)},
+                new() {Value = (int) storedEffect.WorkStatus},
+                new() {Value = storedEffect.Result ?? (object) DBNull.Value},
+                new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}
             }
         };
 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IEnumerable<StoredActivity>> GetActivityResults(FunctionId functionId)
+    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT id, status, result, exception
             FROM {_tablePrefix}rfunction_activities
-            WHERE id LIKE ?";
-        await using var command = new MySqlCommand(sql, conn)
+            WHERE id LIKE $1";
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -73,36 +78,37 @@ public class MySqlActivityStore : IActivityStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<StoredActivity>();
+        var functions = new List<StoredEffect>();
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0);
-            var activityId = Escaper.Unescape(id, delimiter: '|', arraySize: 3)[2];
+            var effectId = Escaper.Unescape(id, delimiter: '|', arraySize: 3)[2];
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? null : reader.GetString(2);
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
-            functions.Add(new StoredActivity(activityId, status, result, JsonHelper.FromJson<StoredException>(exception)));
+            functions.Add(new StoredEffect(effectId, status, result, JsonHelper.FromJson<StoredException>(exception)));
         }
 
         return functions;
     }
 
-    public async Task DeleteActivityResult(FunctionId functionId, string activityId)
+    public async Task DeleteEffectResult(FunctionId functionId, string effectId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = ?";
-        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, activityId);
-        await using var command = new MySqlCommand(sql, conn)
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = $1";
+        
+        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId);
+        await using var command = new NpgsqlCommand(sql, conn)
         {
-            Parameters = { new() { Value = id } }
+            Parameters = { new() {Value = id } }
         };
 
         await command.ExecuteNonQueryAsync();
     }
 
-    private async Task<MySqlConnection> CreateConnection()
+    private async Task<NpgsqlConnection> CreateConnection()
     {
-        var conn = new MySqlConnection(_connectionString);
+        var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         return conn;
     }

@@ -52,8 +52,8 @@ public class DefaultSerializer : ISerializer
     public object DeserializeMessage(string json, string type)
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
-    public string SerializeActivityResult<TResult>(TResult result)
+    public string SerializeEffectResult<TResult>(TResult result)
         => JsonSerializer.Serialize(result);
-    public TResult DeserializeActivityResult<TResult>(string json)
+    public TResult DeserializeEffectResult<TResult>(string json)
         => JsonSerializer.Deserialize<TResult>(json)!;
 }

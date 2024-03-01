@@ -1064,8 +1064,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingActivityCanBeReplacedWithValue();
-    protected async Task ExistingActivityCanBeReplacedWithValue(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingEffectCanBeReplacedWithValue();
+    protected async Task ExistingEffectCanBeReplacedWithValue(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1077,15 +1077,15 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Task<string> (string param, WorkflowState _, Workflow workflow) 
-                => workflow.Activities.Do("Test", () => "ActivityResult")
+                => workflow.Effect.Capture("Test", () => "EffectResult")
         );
 
         var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
-        result.ShouldBe("ActivityResult");
+        result.ShouldBe("EffectResult");
         
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var activities = controlPanel.Activities;
-        await activities.SetSucceeded(activityId: "Test", result: "ReplacedResult");
+        var effects = controlPanel.Effects;
+        await effects.SetSucceeded(effectId: "Test", result: "ReplacedResult");
 
         result = await controlPanel.ReInvoke();
         result.ShouldBe("ReplacedResult");
@@ -1093,8 +1093,8 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ActivityCanBeStarted();
-    protected async Task ActivityCanBeStarted(Task<IFunctionStore> storeTask)
+    public abstract Task EffectCanBeStarted();
+    protected async Task EffectCanBeStarted(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1102,30 +1102,30 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var runActivity = false;
+        var runEffect = false;
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
             Task (string param, WorkflowState _, Workflow workflow) 
-                => runActivity 
-                    ? workflow.Activities.Do("Test", () => {}, ResiliencyLevel.AtMostOnce)
+                => runEffect 
+                    ? workflow.Effect.Capture("Test", () => {}, ResiliencyLevel.AtMostOnce)
                     : Task.CompletedTask
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var activities = controlPanel.Activities;
-        await activities.SetStarted(activityId: "Test");
+        var effects = controlPanel.Effects;
+        await effects.SetStarted(effectId: "Test");
         
-        runActivity = true;
+        runEffect = true;
         await Should.ThrowAsync<Exception>(controlPanel.ReInvoke());
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingActivityCanBeReplaced();
-    protected async Task ExistingActivityCanBeReplaced(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingEffectCanBeReplaced();
+    protected async Task ExistingEffectCanBeReplaced(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1137,22 +1137,22 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
             Task (string param, WorkflowState _, Workflow workflow) 
-                => workflow.Activities.Do("Test", () => throw new InvalidOperationException("oh no"))
+                => workflow.Effect.Capture("Test", () => throw new InvalidOperationException("oh no"))
         );
 
         await Should.ThrowAsync<Exception>(rFunc.Invoke(functionInstanceId.Value, param: "param"));
         
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var activities = controlPanel.Activities;
-        await activities.SetSucceeded(activityId: "Test");
+        var activities = controlPanel.Effects;
+        await activities.SetSucceeded(effectId: "Test");
         
         await controlPanel.ReInvoke();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingActivityCanBeRemoved();
-    protected async Task ExistingActivityCanBeRemoved(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingEffectCanBeRemoved();
+    protected async Task ExistingEffectCanBeRemoved(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1165,38 +1165,38 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Task<string> (string param, WorkflowState _, Workflow workflow) =>
-                workflow.Activities.Do("Test", () =>
+                workflow.Effect.Capture("Test", () =>
                 {
                     syncedCounter++;
-                    return "ActivityResult";
+                    return "EffectResult";
                 })
         );
 
         var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
-        result.ShouldBe("ActivityResult");
+        result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
 
         var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
         controlPanel.ShouldNotBeNull();
         result = await controlPanel.ReInvoke();
-        result.ShouldBe("ActivityResult");
+        result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
         
         await controlPanel.Refresh();
-        var activities = controlPanel.Activities;
+        var activities = controlPanel.Effects;
         await activities.Remove("Test");
 
         await controlPanel.ReInvoke();
 
         result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
-        result.ShouldBe("ActivityResult");
+        result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(2);
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ActivitiesAreUpdatedAfterRefresh();
-    protected async Task ActivitiesAreUpdatedAfterRefresh(Task<IFunctionStore> storeTask)
+    public abstract Task EffectsAreUpdatedAfterRefresh();
+    protected async Task EffectsAreUpdatedAfterRefresh(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1217,17 +1217,17 @@ public abstract class ControlPanelTests
         var secondControlPanel = await rAction.ControlPanel(functionInstanceId.Value);
         secondControlPanel.ShouldNotBeNull();
 
-        await firstControlPanel.Activities.SetSucceeded("Id", "SomeResult");
+        await firstControlPanel.Effects.SetSucceeded("Id", "SomeResult");
         
-        secondControlPanel.Activities.HasValue("Id").ShouldBe(false);
+        secondControlPanel.Effects.HasValue("Id").ShouldBe(false);
         await secondControlPanel.Refresh();
-        secondControlPanel.Activities.GetValue<string>("Id").ShouldBe("SomeResult");
+        secondControlPanel.Effects.GetValue<string>("Id").ShouldBe("SomeResult");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task ExistingActivityCanBeSetToFailed();
-    protected async Task ExistingActivityCanBeSetToFailed(Task<IFunctionStore> storeTask)
+    public abstract Task ExistingEffectCanBeSetToFailed();
+    protected async Task ExistingEffectCanBeSetToFailed(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -1240,21 +1240,21 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             Task<string> (string param, WorkflowState _, Workflow workflow) =>
-                workflow.Activities.Do("Test", () =>
+                workflow.Effect.Capture("Test", () =>
                 {
                     syncedCounter++;
-                    return "ActivityResult";
+                    return "EffectResult";
                 })
         );
 
         var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
-        result.ShouldBe("ActivityResult");
+        result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
 
         var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
         controlPanel.ShouldNotBeNull();
-        var activities = controlPanel.Activities;
-        await activities.SetFailed(activityId: "Test", new InvalidOperationException("oh no"));
+        var effects = controlPanel.Effects;
+        await effects.SetFailed(effectId: "Test", new InvalidOperationException("oh no"));
 
         await Should.ThrowAsync<PreviousFunctionInvocationException>(() => 
             controlPanel.ReInvoke()
