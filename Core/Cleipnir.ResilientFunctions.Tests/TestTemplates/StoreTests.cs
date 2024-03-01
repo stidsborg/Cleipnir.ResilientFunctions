@@ -1092,8 +1092,8 @@ public abstract class StoreTests
         storedFunction.Status.ShouldBe(Status.Postponed);
     }
     
-    public abstract Task SignalCountCanBeIncrementedForFunction();
-    protected async Task SignalCountCanBeIncrementedForFunction(Task<IFunctionStore> storeTask)
+    public abstract Task InterruptCountCanBeIncrementedForFunction();
+    protected async Task InterruptCountCanBeIncrementedForFunction(Task<IFunctionStore> storeTask)
     {
         var functionId = TestFunctionId.Create();
         
@@ -1109,13 +1109,13 @@ public abstract class StoreTests
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.SignalCount.ShouldBe(0);
+        storedFunction.InterruptCount.ShouldBe(0);
         
-        await store.IncrementSignalCount(functionId);
+        await store.IncrementInterruptCount(functionId);
         
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.SignalCount.ShouldBe(1);
+        storedFunction.InterruptCount.ShouldBe(1);
         storedFunction.Status.ShouldBe(Status.Executing);
     }
 }

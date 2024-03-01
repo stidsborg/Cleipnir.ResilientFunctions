@@ -77,8 +77,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
         => _inner.SuspendFunction(functionId, expectedMessageCount, stateJson, timestamp, expectedEpoch, complimentaryState);
 
-    public Task IncrementSignalCount(FunctionId functionId)
-        => _inner.IncrementSignalCount(functionId);
+    public Task IncrementInterruptCount(FunctionId functionId)
+        => _inner.IncrementInterruptCount(functionId);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _inner.GetFunctionStatus(functionId);

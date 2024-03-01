@@ -136,6 +136,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SignalCountCanBeIncrementedForFunction()
-        => SignalCountCanBeIncrementedForFunction(FunctionStoreFactory.Create());
+    public override Task InterruptCountCanBeIncrementedForFunction()
+        => InterruptCountCanBeIncrementedForFunction(FunctionStoreFactory.Create());
 }

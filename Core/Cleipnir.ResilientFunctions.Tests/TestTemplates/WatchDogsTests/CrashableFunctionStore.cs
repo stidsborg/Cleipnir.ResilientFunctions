@@ -127,10 +127,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SuspendFunction(functionId, expectedMessageCount, stateJson, timestamp, expectedEpoch, complimentaryState);
 
-    public Task IncrementSignalCount(FunctionId functionId)
+    public Task IncrementInterruptCount(FunctionId functionId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.IncrementSignalCount(functionId);
+            : _inner.IncrementInterruptCount(functionId);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _crashed

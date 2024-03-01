@@ -14,7 +14,7 @@ public record StoredFunction(
     int Epoch,
     long LeaseExpiration,
     long Timestamp,
-    long SignalCount
+    long InterruptCount
 );
 
 public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, long LeaseExpiration);

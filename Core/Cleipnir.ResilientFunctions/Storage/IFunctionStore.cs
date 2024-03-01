@@ -92,7 +92,7 @@ public interface IFunctionStore
         ComplimentaryState complimentaryState
     );
 
-    Task IncrementSignalCount(FunctionId functionId);
+    Task IncrementInterruptCount(FunctionId functionId);
 
     Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId);
     Task<StoredFunction?> GetFunction(FunctionId functionId);

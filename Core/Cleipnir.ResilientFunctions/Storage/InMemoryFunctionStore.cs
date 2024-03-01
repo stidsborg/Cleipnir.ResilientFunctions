@@ -286,13 +286,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task IncrementSignalCount(FunctionId functionId)
+    public Task IncrementInterruptCount(FunctionId functionId)
     {
         lock (_sync)
         {
             var success = _states.TryGetValue(functionId, out var state);
             if (success)
-                state!.SignalCount++;
+                state!.InterruptCount++;
         }
 
         return Task.CompletedTask;
@@ -354,7 +354,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Epoch,
                     state.LeaseExpiration,
                     state.Timestamp,
-                    state.SignalCount
+                    state.InterruptCount
                 )
                 .ToNullable()
                 .ToTask();
@@ -397,7 +397,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public StoredException? Exception { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
-        public long SignalCount { get; set; }
+        public long InterruptCount { get; set; }
         public long LeaseExpiration { get; set; }
         public long Timestamp { get; set; }
     }

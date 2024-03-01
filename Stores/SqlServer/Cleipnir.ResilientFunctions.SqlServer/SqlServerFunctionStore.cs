@@ -70,7 +70,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
                 LeaseExpiration BIGINT NOT NULL,
-                SignalCount BIGINT NOT NULL DEFAULT 0,
+                InterruptCount BIGINT NOT NULL DEFAULT 0,
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
@@ -187,7 +187,7 @@ public class SqlServerFunctionStore : IFunctionStore
                    PostponedUntil,
                    Epoch, 
                    LeaseExpiration,
-                   SignalCount,
+                   InterruptCount,
                    Timestamp
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
@@ -499,12 +499,12 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
 
-    public async Task IncrementSignalCount(FunctionId functionId)
+    public async Task IncrementInterruptCount(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
                 UPDATE {_tablePrefix}RFunctions
-                SET SignalCount = SignalCount + 1
+                SET InterruptCount = InterruptCount + 1
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
 
         await using var command = new SqlCommand(sql, conn);
@@ -580,7 +580,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     PostponedUntil,
                     Epoch, 
                     LeaseExpiration,
-                    SignalCount,
+                    InterruptCount,
                     Timestamp
             FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
@@ -614,7 +614,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var postponedUntil = reader.IsDBNull(8) ? default(long?) : reader.GetInt64(8);
                 var epoch = reader.GetInt32(9);
                 var leaseExpiration = reader.GetInt64(10);
-                var signalCount = reader.GetInt64(11);
+                var interruptCount = reader.GetInt64(11);
                 var timestamp = reader.GetInt64(12);
 
                 return new StoredFunction(
@@ -628,7 +628,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     epoch,
                     leaseExpiration,
                     timestamp,
-                    signalCount
+                    interruptCount
                 );
             }
         }

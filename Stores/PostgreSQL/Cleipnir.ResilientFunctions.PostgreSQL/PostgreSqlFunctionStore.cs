@@ -66,7 +66,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 lease_expiration BIGINT NOT NULL,
-                signal_count BIGINT NOT NULL DEFAULT 0,
+                interrupt_count BIGINT NOT NULL DEFAULT 0,
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (function_type_id, function_instance_id)
             );
@@ -166,7 +166,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                signal_count,
+                interrupt_count,
                 timestamp";
 
         await using var command = new NpgsqlCommand(sql, conn)
@@ -527,13 +527,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
     }
 
-    public async Task IncrementSignalCount(FunctionId functionId)
+    public async Task IncrementInterruptCount(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
 
         var postponeSql = $@"
                 UPDATE {_tablePrefix}rfunctions
-                SET signal_count = signal_count + 1
+                SET interrupt_count = interrupt_count + 1
                 WHERE function_type_id = $1 AND function_instance_id = $2";
         await using var command = new NpgsqlCommand(postponeSql, conn)
         {
@@ -616,7 +616,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponed_until,
                 epoch, 
                 lease_expiration,
-                signal_count,
+                interrupt_count,
                 timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1 AND function_instance_id = $2;";
@@ -653,7 +653,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponedUntil ? reader.GetInt64(8) : null,
                 Epoch: reader.GetInt32(9),
                 LeaseExpiration: reader.GetInt64(10),
-                SignalCount: reader.GetInt64(11),
+                InterruptCount: reader.GetInt64(11),
                 Timestamp: reader.GetInt64(12)
             );
         }
