@@ -119,6 +119,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.IncrementInterruptCount(functionId);
 
+    public Task<long?> GetInterruptCount(FunctionId functionId)
+        => _crashed
+            ? Task.FromException<long?>(new TimeoutException())
+            : _inner.GetInterruptCount(functionId);
+
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _crashed
             ? Task.FromException<StatusAndEpoch?>(new TimeoutException())

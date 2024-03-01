@@ -80,6 +80,9 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task IncrementInterruptCount(FunctionId functionId)
         => _inner.IncrementInterruptCount(functionId);
 
+    public Task<long?> GetInterruptCount(FunctionId functionId)
+        => _inner.GetInterruptCount(functionId);
+
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
         => _inner.GetFunctionStatus(functionId);
 

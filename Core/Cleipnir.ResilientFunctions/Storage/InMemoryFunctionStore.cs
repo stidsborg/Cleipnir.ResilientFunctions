@@ -298,6 +298,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
+    public Task<long?> GetInterruptCount(FunctionId functionId)
+    {
+        lock (_sync) 
+            return _states.TryGetValue(functionId, out var state) 
+                ? state.InterruptCount.CastTo<long?>().ToTask() 
+                : default(long?).ToTask();
+    }
+
     public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {
         lock (_sync)

@@ -1117,5 +1117,15 @@ public abstract class StoreTests
         storedFunction.ShouldNotBeNull();
         storedFunction.InterruptCount.ShouldBe(1);
         storedFunction.Status.ShouldBe(Status.Executing);
+
+        await store.GetInterruptCount(functionId).ShouldBeAsync(1);
+    }
+    
+    public abstract Task InterruptCountForNonExistingFunctionIsNull();
+    protected async Task InterruptCountForNonExistingFunctionIsNull(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        var store = await storeTask;
+        (await store.GetInterruptCount(functionId)).ShouldBeNull();
     }
 }

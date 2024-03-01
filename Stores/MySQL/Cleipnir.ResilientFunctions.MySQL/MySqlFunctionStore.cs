@@ -509,6 +509,27 @@ public class MySqlFunctionStore : IFunctionStore
         
         await command.ExecuteNonQueryAsync();
     }
+    
+    public async Task<long?> GetInterruptCount(FunctionId functionId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        
+        var sql = $@"
+            SELECT interrupt_count 
+            FROM {_tablePrefix}rfunctions
+            WHERE function_type_id = ? AND function_instance_id = ?;";
+
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+            }
+        };
+        
+        return (long?) await command.ExecuteScalarAsync();
+    }
 
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {

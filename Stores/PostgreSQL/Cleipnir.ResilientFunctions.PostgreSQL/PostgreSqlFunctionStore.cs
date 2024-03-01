@@ -546,6 +546,25 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task<long?> GetInterruptCount(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+
+        var postponeSql = $@"
+                SELECT interrupt_count 
+                FROM {_tablePrefix}rfunctions
+                WHERE function_type_id = $1 AND function_instance_id = $2";
+        await using var command = new NpgsqlCommand(postponeSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+            }
+        };
+        return (long?) await command.ExecuteScalarAsync();
+    }
+
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {
         await using var conn = await CreateConnection();

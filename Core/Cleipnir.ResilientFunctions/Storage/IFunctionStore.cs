@@ -93,6 +93,7 @@ public interface IFunctionStore
     );
 
     Task IncrementInterruptCount(FunctionId functionId);
+    Task<long?> GetInterruptCount(FunctionId functionId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId);
     Task<StoredFunction?> GetFunction(FunctionId functionId);

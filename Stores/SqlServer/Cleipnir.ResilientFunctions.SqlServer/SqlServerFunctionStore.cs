@@ -514,6 +514,22 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task<long?> GetInterruptCount(FunctionId functionId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+                SELECT InterruptCount 
+                FROM {_tablePrefix}RFunctions            
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+
+        var interruptCount = await command.ExecuteScalarAsync();
+        return (long?) interruptCount;
+    }
+
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {
         await using var conn = await _connFunc();
