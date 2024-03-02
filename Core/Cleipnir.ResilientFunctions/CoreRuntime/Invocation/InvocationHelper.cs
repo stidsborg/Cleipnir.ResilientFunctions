@@ -444,9 +444,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
                     _settings.Serializer.DeserializeMessage(se.MessageJson, se.MessageType),
                     se.IdempotencyKey
                 )
-            )
-            .Where(m => m.Message is not NoOp)
-            .ToList();
+            ).ToList();
         
         return new ExistingMessages(functionId, messages, _functionStore.MessageStore, _settings.Serializer);
     } 

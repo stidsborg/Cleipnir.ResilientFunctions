@@ -31,15 +31,7 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => SuspendedFunctionIsResumedAfterPublishedNoOpMessage(
             FunctionStoreFactory.Create()
         );
-
-    [TestMethod]
-    public override Task NoOpMessageDoesNotCauseWaitingSuspendUntilFirstLeafOperatorToComplete()
-        => NoOpMessageDoesNotCauseWaitingSuspendUntilFirstLeafOperatorToComplete(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task NoOpMessageDoesNotCauseWaitingUntilFirstLeafOperatorToComplete()
-        => NoOpMessageDoesNotCauseWaitingUntilFirstLeafOperatorToComplete(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()
         => EligibleSuspendedFunctionIsPickedUpByWatchdog(
