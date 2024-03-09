@@ -40,7 +40,7 @@ public static class LeafOperators
         var now = DateTime.UtcNow;
         var maxWaitUntil = now.Add(maxWait.Value);
         
-        while (!tcs.Task.IsCompleted && now < maxWaitUntil)
+        while (!tcs.Task.IsCompleted && now < maxWaitUntil && subscription.IsWorkflowRunning)
         {
             await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
             interruptCount = subscription.PushMessages();    
@@ -75,7 +75,7 @@ public static class LeafOperators
         //slow-path
         Task.Run(async () =>
         {
-            while (!tcs.Task.IsCompleted)
+            while (!tcs.Task.IsCompleted && subscription.IsWorkflowRunning)
             {
                 await Task.Delay(subscription.DefaultMessageSyncDelay);
                 await subscription.SyncStore(subscription.DefaultMessageSyncDelay);

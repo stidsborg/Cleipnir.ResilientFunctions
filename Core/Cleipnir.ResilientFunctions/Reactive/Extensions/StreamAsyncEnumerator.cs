@@ -47,7 +47,7 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
 
         private async Task StartSubscriptionLoop()
         {
-            while (!_completed)
+            while (!_completed && _subscription.IsWorkflowRunning)
             {
                 await _subscription.SyncStore(_subscription.DefaultMessageSyncDelay);
                 _subscription.PushMessages();
