@@ -197,31 +197,7 @@ public class InnerOperatorsTests
         lastTask.IsCompletedSuccessfully.ShouldBeTrue();
         lastTask.Result.ShouldBe(2);
     }
-
-    #region Merge
-
-    [TestMethod]
-    public async Task MergeTests()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-
-        var toUpper = source.OfType<string>().Select(s => s.ToUpper());
-
-        var emitsTask = source.Merge(toUpper).Take(2).ToList();
-        
-        source.SignalNext("hello", new InterruptCount(1));
-
-        await BusyWait.UntilAsync(() => emitsTask.IsCompletedSuccessfully);
-        
-        emitsTask.IsCompletedSuccessfully.ShouldBeTrue();
-        var emits = emitsTask.Result;
-        emits.Count.ShouldBe(2);
-        emits[0].ShouldBe("hello");
-        emits[1].ShouldBe("HELLO");
-    }
     
-    #endregion
-
     #region OfTypes
 
     [TestMethod]

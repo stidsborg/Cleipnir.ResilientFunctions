@@ -150,9 +150,6 @@ public static class InnerOperators
 
     public static IReactiveChain<List<T>> Chunk<T>(this IReactiveChain<T> s, int size) => Buffer(s, size);
 
-    public static IReactiveChain<T> Merge<T>(this IReactiveChain<T> stream1, IReactiveChain<T> stream2)
-        => new MergeOperator<T>(stream1, stream2);
-
     public static IReactiveChain<T> DistinctBy<T, TKey>(this IReactiveChain<T> s, Func<T, TKey> selector)
         => s.WithOperator<T, T>(() =>
         {
