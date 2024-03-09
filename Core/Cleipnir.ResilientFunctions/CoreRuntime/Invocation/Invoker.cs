@@ -254,9 +254,14 @@ public class Invoker<TParam, TState, TReturn>
                 InvocationHelper<TParam, TState, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
                 break;
             case PersistResultOutcome.Reschedule:
-                await ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
+            {
+                try
+                {
+                    await ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
+                } catch (UnexpectedFunctionState) {} //allow this exception - the invocation has been surpassed by other execution
                 InvocationHelper<TParam, TState, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
                 break;
+            }
             default:
                 throw new ArgumentOutOfRangeException();
         }
