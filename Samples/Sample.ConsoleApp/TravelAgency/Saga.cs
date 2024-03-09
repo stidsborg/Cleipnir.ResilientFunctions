@@ -1,20 +1,19 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.TravelAgency;
 
 public static class Saga
 {
-    public static async Task BookTravel(BookingRequest bookingRequest, WorkflowState state, Workflow workflow)
+    public static async Task BookTravel(BookingRequest bookingRequest, Workflow workflow)
     {
-        var messages = workflow.Messages;
+        var (effect, messages) = workflow;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
-        await workflow.Effect.Capture(
-            "SendRequests", 
+        await effect.Capture(
+            "EmitRequests", 
             async () =>
             {
                 await MessageBroker.Send(new BookFlight(bookingId, customerId, details));
