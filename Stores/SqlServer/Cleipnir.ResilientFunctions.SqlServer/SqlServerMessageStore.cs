@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Microsoft.Data.SqlClient;
 
@@ -140,11 +139,7 @@ public class SqlServerMessageStore : IMessageStore
         return await command.ExecuteNonQueryAsync();
     }
     
-    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
-        => InnerGetMessages(functionId, skip: 0)
-            .SelectAsync(messages => (IEnumerable<StoredMessage>) messages);
-    
-    private async Task<List<StoredMessage>> InnerGetMessages(FunctionId functionId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
@@ -175,40 +170,29 @@ public class SqlServerMessageStore : IMessageStore
             if (exception.Number != SqlError.UNIQUENESS_VIOLATION && exception.Number != SqlError.DEADLOCK_VICTIM) throw;
 
             conn.Dispose();
-            return await InnerGetMessages(functionId, skip);
+            return await GetMessages(functionId, skip);
         }
 
         return storedMessages;
     }
 
-    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
+    public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
     {
-        var sync = new object();
-        var disposed = false;
-        var skip = 0;
-
-        var subscription = new MessagesSubscription(
-            pullNewMessages: async () =>
-            {
-                lock (sync)
-                    if (disposed)
-                        return ArraySegment<StoredMessage>.Empty;
-                
-                var messages = await InnerGetMessages(functionId, skip);
-                skip += messages.Count;
-                
-                return messages;
-            },
-            dispose: () =>
-            {
-                lock (sync)
-                    disposed = true;
-
-                return ValueTask.CompletedTask;
-            }
-        );
+        await using var conn = await CreateConnection();
+        var sql = @$"    
+            SELECT COALESCE(MAX(position), -1)
+            FROM {_tablePrefix}RFunctions_Messages
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
-        return subscription;
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+
+        var maxPosition = (int?) await command.ExecuteScalarAsync();
+        if (maxPosition == null)
+            return false;
+
+        return maxPosition.Value + 1 > skip;
     }
 
     private async Task<SqlConnection> CreateConnection()

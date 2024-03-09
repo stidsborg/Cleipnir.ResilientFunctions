@@ -8,8 +8,4 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()
         => EventsSubscriptionSunshineScenario(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EventsWithSameIdempotencyKeyAreFilterOut()
-        => EventsWithSameIdempotencyKeyAreFilterOut(FunctionStoreFactory.Create());
 }

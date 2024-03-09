@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
-public interface ISubscription : IDisposable
+public interface ISubscription
 {
-    public int EmittedFromSource { get; }
+    ISubscriptionGroup Group { get; }
     IReactiveChain<object> Source { get; }
     ITimeoutProvider TimeoutProvider { get; }
-    int SubscriptionGroupId { get; }
-    void DeliverFuture();
-    void DeliverExisting();
-    Task StopDelivering();
+ 
+    TimeSpan DefaultMessageSyncDelay { get; }
+    
+    Task SyncStore(TimeSpan maxSinceLastSynced);
+    InterruptCount PushMessages();
 }

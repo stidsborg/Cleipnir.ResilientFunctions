@@ -69,7 +69,7 @@ public abstract class DoubleInvocationTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string input) => Suspend.UntilAfter(0).ToResult<string>()
+            (string input) => Suspend.While(0).ToResult<string>()
         );
         
         await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));

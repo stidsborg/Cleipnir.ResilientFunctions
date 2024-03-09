@@ -13,7 +13,7 @@ public interface IMessageStore
     Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage);
     
     Task Truncate(FunctionId functionId);
-
-    Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId);
-    MessagesSubscription SubscribeToMessages(FunctionId functionId);
+    
+    Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip);
+    Task<bool> HasMoreMessages(FunctionId functionId, int skip);
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
@@ -14,7 +16,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
     public class AwaitableTests
     {
         [TestMethod]
-        public void StreamResultIsReflectedInAwaitable()
+        public async Task StreamResultIsReflectedInAwaitable()
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -24,17 +26,19 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             
             t.IsCompleted.ShouldBeFalse();
             
-            source.SignalNext(3);
-            source.SignalNext(5);
+            source.SignalNext(3, new InterruptCount(1));
+            source.SignalNext(5, new InterruptCount(2));
             
             source.SignalCompletion();
 
+            await BusyWait.UntilAsync(() => t.IsCompleted);
+            
             t.IsCompleted.ShouldBeTrue();
             t.Result.ShouldBe(5);
         }
 
         [TestMethod]
-        public void StreamResultThrowsExceptionWhenNoResultIsReceivedBeforeCompletion()
+        public async Task StreamResultThrowsExceptionWhenNoResultIsReceivedBeforeCompletion()
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
             var taken1 = source.Take(1);
@@ -49,9 +53,10 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 
             var completed = false;
             var subscription = taken1.Subscribe(_ => { }, () => completed = true, _ => { });
-            subscription.DeliverExisting();
-            subscription.DeliverFuture();
+            await subscription.SyncStore(TimeSpan.Zero);
+            subscription.PushMessages();
 
+            await BusyWait.UntilAsync(() => t.IsCompleted);
             completed.ShouldBeTrue();
             
             t.IsCompleted.ShouldBeTrue();
@@ -60,7 +65,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         }
 
         [TestMethod]
-        public void StreamResultThrowsExceptionWhenExceptionHasBeenSignaled()
+        public async Task StreamResultThrowsExceptionWhenExceptionHasBeenSignaled()
         {
             var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -70,10 +75,11 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 
             t.IsCompleted.ShouldBeFalse();
             
-            source.SignalNext(5);
+            source.SignalNext(5, new InterruptCount(1));
 
             source.SignalError(new TestException());
-            
+
+            await BusyWait.UntilAsync(() => t.IsCompleted);
             t.IsCompleted.ShouldBeTrue();
 
             t.TaskShouldThrow<TestException>();

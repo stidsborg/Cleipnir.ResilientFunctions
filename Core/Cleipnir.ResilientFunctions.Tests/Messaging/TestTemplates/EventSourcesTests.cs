@@ -30,14 +30,15 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            DefaultSerializer.Instance
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            DefaultSerializer.Instance,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
         
         var task = messages.First();
         
@@ -63,14 +64,15 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            DefaultSerializer.Instance
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            DefaultSerializer.Instance,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
 
         await messages.AppendMessage("hello world");
 
@@ -99,14 +101,15 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            DefaultSerializer.Instance
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            DefaultSerializer.Instance,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
         
         var task = messages.Take(2).ToList();
         
@@ -117,12 +120,13 @@ public abstract class MessagesTests
         await messages.AppendMessage("hello world", idempotencyKey: "1");
         await messages.AppendMessage("hello universe");
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         task.Result.Count.ShouldBe(2);
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(3);
+        (await functionStore.MessageStore.GetMessages(functionId, skip: 0)).Count().ShouldBe(3);
     }
     
     public abstract Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully();
@@ -139,14 +143,15 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            DefaultSerializer.Instance
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            DefaultSerializer.Instance,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
 
         var task = messages.Take(2).ToList();
         
@@ -162,7 +167,7 @@ public abstract class MessagesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.MessageStore.GetMessages(functionId)).Count().ShouldBe(3);
+        (await functionStore.MessageStore.GetMessages(functionId, skip: 0)).Count().ShouldBe(3);
     }
 
     public abstract Task MessagessSunshineScenarioUsingMessageStore();
@@ -179,14 +184,15 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            DefaultSerializer.Instance
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            DefaultSerializer.Instance,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
         
         var task = messages.First();
         
@@ -215,14 +221,15 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            DefaultSerializer.Instance
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            DefaultSerializer.Instance,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
 
         var task = messages.Take(2).ToList();
         
@@ -246,7 +253,7 @@ public abstract class MessagesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await messageStore.GetMessages(functionId)).Count().ShouldBe(3);
+        (await messageStore.GetMessages(functionId, skip: 0)).Count().ShouldBe(3);
     }
     
     public abstract Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
@@ -263,22 +270,19 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        using var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            new MessageWriter(
-                functionId, functionStore, 
-                new ExceptionThrowingEventSerializer(typeof(int)), 
-                scheduleReInvocation: (_, _) => Task.CompletedTask
-            ),
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            new ExceptionThrowingEventSerializer(typeof(int))
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            functionStore,
+            new ExceptionThrowingEventSerializer(typeof(int)),
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
         
         await messages.AppendMessage("hello world");
         await Should.ThrowAsync<MessageProcessingException>(messages.AppendMessage(1));
-        await Should.ThrowAsync<MessageProcessingException>(async () => await messages.Skip(1).First());
+        await Should.ThrowAsync<MessageProcessingException>(() => messages.Skip(1).First());
         Should.Throw<MessageProcessingException>(() => messages.ToList());
     }
     

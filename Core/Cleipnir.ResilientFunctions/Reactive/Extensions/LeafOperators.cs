@@ -21,48 +21,38 @@ public static class LeafOperators
             throw new ArgumentException("Timeout must be non-negative", nameof(maxWait));
 
         var emits = new List<T>();
-        var error = default(Exception);
-        var completed = false;
-        
-        var tcs = new TaskCompletionSource();
-        using var subscription = s.Subscribe(
+        var tcs = new TaskCompletionSource<List<T>>();
+        var subscription = s.Subscribe(
             onNext: next => emits.Add(next),
-            onCompletion: () =>
-            {
-                completed = true;
-                tcs.TrySetResult();
-            },
-            onError: e =>
-            {
-                error = e;
-                tcs.TrySetResult();
-            });
+            onCompletion: () => tcs.TrySetResult(emits),
+            onError: e => tcs.TrySetException(e)
+        );
 
-        subscription.DeliverExisting();
+        var interruptCount = subscription.PushMessages();
         
         //short-circuits
-        if (error != null)
-            throw error;
-        if (completed)
-            return emits;
+        if (tcs.Task.IsCompleted)
+            return await tcs.Task;
         if (maxWait == null || maxWait.Value == TimeSpan.Zero)
-            throw new SuspendInvocationException(subscription.EmittedFromSource);
+            throw new SuspendInvocationException(interruptCount);
         
         //do slow-path
-        subscription.DeliverFuture();
+        var now = DateTime.UtcNow;
+        var maxWaitUntil = now.Add(maxWait.Value);
         
-        using var cts = new CancellationTokenSource();
-        await Task.WhenAny(tcs.Task, Task.Delay(maxWait.Value, cts.Token));
-        cts.Cancel();
-
-        await subscription.StopDelivering();
-
-        if (error != null)
-            throw error;
-        if (completed)
-            return emits;
+        while (!tcs.Task.IsCompleted && now < maxWaitUntil)
+        {
+            await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
+            interruptCount = subscription.PushMessages();    
+            
+            if (tcs.Task.IsCompleted)
+                return await tcs.Task;
+            
+            await Task.Delay(subscription.DefaultMessageSyncDelay);
+            now = DateTime.UtcNow;
+        }
         
-        throw new SuspendInvocationException(subscription.EmittedFromSource);
+        throw new SuspendInvocationException(interruptCount);
     }
 
     public static Task<List<T>> ToList<T>(this IReactiveChain<T> s)
@@ -76,13 +66,22 @@ public static class LeafOperators
             onError: e => tcs.TrySetException(e)
         );
 
-        subscription.DeliverExisting();
-        subscription.DeliverFuture();
+        subscription.PushMessages();
 
-        tcs.Task.ContinueWith(
-            _ => subscription.Dispose(),
-            TaskContinuationOptions.ExecuteSynchronously
-        );
+        //short-circuit
+        if (tcs.Task.IsCompleted)
+            return tcs.Task;
+
+        //slow-path
+        Task.Run(async () =>
+        {
+            while (!tcs.Task.IsCompleted)
+            {
+                await Task.Delay(subscription.DefaultMessageSyncDelay);
+                await subscription.SyncStore(subscription.DefaultMessageSyncDelay);
+                subscription.PushMessages();
+            }
+        });
         
         return tcs.Task;
     }
@@ -101,24 +100,19 @@ public static class LeafOperators
 
     public static List<T> Existing<T>(this IReactiveChain<T> s)
         => Existing(s, out _);
-
-    public static List<T> Existing<T>(this IReactiveChain<T> s, out int emittedFromSource)
-        => Existing(s, out emittedFromSource, out _);
     
-    public static List<T> Existing<T>(this IReactiveChain<T> s, out int emittedFromSource, out bool streamCompleted)
+    public static List<T> Existing<T>(this IReactiveChain<T> s, out bool streamCompleted)
     {
         var completed = false;
         var error = default(Exception);
         var list = new List<T>();
-        using var subscription = s.Subscribe(
+        var subscription = s.Subscribe(
             onNext: t => list.Add(t),
             onCompletion: () => completed = true,
             onError: e => error = e
         );
-        
-        subscription.DeliverExisting();
-        emittedFromSource = subscription.EmittedFromSource;
-        
+
+        subscription.PushMessages();
         streamCompleted = completed;
         
         if (error != null)
@@ -218,7 +212,7 @@ public static class LeafOperators
     public static async Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt)
     {
         var timeoutEmitted = false;
-        using var subscription = s
+        var subscription = s
             .OfType<TimeoutEvent>()
             .Where(t => t.TimeoutId == timeoutEventId)
             .Take(1)
@@ -228,13 +222,13 @@ public static class LeafOperators
                 onError: _ => { }
             );
 
-        subscription.DeliverExisting();
+        var interruptCount = subscription.PushMessages();
         
         if (timeoutEmitted)
             return;
 
         await subscription.TimeoutProvider.RegisterTimeout(timeoutEventId, resumeAt);
-        throw new SuspendInvocationException(subscription.EmittedFromSource);
+        throw new SuspendInvocationException(interruptCount);
     }
 
     public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)

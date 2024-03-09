@@ -2,22 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
 
 public class Source : IReactiveChain<object>
 {
-    private readonly Dictionary<int, SubscriptionGroup> _subscriptionGroups = new();
-    private int _nextSubscriptionId;
     private bool _completed;
 
-    private readonly Action? _onSubscriptionCreated;
-    private readonly Action? _onSubscriptionRemoved;
-
     private readonly ITimeoutProvider _timeoutProvider;
+    private readonly SyncStore _syncStore;
+    private readonly TimeSpan _defaultDelay;
     private readonly EmittedEvents _emittedEvents = new();
-    private readonly object _sync = new();
 
     public IEnumerable<object> Existing
     {
@@ -33,123 +31,67 @@ public class Source : IReactiveChain<object>
         }
     }
     
-    public Source(ITimeoutProvider timeoutProvider) => _timeoutProvider = timeoutProvider;
-
-    public Source(ITimeoutProvider timeoutProvider, Action onSubscriptionCreated, Action onSubscriptionRemoved)
+    public Source(ITimeoutProvider timeoutProvider)
     {
         _timeoutProvider = timeoutProvider;
-        _onSubscriptionCreated = onSubscriptionCreated;
-        _onSubscriptionRemoved = onSubscriptionRemoved;
+        _defaultDelay = TimeSpan.FromMilliseconds(10);
+        _syncStore = _ => new InterruptCount(0).ToTask();
     }
 
-    public ISubscription Subscribe(
-        Action<object> onNext, 
-        Action onCompletion, 
-        Action<Exception> onError, 
-        int? subscriptionGroupId = null)
+    public Source(ITimeoutProvider timeoutProvider, SyncStore syncStore, TimeSpan defaultDelay)
     {
-        ISubscription subscription;
-        
-        lock (_sync)
-        {
-            if (subscriptionGroupId != null)
-                return _subscriptionGroups[subscriptionGroupId.Value].AddSubscription(onNext, onCompletion, onError);
-            
-            var chosenSubscriptionGroupId = _nextSubscriptionId++;
-            var subscriptionGroup =
-                new SubscriptionGroup(
-                    chosenSubscriptionGroupId,
-                    _emittedEvents,
-                    _timeoutProvider,
-                    source: this,
-                    unsubscribeToEvents: id =>
-                    {
-                        bool success;
-                        lock (_sync)
-                            success = _subscriptionGroups.Remove(id);
-                        
-                        if (success)
-                            _onSubscriptionRemoved?.Invoke();
-                    }
-                );
-            _subscriptionGroups[chosenSubscriptionGroupId] = subscriptionGroup;
-            subscription = subscriptionGroup.AddSubscription(onNext, onCompletion, onError);
-        }
-        
-        _onSubscriptionCreated?.Invoke();
-        return subscription;
+        _timeoutProvider = timeoutProvider;
+        _syncStore = syncStore;
+        _defaultDelay = defaultDelay;
+    }
+
+    public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
+    {
+        addToSubscriptionGroup ??= new SubscriptionGroup(source: this, _emittedEvents, _syncStore, _timeoutProvider, _defaultDelay);
+        addToSubscriptionGroup.Add(onNext, onCompletion, onError);
+
+        return addToSubscriptionGroup;
     }
     
-    public void SignalNext(object toEmit)
+    public void SignalNext(object toEmit, InterruptCount interruptCount)
     {
-        List<SubscriptionGroup> subscriptions;
-        lock (_sync)
-        {
-            if (_completed) throw new StreamCompletedException();
+        if (_completed) 
+            throw new StreamCompletedException();
 
-            var emittedEvent = new EmittedEvent(toEmit, completion: false, emittedException: null);
-            _emittedEvents.Append(emittedEvent);
-            subscriptions = _subscriptionGroups.Values.ToList();
-        }
-
-        foreach (var subscription in subscriptions)
-            subscription.DeliverOutstandingEvents();
+        _emittedEvents.InterruptCount = interruptCount;
+        
+        var emittedEvent = new EmittedEvent(toEmit, completion: false, emittedException: null);
+        _emittedEvents.Append(emittedEvent);
     }
     
-    public void SignalNext(IEnumerable<object> toEmits)
+    public void SignalNext(IEnumerable<object> toEmits, InterruptCount interruptCount)
     {
-        List<SubscriptionGroup> subscriptions;
-        lock (_sync)
-        {
-            if (_completed) throw new StreamCompletedException();
+        if (_completed) throw new StreamCompletedException();
 
-            var emittedEvents = toEmits
-                .Select(toEmit => new EmittedEvent(toEmit, completion: false, emittedException: null))
-                .ToList();
-            
-            _emittedEvents.Append(emittedEvents);
-            subscriptions = _subscriptionGroups.Values.ToList();
-        }
-
-        foreach (var subscription in subscriptions)
-            subscription.DeliverOutstandingEvents();
+        _emittedEvents.InterruptCount = interruptCount;
+        
+        var emittedEvents = toEmits
+            .Select(toEmit => new EmittedEvent(toEmit, completion: false, emittedException: null))
+            .ToList();
+        
+        _emittedEvents.Append(emittedEvents);
     }
 
     public void SignalError(Exception exception)
     {
-        List<SubscriptionGroup> subscriptions;
-
-        lock (_sync)
-        {
-            if (_completed) throw new StreamCompletedException();
-            _completed = true;
-
-            var emittedEvent = new EmittedEvent(default, completion: false, emittedException: exception);
-            _emittedEvents.Append(emittedEvent);
-            
-            subscriptions = _subscriptionGroups.Values.ToList();
-        }
+        if (_completed) throw new StreamCompletedException();
+        _completed = true;
         
-        foreach (var subscription in subscriptions)
-            subscription.DeliverOutstandingEvents();
+        var emittedEvent = new EmittedEvent(default, completion: false, emittedException: exception);
+        _emittedEvents.Append(emittedEvent);
     }
 
     public void SignalCompletion()
     {
-        List<SubscriptionGroup> subscriptions;
-        
-        lock (_sync)
-        {
-            if (_completed) throw new StreamCompletedException();
-            _completed = true;
+        if (_completed) throw new StreamCompletedException();
+        _completed = true;
             
-            var emittedEvent = new EmittedEvent(default, completion: true, emittedException: null);
+        var emittedEvent = new EmittedEvent(default, completion: true, emittedException: null);
             _emittedEvents.Append(emittedEvent);
-            
-            subscriptions = _subscriptionGroups.Values.ToList();
-        }
-        
-        foreach (var subscription in subscriptions)
-            subscription.DeliverOutstandingEvents();
     }
 }

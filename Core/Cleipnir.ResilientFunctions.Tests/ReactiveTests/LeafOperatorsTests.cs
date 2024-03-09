@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
@@ -20,7 +22,7 @@ public class LeafOperatorsTests
     public void SourceCanBeSubscribedToMultipleTimes()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
         var emits = new List<object>();
         var completed = false;
         var error = default(Exception);
@@ -30,12 +32,12 @@ public class LeafOperatorsTests
             onError: e => error = e
         );
 
-        subscription.DeliverExisting();
+        subscription.PushMessages();
         emits.Count.ShouldBe(1);
         emits[0].ShouldBe("hello");
         completed.ShouldBeFalse();
         error.ShouldBeNull();
-        subscription.DeliverExisting();
+        subscription.PushMessages();
         emits.Count.ShouldBe(1);
         emits[0].ShouldBe("hello");
         completed.ShouldBeFalse();
@@ -48,15 +50,15 @@ public class LeafOperatorsTests
     public void FirstOperatorEmitsFirstEmittedEvent()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext(1);
+        source.SignalNext(1, new InterruptCount(1));
             
         var next = source.First();
-        source.SignalNext(2);
+        source.SignalNext(2, new InterruptCount(2));
             
         next.IsCompletedSuccessfully.ShouldBeTrue();
         next.Result.ShouldBe(1);
             
-        source.SignalNext(3); //should not thrown an error
+        source.SignalNext(3, new InterruptCount(3)); //should not thrown an error
     }
     
     [TestMethod]
@@ -64,8 +66,8 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
-        source.SignalNext(1);
-        source.SignalNext(2);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
         var nextOrSuspend = source.OfType<int>().SuspendUntilFirst();
         
         nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
@@ -81,8 +83,8 @@ public class LeafOperatorsTests
         stopWatch.Start();
         
         var nextOrSuspend = source.SuspendUntilFirst(maxWait: TimeSpan.FromSeconds(1));
-        source.SignalNext(1);
-        source.SignalNext(2);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
 
         await nextOrSuspend;
         stopWatch.Stop();
@@ -120,7 +122,7 @@ public class LeafOperatorsTests
         var timeoutEventId = "TimeoutEventId";
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt), new InterruptCount(1));
         
         var nextOrSuspend = source
             .OfType<string>()
@@ -137,7 +139,7 @@ public class LeafOperatorsTests
         var timeoutEventId = "TimeoutEventId";
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt), new InterruptCount(1));
         
         var nextOrSuspend = await source
             .OfType<string>()
@@ -154,9 +156,9 @@ public class LeafOperatorsTests
         var timeoutEventId = "TimeoutEventId";
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
-        source.SignalNext("hallo");
-        source.SignalNext("world");
+        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt), new InterruptCount(1));
+        source.SignalNext("hallo", new InterruptCount(2));
+        source.SignalNext("world", new InterruptCount(3));
         
         var nextOrSuspend = await source
             .OfType<string>()
@@ -168,34 +170,35 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public void FirstOfTypeReturnsValueOfTypeOnSignal()
+    public async Task FirstOfTypeReturnsValueOfTypeOnSignal()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        source.SignalNext("hallo");
-        source.SignalNext("world");
+        source.SignalNext("hallo", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
 
         var firstOfType = source.FirstOfType<int>();
         firstOfType.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext(2);
-        firstOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext(2, new InterruptCount(3));
+        await BusyWait.UntilAsync(() => firstOfType.IsCompletedSuccessfully);
         firstOfType.Result.ShouldBe(2);
     }
     
     [TestMethod]
-    public void FirstOfReturnsValueOfTypeOnSignal()
+    public async Task FirstOfReturnsValueOfTypeOnSignal()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        source.SignalNext("hallo");
-        source.SignalNext("world");
+        source.SignalNext("hallo", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
 
         var firstOfType = source.FirstOf<int>();
         firstOfType.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext(2);
-        firstOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext(2, new InterruptCount(3));
+        
+        await BusyWait.UntilAsync(() => firstOfType.IsCompletedSuccessfully);
         firstOfType.Result.ShouldBe(2);
     }
     
@@ -204,19 +207,19 @@ public class LeafOperatorsTests
     #region Last(s)
 
     [TestMethod]
-    public void LastOperatorEmitsLastEmittedEventAfterStreamCompletion()
+    public async Task LastOperatorEmitsLastEmittedEventAfterStreamCompletion()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext(1);
+        source.SignalNext(1, new InterruptCount(1));
             
         var last = source.Last();
-        source.SignalNext(2);
+        source.SignalNext(2, new InterruptCount(2));
             
         last.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        
-        last.IsCompletedSuccessfully.ShouldBeTrue();
+
+        await BusyWait.UntilAsync(() => last.IsCompletedSuccessfully);
         last.Result.ShouldBe(2);
     }
     
@@ -225,8 +228,8 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
-        source.SignalNext(1);
-        source.SignalNext(2);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
         var lastOrSuspend = source.OfType<int>().Take(2).SuspendUntilLast();
         
         lastOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
@@ -242,8 +245,8 @@ public class LeafOperatorsTests
         stopWatch.Start();
         
         var nextOrSuspend = source.SuspendUntilLast(maxWait: TimeSpan.FromSeconds(1));
-        source.SignalNext(1);
-        source.SignalNext(2);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
 
         source.SignalCompletion();
         
@@ -271,7 +274,7 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
         
         var nextOrSuspend = source
             .Take(1)
@@ -289,7 +292,7 @@ public class LeafOperatorsTests
         var timeoutEventId = "TimeoutEventId";
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt), new InterruptCount(1));
         
         var nextOrSuspend = source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
@@ -299,19 +302,21 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public void LastsOperatorReturnsAllEmitsBeforeCompletion()
+    public async Task LastsOperatorReturnsAllEmitsBeforeCompletion()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var lastsTask = source.Take(3).ToList();
         
-        source.SignalNext(1);
+        source.SignalNext(1, new InterruptCount(1));
         lastsTask.IsCompleted.ShouldBeFalse();
-        source.SignalNext(2);
+        source.SignalNext(2, new InterruptCount(2));
         lastsTask.IsCompleted.ShouldBeFalse();
-        source.SignalNext(3);
-        lastsTask.IsCompletedSuccessfully.ShouldBeTrue();
-        source.SignalNext(4);
-        lastsTask.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext(3, new InterruptCount(3));
+        await BusyWait.UntilAsync(() => lastsTask.IsCompletedSuccessfully);
+
+        source.SignalNext(4, new InterruptCount(4));
+        
+        await BusyWait.UntilAsync(() => lastsTask.IsCompletedSuccessfully);
 
         var emits = lastsTask.Result;
         emits.Count.ShouldBe(3);
@@ -326,13 +331,13 @@ public class LeafOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         var lastsTask = source.Lasts(count: 3);
         
-        source.SignalNext(1);
+        source.SignalNext(1, new InterruptCount(1));
         lastsTask.IsCompleted.ShouldBeFalse();
-        source.SignalNext(2);
+        source.SignalNext(2, new InterruptCount(2));
         lastsTask.IsCompleted.ShouldBeFalse();
-        source.SignalNext(3);
+        source.SignalNext(3, new InterruptCount(3));
         lastsTask.IsCompleted.ShouldBeFalse();
-        source.SignalNext(4);
+        source.SignalNext(4, new InterruptCount(4));
         lastsTask.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
@@ -351,7 +356,7 @@ public class LeafOperatorsTests
         var timeoutEventId = "TimeoutEventId";
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt), new InterruptCount(1));
         
         var nextOrSuspend = await source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
@@ -367,9 +372,9 @@ public class LeafOperatorsTests
         var timeoutEventId = "TimeoutEventId";
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
-        source.SignalNext("hallo");
-        source.SignalNext("world");
+        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt), new InterruptCount(1));
+        source.SignalNext("hallo", new InterruptCount(2));
+        source.SignalNext("world", new InterruptCount(3));
         
         var nextOrSuspend = await source
             .OfType<string>()
@@ -392,36 +397,37 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public void LastOfTypeReturnsValueOfTypeOnSignal()
+    public async Task LastOfTypeReturnsValueOfTypeOnSignal()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        source.SignalNext(2);
-        source.SignalNext("hallo");
-        source.SignalNext("world");
+        source.SignalNext(2, new InterruptCount(1));
+        source.SignalNext("hallo", new InterruptCount(2));
+        source.SignalNext("world", new InterruptCount(3));
 
         var lastOfType = source.LastOfType<string>();
         lastOfType.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        lastOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => lastOfType.IsCompletedSuccessfully);
         lastOfType.Result.ShouldBe("world");
     }
     
     [TestMethod]
-    public void LastOfReturnsValueOfTypeOnSignal()
+    public async Task LastOfReturnsValueOfTypeOnSignal()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        source.SignalNext(2);
-        source.SignalNext("hallo");
-        source.SignalNext("world");
+        source.SignalNext(2, new InterruptCount(1));
+        source.SignalNext("hallo", new InterruptCount(2));
+        source.SignalNext("world", new InterruptCount(3));
 
         var lastOfType = source.LastOf<string>();
         lastOfType.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        lastOfType.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => lastOfType.IsCompletedSuccessfully);
+
         lastOfType.Result.ShouldBe("world");
     }
     
@@ -430,19 +436,24 @@ public class LeafOperatorsTests
     #region Completion
     
     [TestMethod]
-    public void CompletionOperatorCompletesAfterStreamCompletion()
+    public async Task CompletionOperatorCompletesAfterStreamCompletion()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
             
         var completion = source.Completion();
         completion.IsCompleted.ShouldBeFalse();
+
+        await Task.Delay(10);
+        completion.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
+        completion.IsCompleted.ShouldBeFalse();
+        
+        await Task.Delay(10);
         completion.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-
-        completion.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => completion.IsCompletedSuccessfully);
     }
     
     [TestMethod]
@@ -450,8 +461,8 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
-        source.SignalNext(1);
-        source.SignalNext(2);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
         var completionOrSuspend = source.OfType<int>().Take(1).SuspendUntilCompletion();
         
         completionOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
@@ -466,8 +477,8 @@ public class LeafOperatorsTests
         stopWatch.Start();
         
         var nextOrSuspend = source.SuspendUntilCompletion(maxWait: TimeSpan.FromSeconds(1));
-        source.SignalNext(1);
-        source.SignalNext(2);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
 
         source.SignalCompletion();
         
@@ -485,7 +496,7 @@ public class LeafOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         
         var nextOrSuspend = source.SuspendUntilCompletion(maxWait: TimeSpan.FromMilliseconds(100));
-        
+
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
     }
     
@@ -504,41 +515,44 @@ public class LeafOperatorsTests
     #region Error Propagation
 
     [TestMethod]
-    public void ThrownExceptionInOperatorResultsInNextLeafThrowingSameException()
+    public async Task ThrownExceptionInOperatorResultsInNextLeafThrowingSameException()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var next = source.Where(_ => throw new InvalidOperationException("oh no")).First();
             
         next.IsCompleted.ShouldBeFalse();
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
             
+        await BusyWait.UntilAsync(() => next.IsCompleted);
+        
         next.IsFaulted.ShouldBeTrue();
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
     }
     
     [TestMethod]
-    public void ThrownExceptionInOperatorResultsInLastLeafThrowingSameException()
+    public async Task ThrownExceptionInOperatorResultsInLastLeafThrowingSameException()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var next = source.Where(_ => throw new InvalidOperationException("oh no")).Last();
             
         next.IsCompleted.ShouldBeFalse();
-        source.SignalNext("hello");
-            
+        source.SignalNext("hello", new InterruptCount(1));
+
+        await BusyWait.UntilAsync(() => next.IsCompleted);
         next.IsFaulted.ShouldBeTrue();
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
     }
     
     [TestMethod]
-    public void ThrownExceptionInOperatorResultsInCompletionLeafThrowingSameException()
+    public async Task ThrownExceptionInOperatorResultsInCompletionLeafThrowingSameException()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var next = source.Where(_ => throw new InvalidOperationException("oh no")).Completion();
             
         next.IsCompleted.ShouldBeFalse();
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
             
-        next.IsFaulted.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => next.IsCompleted);
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
     }
 
@@ -550,38 +564,37 @@ public class LeafOperatorsTests
     public void TryNextReturnsFalseOnNonEmittingStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hallo");
+        source.SignalNext("hallo", new InterruptCount(1));
 
-        var existing = source.OfType<int>().Existing(out var emittedFromSource);
+        var existing = source.OfType<int>().Existing(out var streamCompleted);
         existing.Count.ShouldBe(0);
-        emittedFromSource.ShouldBe(1);
+        streamCompleted.ShouldBeFalse();
     }
     
     [TestMethod]
     public void TryNextReturnsTrueOnEmittingStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hallo");
-        source.SignalNext(2);
+        source.SignalNext("hallo", new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
 
         var existing = source
             .OfType<int>()
-            .Existing(out var emittedFromSource);
+            .Existing(out var streamCompleted);
 
         existing.Count.ShouldBe(1);
         existing.Single().ShouldBe(2);
-        emittedFromSource.ShouldBe(2);
+        streamCompleted.ShouldBeFalse();
     }
     
     [TestMethod]
     public void TryLastReturnsNonCompletedStreamOnNonCompletedStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hallo");
+        source.SignalNext("hallo", new InterruptCount(1));
 
-        var existing = source.OfType<int>().Existing(out var emittedFromSource, out var completed);
+        var existing = source.OfType<int>().Existing(out var completed);
         existing.Count.ShouldBe(0);
-        emittedFromSource.ShouldBe(1);
         completed.ShouldBeFalse();
     }
     
@@ -589,33 +602,31 @@ public class LeafOperatorsTests
     public void TryLastReturnsSteamCompletedWithoutValueOnNonEmittingCompletedStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hallo");
+        source.SignalNext("hallo", new InterruptCount(1));
 
         var existing = source
             .Take(1)
             .OfType<int>()
-            .Existing(out var emittedFromSource, out var completed);
+            .Existing(out var completed);
         
         existing.Count.ShouldBe(0);
         completed.ShouldBe(true);
-        emittedFromSource.ShouldBe(1);
     }
     
     [TestMethod]
     public void TryLastReturnsStreamCompletedWithValueOnCompletedStream()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hallo");
-        source.SignalNext(2);
+        source.SignalNext("hallo", new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
 
         var existing = source
             .OfType<int>()
             .Take(1)
-            .Existing(out var emittedFromSource, out var completed);
+            .Existing(out var completed);
 
         existing.Count.ShouldBe(1);
         existing.Single().ShouldBe(2);
-        emittedFromSource.ShouldBe(2);
         completed.ShouldBeTrue();
     }
 
@@ -627,7 +638,7 @@ public class LeafOperatorsTests
     public void PullExistingOnChunkedChainShouldNotReturnPartialChunk()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
         var existing = source.Chunk(2).Existing();
         existing.Count.ShouldBe(0);
     }
@@ -636,8 +647,8 @@ public class LeafOperatorsTests
     public void PullExistingShouldReturnAllEmitsSoFar()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext("world");
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
         var existing = source.Existing();
         existing.Count.ShouldBe(2);
         existing[0].ShouldBe("hello");

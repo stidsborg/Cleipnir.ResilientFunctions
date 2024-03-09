@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
@@ -16,7 +18,7 @@ public class InnerOperatorsTests
     #region Select
     
     [TestMethod]
-    public void SelectOperatorProjectsEvent()
+    public async Task SelectOperatorProjectsEvent()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
@@ -25,13 +27,15 @@ public class InnerOperatorsTests
             .Select(s => s.Length)
             .Completion();
         
-        source.SignalNext("a");
-        source.SignalNext("ab");
-        source.SignalNext("abc");
-        source.SignalNext("abcd");
+        source.SignalNext("a", new InterruptCount(1));
+        source.SignalNext("ab", new InterruptCount(2));
+        source.SignalNext("abc", new InterruptCount(3));
+        source.SignalNext("abcd", new InterruptCount(4));
         
         emits.IsCompleted.ShouldBeFalse();
         source.SignalCompletion();
+
+        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
         emits.IsCompletedSuccessfully.ShouldBeTrue();
         
         var l = emits.Result;
@@ -43,20 +47,21 @@ public class InnerOperatorsTests
     #region Where
 
     [TestMethod]
-    public void WhereOperatorFiltersOutEmitsAsPerPredicate()
+    public async Task WhereOperatorFiltersOutEmitsAsPerPredicate()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
         var emits = source.OfType<int>().Where(n => n > 2).ToList();
         
-        source.SignalNext(1);
-        source.SignalNext(2);
-        source.SignalNext(3);
-        source.SignalNext(4);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
+        source.SignalNext(3, new InterruptCount(3));
+        source.SignalNext(4, new InterruptCount(4));
         emits.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        emits.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
+        
         var l = emits.Result;
         l.Count.ShouldBe(2);
         l[0].ShouldBe(3);
@@ -68,21 +73,24 @@ public class InnerOperatorsTests
     #region Take & Skip
 
     [TestMethod]
-    public void SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
+    public async Task SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var next1 = source.First();
         var next2 = source.Skip(1).First();
             
-        source.SignalNext("hello");
-        next1.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext("hello", new InterruptCount(1));
+        
+        await BusyWait.UntilAsync(() => next1.IsCompletedSuccessfully);
         next2.IsCompleted.ShouldBeFalse();
-        source.SignalNext("world");
-        next2.IsCompletedSuccessfully.ShouldBeTrue();
+        
+        source.SignalNext("world", new InterruptCount(2));
+
+        await BusyWait.UntilAsync(() => next2.IsCompletedSuccessfully);
     }
     
     [TestMethod]
-    public void TakeUntilCompletesAfterPredicateIsMet()
+    public async Task TakeUntilCompletesAfterPredicateIsMet()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -91,14 +99,14 @@ public class InnerOperatorsTests
             .TakeUntil(i => i > 2)
             .ToList();
             
-        source.SignalNext(1);
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
+
+        await Task.Delay(10);
         emits.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext(2);
-        emits.IsCompleted.ShouldBeFalse();
-        
-        source.SignalNext(3);
-        emits.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext(3, new InterruptCount(3));
+        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
 
         var l = emits.Result;
         l.Count.ShouldBe(2);
@@ -107,7 +115,7 @@ public class InnerOperatorsTests
     }
     
     [TestMethod]
-    public void SkipUntilSkipsUntilPredicateIsMet()
+    public async Task SkipUntilSkipsUntilPredicateIsMet()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -116,20 +124,18 @@ public class InnerOperatorsTests
             .SkipUntil(i => i > 2)
             .ToList();
         
-        source.SignalNext(1);
-        emits.IsCompleted.ShouldBeFalse();
-        
-        source.SignalNext(2);
-        emits.IsCompleted.ShouldBeFalse();
-        
-        source.SignalNext(3);
-        emits.IsCompleted.ShouldBeFalse();
+        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
 
-        source.SignalNext(2);
+        await Task.Delay(10);
         emits.IsCompleted.ShouldBeFalse();
+        
+        source.SignalNext(3, new InterruptCount(3));
+        source.SignalNext(2, new InterruptCount(4));
         
         source.SignalCompletion();
-        emits.IsCompletedSuccessfully.ShouldBeTrue();
+
+        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
         
         var l = emits.Result;
         l.Count.ShouldBe(2);
@@ -138,19 +144,18 @@ public class InnerOperatorsTests
     }
 
     [TestMethod]
-    public void TakeOperatorCompletesAfterInput()
+    public async Task TakeOperatorCompletesAfterInput()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
         
-        var takes = source.Take(2).ToList();
-        takes.IsCompleted.ShouldBeFalse();    
+        var task = source.Take(2).ToList();
 
-        source.SignalNext("world");
-        
-        takes.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext("world", new InterruptCount(2));
 
-        var emits = takes.Result;
+        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+
+        var emits = task.Result;
         emits.Count.ShouldBe(2);
         emits[0].ShouldBe("hello");
         emits[1].ShouldBe("world");
@@ -160,11 +165,11 @@ public class InnerOperatorsTests
 
     // *** SCAN *** //
     [TestMethod]
-    public void ScanOperatorEmitsIntermediaryStateOnEachEmitTakeOperatorCompletesAfterInput()
+    public async Task ScanOperatorEmitsIntermediaryStateOnEachEmitTakeOperatorCompletesAfterInput()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
-        source.SignalNext(1);
+        source.SignalNext(1, new InterruptCount(1));
         var intermediaryEmits = new List<int>();
         var lastTask = source
             .OfType<int>()
@@ -175,16 +180,18 @@ public class InnerOperatorsTests
                 return runningTotal;
             })
             .Last();
-        
-        intermediaryEmits.Count.ShouldBe(1);
+
+        await BusyWait.UntilAsync(() => intermediaryEmits.Count == 1);
         intermediaryEmits[0].ShouldBe(1);
         lastTask.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext(1);
-        intermediaryEmits.Count.ShouldBe(2);
+        source.SignalNext(1, new InterruptCount(2));
+        await BusyWait.UntilAsync(() => intermediaryEmits.Count == 2);
         intermediaryEmits[1].ShouldBe(2);
 
         source.SignalCompletion();
+        
+        await BusyWait.UntilAsync(() => lastTask.IsCompletedSuccessfully);
         
         intermediaryEmits.Count.ShouldBe(2);
         lastTask.IsCompletedSuccessfully.ShouldBeTrue();
@@ -194,7 +201,7 @@ public class InnerOperatorsTests
     #region Merge
 
     [TestMethod]
-    public void MergeTests()
+    public async Task MergeTests()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
 
@@ -202,7 +209,9 @@ public class InnerOperatorsTests
 
         var emitsTask = source.Merge(toUpper).Take(2).ToList();
         
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
+
+        await BusyWait.UntilAsync(() => emitsTask.IsCompletedSuccessfully);
         
         emitsTask.IsCompletedSuccessfully.ShouldBeTrue();
         var emits = emitsTask.Result;
@@ -216,17 +225,20 @@ public class InnerOperatorsTests
     #region OfTypes
 
     [TestMethod]
-    public void EventsCanBeFilteredByType()
+    public async Task EventsCanBeFilteredByType()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var nextStringEmitted = source.OfType<string>().First();
-        nextStringEmitted.IsCompleted.ShouldBeFalse();
-            
-        source.SignalNext(1);
+        await Task.Delay(10);
         nextStringEmitted.IsCompleted.ShouldBeFalse();
 
-        source.SignalNext("hello");
+        await Task.Delay(10);
+        source.SignalNext(1, new InterruptCount(1));
+        nextStringEmitted.IsCompleted.ShouldBeFalse();
 
+        source.SignalNext("hello", new InterruptCount(2));
+
+        await BusyWait.UntilAsync(() => nextStringEmitted.IsCompletedSuccessfully);
         nextStringEmitted.IsCompleted.ShouldBeTrue();
         nextStringEmitted.Result.ShouldBe("hello");
     }
@@ -235,8 +247,8 @@ public class InnerOperatorsTests
     public void OfTwoTypesTest()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext(2);
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
         
         {
             var either = source.OfTypes<string, int>().First().Result;
@@ -261,9 +273,9 @@ public class InnerOperatorsTests
     public void OfThreeTypesTest()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext(2);
-        source.SignalNext(25L);
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext(2, new InterruptCount(2));
+        source.SignalNext(25L, new InterruptCount(3));
         
         {
             var either = source.OfTypes<string, int, long>().First().Result;
@@ -307,26 +319,28 @@ public class InnerOperatorsTests
     public async Task BufferOperatorTest()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
 
         var nextTask = source.Buffer(2).First();
         var listTask = source.Buffer(2).ToList();
         
         nextTask.IsCompleted.ShouldBeFalse();
         listTask.IsCompleted.ShouldBeFalse();
-        source.SignalNext("world");
+        source.SignalNext("world", new InterruptCount(2));
         
-        nextTask.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => nextTask.IsCompletedSuccessfully);
+        
         var result = await nextTask;
         result.Count.ShouldBe(2);
         result[0].ShouldBe("hello");
         result[1].ShouldBe("world");
 
-        source.SignalNext("hello");
-        source.SignalNext("universe");
+        source.SignalNext("hello", new InterruptCount(3));
+        source.SignalNext("universe", new InterruptCount(4));
         source.SignalCompletion();
+
+        await BusyWait.UntilAsync(() => listTask.IsCompletedSuccessfully);
         
-        listTask.IsCompletedSuccessfully.ShouldBeTrue();
         var list = await listTask;
         list.Count.ShouldBe(2);
         var flatten = list.SelectMany(_ => _).ToList();
@@ -341,11 +355,13 @@ public class InnerOperatorsTests
     public async Task BufferOperatorOnCompletionEmitsBufferContent()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
 
         var nextTask = source.Buffer(2).First();
         
         source.SignalCompletion();
+
+        await BusyWait.UntilAsync(() => nextTask.IsCompleted);
         nextTask.IsCompletedSuccessfully.ShouldBeTrue();
         var emitted = await nextTask;
         emitted.Count.ShouldBe(1);
@@ -360,20 +376,22 @@ public class InnerOperatorsTests
     public async Task DistinctBySuccessfullyFiltersOutDuplicates()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("hello", new InterruptCount(2));
 
         var task = source
             .OfType<string>()
             .DistinctBy(s => s)
             .Take(2)
             .Completion();
-        
+
+        await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext("world");
+        source.SignalNext("world", new InterruptCount(3));
         
-        task.IsCompletedSuccessfully.ShouldBeTrue();
+        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        
         var emitted = await task;
         emitted.Count.ShouldBe(2);
         emitted[0].ShouldBe("hello");
@@ -385,11 +403,11 @@ public class InnerOperatorsTests
     #region WithCallback
 
     [TestMethod]
-    public void CallbackOperatorIsInvokedOnEachEmit()
+    public async Task CallbackOperatorIsInvokedOnEachEmit()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext("world");
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
 
         var emittedSoFar = new List<string>();
         var task = source
@@ -401,22 +419,25 @@ public class InnerOperatorsTests
         emittedSoFar.Count.ShouldBe(2);
         emittedSoFar[0].ShouldBe("hello");
         emittedSoFar[1].ShouldBe("world");
-        
+
+        await Task.Delay(10);
         task.IsCompleted.ShouldBeFalse();
         
-        source.SignalNext("and");
-        source.SignalNext("universe");
+        source.SignalNext("and", new InterruptCount(3));
+        source.SignalNext("universe", new InterruptCount(4));
+        
+        await BusyWait.UntilAsync(() => emittedSoFar.Count == 4);
         
         emittedSoFar.Count.ShouldBe(4);
         emittedSoFar[2].ShouldBe("and");
         emittedSoFar[3].ShouldBe("universe");
+
+        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
         
-        task.IsCompletedSuccessfully.ShouldBeTrue();
+        source.SignalNext("and", new InterruptCount(4));
+        source.SignalNext("multiverse", new InterruptCount(5));
         
-        source.SignalNext("and");
-        source.SignalNext("multiverse");
-        
-        emittedSoFar.Count.ShouldBe(4);
+        await BusyWait.UntilAsync(() => emittedSoFar.Count == 4);
     }
 
     #endregion

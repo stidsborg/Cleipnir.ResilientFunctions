@@ -169,7 +169,6 @@ public class Invoker<TParam, TState, TReturn>
             var messages = await _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: false);
             var effect = await _invocationHelper.CreateEffect(functionId, sync: false);
             var workflow = new Workflow(functionId, messages, effect, _utilities, _messageWriterFunc);
-            disposables.Add(workflow);
 
             return new PreparedInvocation(
                 persisted,
@@ -195,7 +194,7 @@ public class Invoker<TParam, TState, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var (param, epoch, state, runningFunction) = 
+            var (param, epoch, state, interruptCount, runningFunction) = 
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
@@ -203,7 +202,6 @@ public class Invoker<TParam, TState, TReturn>
             var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: true));
             var activitiesTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
             var workflow = new Workflow(functionId, await messagesTask, await activitiesTask, _utilities, _messageWriterFunc);
-            disposables.Add(workflow);
 
             return new PreparedReInvocation(
                 _inner,
@@ -234,10 +232,20 @@ public class Invoker<TParam, TState, TReturn>
             throw serializationException;
         }
             
-        var success = await _invocationHelper.PersistResult(functionId, result, param, state, expectedEpoch);
-        if (success)
-            InvocationHelper<TParam, TState, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
-        else
-            throw new ConcurrentModificationException(functionId);
+        var outcome = await _invocationHelper.PersistResult(functionId, result, param, state, expectedEpoch);
+        switch (outcome)
+        {
+            case PersistResultOutcome.Failed:
+                throw new ConcurrentModificationException(functionId);
+            case PersistResultOutcome.Success:
+                InvocationHelper<TParam, TState, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+                break;
+            case PersistResultOutcome.Reschedule:
+                await ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
+                InvocationHelper<TParam, TState, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
 }

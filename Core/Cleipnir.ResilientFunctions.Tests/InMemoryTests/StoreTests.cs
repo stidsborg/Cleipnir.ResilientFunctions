@@ -141,12 +141,16 @@ public class StoreTests : TestTemplates.StoreTests
         => SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch()
-        => FunctionIsPostponedOnSuspensionAndMessageCountMismatch(FunctionStoreFactory.Create());
+    public override Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch()
+        => FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task InterruptCountCanBeIncrementedForFunction()
-        => InterruptCountCanBeIncrementedForFunction(FunctionStoreFactory.Create());
+    public override Task InterruptCountCanBeIncrementedForExecutingFunction()
+        => InterruptCountCanBeIncrementedForExecutingFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task InterruptCountCannotBeIncrementedForNonExecutingFunction()
+        => InterruptCountCannotBeIncrementedForNonExecutingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task InterruptCountForNonExistingFunctionIsNull()

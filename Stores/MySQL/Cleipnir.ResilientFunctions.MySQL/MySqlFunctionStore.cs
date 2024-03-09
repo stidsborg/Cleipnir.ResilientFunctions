@@ -425,78 +425,43 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+    public async Task<bool> SuspendFunction(FunctionId functionId, long expectedInterruptCount, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = ?, state_json = ?, timestamp = ?
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
-
-            UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Suspended}
-            WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
-                epoch = ? AND 
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = ? AND function_instance_id = ?) = ?";
+            SET status = {(int) Status.Suspended}, state_json = ?, timestamp = ?
+            WHERE function_type_id = ? AND 
+                  function_instance_id = ? AND 
+                  epoch = ? AND
+                  interrupt_count = ?;";
 
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = DateTime.UtcNow.AddSeconds(30).Ticks },
                 new() { Value = stateJson },
                 new() { Value = timestamp },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
-                
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-                
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedMessageCount },
+                new() { Value = expectedInterruptCount }
             }
         };
         
         var affectedRows = await command.ExecuteNonQueryAsync();
-        if (affectedRows == 0)
-            return false;
-        if (affectedRows == 2)
-            return true;
-        
-        // affectedRows == 1
-        sql = $@"
-            UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = 0
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;";
-
-        await using var postponeCommand = new MySqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
-        
-        await postponeCommand.ExecuteNonQueryAsync();
-        return true;
+        return affectedRows == 1;
     }
 
-    public async Task IncrementInterruptCount(FunctionId functionId)
+    public async Task<bool> IncrementInterruptCount(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET interrupt_count = interrupt_count + 1
-            WHERE function_type_id = ? AND function_instance_id = ?;";
+            WHERE function_type_id = ? AND function_instance_id = ? AND status = {(int) Status.Executing};";
 
         await using var command = new MySqlCommand(sql, conn)
         {
@@ -507,7 +472,8 @@ public class MySqlFunctionStore : IFunctionStore
             }
         };
         
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
     
     public async Task<long?> GetInterruptCount(FunctionId functionId)

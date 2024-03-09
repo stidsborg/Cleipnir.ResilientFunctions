@@ -446,72 +446,48 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> SuspendFunction(
         FunctionId functionId,
-        int expectedMessageCount,
+        long expectedInterruptCount,
         string stateJson,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState _)
     {
         await using var conn = await _connFunc();
-        {
-            var sql = @$"
+
+        var sql = @$"
                 UPDATE {_tablePrefix}RFunctions
-                SET Status = {(int)Status.Postponed}, PostponedUntil = @PostponeUntil, StateJson = @StateJson, Timestamp = @Timestamp
-                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;
+                SET Status = {(int)Status.Suspended}, StateJson = @StateJson, Timestamp = @Timestamp
+                WHERE FunctionTypeId = @FunctionTypeId AND 
+                      FunctionInstanceId = @FunctionInstanceId AND 
+                      Epoch = @ExpectedEpoch AND
+                      InterruptCount = @ExpectedInterruptCount;";
 
-                UPDATE {_tablePrefix}RFunctions
-                SET Status = {(int)Status.Suspended}
-                WHERE (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId) = @ExpectedCount
-                    AND FunctionTypeId = @FunctionTypeId
-                    AND FunctionInstanceId = @FunctionInstanceId
-                    AND Epoch = @ExpectedEpoch";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@StateJson", stateJson);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        command.Parameters.AddWithValue("@ExpectedInterruptCount", expectedInterruptCount);
 
-            await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@PostponeUntil", DateTime.UtcNow.AddSeconds(30).Ticks);
-            command.Parameters.AddWithValue("@StateJson", stateJson);
-            command.Parameters.AddWithValue("@Timestamp", timestamp);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-            command.Parameters.AddWithValue("@ExpectedCount", expectedMessageCount);
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            if (affectedRows == 0)
-                return false;
-            if (affectedRows == 2)
-                return true;
-        }
-        
-        //otherwise affectedRows == 1
-        {
-            var sql = @$"
-                UPDATE {_tablePrefix}RFunctions
-                SET Status = {(int)Status.Postponed}, PostponedUntil = 0
-                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;";
-
-            await using var command = new SqlCommand(sql, conn);
-            command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-            command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-            await command.ExecuteNonQueryAsync();
-            return true;
-        }
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
-    public async Task IncrementInterruptCount(FunctionId functionId)
+    public async Task<bool> IncrementInterruptCount(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
                 UPDATE {_tablePrefix}RFunctions
                 SET InterruptCount = InterruptCount + 1
-                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Status = {(int) Status.Executing};";
 
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
 
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
     public async Task<long?> GetInterruptCount(FunctionId functionId)

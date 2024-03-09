@@ -85,14 +85,14 @@ public interface IFunctionStore
     
     Task<bool> SuspendFunction(
         FunctionId functionId, 
-        int expectedMessageCount, 
+        long expectedInterruptCount, 
         string stateJson, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     );
 
-    Task IncrementInterruptCount(FunctionId functionId);
+    Task<bool> IncrementInterruptCount(FunctionId functionId);
     Task<long?> GetInterruptCount(FunctionId functionId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId);

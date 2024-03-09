@@ -4,8 +4,8 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public class SuspendInvocationException : Exception
 {
-    public int ExpectedEventCount { get; }
+    public InterruptCount ExpectedInterruptCount { get; }
 
-    public SuspendInvocationException(int expectedEventCount)
-        => ExpectedEventCount = expectedEventCount;
+    public SuspendInvocationException(InterruptCount expectedInterruptCount)
+        => ExpectedInterruptCount = expectedInterruptCount;
 }

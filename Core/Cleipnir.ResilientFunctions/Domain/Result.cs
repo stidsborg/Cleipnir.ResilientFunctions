@@ -87,12 +87,11 @@ public class Postpone
 
 public class Suspend
 {
-    public int ExpectedMessageCount { get; }
+    public long InterruptCount { get; }
     
-    private Suspend(int expectedMessageCount) => ExpectedMessageCount = expectedMessageCount;
+    private Suspend(long interruptCount) => InterruptCount = interruptCount;
 
-    public static Suspend UntilAfter(int expectedEventCount) => new Suspend(expectedEventCount);
-    public static void Throw(int expectedEventCount) => throw new SuspendInvocationException(expectedEventCount);
+    public static Suspend While(long interruptCount) => new Suspend(interruptCount);
 
     public Result<T> ToResult<T>() => new Result<T>(this);
 }

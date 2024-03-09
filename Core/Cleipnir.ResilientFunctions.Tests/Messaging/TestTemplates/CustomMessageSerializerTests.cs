@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -27,14 +28,15 @@ public abstract class CustomMessageSerializerTests
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            functionStore.MessageStore,
-            messagesWriter,
-            new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1)),
-            pullFrequency: null,
-            eventSerializer
+            defaultDelay: TimeSpan.FromSeconds(1),
+            functionStore,
+            eventSerializer,
+            timeoutProvider
         );
+        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
         
         await messages.AppendMessage("hello world");
         

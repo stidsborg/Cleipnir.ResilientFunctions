@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,8 +14,11 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
         private int _readIndex = 0;
         private readonly object _sync = new();
 
+        private readonly CancellationToken _cancellationToken;
+        
         private Exception? _thrownException;
         private T _current = default!;
+        private volatile bool _completed;
 
         public T Current
         {
@@ -34,14 +38,30 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
                 onCompletion: () => AddEventToDictionary(new Event(completed: true, exception: null, next: default!)),
                 onError: exception => AddEventToDictionary(new Event(completed: false, exception, next: default!))
             );
-            _subscription.DeliverExisting();
-            _subscription.DeliverFuture();
 
-            cancellationToken.Register(_subscription.Dispose);
+            _cancellationToken = cancellationToken;
+            _subscription.PushMessages();
+            if (!_completed)
+                Task.Run(StartSubscriptionLoop);
+        }
+
+        private async Task StartSubscriptionLoop()
+        {
+            while (!_completed)
+            {
+                await _subscription.SyncStore(_subscription.DefaultMessageSyncDelay);
+                _subscription.PushMessages();
+                
+                if (!_completed)
+                    await Task.Delay(_subscription.DefaultMessageSyncDelay, _cancellationToken);
+            }
         }
 
         private void AddEventToDictionary(Event @event)
         {
+            if (@event.Completed)
+                _completed = true;
+            
             TaskCompletionSource<Event> tcs;
             lock (_sync)
             {
@@ -58,7 +78,8 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
         
         public ValueTask DisposeAsync()
         {
-            _subscription.Dispose();
+            _completed = true;
+            
             return ValueTask.CompletedTask;
         }
 

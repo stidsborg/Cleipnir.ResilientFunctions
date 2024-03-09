@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
@@ -24,7 +25,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         _signalErrorOnTimeout = signalErrorOnTimeout;
     }
 
-    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
+    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
     {
         var subscription = new Subscription(
             _inner, 
@@ -35,7 +36,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             onNext, 
             onCompletion, 
             onError, 
-            subscriptionGroupId
+            addToSubscriptionGroup
         );
         
         Task.Run(subscription.RegisterTimeoutIfNotInExistingEvents);
@@ -56,12 +57,14 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         private readonly ISubscription _innerSubscription;
         private readonly ISubscription _timeoutSubscription;
         private bool _completed;
+        
+        public TimeSpan DefaultMessageSyncDelay { get; }
 
         public Subscription(
             IReactiveChain<T> inner,
             string timeoutId, DateTime expiresAt, bool overwriteExisting, bool signalErrorOnTimeout,
             Action<T> signalNext, Action signalCompletion, Action<Exception> signalError,
-            int? subscriptionGroupId)
+            ISubscriptionGroup? subscriptionGroupId)
         {
             _timeoutId = timeoutId;
             _expiresAt = expiresAt;
@@ -81,8 +84,10 @@ public class TimeoutOperator<T> : IReactiveChain<T>
                     onNext: _ => { },
                     onCompletion: () => { if (signalErrorOnTimeout) OnError(new TimeoutException($"Timeout '{timeoutId}' expired")); else OnCompletion(); },
                     onError: _ => { },
-                    _innerSubscription.SubscriptionGroupId
+                    _innerSubscription.Group
                 );
+
+            DefaultMessageSyncDelay = _innerSubscription.DefaultMessageSyncDelay;
         }
 
         public async Task RegisterTimeoutIfNotInExistingEvents()
@@ -104,18 +109,16 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             }
             catch (Exception exception)
             {
-                await StopDelivering();
                 OnError(exception);
             }
         }
 
-        public int EmittedFromSource => _innerSubscription.EmittedFromSource;
+        public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
-        public int SubscriptionGroupId => _innerSubscription.SubscriptionGroupId;
-        public void DeliverFuture() => _innerSubscription.DeliverFuture();
-        public void DeliverExisting() => _innerSubscription.DeliverExisting();
-        public Task StopDelivering() => _innerSubscription.StopDelivering();
+        public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
+
+        public InterruptCount PushMessages() => _innerSubscription.PushMessages();
 
         private void OnNext(T next)
         {
@@ -142,11 +145,5 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
             _signalCompletion();  
         }
-
-        public void Dispose()
-        {
-            _innerSubscription.Dispose();
-            _timeoutSubscription.Dispose();
-        } 
     }
 }

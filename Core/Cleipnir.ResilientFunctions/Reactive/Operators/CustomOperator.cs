@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -29,8 +30,8 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         _handleCompletion = handleCompletion;
     }
 
-    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
-        => new Subscription(_inner, _operatorFactory, _handleCompletion, onNext, onCompletion, onError, subscriptionGroupId);
+    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
+        => new Subscription(_inner, _operatorFactory, _handleCompletion, onNext, onCompletion, onError, addToSubscriptionGroup);
 
     private class Subscription : ISubscription
     {
@@ -46,15 +47,16 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         private bool _handlingCompletion;
         private OnCompletion<TOut>? HandleCompletion { get; }
 
-        public int EmittedFromSource => _innerSubscription.EmittedFromSource;
+        public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
+        public TimeSpan DefaultMessageSyncDelay { get; }
 
         public Subscription(
             IReactiveChain<TIn> inner,
             Func<Operator<TIn, TOut>> operatorFactory,
             OnCompletion<TOut>? handleCompletion,
             Action<TOut> onNext, Action onCompletion, Action<Exception> onError,
-            int? subscriptionGroupId)
+            ISubscriptionGroup? addToSubscriptionGroup)
         {
             HandleCompletion = handleCompletion;
             _signalNext = onNext;
@@ -63,15 +65,15 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 
             Operator = operatorFactory();
             
-            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError, subscriptionGroupId);
+            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError, addToSubscriptionGroup);
+            DefaultMessageSyncDelay = _innerSubscription.DefaultMessageSyncDelay;
         }
 
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
-        public int SubscriptionGroupId => _innerSubscription.SubscriptionGroupId;
-        public void DeliverFuture() => _innerSubscription.DeliverFuture();
-        public void DeliverExisting() => _innerSubscription.DeliverExisting();
-        public Task StopDelivering() => _innerSubscription.StopDelivering();
 
+        public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
+        public InterruptCount PushMessages() => _innerSubscription.PushMessages();
+        
         private void OnNext(TIn next)
         {
             if (_completed) return;
@@ -79,10 +81,11 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             try
             {
                 Operator(
-                    next, 
-                    _signalNext, 
-                    signalCompletion: () => { OnCompletion(); Dispose(); }, 
-                    signalException: exception => { OnError(exception); Dispose(); });
+                    next,
+                    _signalNext,
+                    signalCompletion: OnCompletion,
+                    signalException: OnError
+                );
             }
             catch (Exception exception)
             {
@@ -107,7 +110,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             {
                 HandleCompletion?.Invoke(
                     _signalNext,
-                    signalException: exception => { OnError(exception); Dispose(); }
+                    signalException: exception => { OnError(exception); }
                 );
             }
             catch (Exception exception)
@@ -118,7 +121,5 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             _completed = true;
             _signalCompletion();
         }
-
-        public void Dispose() => _innerSubscription.Dispose();
     }
 }

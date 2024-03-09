@@ -742,8 +742,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, WorkflowState _, Workflow workflow) =>
             {
-                using var messages = workflow.Messages;
-                await messages.AppendMessage(param);
+                await workflow.Messages.AppendMessage(param);
             }
         );
 
@@ -775,7 +774,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, WorkflowState _, Workflow workflow) =>
             {
-                using var messages = workflow.Messages;
+                var messages = workflow.Messages;
                 if (first)
                 {
                     invocationCount.Increment();
@@ -836,7 +835,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task(string param, WorkflowState _, Workflow workflow) =>
             {
-                using var messages = workflow.Messages;
+                var messages = workflow.Messages;
                 if (first)
                 {
                     first = false;
@@ -1043,7 +1042,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(functionInstanceId.Value, param: "param");
         await rAction.MessageWriters
             .For(functionInstanceId.Value)
-            .AppendMessage(new MessageAndIdempotencyKey("hello world", IdempotencyKey: "first"));
+            .AppendMessage("hello world", idempotencyKey: "first");
             
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;

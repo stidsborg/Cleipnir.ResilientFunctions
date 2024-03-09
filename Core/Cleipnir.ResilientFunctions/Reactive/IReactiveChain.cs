@@ -11,7 +11,7 @@ public interface IReactiveChain<out T>
         Action<T> onNext, 
         Action onCompletion, 
         Action<Exception> onError, 
-        int? subscriptionGroupId = null
+        ISubscriptionGroup? addToSubscriptionGroup = null
     );
 
     IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)

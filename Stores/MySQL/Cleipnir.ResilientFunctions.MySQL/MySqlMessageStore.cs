@@ -159,11 +159,8 @@ public class MySqlMessageStore : IMessageStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows;
     }
-
-    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
-        => InnerGetMessages(functionId, skip: 0).SelectAsync(messages => (IEnumerable<StoredMessage>)messages);
     
-    private async Task<List<StoredMessage>> InnerGetMessages(FunctionId functionId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"    
@@ -193,34 +190,27 @@ public class MySqlMessageStore : IMessageStore
 
         return storedMessages;
     }
-    
-    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
+
+    public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
     {
-        var sync = new object();
-        var skip = 0;
-        var disposed = false;
-        
-        var subscription = new MessagesSubscription(
-            pullNewMessages: async () =>
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var sql = @$"    
+            SELECT COALESCE(MAX(position), -1)
+            FROM {_tablePrefix}rfunctions_messages
+            WHERE function_type_id = ? AND function_instance_id = ?;";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                lock (sync)
-                    if (disposed)
-                        return ArraySegment<StoredMessage>.Empty;
-                
-                var messages = await InnerGetMessages(functionId, skip);
-                skip += messages.Count;
-                
-                return messages;
-            },
-            dispose: () =>
-            {
-                lock (sync)
-                    disposed = true;
-
-                return ValueTask.CompletedTask;
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
             }
-        );
+        };
 
-        return subscription;
+        var maxPosition = (long?) await command.ExecuteScalarAsync();
+        if (maxPosition == null)
+            return false;
+
+        return maxPosition.Value + 1 > skip;
     }
 }

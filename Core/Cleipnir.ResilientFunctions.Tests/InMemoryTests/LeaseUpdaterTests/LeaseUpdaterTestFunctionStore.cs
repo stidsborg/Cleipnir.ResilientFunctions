@@ -74,10 +74,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
         => _inner.FailFunction(functionId, storedException, stateJson, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> SuspendFunction(FunctionId functionId, int expectedMessageCount, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _inner.SuspendFunction(functionId, expectedMessageCount, stateJson, timestamp, expectedEpoch, complimentaryState);
+    public Task<bool> SuspendFunction(FunctionId functionId, long expectedInterruptCount, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+        => _inner.SuspendFunction(functionId, expectedInterruptCount, stateJson, timestamp, expectedEpoch, complimentaryState);
 
-    public Task IncrementInterruptCount(FunctionId functionId)
+    public Task<bool> IncrementInterruptCount(FunctionId functionId)
         => _inner.IncrementInterruptCount(functionId);
 
     public Task<long?> GetInterruptCount(FunctionId functionId)

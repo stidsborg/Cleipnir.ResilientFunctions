@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -19,8 +20,8 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             throw new ArgumentException("Buffer size must be a non-negative number", nameof(bufferSize));
     }
 
-    public ISubscription Subscribe(Action<List<T>> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null) 
-        => new Subscription(_innerReactiveChain, _bufferSize, onNext, onCompletion, onError, subscriptionGroupId);
+    public ISubscription Subscribe(Action<List<T>> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null) 
+        => new Subscription(_innerReactiveChain, _bufferSize, onNext, onCompletion, onError, addToSubscriptionGroup);
 
     private class Subscription : ISubscription
     {
@@ -34,11 +35,13 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         private readonly ISubscription _subscription;
         private bool _completed;
 
+        public TimeSpan DefaultMessageSyncDelay { get; }
+        
         public Subscription(
             IReactiveChain<T> inner,
             int bufferSize,
             Action<List<T>> signalNext, Action signalCompletion, Action<Exception> signalError,
-            int? subscriptionGroupId)
+            ISubscriptionGroup? addToSubscriptionGroup)
         {
             _bufferSize = bufferSize;
             _currentBuffer = new List<T>(_bufferSize);
@@ -47,16 +50,15 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             _signalCompletion = signalCompletion;
             _signalError = signalError;
             
-            _subscription = inner.Subscribe(OnNext, OnCompletion, OnError, subscriptionGroupId);
+            _subscription = inner.Subscribe(OnNext, OnCompletion, OnError, addToSubscriptionGroup);
+            DefaultMessageSyncDelay = _subscription.DefaultMessageSyncDelay;
         }
 
-        public int EmittedFromSource => _subscription.EmittedFromSource;
+        public ISubscriptionGroup Group => _subscription.Group;
         public IReactiveChain<object> Source => _subscription.Source;
         public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;
-        public int SubscriptionGroupId => _subscription.SubscriptionGroupId;
-        public void DeliverFuture() => _subscription.DeliverFuture();
-        public void DeliverExisting() => _subscription.DeliverExisting();
-        public Task StopDelivering() => _subscription.StopDelivering();
+        public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription.SyncStore(maxSinceLastSynced);
+        public InterruptCount PushMessages() => _subscription.PushMessages();
 
         private void OnNext(T next)
         {
@@ -85,7 +87,5 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
                 _signalNext(_currentBuffer);
             _signalCompletion();  
         } 
-
-        public void Dispose() => _subscription.Dispose();
     }
 }

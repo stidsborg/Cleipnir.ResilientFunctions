@@ -25,12 +25,6 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => PostponedFunctionIsResumedAfterEventIsAppendedToMessages(
             FunctionStoreFactory.Create()
         );
-
-    [TestMethod]
-    public override Task SuspendedFunctionIsResumedAfterPublishedNoOpMessage()
-        => SuspendedFunctionIsResumedAfterPublishedNoOpMessage(
-            FunctionStoreFactory.Create()
-        );
     
     [TestMethod]
     public override Task EligibleSuspendedFunctionIsPickedUpByWatchdog()

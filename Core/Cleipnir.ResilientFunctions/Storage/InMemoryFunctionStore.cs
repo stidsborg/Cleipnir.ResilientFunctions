@@ -260,7 +260,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     public virtual Task<bool> SuspendFunction(
         FunctionId functionId, 
-        int expectedMessageCount, 
+        long expectedInterruptCount, 
         string stateJson,
         long timestamp,
         int expectedEpoch, 
@@ -275,8 +275,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
-            if (_messages[functionId].Count > expectedMessageCount)
-                return PostponeFunction(functionId, postponeUntil: 0, stateJson, timestamp, expectedEpoch, complimentaryState);
+            if (state.InterruptCount != expectedInterruptCount)
+                return false.ToTask();
                 
             state.Status = Status.Suspended;
             state.State = state.State with { StateJson = stateJson };
@@ -286,16 +286,20 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task IncrementInterruptCount(FunctionId functionId)
+    public Task<bool> IncrementInterruptCount(FunctionId functionId)
     {
         lock (_sync)
         {
             var success = _states.TryGetValue(functionId, out var state);
-            if (success)
-                state!.InterruptCount++;
+            if (!success)
+                return false.ToTask();
+            
+            if (state!.Status != Status.Executing)
+                return false.ToTask();
+            
+            state.InterruptCount++;
+            return true.ToTask();
         }
-
-        return Task.CompletedTask;
     }
 
     public Task<long?> GetInterruptCount(FunctionId functionId)
@@ -449,51 +453,19 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public virtual Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
+    private IEnumerable<StoredMessage> GetMessages(FunctionId functionId)
     {
         lock (_sync)
-        {
-            if (!_messages.ContainsKey(functionId))
-                return Enumerable.Empty<StoredMessage>().ToTask();
-
-            return _messages[functionId].ToList().AsEnumerable().ToTask();
-        }
+            return !_messages.ContainsKey(functionId) 
+                ? Enumerable.Empty<StoredMessage>() 
+                : _messages[functionId].ToList();
     }
 
-    public virtual MessagesSubscription SubscribeToMessages(FunctionId functionId)
-    {
-        var disposed = false;
-        var skip = 0;
+    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
+        => ((IReadOnlyList<StoredMessage>)GetMessages(functionId).Skip(skip).ToList()).ToTask();
 
-        var subscription = new MessagesSubscription(
-            pullNewMessages: () =>
-            {
-                List<StoredMessage>? messages;
-
-                lock (_sync)
-                    if (disposed)
-                        return Task.FromResult((IReadOnlyList<StoredMessage>) Array.Empty<StoredMessage>());
-                    else if (_messages.ContainsKey(functionId) && _messages[functionId].Count > skip)
-                    {
-                        messages = _messages[functionId].Skip(skip).ToList();
-                        skip += messages.Count;
-                    }
-                    else
-                        messages = new List<StoredMessage>();
-
-                return Task.FromResult((IReadOnlyList<StoredMessage>) messages);
-            },
-            dispose: () =>
-            {
-                lock (_sync)
-                    disposed = true;
-                
-                return ValueTask.CompletedTask;
-            }
-        );
-
-        return subscription;
-    }
+    public Task<bool> HasMoreMessages(FunctionId functionId, int skip)
+        => GetMessages(functionId, skip).SelectAsync(msgs => msgs.Any());
 
     #endregion
 }

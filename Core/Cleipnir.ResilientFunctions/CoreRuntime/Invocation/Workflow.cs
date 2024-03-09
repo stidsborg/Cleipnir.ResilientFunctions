@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public class Workflow : IDisposable
+public class Workflow
 {
     private readonly Func<FunctionId, MessageWriter> _messageWriterFunc;
     
@@ -29,8 +29,6 @@ public class Workflow : IDisposable
         effect = Effect;
         messages = Messages;
     }
-    
-    public void Dispose() => Messages.Dispose();
 
     public async Task PublishMessage<T>(FunctionId receiver, T message, string? idempotencyKey) where T : notnull
     {

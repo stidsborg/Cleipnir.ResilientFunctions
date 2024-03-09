@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
@@ -33,8 +34,9 @@ public class TimeoutTests
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
         
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompleted.ShouldBeTrue();
 
         await Should.ThrowAsync<NoResultException>(task);
@@ -53,8 +55,9 @@ public class TimeoutTests
         
         await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
         
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
 
         var option = await task;
@@ -81,8 +84,9 @@ public class TimeoutTests
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
         
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompleted.ShouldBeTrue();
         task.Status.ShouldBe(TaskStatus.Faulted);
 
@@ -97,7 +101,7 @@ public class TimeoutTests
     }
     
     [TestMethod]
-    public void StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
+    public async Task StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
     {
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
@@ -107,14 +111,15 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
-        source.SignalNext("Hello");
+        source.SignalNext("Hello", new InterruptCount(1));
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         task.Result.ShouldBe("Hello");
     }
     
     [TestMethod]
-    public void StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
+    public async Task StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
     {
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
@@ -124,8 +129,9 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
-        source.SignalNext("Hello");
+        source.SignalNext("Hello", new InterruptCount(1));
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         var option = task.Result;
         option.HasValue.ShouldBeTrue();
@@ -148,8 +154,9 @@ public class TimeoutTests
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
         
-        source.SignalNext("Hello");
+        source.SignalNext("Hello", new InterruptCount(1));
 
+        await BusyWait.UntilAsync(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         var result = await task;
         result.ShouldBe("Hello");

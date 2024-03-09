@@ -31,7 +31,7 @@ public abstract class SuspensionTests
 
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Result(string _) => Suspend.UntilAfter(0)
+            Result(string _) => Suspend.While(0)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -65,7 +65,7 @@ public abstract class SuspensionTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             typeId,
-            Result<string>(string _) => Suspend.UntilAfter(0)
+            Result<string>(string _) => Suspend.While(0)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -106,7 +106,7 @@ public abstract class SuspensionTests
                 if (invocations == 0)
                 {
                     invocations++;
-                    return Suspend.UntilAfter(0);
+                    return Suspend.While(0);
                 }
 
                 invocations++;
@@ -170,46 +170,6 @@ public abstract class SuspensionTests
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task SuspendedFunctionIsResumedAfterPublishedNoOpMessage();
-
-    protected async Task SuspendedFunctionIsResumedAfterPublishedNoOpMessage(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
-        (
-            store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var actionRegistration = functionsRegistry.RegisterAction(
-            functionTypeId,
-            async (string _, Workflow workflow) =>
-            {
-                await workflow.Messages.First();
-                using var subscription = workflow.Messages.Subscribe(
-                    onNext: _ => { },
-                    onCompletion: () => { },
-                    onError: _ => { }
-                );
-                subscription.DeliverExisting();
-                if (subscription.EmittedFromSource == 1)
-                {
-                    await workflow.Messages.Sync();
-                    workflow.Messages.Existing.Any().ShouldBeFalse();
-                    return;
-                }
-
-                throw new SuspendInvocationException(expectedEventCount: 0);
-            }
-        );
-        
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
-    }
-    
     public abstract Task EligibleSuspendedFunctionIsPickedUpByWatchdog();
     protected async Task EligibleSuspendedFunctionIsPickedUpByWatchdog(Task<IFunctionStore> storeTask)
     {
@@ -232,7 +192,7 @@ public abstract class SuspensionTests
             {
                 if (flag.IsRaised) return "success";
                 flag.Raise();
-                return Suspend.UntilAfter(0);
+                return Suspend.While(0);
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(

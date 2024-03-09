@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -34,38 +32,32 @@ public class MessageWriter
             _functionId,
             new StoredMessage(eventJson, eventType, idempotencyKey)
         );
+
+        if (status == Status.Failed || status == Status.Succeeded)
+            return;
         
-        if (status == Status.Suspended || status == Status.Postponed)
+        if (status == Status.Executing)
         {
-            try
+            var success = await _functionStore.IncrementInterruptCount(_functionId);
+            if (success)
+                return; //executing function will notice interrupt increment and reschedule itself on suspension
+            
+            //otherwise update status and epoch so we can reschedule if new status is postponed or suspended
+            var statusAndEpoch = await _functionStore.GetFunctionStatus(_functionId);
+            if (statusAndEpoch == null)
+                return;
+
+            status = statusAndEpoch.Status;
+            epoch = statusAndEpoch.Epoch;
+        }
+
+        if (status == Status.Postponed || status == Status.Suspended)
+            try 
             {
                 await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
             }
-            catch (UnexpectedFunctionState)
-            {
-
-            }
-        }
-            
+            catch (UnexpectedFunctionState) { }
     }
     
-    public async Task AppendMessage(MessageAndIdempotencyKey messageAndIdempotency)
-    {
-        var (@event, idempotencyKey) = messageAndIdempotency;
-        var (eventJson, eventType) = _serializer.SerializeMessage(@event);
-        await _messageStore.AppendMessage(
-            _functionId,
-            new StoredMessage(eventJson, eventType, idempotencyKey)
-        );
-
-        var statusAndEpoch = await _functionStore.GetFunctionStatus(_functionId);
-        if (statusAndEpoch == null)
-            throw new UnexpectedFunctionState(_functionId, $"Function '{_functionId}' not found");
-
-        var (status, epoch) = statusAndEpoch;
-        if (status == Status.Suspended || status == Status.Postponed)
-            await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
-    }
-
     public Task Truncate() => _messageStore.Truncate(_functionId);
 }

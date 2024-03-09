@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -19,8 +20,8 @@ public class ReactiveChainSemanticsTests
         var subscription2OnNextFlag = new SyncedFlag();
         var completeSubscription2OnNextFlag = new SyncedFlag();
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext("world");
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
 
         var completed1 = false;
         var failed1 = false;
@@ -43,13 +44,13 @@ public class ReactiveChainSemanticsTests
             },
             onCompletion: () => completed1 = true,
             onError: _ => failed1 = true,
-            subscriptionGroupId: subscription1.SubscriptionGroupId
+            addToSubscriptionGroup: subscription1.Group
         );
             
         var deliverExistingTask = Task.Run(() =>
         {
-            subscription1.DeliverExisting();
-            return subscription1.EmittedFromSource;
+            subscription1.SyncStore(TimeSpan.Zero);
+            subscription1.PushMessages();
         });
         await subscription2OnNextFlag.WaitForRaised();
             
@@ -60,8 +61,8 @@ public class ReactiveChainSemanticsTests
 
         deliverExistingTask.IsCompleted.ShouldBeFalse();
         completeSubscription2OnNextFlag.Raise();
-        var deliveredExistingCount = await deliverExistingTask;
-        deliveredExistingCount.ShouldBe(2);
+        await deliverExistingTask;
+        
         latest1.ShouldBe("world");
         latest2.ShouldBe("world");
             
@@ -70,45 +71,11 @@ public class ReactiveChainSemanticsTests
     }
         
     [TestMethod]
-    public void StreamsInSameSubscriptionGroupCanBeDisposedSuccessfully()
-    {
-        var source = new Source(NoOpTimeoutProvider.Instance);
-
-        var subscription1Emits = 0;
-        var subscription2Emits = 0;
-        var subscription1 = source.Subscribe(
-            onNext: _ => subscription1Emits++, 
-            onCompletion: () => {}, 
-            onError: _ => {}
-        );
-            
-        var subscription2 = source.Subscribe(
-            onNext: _ => subscription2Emits++, 
-            onCompletion: () => {}, 
-            onError: _ => {},
-            subscription1.SubscriptionGroupId
-        );
-            
-        subscription1.DeliverExisting();
-        subscription1.DeliverFuture();
-            
-        source.SignalNext("hello");
-        subscription1Emits.ShouldBe(1);
-        subscription2Emits.ShouldBe(1);
-            
-        subscription1.Dispose();
-            
-        source.SignalNext("world");
-        subscription1Emits.ShouldBe(1);
-        subscription2Emits.ShouldBe(2);
-    }
-        
-    [TestMethod]
     public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext("world");
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
 
         var completed = false;
         var failed = false;
@@ -122,8 +89,8 @@ public class ReactiveChainSemanticsTests
         completed.ShouldBeFalse();
         failed.ShouldBeFalse();
         latest.ShouldBe("");
-            
-        subscription.DeliverExisting();
+
+        subscription.PushMessages();
             
         completed.ShouldBeTrue();
         failed.ShouldBeFalse();
@@ -134,8 +101,8 @@ public class ReactiveChainSemanticsTests
     public void StreamCanBeReplayedToCertainEventCountWhenFailedEarlySuccessfully()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
-        source.SignalNext("world");
+        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("world", new InterruptCount(2));
 
         var completed = false;
         var failed = false;
@@ -152,8 +119,8 @@ public class ReactiveChainSemanticsTests
         completed.ShouldBeFalse();
         failed.ShouldBeFalse();
         latest.ShouldBe("");
-            
-        subscription.DeliverExisting();
+
+        subscription.PushMessages();
             
         completed.ShouldBeFalse();
         failed.ShouldBeTrue();
@@ -164,12 +131,12 @@ public class ReactiveChainSemanticsTests
     public void ExistingPropertyContainsPreviouslyEmittedEvents()
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
         var existing = source.Existing.ToList();
         existing.Count.ShouldBe(1);
         existing[0].ShouldBe("hello");
 
-        source.SignalNext("world"); 
+        source.SignalNext("world", new InterruptCount(2)); 
         
         existing = source.Existing.ToList();
         existing.Count.ShouldBe(2);
@@ -183,7 +150,7 @@ public class ReactiveChainSemanticsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         var emitted = 0;
 
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
         
         var subscription = source
             .Subscribe(
@@ -192,11 +159,11 @@ public class ReactiveChainSemanticsTests
                 onCompletion: () => { }
             );
 
-        subscription.DeliverExisting();
+        subscription.PushMessages();
         
         emitted.ShouldBe(1);
 
-        source.SignalNext("world");
+        source.SignalNext("world", new InterruptCount(1));
         
         emitted.ShouldBe(1);
     }

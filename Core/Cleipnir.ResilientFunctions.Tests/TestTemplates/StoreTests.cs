@@ -761,7 +761,7 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Succeeded);
         sf.Exception.ShouldBeNull();
 
-        var storedMessages = await TaskLinq.ToListAsync(store.MessageStore.GetMessages(functionId));
+        var storedMessages = await store.MessageStore.GetMessages(functionId, skip: 0);
         storedMessages.Count.ShouldBe(1);
         var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].MessageJson, storedMessages[0].MessageType);
         deserializedMessage.ShouldBe("hello everyone");
@@ -786,7 +786,7 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedMessageCount: 0,
+            expectedInterruptCount: 0,
             storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -802,7 +802,7 @@ public abstract class StoreTests
         sf.Parameter.ParamType.ShouldBe(storedParameter.ParamType);
         sf.Parameter.ParamJson.ShouldBe(storedParameter.ParamJson);
 
-        var messages = await store.MessageStore.GetMessages(functionId);
+        var messages = await store.MessageStore.GetMessages(functionId, skip: 0);
         messages.ShouldBeEmpty();
 
         await Task.Delay(500);
@@ -863,7 +863,7 @@ public abstract class StoreTests
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson(), MessageType: typeof(string).SimpleQualifiedName()));
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson(), MessageType: typeof(string).SimpleQualifiedName()));
         
-        var messages = await store.MessageStore.GetMessages(functionId).ToListAsync();
+        var messages = await store.MessageStore.GetMessages(functionId, skip: 0);
         messages.Count.ShouldBe(2);
         messages[0].DefaultDeserialize().ShouldBe("Hello");
         messages[1].DefaultDeserialize().ShouldBe("World");
@@ -1008,7 +1008,7 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedMessageCount: 0,
+            expectedInterruptCount: 0,
             Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -1040,23 +1040,24 @@ public abstract class StoreTests
             new StoredMessage("some message".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
+        await store.IncrementInterruptCount(functionId).ShouldBeTrueAsync();
+        
         await store.SuspendFunction(
             functionId,
-            expectedMessageCount: 0,
+            expectedInterruptCount: 0,
             Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
-        ).ShouldBeTrueAsync();
+        ).ShouldBeFalseAsync();
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        (storedFunction.Status is Status.Postponed).ShouldBeTrue();
-        storedFunction.PostponedUntil.ShouldBe(0);
+        (storedFunction.Status is Status.Executing).ShouldBeTrue();
     }
     
-    public abstract Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch();
-    protected async Task FunctionIsPostponedOnSuspensionAndMessageCountMismatch(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch();
+    protected async Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch(Task<IFunctionStore> storeTask)
     {
         var functionId = TestFunctionId.Create();
         
@@ -1074,26 +1075,28 @@ public abstract class StoreTests
             functionId,
             new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
+
+        await store.IncrementInterruptCount(functionId).ShouldBeTrueAsync();
         
         var success = await store.SuspendFunction(
             functionId,
-            expectedMessageCount: 0,
+            expectedInterruptCount: 0,
             Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
         );
         
-        success.ShouldBeTrue();
+        success.ShouldBeFalse();
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         (storedFunction.Epoch is 0).ShouldBeTrue();
-        storedFunction.Status.ShouldBe(Status.Postponed);
+        storedFunction.Status.ShouldBe(Status.Executing);
     }
     
-    public abstract Task InterruptCountCanBeIncrementedForFunction();
-    protected async Task InterruptCountCanBeIncrementedForFunction(Task<IFunctionStore> storeTask)
+    public abstract Task InterruptCountCanBeIncrementedForExecutingFunction();
+    protected async Task InterruptCountCanBeIncrementedForExecutingFunction(Task<IFunctionStore> storeTask)
     {
         var functionId = TestFunctionId.Create();
         
@@ -1119,6 +1122,45 @@ public abstract class StoreTests
         storedFunction.Status.ShouldBe(Status.Executing);
 
         await store.GetInterruptCount(functionId).ShouldBeAsync(1);
+    }
+    
+    public abstract Task InterruptCountCannotBeIncrementedForNonExecutingFunction();
+    protected async Task InterruptCountCannotBeIncrementedForNonExecutingFunction(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            param: Test.SimpleStoredParameter,
+            storedState: Test.SimpleStoredState,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.SuspendFunction(
+            functionId,
+            expectedInterruptCount: 0,
+            Test.SimpleStoredState.StateJson,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            new ComplimentaryState(() => Test.SimpleStoredParameter, StoredStateFunc: () => Test.SimpleStoredState, LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.InterruptCount.ShouldBe(0);
+        storedFunction.Status.ShouldBe(Status.Suspended);
+        
+        await store.IncrementInterruptCount(functionId).ShouldBeFalseAsync();
+        
+        storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.InterruptCount.ShouldBe(0);
+        storedFunction.Status.ShouldBe(Status.Suspended);
+
+        await store.GetInterruptCount(functionId).ShouldBeAsync(0);
     }
     
     public abstract Task InterruptCountForNonExistingFunctionIsNull();

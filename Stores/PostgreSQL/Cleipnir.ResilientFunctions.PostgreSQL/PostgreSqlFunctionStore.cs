@@ -446,95 +446,48 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
     public async Task<bool> SuspendFunction(
-        FunctionId functionId, 
-        int expectedMessageCount, 
+        FunctionId functionId,
+        long expectedInterruptCount,
         string stateJson,
         long timestamp,
-        int expectedEpoch, 
+        int expectedEpoch,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        {
-            var postponeSql = $@"
-                UPDATE {_tablePrefix}rfunctions
-                SET status = {(int)Status.Postponed}, postponed_until = $1, state_json = $2, timestamp = $3
-                WHERE function_type_id = $4 AND function_instance_id = $5 AND epoch = $6";
-            await using var command = new NpgsqlCommand(postponeSql, conn)
-            {
-                Parameters =
-                {
-                    new() { Value = DateTime.UtcNow.AddSeconds(30).Ticks },
-                    new() { Value = stateJson },
-                    new() { Value = timestamp },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                    
-                }  
-            };
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            if (affectedRows == 0)
-                return false;            
-        }
-        {
-            var suspendSql = $@"
-                UPDATE {_tablePrefix}rfunctions
-                SET status = {(int)Status.Suspended}
-                WHERE             
-                    function_type_id = $1 AND 
-                    function_instance_id = $2 AND 
-                    epoch = $3 AND
-                    (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $4 AND function_instance_id = $5) = $6";
 
-            await using var command = new NpgsqlCommand(suspendSql, conn)
-            {
-                Parameters =
-                {
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedMessageCount },
-                }
-            };
-        
-            var affectedRow = await command.ExecuteNonQueryAsync();
-            if (affectedRow == 1)
-                return true;
-        }
-        
-        //otherwise postpone immediatly
+        var postponeSql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int)Status.Suspended}, state_json = $1, timestamp = $2
+            WHERE function_type_id = $3 AND 
+                  function_instance_id = $4 AND 
+                  epoch = $5 AND
+                  interrupt_count = $6";
+        await using var command = new NpgsqlCommand(postponeSql, conn)
         {
-            var postponeSql = $@"
-                UPDATE {_tablePrefix}rfunctions
-                SET status = {(int)Status.Postponed}, postponed_until = 0
-                WHERE function_type_id = $1 AND function_instance_id = $2 AND epoch = $3";
-            await using var command = new NpgsqlCommand(postponeSql, conn)
+            Parameters =
             {
-                Parameters =
-                {
-                    new() { Value = functionId.TypeId.Value },
-                    new() { Value = functionId.InstanceId.Value },
-                    new() { Value = expectedEpoch },
-                    
-                }  
-            };
-            await command.ExecuteNonQueryAsync();
-            return true;
-        }
+                new() { Value = stateJson },
+                new() { Value = timestamp },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+                new() { Value = expectedInterruptCount },
+            }
+        };
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
-    public async Task IncrementInterruptCount(FunctionId functionId)
+    public async Task<bool> IncrementInterruptCount(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
 
         var postponeSql = $@"
                 UPDATE {_tablePrefix}rfunctions
                 SET interrupt_count = interrupt_count + 1
-                WHERE function_type_id = $1 AND function_instance_id = $2";
+                WHERE function_type_id = $1 AND function_instance_id = $2  AND status = {(int) Status.Executing};";
         await using var command = new NpgsqlCommand(postponeSql, conn)
         {
             Parameters =
@@ -543,7 +496,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = functionId.InstanceId.Value },
             }
         };
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
     public async Task<long?> GetInterruptCount(FunctionId functionId)

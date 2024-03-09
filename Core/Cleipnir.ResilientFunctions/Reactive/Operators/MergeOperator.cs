@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -15,8 +16,8 @@ public class MergeOperator<T> : IReactiveChain<T>
         _chain2 = chain2;
     }
 
-    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, int? subscriptionGroupId = null)
-        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, subscriptionGroupId);
+    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
+        => new Subscription(_chain1, _chain2, onNext, onCompletion, onError, addToSubscriptionGroup);
 
     private class Subscription : ISubscription
     {
@@ -33,14 +34,16 @@ public class MergeOperator<T> : IReactiveChain<T>
         private readonly object _sync = new();
         private bool _completed;
 
-        public int EmittedFromSource => _subscription1.EmittedFromSource;
+        public ISubscriptionGroup Group => _subscription1.Group;
         public IReactiveChain<object> Source { get; }
+        public TimeSpan DefaultMessageSyncDelay { get; }
 
         public Subscription(
             IReactiveChain<T> inner1,
             IReactiveChain<T> inner2,
             Action<T> onNext, Action onCompletion, Action<Exception> onError,
-            int? subscriptionGroupId)
+            ISubscriptionGroup? addToSubscriptionGroup
+        )
         {
             
             _onNext = onNext;
@@ -59,7 +62,7 @@ public class MergeOperator<T> : IReactiveChain<T>
                 onError: e => _eventSequencer.HandleNext(
                     new Either(fromStream1: true, StreamEvent<T>.CreateFromException(e))
                 ), 
-                subscriptionGroupId
+                addToSubscriptionGroup
             );
             _subscription2 = inner2.Subscribe(
                 onNext: next => _eventSequencer.HandleNext(
@@ -71,19 +74,18 @@ public class MergeOperator<T> : IReactiveChain<T>
                 onError: e => _eventSequencer.HandleNext(
                     new Either(fromStream1: false, StreamEvent<T>.CreateFromException(e))
                 ), 
-                _subscription1.SubscriptionGroupId
+                _subscription1.Group
             );
 
             Source = _subscription1.Source;
-            SubscriptionGroupId = _subscription1.SubscriptionGroupId;
             TimeoutProvider = _subscription1.TimeoutProvider;
+            DefaultMessageSyncDelay = _subscription1.DefaultMessageSyncDelay;
         }
 
         public ITimeoutProvider TimeoutProvider { get; }
-        public int SubscriptionGroupId { get; }
-        public void DeliverFuture() => _subscription1.DeliverFuture();
-        public void DeliverExisting() => _subscription1.DeliverExisting();
-        public Task StopDelivering() => _subscription1.StopDelivering();
+        public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription1.SyncStore(maxSinceLastSynced); 
+
+        public InterruptCount PushMessages() => _subscription1.PushMessages();
 
         private void HandleEither(Either either)
         {
@@ -128,9 +130,7 @@ public class MergeOperator<T> : IReactiveChain<T>
             _onError(exception);
 
             _subscription1Completed = true;
-            _subscription1.Dispose();
             _subscription2Completed = true;
-            _subscription2.Dispose();
         }
 
         private void SignalCompletion1()
@@ -160,12 +160,6 @@ public class MergeOperator<T> : IReactiveChain<T>
             }
 
             _onCompletion();
-        }
-
-        public void Dispose()
-        {
-            _subscription1.Dispose();
-            _subscription2.Dispose();
         }
 
         private readonly struct Either

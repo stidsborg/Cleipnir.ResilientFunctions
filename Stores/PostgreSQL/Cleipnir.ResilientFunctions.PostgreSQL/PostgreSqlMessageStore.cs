@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Npgsql;
 
@@ -183,11 +182,8 @@ public class PostgreSqlMessageStore : IMessageStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows;
     }
-
-    public Task<IEnumerable<StoredMessage>> GetMessages(FunctionId functionId)
-        => InnerGetMessages(functionId, skip: 0).SelectAsync(messages => (IEnumerable<StoredMessage>) messages);
     
-    private async Task<List<StoredMessage>> InnerGetMessages(FunctionId functionId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
@@ -218,36 +214,29 @@ public class PostgreSqlMessageStore : IMessageStore
         return storedMessages;
     }
 
-    public MessagesSubscription SubscribeToMessages(FunctionId functionId)
+    public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
     {
-        var sync = new object();
-        var disposed = false;
-        var skip = 0;
-
-        var subscription = new MessagesSubscription(
-            pullNewMessages: async () =>
+        await using var conn = await CreateConnection();
+        var sql = @$"    
+            SELECT COALESCE(MAX(position), -1) 
+            FROM {_tablePrefix}rfunctions_messages 
+            WHERE function_type_id = $1 AND function_instance_id = $2";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
             {
-                lock (sync)
-                    if (disposed)
-                        return ArraySegment<StoredMessage>.Empty;
-
-                var messages = await InnerGetMessages(functionId, skip);
-                skip += messages.Count;
-                
-                return messages;
-            },
-            dispose: () =>
-            {
-                lock (sync)
-                    disposed = true;
-
-                return ValueTask.CompletedTask;
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
             }
-        );
+        };
 
-        return subscription;
+        var maxPosition = (int?) await command.ExecuteScalarAsync();
+        if (maxPosition == null)
+            return false;
+
+        return maxPosition + 1 > skip;
     }
-    
+
     private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)
     {
         await using var conn = await CreateConnection();

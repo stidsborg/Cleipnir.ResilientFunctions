@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -17,7 +18,7 @@ public class AsyncEnumerableTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var emits = new SyncedList<string>();
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
 
         async Task AwaitForeach()
         {
@@ -31,7 +32,7 @@ public class AsyncEnumerableTests
         emits[0].ShouldBe("hello");
         task.IsCompleted.ShouldBeFalse();
 
-        source.SignalNext("world");
+        source.SignalNext("world", new InterruptCount(2));
         await BusyWait.UntilAsync(() => emits.Count == 2);
         emits.Count.ShouldBe(2);
         emits[1].ShouldBe("world");
@@ -49,7 +50,7 @@ public class AsyncEnumerableTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         var emits = new SyncedList<string>();
-        source.SignalNext("hello");
+        source.SignalNext("hello", new InterruptCount(1));
 
         async Task AwaitForeach()
         {

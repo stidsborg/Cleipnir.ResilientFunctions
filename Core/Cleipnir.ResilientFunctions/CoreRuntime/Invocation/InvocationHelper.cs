@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -148,7 +146,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
             throw new ConcurrentModificationException(functionId);
     }
 
-    public async Task<bool> PersistResult(
+    public async Task<PersistResultOutcome> PersistResult(
         FunctionId functionId,
         Result<TReturn> result,
         TParam param,
@@ -171,7 +169,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
-                );
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
                 return await _functionStore.PostponeFunction(
                     functionId,
@@ -180,7 +178,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
-                );
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
                     functionId,
@@ -189,34 +187,31 @@ internal class InvocationHelper<TParam, TState, TReturn>
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
-                );
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
-                return await _functionStore.SuspendFunction(
+                var success = await _functionStore.SuspendFunction(
                     functionId,
-                    result.Suspend!.ExpectedMessageCount,
+                    result.Suspend!.InterruptCount,
                     storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
                 );
+                if (success) return PersistResultOutcome.Success;
+                success = await _functionStore.PostponeFunction(
+                    functionId,
+                    postponeUntil: DateTime.UtcNow.Add(_settings.LeaseLength).Ticks,
+                    storedState.StateJson,
+                    timestamp: DateTime.UtcNow.Ticks,
+                    expectedEpoch,
+                    complementaryState
+                );
+                return success 
+                    ? PersistResultOutcome.Reschedule 
+                    : PersistResultOutcome.Failed;
             default:
                 throw new ArgumentOutOfRangeException();
         }
-    }
-
-    public async Task PublishFunctionCompletionResult<T>(FunctionId recipient, FunctionId sender, Result<T> result)
-    {
-        var messageWriter = _messageWriterFunc(recipient);
-        if (messageWriter == null)
-            throw new InvalidOperationException($"Function '{recipient}' has not been registered and thus function result cannot be published");
-
-        if (typeof(TReturn) == typeof(Unit))
-            await messageWriter.AppendMessage(new FunctionCompletion(sender), idempotencyKey: $"FunctionResult¤{sender}");
-        else
-            await messageWriter.AppendMessage(
-                new FunctionCompletion<T>(result.SucceedWithValue!, sender),
-                idempotencyKey: $"FunctionResult¤{sender}"
-            );
     }
 
     public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponedOrSuspended)
@@ -265,7 +260,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
             );
             storedState.Initialize(onSave: () => SaveState(functionId, param, storedState, sf.Epoch, _settings.LeaseLength.Ticks));
             
-            return new PreparedReInvocation(param, sf.Epoch, storedState, runningFunction);
+            return new PreparedReInvocation(param, sf.Epoch, storedState, sf.InterruptCount, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -292,7 +287,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, TState State, IDisposable RunningFunction);
+    internal record PreparedReInvocation(TParam Param, int Epoch, TState State, long InterruptCount, IDisposable RunningFunction);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
@@ -398,15 +393,15 @@ internal class InvocationHelper<TParam, TState, TReturn>
     public async Task<Messages> CreateMessages(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, bool sync)
     {
         var messageWriter = new MessageWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, messageWriter, _settings.TimeoutEventsCheckFrequency); 
-        var messages = new Messages(
+        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, messageWriter, _settings.TimeoutEventsCheckFrequency);
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            _functionStore.MessageStore,
-            messageWriter,
-            timeoutProvider,
             _settings.MessagesPullFrequency,
-            _settings.Serializer
+            _functionStore,
+            _settings.Serializer,
+            timeoutProvider
         );
+        var messages = new Messages(messageWriter, timeoutProvider, messagesPullerAndEmitter);
         
         if (sync)
             await messages.Sync();
@@ -438,7 +433,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
 
     public async Task<ExistingMessages> GetExistingMessages(FunctionId functionId)
     {
-        var storedMessages = await _functionStore.MessageStore.GetMessages(functionId);
+        var storedMessages = await _functionStore.MessageStore.GetMessages(functionId, skip: 0);
         var messages = storedMessages
             .Select(se => new MessageAndIdempotencyKey(
                     _settings.Serializer.DeserializeMessage(se.MessageJson, se.MessageType),
