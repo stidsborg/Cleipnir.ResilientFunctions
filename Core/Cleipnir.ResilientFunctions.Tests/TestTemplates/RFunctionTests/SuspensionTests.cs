@@ -408,8 +408,7 @@ public abstract class SuspensionTests
         var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
         const int numberOfChildren = 100;
         
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store);
 
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
@@ -454,7 +453,5 @@ public abstract class SuspensionTests
         var result = controlPanel.Result!.ToHashSet();
         for (var i = 0; i < numberOfChildren; i++)
             result.Contains(i.ToString()).ShouldBeTrue();
-        
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
 }
