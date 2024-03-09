@@ -21,4 +21,8 @@ public class MessagingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RF
     [TestMethod]
     public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
         => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted()
+        => IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted(FunctionStoreFactory.Create());
 }

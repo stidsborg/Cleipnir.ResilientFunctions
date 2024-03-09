@@ -54,6 +54,7 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             DefaultMessageSyncDelay = _subscription.DefaultMessageSyncDelay;
         }
 
+        public bool IsWorkflowRunning => _subscription.IsWorkflowRunning;
         public ISubscriptionGroup Group => _subscription.Group;
         public IReactiveChain<object> Source => _subscription.Source;
         public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;

@@ -113,6 +113,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             }
         }
 
+        public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
         public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;

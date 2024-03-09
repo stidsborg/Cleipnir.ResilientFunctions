@@ -34,6 +34,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
             timeoutProvider
@@ -68,6 +69,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
             timeoutProvider
@@ -105,6 +107,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
             timeoutProvider
@@ -147,6 +150,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
             timeoutProvider
@@ -188,6 +192,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
             timeoutProvider
@@ -225,6 +230,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
             timeoutProvider
@@ -274,6 +280,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
+            isWorkflowRunning: () => true,
             functionStore,
             new ExceptionThrowingEventSerializer(typeof(int)),
             timeoutProvider

@@ -15,6 +15,8 @@ internal class SubscriptionGroup : ISubscriptionGroup
     private bool _started;
 
     private readonly SyncStore _syncStore;
+    private readonly Func<bool> _isWorkflowRunning;
+    public bool IsWorkflowRunning => _isWorkflowRunning();
     public ISubscriptionGroup Group => this;
     public IReactiveChain<object> Source { get; }
     public ITimeoutProvider TimeoutProvider { get; }
@@ -24,12 +26,14 @@ internal class SubscriptionGroup : ISubscriptionGroup
         IReactiveChain<object> source,
         EmittedEvents emittedEvents,
         SyncStore syncStore, 
+        Func<bool> isWorkflowRunning,
         ITimeoutProvider timeoutProvider,
         TimeSpan defaultDelay)
     {
         Source = source;
         _emittedEvents = emittedEvents;
         _syncStore = syncStore;
+        _isWorkflowRunning = isWorkflowRunning;
         TimeoutProvider = timeoutProvider;
         DefaultMessageSyncDelay = defaultDelay;
     }

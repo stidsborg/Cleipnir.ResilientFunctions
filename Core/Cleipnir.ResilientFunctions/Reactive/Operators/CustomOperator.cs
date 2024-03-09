@@ -47,6 +47,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         private bool _handlingCompletion;
         private OnCompletion<TOut>? HandleCompletion { get; }
 
+        public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
         public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public TimeSpan DefaultMessageSyncDelay { get; }

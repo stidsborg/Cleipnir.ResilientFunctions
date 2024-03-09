@@ -164,9 +164,16 @@ public class Invoker<TParam, TState, TReturn>
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch: 0));
-
+            var isWorkflowRunningDisposable = new PropertyDisposable();
+            disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
-            var messages = await _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: false);
+            var messages = await _invocationHelper.CreateMessages(
+                functionId, 
+                ScheduleReInvoke, 
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                sync: false
+            );
+            
             var effect = await _invocationHelper.CreateEffect(functionId, sync: false);
             var workflow = new Workflow(functionId, messages, effect, _utilities, _messageWriterFunc);
 
@@ -198,8 +205,14 @@ public class Invoker<TParam, TState, TReturn>
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
+            var isWorkflowRunningDisposable = new PropertyDisposable();
+            disposables.Add(isWorkflowRunningDisposable);
             
-            var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(functionId, ScheduleReInvoke, sync: true));
+            var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(
+                functionId, 
+                ScheduleReInvoke,
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                sync: true));
             var activitiesTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
             var workflow = new Workflow(functionId, await messagesTask, await activitiesTask, _utilities, _messageWriterFunc);
 

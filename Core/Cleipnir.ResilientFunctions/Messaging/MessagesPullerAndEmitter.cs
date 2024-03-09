@@ -35,6 +35,7 @@ public class MessagesPullerAndEmitter
     public MessagesPullerAndEmitter(
         FunctionId functionId,
         TimeSpan defaultDelay,
+        Func<bool> isWorkflowRunning,
         IFunctionStore functionStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
     {
         _functionId = functionId;
@@ -46,7 +47,8 @@ public class MessagesPullerAndEmitter
         Source = new Source(
             timeoutProvider,
             syncStore: PullEvents,
-            defaultDelay
+            defaultDelay,
+            isWorkflowRunning
         );
     }
 
