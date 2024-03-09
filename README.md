@@ -92,7 +92,7 @@ I.e. awaiting 2 external messages before completing an invocation can be accompl
     await messages
       .OfTypes<FundsReserved, InventoryLocked>()
       .Take(2)
-      .ToList();
+      .Completion();
   }
 );
 ```
