@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -32,8 +31,9 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 
             using var conn = new SqlConnection(connectionStringWithoutDatabase);
             conn.Open();
-            conn.Execute($"DROP DATABASE IF EXISTS {databaseName}");
-            conn.Execute($"CREATE DATABASE {databaseName}");
+            
+            Execute($"DROP DATABASE IF EXISTS {databaseName}", conn);
+            Execute($"CREATE DATABASE {databaseName}", conn);
         }
 
         private static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
@@ -83,6 +83,12 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
 
             return CreateAndInitializeStore(sourceFileName, callMemberName)
                 .Map(store => (IFunctionStore) store);
+        }
+
+        private static void Execute(string sql, SqlConnection connection)
+        {
+            var command = new SqlCommand(sql, connection);
+            command.ExecuteNonQuery();
         }
     }
 }
