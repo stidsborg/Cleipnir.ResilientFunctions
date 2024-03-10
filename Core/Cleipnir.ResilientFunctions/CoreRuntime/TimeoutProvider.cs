@@ -80,9 +80,7 @@ public class TimeoutProvider : ITimeoutProvider
 
     public async Task<List<TimeoutEvent>> PendingTimeouts()
     {
-        var timeouts = await _timeoutStore
-            .GetTimeouts(_functionId.TypeId.ToString(), expiresBefore: long.MaxValue);
-
+        var timeouts =  await _timeoutStore.GetTimeouts(_functionId);
         return timeouts
             .Where(t => t.FunctionId == _functionId)
             .Select(t => new TimeoutEvent(t.TimeoutId, Expiration: new DateTime(t.Expiry).ToUniversalTime()))

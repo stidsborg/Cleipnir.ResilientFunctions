@@ -127,6 +127,31 @@ public class SqlServerTimeoutStore : ITimeoutStore
         return storedTimeouts;
     }
 
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    {
+        var (typeId, instanceId) = functionId;
+        await using var conn = await CreateConnection();
+        var sql = @$"    
+            SELECT TimeoutId, Expires
+            FROM {_tablePrefix}RFunctions_Timeouts
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+        
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", typeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", instanceId.Value);
+        
+        var storedTimeouts = new List<StoredTimeout>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var timeoutId = reader.GetString(0);
+            var expires = reader.GetInt64(1);
+            storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
+        }
+
+        return storedTimeouts;
+    }
+
     private async Task<SqlConnection> CreateConnection()
     {
         var conn = new SqlConnection(_connectionString);

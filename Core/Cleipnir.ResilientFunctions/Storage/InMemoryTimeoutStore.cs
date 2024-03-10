@@ -48,6 +48,19 @@ public class InMemoryTimeoutStore : ITimeoutStore
                 .AsEnumerable()
                 .ToTask();
     }
-    
+
+    public Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    {
+        lock (_sync)
+            return _timeouts.Where(kv =>
+                    kv.Key.FunctionTypeId == functionId.TypeId &&
+                    kv.Key.FunctionInstanceId == functionId.InstanceId
+                )
+                .Select(kv => new StoredTimeout(functionId, kv.Key.TimeoutId, Expiry: kv.Value))
+                .ToList()
+                .AsEnumerable()
+                .ToTask();
+    }
+
     private record Key(string FunctionTypeId, string FunctionInstanceId, string TimeoutId);
 }

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -121,5 +122,37 @@ public abstract class TimeoutStoreTests
         var store = await storeTask;
         await store.Initialize();
         await store.Initialize();
+    }
+    
+    public abstract Task RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId();
+    protected async Task RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId(Task<ITimeoutStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+
+        var timeoutProvider = new TimeoutProvider(
+            functionId,
+            store,
+            messageWriter: null,
+            timeoutCheckFrequency: TimeSpan.Zero
+        );
+
+        var otherInstanceTimeoutProvider = new TimeoutProvider(
+            new FunctionId(functionId.TypeId, functionId.InstanceId.Value + "2"),
+            store,
+            messageWriter: null,
+            timeoutCheckFrequency: TimeSpan.Zero
+        );
+
+        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
+        await timeoutProvider.RegisterTimeout("timeoutId2", expiresIn: TimeSpan.FromHours(2));
+        await otherInstanceTimeoutProvider.RegisterTimeout("timeoutId3", expiresIn: TimeSpan.FromHours(3));
+        
+        await BusyWait.Until(() => timeoutProvider.PendingTimeouts().SelectAsync(t => t.Count == 2));
+       
+        var timeouts = await timeoutProvider.PendingTimeouts();
+        timeouts.Count.ShouldBe(2);
+        timeouts.Any(t => t.TimeoutId == "timeoutId1").ShouldBe(true);
+        timeouts.Any(t => t.TimeoutId == "timeoutId2").ShouldBe(true);
     }
 }

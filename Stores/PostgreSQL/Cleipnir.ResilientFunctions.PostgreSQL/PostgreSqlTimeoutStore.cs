@@ -137,6 +137,36 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         return storedMessages;
     }
 
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    {
+        var (typeId, instanceId) = functionId;
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            SELECT timeout_id, expires
+            FROM {_tablePrefix}rfunctions_timeouts 
+            WHERE function_type_id = $1 AND function_instance_id = $2";
+        
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = typeId.Value},
+                new() {Value = instanceId.Value}
+            }
+        };
+
+        var storedMessages = new List<StoredTimeout>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var timeoutId = reader.GetString(0);
+            var expires = reader.GetInt64(1);
+            storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
+        }
+
+        return storedMessages;
+    }
+
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();

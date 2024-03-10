@@ -126,6 +126,36 @@ public class MySqlTimeoutStore : ITimeoutStore
         return storedTimeouts;
     }
 
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    {
+        var (typeId, instanceId) = functionId;
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
+        var sql = @$"    
+            SELECT timeout_id, expires
+            FROM {_tablePrefix}rfunctions_timeouts
+            WHERE function_type_id = ? AND function_instance_id = ?";
+        
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = typeId.Value},
+                new() {Value = instanceId.Value},
+            }
+        };
+        
+        var storedTimeouts = new List<StoredTimeout>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var timeoutId = reader.GetString(0);
+            var expires = reader.GetInt64(1);
+            storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
+        }
+
+        return storedTimeouts;
+    }
+
     private Task<MySqlConnection> CreateConnection() => DatabaseHelper.CreateOpenConnection(_connectionString);
 
     public async Task DropUnderlyingTable()
