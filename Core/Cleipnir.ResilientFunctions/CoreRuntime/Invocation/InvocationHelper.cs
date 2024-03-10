@@ -443,13 +443,12 @@ internal class InvocationHelper<TParam, TState, TReturn>
             ).ToList();
         
         return new ExistingMessages(functionId, messages, _functionStore.MessageStore, _settings.Serializer);
-    } 
+    }
 
-    public ITimeoutProvider CreateTimeoutProvider(FunctionId functionId)
-        => new TimeoutProvider(
+    public async Task<ExistingTimeouts> GetExistingTimeouts(FunctionId functionId)
+        => new ExistingTimeouts(
             functionId,
             _functionStore.TimeoutStore,
-            messageWriter: null,
-            timeoutCheckFrequency: TimeSpan.Zero
+            await _functionStore.TimeoutStore.GetTimeouts(functionId)
         );
 }

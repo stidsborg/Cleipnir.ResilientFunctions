@@ -26,6 +26,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         DateTime? postponedUntil, 
         ExistingEffects existingEffects,
         ExistingMessages existingMessages,
+        ExistingTimeouts existingTimeouts,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -40,6 +41,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         PreviouslyThrownException = previouslyThrownException;
         Effects = existingEffects;
         Messages = existingMessages;
+        Timeouts = existingTimeouts;
     }
 
     public FunctionId FunctionId { get; }
@@ -49,7 +51,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
     public DateTime LeaseExpiration { get; private set; }
     public ExistingMessages Messages { get; private set; }
     public ExistingEffects Effects { get; private set; } 
-    public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
+    public ExistingTimeouts Timeouts { get; private set; }
     
     private TParam _param;
     public TParam Param
@@ -175,6 +177,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         _changed = false;
         Messages = await _invocationHelper.GetExistingMessages(FunctionId);
         Effects = await _invocationHelper.GetExistingActivities(FunctionId);
+        Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId);
     }
 
     public async Task WaitForCompletion(bool allowPostponedAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponedAndSuspended);
@@ -199,6 +202,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         DateTime? postponedUntil, 
         ExistingEffects effects,
         ExistingMessages messages,
+        ExistingTimeouts timeouts,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -214,6 +218,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         PostponedUntil = postponedUntil;
         Effects = effects;
         Messages = messages;
+        Timeouts = timeouts;
         PreviouslyThrownException = previouslyThrownException;
     }
 
@@ -226,7 +231,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
     public ExistingMessages Messages { get; private set; }
     public ExistingEffects Effects { get; private set; } 
 
-    public ITimeoutProvider TimeoutProvider => _invocationHelper.CreateTimeoutProvider(FunctionId);
+    public ExistingTimeouts Timeouts { get; private set; }
 
     private TParam _param;
     public TParam Param
@@ -361,6 +366,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         Effects = await _invocationHelper.GetExistingActivities(FunctionId);
+        Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId); 
 
         _changed = false;
     }

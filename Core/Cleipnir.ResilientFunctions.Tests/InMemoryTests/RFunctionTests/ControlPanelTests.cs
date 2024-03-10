@@ -153,4 +153,12 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task SaveChangesPersistsChangedResult()
         => SaveChangesPersistsChangedResult(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ExistingTimeoutCanBeUpdatedForAction()
+        => ExistingTimeoutCanBeUpdatedForAction(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task ExistingTimeoutCanBeUpdatedForFunc()
+        => ExistingTimeoutCanBeUpdatedForFunc(Utils.CreateInMemoryFunctionStoreTask());
 }

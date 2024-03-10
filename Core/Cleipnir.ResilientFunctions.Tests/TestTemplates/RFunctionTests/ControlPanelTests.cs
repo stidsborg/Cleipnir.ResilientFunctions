@@ -1293,4 +1293,86 @@ public abstract class ControlPanelTests
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task ExistingTimeoutCanBeUpdatedForAction();
+    protected async Task ExistingTimeoutCanBeUpdatedForAction(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var actionRegistration = functionsRegistry.RegisterAction(
+            functionTypeId,
+            Task (string param, WorkflowState _, Workflow workflow) =>
+                workflow.Messages.TimeoutProvider.RegisterTimeout(
+                    "someTimeoutId", expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
+                )
+        );
+
+        await actionRegistration.Invoke(functionInstanceId.Value, param: "param");
+
+        var controlPanel = await actionRegistration.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+        var timeouts = controlPanel.Timeouts;
+        timeouts.All.Count.ShouldBe(1);
+        timeouts["someTimeoutId"].ShouldBe(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+
+        await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
+        timeouts.All.Count.ShouldBe(2);
+        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        
+        await timeouts.Remove("someTimeoutId");
+        timeouts.All.Count.ShouldBe(1);
+
+        await controlPanel.Refresh();
+        
+        timeouts.All.Count.ShouldBe(1);
+        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+    }
+    
+    public abstract Task ExistingTimeoutCanBeUpdatedForFunc();
+    protected async Task ExistingTimeoutCanBeUpdatedForFunc(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var funcRegistration = functionsRegistry.RegisterFunc(
+            functionTypeId,
+            async Task<string> (string param, WorkflowState _, Workflow workflow) =>
+            {
+                await workflow.Messages.TimeoutProvider.RegisterTimeout(
+                    "someTimeoutId", expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc)
+                );
+
+                return param;
+            }
+        );
+
+        await funcRegistration.Invoke(functionInstanceId.Value, param: "param");
+
+        var controlPanel = await funcRegistration.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+        var timeouts = controlPanel.Timeouts;
+        timeouts.All.Count.ShouldBe(1);
+        timeouts["someTimeoutId"].ShouldBe(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+
+        await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
+        timeouts.All.Count.ShouldBe(2);
+        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        
+        await timeouts.Remove("someTimeoutId");
+        timeouts.All.Count.ShouldBe(1);
+
+        await controlPanel.Refresh();
+        
+        timeouts.All.Count.ShouldBe(1);
+        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+    }
 }

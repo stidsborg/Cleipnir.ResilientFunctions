@@ -36,6 +36,7 @@ public class ControlPanels<TParam, TState> where TParam : notnull where TState :
             functionState.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
             await _invocationHelper.GetExistingMessages(functionId),
+            await _invocationHelper.GetExistingTimeouts(functionId),
             functionState.PreviouslyThrownException
         );
     }
@@ -77,6 +78,7 @@ public class ControlPanels<TParam, TState, TReturn> where TParam : notnull where
             f.PostponedUntil,
             await _invocationHelper.GetExistingActivities(functionId),
             await _invocationHelper.GetExistingMessages(functionId),
+            await _invocationHelper.GetExistingTimeouts(functionId),
             f.PreviouslyThrownException
         );
     }
