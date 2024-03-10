@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -45,6 +45,7 @@ internal class TimeoutWatchdog
     {
         if (_checkFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
+        var stopWatch = new Stopwatch();
         
         Start:
         try
@@ -54,9 +55,11 @@ internal class TimeoutWatchdog
                 var nextTimeoutSlot = DateTime.UtcNow.Add(_checkFrequency).Ticks;
                 var upcomingTimeouts = await _timeoutStore.GetTimeouts(_functionTypeId.Value, nextTimeoutSlot);
 
-                _ = HandleUpcomingTimeouts(upcomingTimeouts);
+                stopWatch.Restart();
+                await HandleUpcomingTimeouts(upcomingTimeouts);
                 
-                await Task.Delay(_checkFrequency);
+                var delay = TimeSpanHelper.Max(_checkFrequency - stopWatch.Elapsed, TimeSpan.Zero);
+                await Task.Delay(delay);
             }
         }
         catch (Exception innerException)
