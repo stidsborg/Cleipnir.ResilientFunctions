@@ -103,7 +103,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             if (timeoutExists)
                 return;
             
-            if (_innerSubscription.TimeoutProvider.ExistingTimeoutIds.Contains(_timeoutId))
+            if (_innerSubscription.TimeoutProvider.PendingTimeouts().ContainsKey(_timeoutId.ToTimeoutId()))
                 return;
             
             try

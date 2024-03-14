@@ -167,7 +167,6 @@ public class Invoker<TParam, TState, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
-            
             var messages = await _invocationHelper.CreateMessages(
                 functionId, 
                 ScheduleReInvoke, 
