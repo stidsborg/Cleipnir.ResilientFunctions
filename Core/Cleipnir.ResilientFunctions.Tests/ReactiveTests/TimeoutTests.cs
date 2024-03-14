@@ -191,5 +191,13 @@ public class TimeoutTests
             => Task.FromException(new Exception("Stub-method invocation"));
         public Task<List<TimeoutEvent>> PendingTimeouts()
             => Task.FromException<List<TimeoutEvent>>(new Exception("Stub-method invocation"));
+
+        public IReadOnlySet<string> ExistingTimeoutIds {
+            get
+            {
+                lock (_sync)
+                    return _registrations.Select(r => r.Item1).ToHashSet(); 
+            }
+        }
     }
 }

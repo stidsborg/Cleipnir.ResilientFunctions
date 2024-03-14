@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -390,10 +391,34 @@ internal class InvocationHelper<TParam, TState, TReturn>
         );
     }
 
-    public async Task<Messages> CreateMessages(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, bool sync)
+    public async Task<ITimeoutProvider> CreateTimeoutProvider(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, bool sync)
     {
+        var pendingTimeouts = Enumerable.Empty<TimeoutEvent>();
+        if (sync)
+        {
+            var storedTimeouts = await _functionStore.TimeoutStore.GetTimeouts(functionId);
+            pendingTimeouts = storedTimeouts
+                .Select(st => new TimeoutEvent(st.TimeoutId, new DateTime(st.Expiry, DateTimeKind.Utc)))
+                .ToList();
+        }
+        
+        return new TimeoutProvider(
+            functionId,
+            _functionStore.TimeoutStore,
+            new MessageWriter(functionId, _functionStore, Serializer, scheduleReInvocation),
+            pendingTimeouts,
+            _settings.TimeoutEventsCheckFrequency
+        );
+    }
+
+    public async Task<Messages> CreateMessages(
+        FunctionId functionId,
+        ScheduleReInvocation scheduleReInvocation,
+        Func<bool> isWorkflowRunning,
+        bool sync)
+    {
+        var timeoutProvider = await CreateTimeoutProvider(functionId, scheduleReInvocation, sync);
         var messageWriter = new MessageWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new TimeoutProvider(functionId, _functionStore.TimeoutStore, messageWriter, _settings.TimeoutEventsCheckFrequency);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             _settings.MessagesPullFrequency,
@@ -403,7 +428,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
             timeoutProvider
         );
         var messages = new Messages(messageWriter, timeoutProvider, messagesPullerAndEmitter);
-        
+
         if (sync)
             await messages.Sync();
 

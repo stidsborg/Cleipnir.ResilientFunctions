@@ -19,4 +19,5 @@ public class NoOpTimeoutProvider : ITimeoutProvider
         => Task.CompletedTask;
 
     public Task<List<TimeoutEvent>> PendingTimeouts() => Task.FromResult(new List<TimeoutEvent>());
+    public IReadOnlySet<string> ExistingTimeoutIds { get; } = new HashSet<string>();
 }

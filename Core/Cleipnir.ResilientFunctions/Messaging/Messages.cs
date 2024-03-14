@@ -2,22 +2,25 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class Messages : IReactiveChain<object> 
 {
-    public TimeoutProvider TimeoutProvider { get; }
+    public ITimeoutProvider TimeoutProvider { get; }
     public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
     public IEnumerable<object> Existing => _messagePullerAndEmitter.Source.Existing;
+    public IReactiveChain<TimeoutEvent> Timeouts => Source.OfType<TimeoutEvent>(); 
     
     private readonly MessageWriter _messageWriter;
     private readonly MessagesPullerAndEmitter _messagePullerAndEmitter;
     
     public Messages(
         MessageWriter messageWriter,
-        TimeoutProvider timeoutProvider,
+        ITimeoutProvider timeoutProvider,
         MessagesPullerAndEmitter messagePullerAndEmitter
     )
     {

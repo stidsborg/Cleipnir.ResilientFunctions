@@ -99,10 +99,13 @@ public class TimeoutOperator<T> : IReactiveChain<T>
                 .Take(1)
                 .Existing()
                 .Any();
-
+            
             if (timeoutExists)
                 return;
-
+            
+            if (_innerSubscription.TimeoutProvider.ExistingTimeoutIds.Contains(_timeoutId))
+                return;
+            
             try
             {
                 await _innerSubscription.TimeoutProvider.RegisterTimeout(_timeoutId, _expiresAt, _overwriteExisting);
