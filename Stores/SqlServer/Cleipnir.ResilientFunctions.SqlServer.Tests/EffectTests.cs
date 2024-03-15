@@ -33,4 +33,8 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
     [TestMethod]
     public override Task ClearEffectsTest()
         => ClearEffectsTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsCrudTest()
+        => EffectsCrudTest(FunctionStoreFactory.Create());
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -24,15 +25,88 @@ public class Effect
     private readonly FunctionId _functionId;
     private readonly object _sync = new();
     
-    public Effect(FunctionId functionId, IEnumerable<StoredEffect> existingActivities, IEffectsStore effectsStore, ISerializer serializer)
+    public Effect(FunctionId functionId, IEnumerable<StoredEffect> existingEffects, IEffectsStore effectsStore, ISerializer serializer)
     {
         _functionId = functionId;
         _effectsStore = effectsStore;
         _serializer = serializer;
 
-        _effectResults = existingActivities.ToDictionary(sa => sa.EffectId, sa => sa);
+        _effectResults = existingEffects.ToDictionary(sa => sa.EffectId, sa => sa);
     }
 
+    public Task<T> CreateOrGet<T>(string id) where T : WorkflowState, new()
+        => CreateOrGet(id, new T());
+    
+    public async Task<T> CreateOrGet<T>(string id, T value)
+    {
+        lock (_sync)
+        {
+            if (_effectResults.TryGetValue(id, out var existing) && existing.WorkStatus == WorkStatus.Completed)
+            {
+                var existingValue = _serializer.DeserializeEffectResult<T>(existing.Result!);
+                if (existingValue is WorkflowState existingWorkflowState)
+                    existingWorkflowState.Initialize(onSave: () => Upsert(id, existingWorkflowState));
+
+                return existingValue;
+            }
+            
+            if (existing?.StoredException != null)
+                throw new EffectException(_functionId, id, _serializer.DeserializeException(existing.StoredException!));
+        }
+        
+        var storedEffect = new StoredEffect(id, WorkStatus.Completed, _serializer.SerializeEffectResult(value), StoredException: null);
+        await _effectsStore.SetEffectResult(_functionId, storedEffect);
+
+        lock (_sync)
+            _effectResults[id] = storedEffect;
+        
+        if (value is WorkflowState workflowState)
+            workflowState.Initialize(onSave: () => Upsert(id, value));
+
+        return value;
+    }
+
+    public async Task Upsert<T>(string id, T value)
+    {
+        var storedEffect = new StoredEffect(id, WorkStatus.Completed, _serializer.SerializeEffectResult(value), StoredException: null);
+        await _effectsStore.SetEffectResult(_functionId, storedEffect);
+
+        lock (_sync)
+            _effectResults[id] = storedEffect;
+    }
+
+    public bool TryGet<T>(string id, [NotNullWhen(true)] out T? value)
+    {
+        lock (_sync)
+        {
+            if (_effectResults.TryGetValue(id, out var storedEffect))
+            {
+                if (storedEffect.WorkStatus == WorkStatus.Completed)
+                {
+                    value = _serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
+                    return true;    
+                }
+                
+                if (storedEffect.StoredException != null)
+                    throw new EffectException(_functionId, id, _serializer.DeserializeException(storedEffect.StoredException!));
+            }
+        }
+
+        value = default;
+        return false;
+    }
+    
+    public T Get<T>(string id)
+    {
+        lock (_sync)
+        {
+            if (!TryGet(id, out T? value))
+                throw new InvalidOperationException($"No value exists for id: '{id}'");
+
+            return value!;
+        }
+    }
+    
     public Task Capture(string id, Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Capture(id, work: () => { work(); return Task.CompletedTask; }, resiliency);
     public Task<T> Capture<T>(string id, Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -284,5 +285,49 @@ public abstract class EffectTests
 
         await controlPanel.Refresh();
         controlPanel.Effects.All.Count.ShouldBe(0);
+    }
+    
+    public abstract Task EffectsCrudTest();
+    public async Task EffectsCrudTest(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var effect = new Effect(
+            functionId,
+            existingEffects: Array.Empty<StoredEffect>(),
+            store.EffectsStore,
+            DefaultSerializer.Instance
+        );
+        
+        var success = effect.TryGet("Id1", out int value);
+        success.ShouldBeFalse();
+                
+        Should.Throw<InvalidOperationException>(() => effect.Get<int>("Id1"));
+
+        var result = await effect.CreateOrGet("Id1", 32);
+        result.ShouldBe(32);
+        result = await effect.CreateOrGet("Id1", 100);
+        result.ShouldBe(32);
+                
+        success = effect.TryGet("Id1", out int value2);
+        success.ShouldBeTrue();
+        value2.ShouldBe(32);
+        effect.Get<int>("Id1").ShouldBe(32);
+                
+        await effect.Upsert("Id1", 100);
+        effect.Get<int>("Id1").ShouldBe(100);
+        
+        var state = await effect.CreateOrGet<FlowState>(nameof(FlowState));
+        state.Value.ShouldBe("");
+        state.Value = "123";
+        await state.Save();
+
+        var state2 = effect.Get<FlowState>(nameof(FlowState));
+        state2.Value.ShouldBe("123");
+    }
+
+    private class FlowState : WorkflowState
+    {
+        public string Value { get; set; } = "";
     }
 }
