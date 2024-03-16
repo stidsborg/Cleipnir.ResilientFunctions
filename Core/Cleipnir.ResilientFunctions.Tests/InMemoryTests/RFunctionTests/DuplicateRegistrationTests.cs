@@ -12,15 +12,15 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 public class DuplicateRegistrationTests
 {
     [TestMethod]
-    public void ReRegistrationRFuncWithIncompatibleTypeThrowsInArgumentException()
+    public void ReRegistrationRFuncWithIncompatibleTypeThrowsException()
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
         );
-
-        Should.Throw<ArgumentException>(() =>
+        
+        Should.Throw<InvalidCastException>(() =>
             _ = rFunctions.RegisterFunc(
                 "SomeFunctionType",
                 Task<Result<int>>(string param) => Succeed.WithValue(int.Parse(param)).ToTask()
@@ -29,7 +29,7 @@ public class DuplicateRegistrationTests
     }
     
     [TestMethod]
-    public void ReRegistrationRFuncThrowsArgumentException()
+    public void ReRegistrationRFuncSucceedsWhenArgumentsAreIdentical()
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
@@ -37,16 +37,14 @@ public class DuplicateRegistrationTests
             Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
         );
 
-        Should.Throw<ArgumentException>(() =>
-            _ = rFunctions.RegisterFunc(
-                "SomeFunctionType",
-                Task<Result<string>> (string param) => Succeed.WithValue(param.ToUpper()).ToTask()
-            )
+        _ = rFunctions.RegisterFunc(
+            "SomeFunctionType",
+            Task<Result<string>> (string param) => Succeed.WithValue(param.ToUpper()).ToTask()
         );
     }
     
     [TestMethod]
-    public void ReRegistrationRActionThrowsArgumentException()
+    public void ReRegistrationRActionSucceedsWhenArgumentsAreIdentical()
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
@@ -54,16 +52,14 @@ public class DuplicateRegistrationTests
             Task<Result>(string _) => Succeed.WithoutValue.ToTask()
         );
 
-        Should.Throw<ArgumentException>(() =>
-            _ = rFunctions.RegisterFunc(
-                "SomeFunctionType",
-                Task<Result> (string _) => Succeed.WithoutValue.ToTask()
-            )
+        _ = rFunctions.RegisterFunc(
+            "SomeFunctionType",
+            Task<Result> (string _) => Succeed.WithoutValue.ToTask()
         );
     }
 
     [TestMethod]
-    public void ReRegistrationRActionWithIncompatibleTypeThrowsInArgumentException()
+    public void ReRegistrationRActionWithIncompatibleTypeThrowsException()
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
@@ -71,7 +67,7 @@ public class DuplicateRegistrationTests
             Task<Result>(string _) => Succeed.WithoutValue.ToTask()
         );
 
-        Should.Throw<ArgumentException>(() =>
+        Should.Throw<InvalidCastException>(() =>
             _ = rFunctions.RegisterFunc(
                 "SomeFunctionType",
                 Task<Result>(int _) => Succeed.WithoutValue.ToTask()
@@ -88,7 +84,7 @@ public class DuplicateRegistrationTests
             Task<Result>(string _) => Succeed.WithoutValue.ToTask()
         );
 
-        Should.Throw<ArgumentException>(() =>
+        Should.Throw<InvalidCastException>(() =>
             _ = rFunctions.RegisterAction(
                 "SomeFunctionType",
                 Task (int _) => Succeed.WithoutValue.ToTask()

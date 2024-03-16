@@ -356,8 +356,8 @@ public class FunctionsRegistry : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-                throw new ArgumentException($"Function <{typeof(FuncRegistration<TParam, TState, TReturn>).SimpleQualifiedName()}> has already been registered");
-        
+                return (FuncRegistration<TParam, TState, TReturn>)_functions[functionTypeId];
+            
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TState, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
             var rFuncInvoker = new Invoker<TParam, TState, TReturn>(
@@ -505,7 +505,7 @@ public class FunctionsRegistry : IDisposable
         lock (_sync)
         {
             if (_functions.ContainsKey(functionTypeId))
-                    throw new ArgumentException($"Action <{typeof(FuncRegistration<TParam, TState>).SimpleQualifiedName()}> has already been registered");
+                return (ActionRegistration<TParam, TState>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TState, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
