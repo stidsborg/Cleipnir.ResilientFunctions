@@ -1,3 +1,14 @@
+[![.NET](https://github.com/stidsborg/Cleipnir.ResilientFunctions/actions/workflows/dotnet.yml/badge.svg)](https://github.com/stidsborg/Cleipnir.ResilientFunctions/actions/workflows/dotnet.yml)
+[![NuGet](https://img.shields.io/nuget/dt/Cleipnir.ResilientFunctions.svg)](https://www.nuget.org/packages/Cleipnir.ResilientFunctions)
+[![NuGet](https://img.shields.io/nuget/vpre/Cleipnir.ResilientFunctions.svg)](https://www.nuget.org/packages/Cleipnir.ResilientFunctions)
+
+<p align="center">
+  <img src="cleipnir.png" alt="logo" />
+  <br>
+  <em>Simply making fault tolerant code simple</em>
+  <br>
+</p>
+
 # Cleipnir's Resilient Functions
 **Realizing the saga-pattern by providing a simple way to ensure your code gets run - until you say it is done!**
 
