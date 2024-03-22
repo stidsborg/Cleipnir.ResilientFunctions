@@ -33,6 +33,10 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
         => TaskWhenAnyFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 
     [TestMethod]
+    public override Task TaskWhenAllFuncTest()
+        => TaskWhenAllFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
     public override Task ClearEffectsTest()
         => ClearEffectsTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 

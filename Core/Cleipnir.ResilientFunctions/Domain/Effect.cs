@@ -233,5 +233,8 @@ public class Effect
     }
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
-        => Capture(id, async () => await await Task.WhenAny(tasks));
+        => Capture(id, work: async () => await await Task.WhenAny(tasks));
+    
+    public Task<T[]> WhenAll<T>(string id, params Task<T>[] tasks)
+        => Capture(id, work: () => Task.WhenAll(tasks));
 }

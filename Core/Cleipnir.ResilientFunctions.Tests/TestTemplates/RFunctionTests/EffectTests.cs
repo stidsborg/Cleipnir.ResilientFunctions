@@ -252,6 +252,32 @@ public abstract class EffectTests
         storedEffect.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
     }
     
+    public abstract Task TaskWhenAllFuncTest();
+    public async Task TaskWhenAllFuncTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        var rAction = functionsRegistry.RegisterFunc(
+            functionTypeId,
+            async Task<int[]> (string param, Workflow workflow) =>
+            {
+                var (effect, _) = workflow;
+                var t1 = Task.FromResult(1);
+                var t2 = Task.FromResult(2);
+                return await effect.WhenAll("WhenAll", t1, t2);
+            });
+
+        var result = await rAction.Invoke(functionInstanceId.ToString(), param: "hello");
+        result.ShouldBe(new [] { 1, 2 });
+        
+        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var storedEffect = effectResults.Single(r => r.EffectId == "WhenAll");
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+        storedEffect.Result!.DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
+    }
+    
     public abstract Task ClearEffectsTest();
     public async Task ClearEffectsTest(Task<IFunctionStore> storeTask)
     {  

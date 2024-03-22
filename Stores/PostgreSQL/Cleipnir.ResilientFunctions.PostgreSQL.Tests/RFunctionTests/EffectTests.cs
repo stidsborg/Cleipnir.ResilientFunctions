@@ -29,7 +29,11 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
     [TestMethod]
     public override Task TaskWhenAnyFuncTest()
         => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task TaskWhenAllFuncTest()
+        => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task ClearEffectsTest()
         => ClearEffectsTest(FunctionStoreFactory.Create());
