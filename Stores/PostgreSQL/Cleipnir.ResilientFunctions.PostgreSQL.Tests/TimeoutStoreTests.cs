@@ -24,6 +24,10 @@ public class TimeoutStoreTests : ResilientFunctions.Tests.TestTemplates.TimeoutS
         => RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 
     [TestMethod]
+    public override Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout()
+        => TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
+
+    [TestMethod]
     public override Task RegisteredTimeoutIsReturnedFromTimeoutProvider()
         => RegisteredTimeoutIsReturnedFromTimeoutProvider(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
     

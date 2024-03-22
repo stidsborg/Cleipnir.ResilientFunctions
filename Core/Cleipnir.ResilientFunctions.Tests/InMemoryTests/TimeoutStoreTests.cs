@@ -31,4 +31,8 @@ public class TimeoutStoreTests : TestTemplates.TimeoutStoreTests
     [TestMethod]
     public override Task RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId()
         => RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+
+    [TestMethod]
+    public override Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout()
+        => TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 }

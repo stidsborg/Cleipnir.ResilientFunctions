@@ -39,10 +39,17 @@ public class TimeoutProvider : ITimeoutProvider
 
     public async Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false)
     {
+        lock (_sync)
+            if (_localTimeouts.Contains(timeoutId) && !overwrite)
+                return;
+        
         expiresAt = expiresAt.ToUniversalTime();
         _ = RegisterLocalTimeout(timeoutId, expiresAt);
         await _timeoutStore.UpsertTimeout(new StoredTimeout(_functionId, timeoutId, expiresAt.Ticks), overwrite);
     }
+    
+    public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
+        => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn), overwrite);
 
     private async Task RegisterLocalTimeout(string timeoutId, DateTime expiresAt)
     {
@@ -66,9 +73,6 @@ public class TimeoutProvider : ITimeoutProvider
 
         await CancelTimeout(timeoutId);
     }
-    
-    public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
-        => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn), overwrite);
 
     public async Task CancelTimeout(string timeoutId)
     {
@@ -80,7 +84,15 @@ public class TimeoutProvider : ITimeoutProvider
 
     public async Task<List<TimeoutEvent>> PendingTimeouts()
     {
-        var timeouts =  await _timeoutStore.GetTimeouts(_functionId);
+        var timeouts = (await _timeoutStore.GetTimeouts(_functionId)).ToList();
+
+        lock (_sync)
+        {
+            _localTimeouts.Clear();
+            foreach (var timeout in timeouts) 
+                _localTimeouts.Add(timeout.TimeoutId);
+        }
+        
         return timeouts
             .Where(t => t.FunctionId == _functionId)
             .Select(t => new TimeoutEvent(t.TimeoutId, Expiration: new DateTime(t.Expiry).ToUniversalTime()))

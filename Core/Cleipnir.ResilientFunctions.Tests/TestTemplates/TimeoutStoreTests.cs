@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
@@ -154,5 +155,59 @@ public abstract class TimeoutStoreTests
         timeouts.Count.ShouldBe(2);
         timeouts.Any(t => t.TimeoutId == "timeoutId1").ShouldBe(true);
         timeouts.Any(t => t.TimeoutId == "timeoutId2").ShouldBe(true);
+    }
+    
+    public abstract Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout();
+    protected async Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(Task<ITimeoutStore> storeTask)
+    {
+        var upsertCount = 0;
+        var store = new TimeoutStoreDecorator(await storeTask, () => upsertCount++);
+        var functionId = TestFunctionId.Create();
+
+        var timeoutProvider = new TimeoutProvider(
+            functionId,
+            store,
+            messageWriter: null,
+            timeoutCheckFrequency: TimeSpan.Zero
+        );
+
+        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
+        upsertCount.ShouldBe(1);
+
+        var pendingTimeouts = await timeoutProvider.PendingTimeouts();
+        pendingTimeouts.Count.ShouldBe(1);
+        pendingTimeouts.Single().TimeoutId.ShouldBe("timeoutId1");
+
+        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1), overwrite: false);
+        upsertCount.ShouldBe(1);
+    }
+
+    private class TimeoutStoreDecorator : ITimeoutStore
+    {
+        private readonly ITimeoutStore _inner;
+        private readonly Action _upsertTimeoutCallback;
+
+        public TimeoutStoreDecorator(ITimeoutStore inner, Action upsertTimeoutCallback)
+        {
+            _inner = inner;
+            _upsertTimeoutCallback = upsertTimeoutCallback;
+        }
+
+        public Task Initialize() => _inner.Initialize();
+
+        public Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
+        {
+            _upsertTimeoutCallback();
+            return _inner.UpsertTimeout(storedTimeout, overwrite);
+        }
+
+        public Task RemoveTimeout(FunctionId functionId, string timeoutId)
+            => _inner.RemoveTimeout(functionId, timeoutId);
+
+        public Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
+            => _inner.GetTimeouts(functionTypeId, expiresBefore);
+
+        public Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+            => _inner.GetTimeouts(functionId);
     }
 }
