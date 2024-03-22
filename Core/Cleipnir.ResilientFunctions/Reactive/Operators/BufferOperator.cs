@@ -58,6 +58,8 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         public ISubscriptionGroup Group => _subscription.Group;
         public IReactiveChain<object> Source => _subscription.Source;
         public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;
+        public Task Initialize() => _subscription.Initialize();
+
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription.SyncStore(maxSinceLastSynced);
         public InterruptCount PushMessages() => _subscription.PushMessages();
 

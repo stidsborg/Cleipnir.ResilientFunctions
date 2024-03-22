@@ -27,7 +27,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
     public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
     {
-        var subscription = new Subscription(
+        return new Subscription(
             _inner, 
             _timeoutId,
             _expiresAt,
@@ -38,10 +38,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             onError, 
             addToSubscriptionGroup
         );
-        
-        Task.Run(subscription.RegisterTimeoutIfNotInExistingEvents);
-
-        return subscription;
     }
 
     private class Subscription : ISubscription
@@ -117,6 +113,13 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
+        
+        public async Task Initialize()
+        {
+            await _innerSubscription.Initialize();
+            await RegisterTimeoutIfNotInExistingEvents();
+        }
+
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
 
         public InterruptCount PushMessages() => _innerSubscription.PushMessages();

@@ -27,6 +27,7 @@ public static class LeafOperators
             onCompletion: () => tcs.TrySetResult(emits),
             onError: e => tcs.TrySetException(e)
         );
+        await subscription.Initialize();
 
         var interruptCount = subscription.PushMessages();
         
@@ -55,7 +56,7 @@ public static class LeafOperators
         throw new SuspendInvocationException(interruptCount);
     }
 
-    public static Task<List<T>> ToList<T>(this IReactiveChain<T> s)
+    public static async Task<List<T>> ToList<T>(this IReactiveChain<T> s)
     {
         var emits = new List<T>();
         var tcs = new TaskCompletionSource<List<T>>();
@@ -65,15 +66,16 @@ public static class LeafOperators
             onCompletion: () => tcs.TrySetResult(emits),
             onError: e => tcs.TrySetException(e)
         );
+        await subscription.Initialize();
 
         subscription.PushMessages();
 
         //short-circuit
         if (tcs.Task.IsCompleted)
-            return tcs.Task;
+            return await tcs.Task;
 
         //slow-path
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             while (!tcs.Task.IsCompleted && subscription.IsWorkflowRunning)
             {
@@ -83,7 +85,7 @@ public static class LeafOperators
             }
         });
         
-        return tcs.Task;
+        return await tcs.Task;
     }
     
     #endregion
@@ -221,7 +223,8 @@ public static class LeafOperators
                 onCompletion: () => { },
                 onError: _ => { }
             );
-
+        await subscription.Initialize();
+        
         var interruptCount = subscription.PushMessages();
         
         if (timeoutEmitted)

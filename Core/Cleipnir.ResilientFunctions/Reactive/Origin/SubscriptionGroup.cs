@@ -38,6 +38,8 @@ internal class SubscriptionGroup : ISubscriptionGroup
         DefaultMessageSyncDelay = defaultDelay;
     }
 
+    public Task Initialize() => Task.CompletedTask;
+
     public Task SyncStore(TimeSpan maxSinceLastSynced) => _syncStore(maxSinceLastSynced);
 
     public InterruptCount PushMessages()
