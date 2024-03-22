@@ -36,12 +36,13 @@ public class Workflow
         await messageWriter.AppendMessage(message, idempotencyKey);
     }
 
-    public async Task Delay(string effectId, TimeSpan @for)
+    public Task Delay(string effectId, TimeSpan @for) => Delay(effectId, until: DateTime.UtcNow + @for);
+    public async Task Delay(string effectId, DateTime until)
     {
-        var expiry = await Effect.Capture(effectId, () => DateTime.UtcNow + @for);
+        var expiry = await Effect.Capture(effectId, until.ToUniversalTime);
         if (expiry <= DateTime.UtcNow)
             return;
 
         throw new PostponeInvocationException(expiry);
-    } 
+    }
 }

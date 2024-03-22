@@ -57,4 +57,9 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTe
     [TestMethod]
     public override Task WorkflowDelayInvocationDelaysFunction()
         => WorkflowDelayInvocationDelaysFunction(FunctionStoreFactory.Create());
+    
+    
+    [TestMethod]
+    public override Task WorkflowDelayWithDateTimeInvocationDelaysFunction()
+        => WorkflowDelayWithDateTimeInvocationDelaysFunction(FunctionStoreFactory.Create());
 }

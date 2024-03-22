@@ -812,4 +812,38 @@ public abstract class PostponedTests
             () => rFunc.Invoke(functionId.InstanceId.Value, "test")
         );
     }
+    
+    public abstract Task WorkflowDelayWithDateTimeInvocationDelaysFunction();
+    protected async Task WorkflowDelayWithDateTimeInvocationDelaysFunction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                leaseLength: TimeSpan.Zero,
+                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+            )
+        );
+        var tomorrow = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
+        var registration = functionsRegistry
+            .RegisterAction(
+                functionId.TypeId,
+                (string _, Workflow workflow) => workflow.Delay("Delay", tomorrow)
+            );
+
+        await Should.ThrowAsync<FunctionInvocationPostponedException>(
+            () => registration.Invoke(functionId.InstanceId.Value, "test")
+        );
+
+        var controlPanel = await registration.ControlPanel(functionId.InstanceId);
+        controlPanel.ShouldNotBeNull();
+
+        var delay = controlPanel.Effects.GetValue<DateTime>("Delay");
+        delay.ShouldBe(tomorrow);
+    }
 }
