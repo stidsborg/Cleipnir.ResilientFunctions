@@ -36,8 +36,6 @@ public class ExistingEffects
             ? default 
             : _serializer.DeserializeEffectResult<TResult>(_storedEffects[effectId].Result!);
     } 
-        
-            
     
     public async Task Remove(string effectId)
     {
@@ -50,6 +48,8 @@ public class ExistingEffects
         await _effectsStore.SetEffectResult(_functionId, storedEffect);
         _storedEffects[storedEffect.EffectId] = storedEffect;
     }
+
+    public Task SetValue<TValue>(string effectId, TValue value) => SetSucceeded(effectId, value);
 
     public Task SetStarted(string effectId) 
         => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, StoredException: null));
