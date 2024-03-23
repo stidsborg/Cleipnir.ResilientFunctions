@@ -19,7 +19,7 @@ public class RFuncWithStateRegistrationTests
     {
         using var rFunctions = CreateRFunctions();
         var rFunc = rFunctions
-            .RegisterFunc<string, WorkflowState, string>(
+            .RegisterFunc<string, string>(
                 _functionTypeId,
                 InnerFunc
             )
@@ -35,7 +35,7 @@ public class RFuncWithStateRegistrationTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rFunc = rFunctions
-            .RegisterFunc<string, WorkflowState, string>(
+            .RegisterFunc<string, string>(
                 _functionTypeId,
                 InnerFunc,
                 new Settings(serializer: serializer)
@@ -47,7 +47,7 @@ public class RFuncWithStateRegistrationTests
         serializer.Invoked.ShouldBeTrue();
     }
 
-    private async Task<string> InnerFunc(string param, WorkflowState workflowState)
+    private async Task<string> InnerFunc(string param)
     {
         await Task.CompletedTask;
         return param.ToUpper();
@@ -66,12 +66,7 @@ public class RFuncWithStateRegistrationTests
         }
         public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
             => Default.DeserializeParameter<TParam>(json, type);
-
-        public StoredState SerializeState<TState>(TState state) where TState : Domain.WorkflowState
-            => Default.SerializeState(state);
-        public TState DeserializeState<TState>(string json, string type) where TState : Domain.WorkflowState
-            => Default.DeserializeState<TState>(json, type);
-
+        
         public StoredException SerializeException(Exception exception)
             => Default.SerializeException(exception);
         public PreviouslyThrownException DeserializeException(StoredException storedException)

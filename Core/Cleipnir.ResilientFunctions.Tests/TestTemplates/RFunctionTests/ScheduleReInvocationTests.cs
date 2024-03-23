@@ -80,10 +80,11 @@ public abstract class ScheduleReInvocationTests
             )
         );
 
-        var rAction = functionsRegistry.RegisterAction<string, ListState<string>>(
+        var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,
-            async (param, state) =>
+            async (param, workflow) =>
             {
+                var state = await workflow.Effect.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -92,6 +93,7 @@ public abstract class ScheduleReInvocationTests
                     throw new Exception("oh no");
                 }
                 state.List.Add("world");
+                await state.Save();
             }
         );
 
@@ -99,8 +101,7 @@ public abstract class ScheduleReInvocationTests
 
         var syncedListFromState = new Synced<List<string>>();
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        syncedListFromState.Value = new List<string>(controlPanel.State.List);
-        controlPanel.State.List.Clear();
+        await controlPanel.Effects.Remove("State");
         await controlPanel.SaveChanges();
         
         await rAction.ControlPanel(functionInstanceId).Result!.ScheduleReInvoke();
@@ -112,7 +113,8 @@ public abstract class ScheduleReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var state = function.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
+        var effects = await store.EffectsStore.GetEffectResults(functionId);
+        var state = effects.Single(e => e.EffectId == "State").Result!.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -183,10 +185,11 @@ public abstract class ScheduleReInvocationTests
             )
         );
 
-        var rFunc = functionsRegistry.RegisterFunc<string, ListState<string>, string>(
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
-            async (param, state) =>
+            async (param, workflow) =>
             {
+                var state = await workflow.Effect.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -195,6 +198,7 @@ public abstract class ScheduleReInvocationTests
                     throw new Exception("oh no");
                 }
                 state.List.Add("world");
+                await state.Save();
                 return param;
             }
         );
@@ -203,8 +207,7 @@ public abstract class ScheduleReInvocationTests
 
         var stateList = new Synced<List<string>>();
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        stateList.Value = new List<string>(controlPanel.State.List);
-        controlPanel.State.List.Clear();
+        await controlPanel.Effects.Remove("State");
         await controlPanel.SaveChanges();
 
         controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -217,7 +220,8 @@ public abstract class ScheduleReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
-        var state = function.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
+        var effects = await store.EffectsStore.GetEffectResults(functionId);
+        var state = effects.Single(e => e.EffectId == "State").Result!.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

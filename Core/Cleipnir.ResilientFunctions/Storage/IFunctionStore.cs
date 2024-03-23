@@ -17,7 +17,6 @@ public interface IFunctionStore
     Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param,
-        StoredState storedState,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -29,18 +28,10 @@ public interface IFunctionStore
 
     Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore);
     Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore);
-
-    Task<bool> SaveStateForExecutingFunction(
-        FunctionId functionId,
-        string stateJson,
-        int expectedEpoch,
-        ComplimentaryState complimentaryState
-    );
     
     Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter,
-        StoredState storedState,
         StoredResult storedResult,
         int expectedEpoch
     );
@@ -49,7 +40,6 @@ public interface IFunctionStore
         FunctionId functionId,
         Status status,
         StoredParameter storedParameter,
-        StoredState storedState,
         StoredResult storedResult,
         StoredException? storedException,
         long? postponeUntil,
@@ -59,7 +49,6 @@ public interface IFunctionStore
     Task<bool> SucceedFunction(
         FunctionId functionId, 
         StoredResult result, 
-        string stateJson, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -68,7 +57,6 @@ public interface IFunctionStore
     Task<bool> PostponeFunction(
         FunctionId functionId, 
         long postponeUntil, 
-        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -77,7 +65,6 @@ public interface IFunctionStore
     Task<bool> FailFunction(
         FunctionId functionId, 
         StoredException storedException, 
-        string stateJson, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -86,7 +73,6 @@ public interface IFunctionStore
     Task<bool> SuspendFunction(
         FunctionId functionId, 
         long expectedInterruptCount, 
-        string stateJson, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState

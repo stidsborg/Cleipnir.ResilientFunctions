@@ -40,12 +40,6 @@ public class RActionRegistrationTests
         public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
             => Default.DeserializeParameter<TParam>(json, type);
 
-        public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
-            => Default.SerializeState(state);
-        public TState DeserializeState<TState>(string json, string type)
-            where TState : WorkflowState
-            => Default.DeserializeState<TState>(json, type);
-
         public StoredException SerializeException(Exception exception)
             => Default.SerializeException(exception);
         public PreviouslyThrownException DeserializeException(StoredException storedException)

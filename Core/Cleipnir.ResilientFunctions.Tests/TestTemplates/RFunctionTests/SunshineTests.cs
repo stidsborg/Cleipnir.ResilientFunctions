@@ -59,7 +59,7 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var functionTypeId = nameof(SunshineScenarioFuncWithState).ToFunctionTypeId();
-        async Task<string> ToUpper(string s, WorkflowState state)
+        async Task<string> ToUpper(string s, State state)
         {
             await state.Save();
             return s.ToUpper();
@@ -71,7 +71,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterFunc(
                 functionTypeId,
-                (string s, WorkflowState state) => ToUpper(s, state)
+                (string s, Workflow workflow) => ToUpper(s, workflow.Effect.CreateOrGet<State>("State").Result)
             )
             .Invoke;
 
@@ -133,7 +133,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 functionTypeId,
-                (string s, WorkflowState state) => state.Save()
+                (string s, Workflow workflow) => workflow.Effect.CreateOrGet<State>("State").Result.Save()
             ).Invoke;
 
         await rFunc("hello", "hello");
@@ -177,9 +177,11 @@ public abstract class SunshineTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string _, ListState<string> state) =>
+            (string _, Workflow workflow) =>
             {
+                var state = workflow.Effect.CreateOrGet<ListState<string>>("State").Result;
                 state.List.Add("hello world");
+                state.Save().Wait();
                 return default(string).ToTask();
             }
         ).Invoke;
@@ -191,7 +193,8 @@ public abstract class SunshineTests
             .GetFunction(functionId)
             .ShouldNotBeNullAsync();
 
-        var state = storedFunction.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
+        var effects = await store.EffectsStore.GetEffectResults(functionId);
+        var state = effects.Single(e => e.EffectId == "State").Result!.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("hello world");
     }
     
@@ -205,9 +208,11 @@ public abstract class SunshineTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string _, ListState<string> state) =>
+            (string _, Workflow workflow) =>
             {
+                var state = workflow.Effect.CreateOrGet<ListState<string>>("State").Result;
                 state.List.Add("hello world");
+                state.Save().Wait();
                 return default(string).ToTask();
             }
         ).Invoke;
@@ -238,5 +243,5 @@ public abstract class SunshineTests
         syncedInvocationMode.Value.ShouldBe(InvocationMode.Direct);
     }
 
-    private class WorkflowState : Domain.WorkflowState {}
+    private class State : Domain.WorkflowState {}
 }

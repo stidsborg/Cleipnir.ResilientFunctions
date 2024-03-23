@@ -45,7 +45,7 @@ public class Effect
             {
                 var existingValue = _serializer.DeserializeEffectResult<T>(existing.Result!);
                 if (existingValue is WorkflowState existingWorkflowState)
-                    existingWorkflowState.Initialize(onSave: () => Upsert(id, existingWorkflowState));
+                    existingWorkflowState.Initialize(onSave: () => Upsert(id, existingValue));
 
                 return existingValue;
             }

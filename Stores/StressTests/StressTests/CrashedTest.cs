@@ -26,7 +26,6 @@ public static class CrashedTest
             await store.CreateFunction(
                 new FunctionId("CrashedTest", i.ToString()),
                 new StoredParameter(JsonSerializer.Serialize("hello world"), typeof(string).SimpleQualifiedName()),
-                new StoredState(JsonSerializer.Serialize(new WorkflowState()), typeof(WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks

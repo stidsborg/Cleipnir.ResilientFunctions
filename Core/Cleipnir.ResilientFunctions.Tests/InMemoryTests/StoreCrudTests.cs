@@ -33,14 +33,6 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
         => LeaseIsNotUpdatedWhenCurrentEpochIsDifferent(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task UpdateStateSunshineScenario()
-        => UpdateStateSunshineScenario(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task StateUpdateFailsWhenEpochIsNotAsExpected()
-        => StateUpdateFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task ExistingFunctionCanBeDeleted()
         => ExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());
 

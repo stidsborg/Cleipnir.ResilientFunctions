@@ -35,28 +35,6 @@ public class ErrorHandlingDecorator : ISerializer
             );
         }
     }
-
-    public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
-        => _inner.SerializeState(state);
-    public TState DeserializeState<TState>(string json, string type) where TState : WorkflowState
-    {
-        try
-        {
-            return _inner.DeserializeState<TState>(json, type);
-        }
-        catch (DeserializationException)
-        {
-            throw;
-        }
-        catch (Exception e)
-        {
-            throw new DeserializationException(
-                $"Unable to deserialize state with type: '{type}' and json: '{MinifyJson(json)}'", 
-                e
-            );
-        }
-    }
-
     public StoredException SerializeException(Exception exception)
         => _inner.SerializeException(exception);
 

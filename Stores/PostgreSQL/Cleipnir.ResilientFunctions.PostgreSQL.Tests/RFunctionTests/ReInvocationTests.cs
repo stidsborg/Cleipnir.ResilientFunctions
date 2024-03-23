@@ -19,12 +19,6 @@ public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     public override Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario()
         => UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
-    public override Task StateUpdaterIsCalledBeforeReInvokeOnAction()
-        => StateUpdaterIsCalledBeforeReInvokeOnAction(FunctionStoreFactory.Create());
-    [TestMethod]
-    public override Task StateUpdaterIsCalledBeforeReInvokeOnFunc()
-        => StateUpdaterIsCalledBeforeReInvokeOnFunc(FunctionStoreFactory.Create());
-    [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]

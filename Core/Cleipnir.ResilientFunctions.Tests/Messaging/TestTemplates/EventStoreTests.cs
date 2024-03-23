@@ -22,7 +22,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -58,7 +57,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -100,7 +98,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -143,7 +140,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -186,7 +182,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -226,7 +221,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -253,7 +247,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -281,7 +274,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -301,7 +293,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -339,7 +330,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -378,7 +368,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -415,7 +404,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -441,7 +429,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -459,7 +446,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -508,7 +494,6 @@ public abstract class MessageStoreTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks

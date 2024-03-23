@@ -1,13 +1,15 @@
 using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace ConsoleApp.LoyaltyPoints;
 
 public class LoyaltyPointsFlow
 {
-    public static async Task Execute(string customerId, State state)
+    public static async Task Execute(string customerId, Workflow workflow)
     {
+        var state = await workflow.Effect.CreateOrGet<State>("State");
         while (true)
         {
             var (date, points) = await Queue.Peek<LoyaltyPoints>();

@@ -18,7 +18,7 @@ public static class Example
         );
 
         var registration = functions
-            .RegisterAction<SupportTicketRequest, WorkflowState>(
+            .RegisterAction<SupportTicketRequest>(
                 functionTypeId: "SupportTicketSaga",
                 Saga.AcceptSupportTicket
             );

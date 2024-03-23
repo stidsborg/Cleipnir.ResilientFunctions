@@ -9,8 +9,8 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-internal class InvocationHelper<TParam, TState, TReturn> 
-    where TParam : notnull where TState : WorkflowState, new() 
+internal class InvocationHelper<TParam, TReturn> 
+    where TParam : notnull 
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
@@ -36,7 +36,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
         FunctionId functionId, 
         TParam param, 
-        TState state,
         DateTime? scheduleAt)
     {
         ArgumentNullException.ThrowIfNull(param);
@@ -44,13 +43,11 @@ internal class InvocationHelper<TParam, TState, TReturn>
         try
         {
             var storedParameter = Serializer.SerializeParameter(param);
-            var storedState = Serializer.SerializeState(state);
 
             var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(
                 functionId,
                 storedParameter,
-                storedState,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
                 timestamp: utcNowTicks
@@ -101,44 +98,19 @@ internal class InvocationHelper<TParam, TState, TReturn>
             }
         }
     }
-
-    public void InitializeState(FunctionId functionId, TParam param, TState state, int epoch) 
-        => state.Initialize(onSave: () => SaveState(functionId, param, state, epoch, _settings.LeaseLength.Ticks));
-
-    private async Task SaveState(FunctionId functionId, TParam param, TState state, int epoch, long leaseLength)
-    {
-        var storedParameter = Serializer.SerializeParameter(param);
-        var storedState = Serializer.SerializeState(state);
-        
-        var success = await _functionStore.SaveStateForExecutingFunction(
-            functionId,
-            storedState.StateJson,
-            expectedEpoch: epoch,
-            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedState, leaseLength) 
-        );
-
-        if (!success)
-            throw new StateSaveFailedException(
-                functionId,
-                $"Unable to save '{functionId}'-state due to concurrent modification"
-            );
-    }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, TState state, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
-        var storedState = serializer.SerializeState(state);
         var storedException = serializer.SerializeException(exception);
-        
+
         var success = await _functionStore.FailFunction(
             functionId,
             storedException,
-            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
             complimentaryState: new ComplimentaryState(
-                () => serializer.SerializeParameter(param), 
-                () => storedState, 
+                () => serializer.SerializeParameter(param),
                 _settings.LeaseLength.Ticks
             )
         );
@@ -150,13 +122,10 @@ internal class InvocationHelper<TParam, TState, TReturn>
         FunctionId functionId,
         Result<TReturn> result,
         TParam param,
-        TState state,
         int expectedEpoch)
     {
-        var storedState = Serializer.SerializeState(state);
         var complementaryState = new ComplimentaryState(
             () => Serializer.SerializeParameter(param),
-            () => storedState,
             _settings.LeaseLength.Ticks
         );
         switch (result.Outcome)
@@ -165,7 +134,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
                 return await _functionStore.SucceedFunction(
                     functionId,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
-                    stateJson: storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -174,7 +142,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
                 return await _functionStore.PostponeFunction(
                     functionId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
-                    stateJson: storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -183,7 +150,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
                 return await _functionStore.FailFunction(
                     functionId,
                     storedException: Serializer.SerializeException(result.Fail!),
-                    stateJson: storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -192,7 +158,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
                 var success = await _functionStore.SuspendFunction(
                     functionId,
                     result.Suspend!.InterruptCount,
-                    storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -201,7 +166,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
                 success = await _functionStore.PostponeFunction(
                     functionId,
                     postponeUntil: DateTime.UtcNow.Add(_settings.LeaseLength).Ticks,
-                    storedState.StateJson,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -253,28 +217,23 @@ internal class InvocationHelper<TParam, TState, TReturn>
             expectedEpoch = sf.Epoch;
             
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
-
-            var storedState = Serializer.DeserializeState<TState>(
-                sf.State.StateJson,
-                sf.State.StateType
-            );
-            storedState.Initialize(onSave: () => SaveState(functionId, param, storedState, sf.Epoch, _settings.LeaseLength.Ticks));
             
-            return new PreparedReInvocation(param, sf.Epoch, storedState, sf.InterruptCount, runningFunction);
+            return new PreparedReInvocation(param, sf.Epoch, sf.InterruptCount, runningFunction);
         }
         catch (DeserializationException e)
         {
             runningFunction.Dispose();
             var sf = await _functionStore.GetFunction(functionId);
+            if (sf == null)
+                throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' was not found");
+            
             await _functionStore.FailFunction(
                 functionId,
                 storedException: Serializer.SerializeException(e),
-                stateJson: sf!.State.StateJson,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
                 complimentaryState: new ComplimentaryState(
-    () => sf.Parameter, 
-    () => sf.State, 
+                    () => sf.Parameter,
                     _settings.LeaseLength.Ticks
                 )
             );
@@ -287,7 +246,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, TState State, long InterruptCount, IDisposable RunningFunction);
+    internal record PreparedReInvocation(TParam Param, int Epoch, long InterruptCount, IDisposable RunningFunction);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
@@ -296,7 +255,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
         FunctionId functionId,
         Status status,
         TParam param,
-        TState state,
         DateTime? postponeUntil,
         Exception? exception,
         int expectedEpoch
@@ -307,7 +265,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
             functionId,
             status,
             storedParameter: serializer.SerializeParameter(param),
-            storedState: serializer.SerializeState(state),
             storedResult: StoredResult.Null,
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
@@ -319,7 +276,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
         FunctionId functionId,
         Status status,
         TParam param,
-        TState state,
         TReturn? result,
         DateTime? postponeUntil,
         Exception? exception,
@@ -331,7 +287,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
             functionId,
             status,
             storedParameter: serializer.SerializeParameter(param),
-            storedState: serializer.SerializeState(state),
             storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
@@ -342,7 +297,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
     public async Task<bool> SaveControlPanelChanges(
         FunctionId functionId, 
         TParam param, 
-        TState state,
         TReturn? @return,
         int expectedEpoch)
     {
@@ -350,7 +304,6 @@ internal class InvocationHelper<TParam, TState, TReturn>
         return await _functionStore.SetParameters(
             functionId,
             storedParameter: serializer.SerializeParameter(param),
-            storedState: serializer.SerializeState(state),
             storedResult: serializer.SerializeResult(@return),
             expectedEpoch
         );
@@ -365,7 +318,7 @@ internal class InvocationHelper<TParam, TState, TReturn>
     }
         
 
-    public async Task<FunctionState<TParam, TState, TReturn>?> GetFunction(FunctionId functionId)
+    public async Task<FunctionState<TParam, TReturn>?> GetFunction(FunctionId functionId)
     {
         var serializer = _settings.Serializer;
         
@@ -373,13 +326,12 @@ internal class InvocationHelper<TParam, TState, TReturn>
         if (sf == null) 
             return null;
 
-        return new FunctionState<TParam, TState, TReturn>(
+        return new FunctionState<TParam, TReturn>(
             functionId,
             sf.Status,
             sf.Epoch,
             sf.LeaseExpiration,
             Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
-            State: serializer.DeserializeState<TState>(sf.State.StateJson, sf.State.StateType),
             Result: sf.Result.ResultType == null 
                 ? default 
                 : serializer.DeserializeResult<TReturn>(sf.Result.ResultJson!, sf.Result.ResultType),
@@ -428,13 +380,13 @@ internal class InvocationHelper<TParam, TState, TReturn>
         return new Effect(functionId, existingActivities, effectsStore, _settings.Serializer);
     }
 
-    public async Task<ExistingEffects> GetExistingActivities(FunctionId functionId)
+    public async Task<ExistingEffects> GetExistingEffects(FunctionId functionId)
     {
         var effectsStore = _functionStore.EffectsStore;
-        var existingActivities = await effectsStore.GetEffectResults(functionId);
+        var existingEffects = await effectsStore.GetEffectResults(functionId);
         return new ExistingEffects(
             functionId,
-            existingActivities.ToDictionary(sa => sa.EffectId, sa => sa),
+            existingEffects.ToDictionary(sa => sa.EffectId, sa => sa),
             effectsStore,
             _settings.Serializer
         );

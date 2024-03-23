@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -88,7 +90,7 @@ public abstract class CrashedTests
             var nonCompletingFunctionsRegistry = functionsRegistry    
                 .RegisterFunc(
                     functionTypeId,
-                    (string _, WorkflowState _) => NeverCompletingTask.OfType<Result<string>>()
+                    (string _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
             _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
@@ -105,8 +107,9 @@ public abstract class CrashedTests
             var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
-                    async (string s, WorkflowState state) =>
+                    async (string s, Workflow workflow) =>
                     {
+                        var state = await workflow.Effect.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                         return s.ToUpper();
@@ -123,8 +126,10 @@ public abstract class CrashedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            storedFunction.State.ShouldNotBeNull();
-            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var stateResult = effects.Single(e => e.EffectId == "State").Result;
+            stateResult.ShouldNotBeNull();
+            stateResult.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
         }
 
@@ -209,7 +214,7 @@ public abstract class CrashedTests
                 )
                 .RegisterAction(
                     functionTypeId,
-                    (string _, WorkflowState _) => NeverCompletingTask.OfVoidType
+                    (string _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
             _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
@@ -226,8 +231,9 @@ public abstract class CrashedTests
             var rAction = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (string _, WorkflowState state) =>
+                    async (string _, Workflow workflow) =>
                     {
+                        var state = await workflow.Effect.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                     }
@@ -243,8 +249,9 @@ public abstract class CrashedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            storedFunction.State.ShouldNotBeNull();
-            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var state = effects.Single(e => e.EffectId == "State").Result;
+            state!.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rAction(functionInstanceId.Value, param);
         }
 
@@ -252,7 +259,7 @@ public abstract class CrashedTests
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
     
-    private class WorkflowState : Domain.WorkflowState
+    private class State : WorkflowState
     {
         public int Value { get; set; }
     }

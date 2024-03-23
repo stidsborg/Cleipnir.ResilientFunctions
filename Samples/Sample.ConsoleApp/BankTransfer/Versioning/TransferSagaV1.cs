@@ -8,14 +8,14 @@ namespace ConsoleApp.BankTransfer.Versioning;
 
 public sealed class TransferSagaV1
 {
-    private readonly ActionRegistration<Transfer, WorkflowState> _actionRegistration;
+    private readonly ActionRegistration<Transfer> _actionRegistration;
     public TransferSagaV1(FunctionsRegistry functionsRegistry)
     {
         var inner = new Inner(new BankCentralClient());
         _actionRegistration = functionsRegistry
-            .RegisterAction<Transfer, WorkflowState>(
+            .RegisterAction<Transfer>(
                 functionTypeId: nameof(TransferSagaV1),
-                (transfer, state, workflow) => inner.Perform(transfer, state, workflow)
+                (transfer, workflow) => inner.Perform(transfer, workflow)
             );
     }
 
@@ -28,7 +28,7 @@ public sealed class TransferSagaV1
 
         public Inner(IBankCentralClient bankCentralClient) => BankCentralClient = bankCentralClient;
 
-        public async Task Perform(Transfer transfer, WorkflowState state, Workflow workflow)
+        public async Task Perform(Transfer transfer, Workflow workflow)
         {
             var arbitrator = workflow.Utilities.Arbitrator;
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");

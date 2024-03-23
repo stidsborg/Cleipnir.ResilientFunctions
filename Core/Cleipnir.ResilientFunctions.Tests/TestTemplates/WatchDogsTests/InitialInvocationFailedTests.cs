@@ -19,7 +19,6 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -47,7 +46,6 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -55,9 +53,9 @@ public abstract class InitialInvocationFailedTests
 
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = functionsRegistry.RegisterAction<string, WorkflowState>(
+        _ = functionsRegistry.RegisterAction<string>(
             functionId.TypeId,
-            void(string param, WorkflowState state) => flag.Raise()
+            void(string param) => flag.Raise()
         );
 
         await flag.WaitForRaised();
@@ -65,9 +63,6 @@ public abstract class InitialInvocationFailedTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var state = await store.GetFunction(functionId).Map(sf => sf?.State);
-        state.ShouldNotBeNull();
-        state.StateJson.ShouldNotBeNull();
     }
 
     public abstract Task CreatedFuncIsCompletedByWatchdog();
@@ -78,7 +73,6 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -112,7 +106,6 @@ public abstract class InitialInvocationFailedTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -122,7 +115,7 @@ public abstract class InitialInvocationFailedTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterFunc(
             functionId.TypeId,
-            string (string param, WorkflowState state) =>
+            string (string param) =>
             {
                 flag.Raise();
                 return param.ToUpper();
@@ -133,9 +126,6 @@ public abstract class InitialInvocationFailedTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var state = await store.GetFunction(functionId).Map(sf => sf?.State);
-        state.ShouldNotBeNull();
-        state.StateJson.ShouldNotBeNull();
         
         var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result?.ResultJson);
         resultJson.ShouldNotBeNull();

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using MailKit.Net.Smtp;
 using MimeKit;
@@ -10,8 +11,9 @@ namespace ConsoleApp.EmailOffers;
 
 public static class EmailSenderSaga
 {
-    public static async Task Start(MailAndRecipients mailAndRecipients, State state)
+    public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
     {
+        var state = await workflow.Effect.CreateOrGet<State>("State");
         var (recipients, subject, content) = mailAndRecipients;
 
         using var client = new SmtpClient();

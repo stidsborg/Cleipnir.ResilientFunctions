@@ -12,8 +12,9 @@ public class OrderProcessor
 
     public OrderProcessor(MessageBroker messageBroker) => _messageBroker = messageBroker;
 
-    public async Task Execute(Order order, State state, Workflow workflow)
+    public async Task Execute(Order order, Workflow workflow)
     {
+        var state = await workflow.Effect.CreateOrGet<State>("State");
         Logger.Information($"Processing of order '{order.OrderId}' started");
         var messages = workflow.Messages;
 

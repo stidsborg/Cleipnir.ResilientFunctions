@@ -33,9 +33,9 @@ public abstract class ExceptionHandlingTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
-        var rFunc = functionsRegistry.RegisterFunc<string, ListState<string>, string>( //explicit generic parameters to satisfy Rider-ide
+        var rFunc = functionsRegistry.RegisterFunc( 
             "typeId".ToFunctionTypeId(),
-            string (string param, ListState<string> state) => throw new ArithmeticException("Division by zero")
+            string (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));

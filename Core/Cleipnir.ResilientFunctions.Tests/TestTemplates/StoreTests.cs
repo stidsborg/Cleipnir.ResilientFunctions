@@ -24,14 +24,12 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var paramType = PARAM.GetType().SimpleQualifiedName();
         var storedParameter = new StoredParameter(paramJson, paramType);
-        var storedState = new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName());
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
         var timestamp = leaseExpiration + 1;
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration,
             postponeUntil: null,
             timestamp
@@ -54,8 +52,6 @@ public abstract class StoreTests
         storedFunction.FunctionId.ShouldBe(functionId);
         storedFunction.Parameter.ParamJson.ShouldBe(paramJson);
         storedFunction.Parameter.ParamType.ShouldBe(paramType);
-        storedFunction.State.ShouldNotBeNull();
-        storedFunction.State.StateType.ShouldBe(typeof(Domain.WorkflowState).SimpleQualifiedName());
         storedFunction.Epoch.ShouldBe(0);
         storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
         storedFunction.Timestamp.ShouldBe(timestamp);
@@ -67,10 +63,9 @@ public abstract class StoreTests
         await store.SucceedFunction(
             functionId,
             result: new StoredResult(resultJson, resultType),
-            stateJson: new Domain.WorkflowState().ToJson(),
             expectedEpoch: 0,
             timestamp: DateTime.UtcNow.Ticks,
-            complimentaryState: new ComplimentaryState(() => storedParameter, () => storedState, LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(() => storedParameter, LeaseLength: 0)
         ).ShouldBeTrueAsync();
             
         storedFunction = await store.GetFunction(functionId);
@@ -91,7 +86,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -132,7 +126,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -170,7 +163,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -203,7 +195,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -234,7 +225,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -243,7 +233,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -263,7 +252,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: new StoredParameter(paramJson, paramType),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -284,12 +272,10 @@ public abstract class StoreTests
         var nowTicks = DateTime.UtcNow.Ticks;
 
         var storedParameter = new StoredParameter(paramJson, paramType);
-        var storedState = new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName());
         
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -298,10 +284,9 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: nowTicks,
-            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store
@@ -327,12 +312,10 @@ public abstract class StoreTests
         var nowTicks = DateTime.UtcNow.Ticks;
         
         var storedParameter = new StoredParameter(paramJson, paramType);
-        var storedState = new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName());
         
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -341,10 +324,9 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: nowTicks,
-            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store
@@ -370,12 +352,10 @@ public abstract class StoreTests
         var nowTicks = DateTime.UtcNow.Ticks;
 
         var storedParameter = new StoredParameter(paramJson, paramType);
-        var storedState = new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName());
-        
+         
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -384,10 +364,9 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: nowTicks,
-            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -397,10 +376,6 @@ public abstract class StoreTests
         DefaultSerializer.Instance
             .DeserializeParameter<string>(sf.Parameter.ParamJson, sf.Parameter.ParamType)
             .ShouldBe(PARAM);
-
-        DefaultSerializer.Instance
-            .DeserializeState<Domain.WorkflowState>(sf.State.StateJson, sf.State.StateType)
-            .ShouldNotBeNull();
     }
     
     public abstract Task InitializeCanBeInvokedMultipleTimesSuccessfully();
@@ -421,7 +396,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -445,7 +419,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             function1Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -454,7 +427,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             function2Id,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: 2,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -478,7 +450,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -500,7 +471,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -512,71 +482,7 @@ public abstract class StoreTests
         sf.ShouldNotBeNull();
         sf.Epoch.ShouldBe(0);
     }
-
-    public abstract Task SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected();
-    public async Task SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-
-        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
-        await store.CreateFunction(
-            functionId,
-            storedParameter,
-            storedState,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        storedState = storedState with { StateJson = new WorkflowState() { State = "completed" }.ToJson()};
-        await store.SaveStateForExecutingFunction(
-            functionId,
-            storedState.StateJson,
-            expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
-        ).ShouldBeTrueAsync();
-        
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.Epoch.ShouldBe(0);
-        var state = DefaultSerializer.Instance.DeserializeState<WorkflowState>(sf.State.StateJson, sf.State.StateType);
-        state.State.ShouldBe("completed");
-    }
     
-    public abstract Task SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected();
-    public async Task SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-
-        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
-        await store.CreateFunction(
-            functionId,
-            storedParameter,
-            storedState,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        storedState = storedState with { StateJson = new WorkflowState() { State = "completed" }.ToJson()};
-        await store.SaveStateForExecutingFunction(
-            functionId,
-            storedState.StateJson,
-            expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
-        ).ShouldBeFalseAsync();
-        
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.Epoch.ShouldBe(0);
-        var state = DefaultSerializer.Instance.DeserializeState<WorkflowState>(sf.State.StateJson, sf.State.StateType);
-        state.State.ShouldBe("initial");
-    }
-
     private class WorkflowState : Domain.WorkflowState
     {
         public string State { get; set; } = "";
@@ -589,11 +495,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -614,11 +518,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -631,8 +533,6 @@ public abstract class StoreTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Epoch.ShouldBe(0);
-        var state = DefaultSerializer.Instance.DeserializeState<WorkflowState>(sf.State.StateJson, sf.State.StateType);
-        state.State.ShouldBe("initial");
     }
 
     public abstract Task FailFunctionSucceedsWhenEpochIsAsExpected();
@@ -642,11 +542,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -661,10 +559,9 @@ public abstract class StoreTests
         await store.FailFunction(
             functionId,
             storedException,
-            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         );
         
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -687,11 +584,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -701,7 +596,6 @@ public abstract class StoreTests
             functionId,
             Status.Succeeded,
             storedParameter,
-            storedState,
             new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
             storedException: null,
             postponeUntil: null,
@@ -725,11 +619,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -746,7 +638,6 @@ public abstract class StoreTests
             functionId,
             Status.Succeeded,
             storedParameter,
-            storedState,
             new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
             storedException: null,
             postponeUntil: null,
@@ -774,11 +665,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -787,18 +676,15 @@ public abstract class StoreTests
         await store.SuspendFunction(
             functionId,
             expectedInterruptCount: 0,
-            storedState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeAsync(true);
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         (sf.Epoch is 0).ShouldBeTrue();
         sf.Status.ShouldBe(Status.Suspended);
-        sf.State.StateType.ShouldBe(storedState.StateType);
-        sf.State.StateJson.ShouldBe(storedState.StateJson);
         sf.Parameter.ParamType.ShouldBe(storedParameter.ParamType);
         sf.Parameter.ParamJson.ShouldBe(storedParameter.ParamJson);
 
@@ -821,11 +707,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -850,11 +734,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -876,11 +758,9 @@ public abstract class StoreTests
         var functionId = TestFunctionId.Create();
 
         var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new WorkflowState { State = "initial" }.ToJson(), typeof(WorkflowState).SimpleQualifiedName());
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -890,7 +770,6 @@ public abstract class StoreTests
             functionId,
             Status.Succeeded,
             storedParameter,
-            storedState,
             new StoredResult("completed".ToJson(), typeof(string).SimpleQualifiedName()),
             storedException: null,
             postponeUntil: null,
@@ -913,7 +792,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -922,10 +800,9 @@ public abstract class StoreTests
         await store.SucceedFunction(
             functionId,
             StoredResult.Null,
-            Test.SimpleStoredState.StateJson,
             DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -942,7 +819,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -951,10 +827,9 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.Ticks,
-            Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -971,7 +846,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -980,10 +854,9 @@ public abstract class StoreTests
         await store.FailFunction(
             functionId,
             new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
-            Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1000,7 +873,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1009,10 +881,9 @@ public abstract class StoreTests
         await store.SuspendFunction(
             functionId,
             expectedInterruptCount: 0,
-            Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1029,7 +900,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1045,10 +915,9 @@ public abstract class StoreTests
         await store.SuspendFunction(
             functionId,
             expectedInterruptCount: 0,
-            Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1065,7 +934,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1081,10 +949,9 @@ public abstract class StoreTests
         var success = await store.SuspendFunction(
             functionId,
             expectedInterruptCount: 0,
-            Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), Test.SimpleStoredState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
         success.ShouldBeFalse();
@@ -1104,7 +971,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1133,7 +999,6 @@ public abstract class StoreTests
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
-            storedState: Test.SimpleStoredState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -1142,10 +1007,9 @@ public abstract class StoreTests
         await store.SuspendFunction(
             functionId,
             expectedInterruptCount: 0,
-            Test.SimpleStoredState.StateJson,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, StoredStateFunc: () => Test.SimpleStoredState, LeaseLength: 0)
+            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(functionId);

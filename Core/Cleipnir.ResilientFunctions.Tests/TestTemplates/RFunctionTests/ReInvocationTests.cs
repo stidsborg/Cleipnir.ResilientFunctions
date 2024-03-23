@@ -75,10 +75,11 @@ public abstract class ReInvocationTests
             )
         );
 
-        var rAction = functionsRegistry.RegisterAction<string, ListState<string>>(
+        var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,
-            async (param, state) =>
+            async (param, workflow) =>
             {
+                var state = await workflow.Effect.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -87,6 +88,7 @@ public abstract class ReInvocationTests
                     throw new Exception("oh no");
                 }
                 state.List.Add("world");
+                await state.Save();
             }
         );
 
@@ -97,8 +99,8 @@ public abstract class ReInvocationTests
         var syncedListFromState = new Synced<List<string>>();
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
             
-        syncedListFromState.Value = new List<string>(controlPanel.State.List);
-        controlPanel.State.List.Clear();
+        syncedListFromState.Value = new List<string>(controlPanel.Effects.GetValue<ListState<string>>("State")!.List);
+        await controlPanel.Effects.SetValue("State", new ListState<string>());
         await controlPanel.SaveChanges();
         
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -106,8 +108,9 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var state = function.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
-        state.List.Single().ShouldBe("world");
+        await controlPanel.Refresh();
+        var state = controlPanel.Effects.GetValue<ListState<string>>("State");
+        state!.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -177,136 +180,32 @@ public abstract class ReInvocationTests
             )
         );
 
-        var syncedParam = new Synced<Tuple<object, Domain.WorkflowState>>();
-        var rAction = functionsRegistry.RegisterAction<object, Domain.WorkflowState>(
+        
+        var rAction = functionsRegistry.RegisterAction<object>(
             functionTypeId,
-            (p, s) =>
+            (p, workflow) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
                     throw new Exception("oh no");
                 }
-                
-                syncedParam.Value = Tuple.Create(p, s);
             }
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(functionInstanceId.Value, "something", new ListState<string>())
+            rAction.Invoke(functionInstanceId.Value, "something")
         );
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = 10;
-        (controlPanel.State is ListState<string>).ShouldBeTrue();
-        controlPanel.State = new ListState<int>();
         await controlPanel.SaveChanges();
        
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
         
-        var (param, state) = syncedParam.Value!;
-        param.ShouldBe(10);
-        (state is ListState<int>).ShouldBeTrue();
-        
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-    
-    public abstract Task StateUpdaterIsCalledBeforeReInvokeOnAction();
-    protected async Task StateUpdaterIsCalledBeforeReInvokeOnAction(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        var flag = new SyncedFlag();
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction<string, WorkflowState>(
-            functionTypeId,
-            inner: (_, state) =>
-            {
-                state.Value++;
-                if (flag.Position == FlagPosition.Lowered)
-                    throw new Exception("oh no");
-            }
-        );
-
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, "something"));
-        var state = await store
-            .GetFunction(functionId)
-            .Map(sf => sf?.State.StateJson.DeserializeFromJsonTo<WorkflowState>());
-
-        state.ShouldNotBeNull();
-        state.Value.ShouldBe(1);
-        
-        flag.Raise();
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        controlPanel.State.Value = -1;
-        await controlPanel.SaveChanges();
-        await controlPanel.Refresh();
-        await controlPanel.ReInvoke();
-
-        var function = await store.GetFunction(functionId);
-        function.ShouldNotBeNull();
-        function.Status.ShouldBe(Status.Succeeded);
-        var s = function.State.StateJson.DeserializeFromJsonTo<WorkflowState>();
-        s.Value.ShouldBe(0);
-        
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-    
-    public abstract Task StateUpdaterIsCalledBeforeReInvokeOnFunc();
-    protected async Task StateUpdaterIsCalledBeforeReInvokeOnFunc(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        var flag = new SyncedFlag();
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rFunc = functionsRegistry.RegisterFunc<string, WorkflowState, string>(
-            functionTypeId,
-            inner: (param, state) =>
-            {
-                state.Value++;
-                if (flag.Position == FlagPosition.Lowered)
-                    throw new Exception("oh no");
-
-                return param;
-            }
-        );
-
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
-        var sfState = await store
-            .GetFunction(functionId)
-            .Map(sf => sf?.State.StateJson.DeserializeFromJsonTo<WorkflowState>());
-
-        sfState.ShouldNotBeNull();
-        sfState.Value.ShouldBe(1);
-        
-        flag.Raise();
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        controlPanel.State.Value = -1;
-        await controlPanel.SaveChanges();
-
-        await controlPanel.Refresh();
-        var returned = await controlPanel.ReInvoke();
-        returned.ShouldBe("something");
-        
-        var function = await store.GetFunction(functionId);
-        function.ShouldNotBeNull();
-        function.Status.ShouldBe(Status.Succeeded);
-        var state = function.State.StateJson.DeserializeFromJsonTo<WorkflowState>();
-        state.Value.ShouldBe(0);
-        
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-    private class WorkflowState : Domain.WorkflowState
-    {
-        public int Value { get; set; }
     }
 
     public abstract Task FuncReInvocationSunshineScenario();
@@ -369,11 +268,12 @@ public abstract class ReInvocationTests
                 postponedCheckFrequency: TimeSpan.Zero
             )
         );
-
-        var rFunc = functionsRegistry.RegisterFunc<string, ListState<string>, string>(
+        
+        var rFunc = functionsRegistry.RegisterFunc<string, string>(
             functionTypeId,
-            async (param, state) =>
+            async (param, workflow) =>
             {
+                var state = await workflow.Effect.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -383,6 +283,7 @@ public abstract class ReInvocationTests
                 }
 
                 state.List.Add("world");
+                await state.Save();
                 return param;
             }
         );
@@ -390,7 +291,7 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        controlPanel.State.List.Clear();
+        await controlPanel.Effects.Remove("State");
         await controlPanel.SaveChanges();
         
         controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -401,8 +302,9 @@ public abstract class ReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
-        var state = function.State.StateJson.DeserializeFromJsonTo<ListState<string>>();
-        state.List.Single().ShouldBe("world");
+        await controlPanel.Refresh();
+        var state = controlPanel.Effects.GetValue<ListState<string>>("State");
+        state!.List.Single().ShouldBe("world");
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

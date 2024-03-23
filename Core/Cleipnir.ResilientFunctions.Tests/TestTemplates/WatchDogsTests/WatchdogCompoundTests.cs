@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -126,6 +127,10 @@ public abstract class WatchdogCompoundTests
         }
     }
 
+    private class ListState : Domain.WorkflowState
+    {
+        public List<int> Scraps { get; set; } = new();
+    }
     public abstract Task FunctionWithStateCompoundTest();
     public async Task FunctionWithStateCompoundTest(Task<IFunctionStore> storeTask)
     {
@@ -148,8 +153,9 @@ public abstract class WatchdogCompoundTests
             );
             var rFunc = functionsRegistry.RegisterFunc(
                 functionTypeId,
-                async (Param p, WorkflowState state) =>
+                async (Param p, Workflow flow) =>
                 {
+                    var state = await flow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(1);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -178,11 +184,12 @@ public abstract class WatchdogCompoundTests
                     postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = functionsRegistry.RegisterFunc<Param, WorkflowState, string>(  //explicit generic parameters to satisfy Rider-ide
+            _ = functionsRegistry.RegisterFunc<Param, string>(  //explicit generic parameters to satisfy Rider-ide
                 functionTypeId,
-                async (p, state) =>
+                async (p, workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
+                    var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(2);
                     await state.Save();
                     return Postpone.For(100);
@@ -207,8 +214,9 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
-                async (Param p, WorkflowState state) =>
+                async (Param p, Workflow workflow) =>
                 {
+                    var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(3);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -232,8 +240,9 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterFunc(
                 functionTypeId,
-                async (Param p, WorkflowState state) =>
+                async (Param p, Workflow workflow) =>
                 {
+                    var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(4);
                     await state.Save();
                     return $"{p.Id}-{p.Value}";
@@ -249,8 +258,10 @@ public abstract class WatchdogCompoundTests
             storedFunction!.Result.DefaultDeserialize()!
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
-            storedFunction.State.DefaultDeserialize()
-                .CastTo<WorkflowState>()
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            effects.Single(e => e.EffectId == "Scraps")
+                .Result!
+                .DeserializeFromJsonTo<ListState>()
                 .Scraps
                 .ShouldBe(new [] {1,2,3,4});
         }
@@ -375,7 +386,7 @@ public abstract class WatchdogCompoundTests
             storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
         }
     }
-
+    
     public abstract Task ActionWithStateCompoundTest();
     public async Task ActionWithStateCompoundTest(Task<IFunctionStore> storeTask)
     {
@@ -398,8 +409,9 @@ public abstract class WatchdogCompoundTests
             );
             var rFunc = functionsRegistry.RegisterAction(
                 functionTypeId,
-                async (Param p, WorkflowState state) =>
+                async (Param p, Workflow workflow) =>
                 {
+                    var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(1);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -430,11 +442,13 @@ public abstract class WatchdogCompoundTests
             _ = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (Param p, WorkflowState state, Workflow __) =>
+                    async (Param p, Workflow workflow) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
+                        var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                         state.Scraps.Add(2);
                         await state.Save();
+                        
                         return Postpone.For(100);
                     });
             
@@ -458,9 +472,11 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterAction(
                 functionTypeId,
-                async (Param p, WorkflowState state) =>
+                async (Param p, Workflow workflow) =>
                 {
+                    var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(3);
+                    await state.Save();
                     var savedTask = state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
                     _ = Task.Run(() => invocationStarted.SetResult());
@@ -486,9 +502,10 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry.RegisterAction(
                 functionTypeId,
-                async (Param p, WorkflowState state) =>
+                async (Param p, Workflow workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
+                    var state = await workflow.Effect.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(4);
                     await state.Save();
                 }
@@ -502,8 +519,10 @@ public abstract class WatchdogCompoundTests
             
             var storedFunction = await store.GetFunction(functionId);
             storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
-            storedFunction.State.DefaultDeserialize()
-                .CastTo<WorkflowState>()
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            effects.Single(e => e.EffectId == "Scraps")
+                .Result!
+                .DeserializeFromJsonTo<ListState>()
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});
         }

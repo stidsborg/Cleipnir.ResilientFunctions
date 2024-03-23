@@ -1,4 +1,6 @@
+using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -14,11 +16,10 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
         public async Task SunshineScenario(IFunctionStore store)
         {
             var functionTypeId = nameof(SunshineScenario).ToFunctionTypeId();
-            async Task<string> ToUpper(string s, WorkflowState state)
+            async Task<string> ToUpper(string s, Workflow workflow)
             {
                 var toReturn = s.ToUpper();
-                state.Scrap = toReturn;
-                await state.Save();
+                await workflow.Effect.CreateOrGet("Scrap", toReturn);
                 return s.ToUpper();
             }
 
@@ -27,27 +28,26 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
             var rFunc = functionsRegistry
-                .RegisterFunc(
+                .RegisterFunc<string, string>(
                     functionTypeId,
-                    (string s, WorkflowState state) => ToUpper(s, state)
+                    ToUpper
                 ).Invoke;
 
             var result = await rFunc("hello", "hello");
             result.ShouldBe("HELLO");
-            
-            var storedFunction = await store.GetFunction(
-                new FunctionId(
-                    functionTypeId, 
-                    "hello".ToFunctionInstanceId()
-                )
-            );
+
+            var functionId = new FunctionId(functionTypeId, "hello".ToFunctionInstanceId());
+            var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
             var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
             storedResult.ShouldBe("HELLO");
-            storedFunction.State.ShouldNotBeNull();
-            var state = storedFunction.State.Deserialize<WorkflowState>(_serializer);
-            state.Scrap.ShouldBe("HELLO");
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            effects
+                .Single(e => e.EffectId == "Scrap")
+                .Result!
+                .DeserializeFromJsonTo<string>()
+                .ShouldBe("HELLO");
             
             unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
         }

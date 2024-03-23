@@ -34,7 +34,6 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName().Replace("V1", "V0")
             ),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -72,7 +71,6 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-           new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
            leaseExpiration: DateTime.UtcNow.Ticks,
            postponeUntil: null,
            timestamp: DateTime.UtcNow.Ticks
@@ -94,50 +92,6 @@ public abstract class VersioningTests
         
         unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
     }
-    
-    public abstract Task WhenStateOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown();
-    protected async Task WhenStateOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var store = new InMemoryFunctionStore();
-        using var functionsRegistry = new FunctionsRegistry(
-            store,
-            new Settings(
-                leaseLength: TimeSpan.FromMilliseconds(10), 
-                unhandledExceptionHandler: unhandledExceptionCatcher.Catch
-            )
-        );
-        var functionId = new FunctionId(nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown), "v1");
-        await store.CreateFunction(
-            functionId,
-            new StoredParameter(
-                "Hello World".ToJson(),
-                typeof(string).SimpleQualifiedName()
-            ),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        var flag = new SyncedFlag();
-        _ = functionsRegistry.RegisterAction(
-            nameof(WhenInputParameterOfRegisteredFunctionIsIncompatibleWithDeserializedTypeAnExceptionIsThrown),
-            void (string param, State2 state) => flag.Raise()
-        );
-
-        await BusyWait.UntilAsync(() => unhandledExceptionCatcher.ThrownExceptions.Count > 0, maxWait: TimeSpan.FromSeconds(5));
-
-        flag.IsRaised.ShouldBeFalse();
-        await store
-            .GetFunction(functionId)
-            .Map(sf => sf!.Status == Status.Failed)
-            .ShouldBeTrueAsync();
-        
-        unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
-    }
-    private class State1 : WorkflowState {}
-    private class State2 : WorkflowState {}
 
     public abstract Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype();
     protected async Task RegisteredFunctionAcceptsTwoDifferentParameterTypesOfSameSubtype(Task<IFunctionStore> storeTask)
@@ -159,7 +113,6 @@ public abstract class VersioningTests
                 new PersonV1(Name: "Peter").ToJson(),
                 typeof(PersonV1).SimpleQualifiedName()
             ),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -172,7 +125,6 @@ public abstract class VersioningTests
                 new PersonV2(Name: "Ole", Age: 35).ToJson(),
                 typeof(PersonV2).SimpleQualifiedName()
             ),
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks

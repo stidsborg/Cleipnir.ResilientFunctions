@@ -351,14 +351,18 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            void(string param, TestState state) => state.Value = param
-        );
+            void(string param, Workflow workflow) =>
+            {
+                var state = workflow.Effect.CreateOrGet<TestState>("State").Result;
+                state.Value = param;
+                state.Save().Wait();
+            });
 
         await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.Value.ShouldBe("first");
+        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -367,7 +371,7 @@ public abstract class ControlPanelTests
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.Value.ShouldBe("second");
+        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -424,14 +428,18 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            void(string param, TestState state) => state.Value = param
-        );
+            void(string param, Workflow workflow) =>
+            {
+                var state = workflow.Effect.CreateOrGet<TestState>("State").Result;
+                state.Value = param;
+                state.Save().Wait();
+            });
 
         await rAction.Invoke(functionInstanceId.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.Value.ShouldBe("first");
+        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -442,7 +450,7 @@ public abstract class ControlPanelTests
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.State.Value.ShouldBe("second");
+        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -740,7 +748,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, WorkflowState _, Workflow workflow) =>
+            async Task(string param, Workflow workflow) =>
             {
                 await workflow.Messages.AppendMessage(param);
             }
@@ -772,7 +780,7 @@ public abstract class ControlPanelTests
         var syncedList = new SyncedList<string>();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, WorkflowState _, Workflow workflow) =>
+            async Task(string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
                 if (first)
@@ -833,7 +841,7 @@ public abstract class ControlPanelTests
         var first = true;
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            async Task(string param, WorkflowState _, Workflow workflow) =>
+            async Task(string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
                 if (first)
@@ -874,7 +882,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, WorkflowState _, Workflow workflow) => Task.Delay(1)
+            Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -911,7 +919,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, WorkflowState _, Workflow workflow) => Task.Delay(1)
+            Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -955,7 +963,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, WorkflowState _, Workflow workflow) => Task.Delay(1)
+            Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -992,7 +1000,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, WorkflowState _, Workflow workflow) => Task.Delay(1)
+            Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -1036,7 +1044,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task(string param, WorkflowState _, Workflow workflow) => Task.CompletedTask
+            Task(string param, Workflow workflow) => Task.CompletedTask
         );
 
         await rAction.Invoke(functionInstanceId.Value, param: "param");
@@ -1075,7 +1083,7 @@ public abstract class ControlPanelTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            Task<string> (string param, WorkflowState _, Workflow workflow) 
+            Task<string> (string param, Workflow workflow) 
                 => workflow.Effect.Capture("Test", () => "EffectResult")
         );
 
@@ -1105,7 +1113,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task (string param, WorkflowState _, Workflow workflow) 
+            Task (string param, Workflow workflow) 
                 => runEffect 
                     ? workflow.Effect.Capture("Test", () => {}, ResiliencyLevel.AtMostOnce)
                     : Task.CompletedTask
@@ -1135,7 +1143,7 @@ public abstract class ControlPanelTests
 
         var rFunc = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task (string param, WorkflowState _, Workflow workflow) 
+            Task (string param, Workflow workflow) 
                 => workflow.Effect.Capture("Test", () => throw new InvalidOperationException("oh no"))
         );
 
@@ -1163,7 +1171,7 @@ public abstract class ControlPanelTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            Task<string> (string param, WorkflowState _, Workflow workflow) =>
+            Task<string> (string param, Workflow workflow) =>
                 workflow.Effect.Capture("Test", () =>
                 {
                     syncedCounter++;
@@ -1238,7 +1246,7 @@ public abstract class ControlPanelTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            Task<string> (string param, WorkflowState _, Workflow workflow) =>
+            Task<string> (string param, Workflow workflow) =>
                 workflow.Effect.Capture("Test", () =>
                 {
                     syncedCounter++;
@@ -1306,7 +1314,7 @@ public abstract class ControlPanelTests
 
         var actionRegistration = functionsRegistry.RegisterAction(
             functionTypeId,
-            Task (string param, WorkflowState _, Workflow workflow) =>
+            Task (string param, Workflow workflow) =>
                 workflow.Messages.TimeoutProvider.RegisterTimeout(
                     "someTimeoutId", expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
                 )
@@ -1345,7 +1353,7 @@ public abstract class ControlPanelTests
 
         var funcRegistration = functionsRegistry.RegisterFunc(
             functionTypeId,
-            async Task<string> (string param, WorkflowState _, Workflow workflow) =>
+            async Task<string> (string param, Workflow workflow) =>
             {
                 await workflow.Messages.TimeoutProvider.RegisterTimeout(
                     "someTimeoutId", expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc)

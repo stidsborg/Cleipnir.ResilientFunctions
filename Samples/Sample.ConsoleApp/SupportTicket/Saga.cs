@@ -8,7 +8,7 @@ namespace ConsoleApp.SupportTicket;
 
 public class Saga
 {
-    public static async Task AcceptSupportTicket(SupportTicketRequest request, WorkflowState state, Workflow workflow)
+    public static async Task AcceptSupportTicket(SupportTicketRequest request, Workflow workflow)
     {
         var messages = workflow.Messages;
         
@@ -31,8 +31,6 @@ public class Saga
 
             if (supportTicketTakenOption.HasValue)
                 return;
-            
-            await state.Save();
         }
     }
 }

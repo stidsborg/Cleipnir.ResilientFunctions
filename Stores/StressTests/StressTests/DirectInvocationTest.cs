@@ -25,14 +25,13 @@ public class DirectInvocationTest
         );
         var rFunc1 = functionsRegistry.RegisterFunc(
             "DirectInvocationTest",
-            async Task<string> (string param, WorkflowState state, Workflow workflow) =>
+            async Task<string> (string param, Workflow workflow) =>
             {
                 try
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
                     
-                    await state.Save();
                     return await messages.FirstOfType<string>();
                 }
                 catch (Exception exception)
@@ -49,14 +48,13 @@ public class DirectInvocationTest
         );
         var rFunc2 = functionsRegistry2.RegisterFunc(
             "DirectInvocationTest",
-            async Task<string> (string param, WorkflowState state, Workflow workflow) =>
+            async Task<string> (string param, Workflow workflow) =>
             {
                 try
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
                     
-                    await state.Save();
                     return await messages.FirstOfType<string>();
                 }
                 catch (Exception exception)
@@ -78,7 +76,7 @@ public class DirectInvocationTest
         return new TestResult(0, executionAverageSpeed);
     }
 
-    private static async Task Invoke(FuncRegistration<string, WorkflowState, string> funcRegistration, int i)
+    private static async Task Invoke(FuncRegistration<string, string> funcRegistration, int i)
     {
         try
         {

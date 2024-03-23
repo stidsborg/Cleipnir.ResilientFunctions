@@ -1,28 +1,26 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanel<TParam, TState> where TParam : notnull where TState : WorkflowState, new()
+public class ControlPanel<TParam> where TParam : notnull 
 {
-    private readonly Invoker<TParam, TState, Unit> _invoker;
-    private readonly InvocationHelper<TParam, TState, Unit> _invocationHelper;
+    private readonly Invoker<TParam, Unit> _invoker;
+    private readonly InvocationHelper<TParam, Unit> _invocationHelper;
 
     private bool _changed;
     
     internal ControlPanel(
-        Invoker<TParam, TState, Unit> invoker,
-        InvocationHelper<TParam, TState, Unit> invocationHelper,
+        Invoker<TParam, Unit> invoker,
+        InvocationHelper<TParam, Unit> invocationHelper,
         FunctionId functionId, 
         Status status, 
         int epoch,
         long leaseExpiration,
         TParam param, 
-        TState state, 
         DateTime? postponedUntil, 
         ExistingEffects existingEffects,
         ExistingMessages existingMessages,
@@ -36,7 +34,6 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         Epoch = epoch;
         LeaseExpiration = new DateTime(leaseExpiration, DateTimeKind.Utc);
         _param = param;
-        _state = state;
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
         Effects = existingEffects;
@@ -68,28 +65,13 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         }
     }
 
-    private TState _state;
-    public TState State
-    {
-        get
-        {
-            _changed = true;
-            return _state;
-        }
-        set
-        {
-            _changed = true;
-            _state = value;
-        }
-    }
-
     public DateTime? PostponedUntil { get; private set; }
     public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
 
     public async Task Succeed()
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, Param, State, postponeUntil: null, exception: null, 
+            FunctionId, Status.Succeeded, Param, postponeUntil: null, exception: null, 
             Epoch
         );
 
@@ -103,7 +85,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
     public async Task Postpone(DateTime until)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, Param, State, until, exception: null,
+            FunctionId, Status.Postponed, Param, until, exception: null,
             Epoch
         );
 
@@ -121,7 +103,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
     public async Task Fail(Exception exception)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, Param, State, postponeUntil: null, exception,
+            FunctionId, Status.Failed, Param, postponeUntil: null, exception,
             Epoch
         );
 
@@ -136,7 +118,7 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
     
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, State, @return: default, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, @return: default, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         
@@ -171,33 +153,31 @@ public class ControlPanel<TParam, TState> where TParam : notnull where TState : 
         Epoch = sf.Epoch;
         LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
         Param = sf.Param;
-        State = sf.State;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
         Messages = await _invocationHelper.GetExistingMessages(FunctionId);
-        Effects = await _invocationHelper.GetExistingActivities(FunctionId);
+        Effects = await _invocationHelper.GetExistingEffects(FunctionId);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId);
     }
 
     public async Task WaitForCompletion(bool allowPostponedAndSuspended = false) => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponedAndSuspended);
 }
 
-public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where TState : WorkflowState, new()
+public class ControlPanel<TParam, TReturn> where TParam : notnull
 {
-    private readonly Invoker<TParam, TState, TReturn> _invoker;
-    private readonly InvocationHelper<TParam, TState, TReturn> _invocationHelper;
+    private readonly Invoker<TParam, TReturn> _invoker;
+    private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private bool _changed;
 
     internal ControlPanel(
-        Invoker<TParam, TState, TReturn> invoker, 
-        InvocationHelper<TParam, TState, TReturn> invocationHelper,
+        Invoker<TParam, TReturn> invoker, 
+        InvocationHelper<TParam, TReturn> invocationHelper,
         FunctionId functionId, 
         Status status, 
         int epoch,
         long leaseExpiration,
         TParam param, 
-        TState state, 
         TReturn? result,
         DateTime? postponedUntil, 
         ExistingEffects effects,
@@ -213,7 +193,6 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         LeaseExpiration = new DateTime(leaseExpiration, DateTimeKind.Utc);
         
         _param = param;
-        _state = state;
         Result = result;
         PostponedUntil = postponedUntil;
         Effects = effects;
@@ -248,21 +227,6 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         }
     }
 
-    private TState _state;
-    public TState State
-    {
-        get
-        {
-            _changed = true;
-            return _state;
-        }
-        set
-        {
-            _changed = true;
-            _state = value;
-        }
-    }
-
     public TReturn? Result { get; set; }
     public DateTime? PostponedUntil { get; private set; }
     public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
@@ -271,7 +235,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Succeeded, 
-            Param, State, 
+            Param, 
             result, 
             PostponedUntil, exception: null, 
             Epoch
@@ -289,7 +253,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Postponed, 
-            Param, State, 
+            Param,  
             result: default, until, 
             exception: null, 
             Epoch
@@ -310,7 +274,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
     {
         var success = await _invocationHelper.SetFunctionState(
             FunctionId, Status.Failed, 
-            Param, State, 
+            Param,  
             result: default, postponeUntil: null, exception, 
             Epoch
         );
@@ -326,7 +290,7 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, State, Result, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, Param, Result, Epoch);
         if (!success)
             throw new ConcurrentModificationException(FunctionId);
         
@@ -361,11 +325,10 @@ public class ControlPanel<TParam, TState, TReturn> where TParam : notnull where 
         Epoch = sf.Epoch;
         LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
         Param = sf.Param;
-        State = sf.State;
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
-        Effects = await _invocationHelper.GetExistingActivities(FunctionId);
+        Effects = await _invocationHelper.GetExistingEffects(FunctionId);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId); 
 
         _changed = false;

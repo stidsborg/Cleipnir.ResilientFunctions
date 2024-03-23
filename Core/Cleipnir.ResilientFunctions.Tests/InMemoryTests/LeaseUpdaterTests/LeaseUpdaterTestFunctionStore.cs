@@ -26,11 +26,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<bool> CreateFunction(
         FunctionId functionId, 
         StoredParameter param, 
-        StoredState storedState, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
-    ) => _inner.CreateFunction(functionId, param, storedState, leaseExpiration, postponeUntil, timestamp);
+    ) => _inner.CreateFunction(functionId, param, leaseExpiration, postponeUntil, timestamp);
     
     public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);
@@ -49,33 +48,26 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredState storedState, StoredResult storedResult, 
+        StoredParameter storedParameter, StoredResult storedResult, 
         StoredException? storedException, 
         long? postponeUntil, 
         int expectedEpoch
-    ) => _inner.SetFunctionState(functionId, status, storedParameter, storedState, storedResult, storedException, postponeUntil, expectedEpoch);
+    ) => _inner.SetFunctionState(functionId, status, storedParameter, storedResult, storedException, postponeUntil, expectedEpoch);
 
-    public Task<bool> SaveStateForExecutingFunction( 
-        FunctionId functionId,
-        string stateJson,
-        int expectedEpoch,
-        ComplimentaryState complimentaryState) 
-    => _inner.SaveStateForExecutingFunction(functionId, stateJson, expectedEpoch, complimentaryState);
+    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredResult storedResult, int expectedEpoch)
+        => _inner.SetParameters(functionId, storedParameter, storedResult, expectedEpoch);
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredState storedState, StoredResult storedResult, int expectedEpoch)
-        => _inner.SetParameters(functionId, storedParameter, storedState, storedResult, expectedEpoch);
+    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+        => _inner.SucceedFunction(functionId, result, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _inner.SucceedFunction(functionId, result, stateJson, timestamp, expectedEpoch, complimentaryState);
+    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+        => _inner.PostponeFunction(functionId, postponeUntil, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _inner.PostponeFunction(functionId, postponeUntil, stateJson, timestamp, expectedEpoch, complimentaryState);
+    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+        => _inner.FailFunction(functionId, storedException, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _inner.FailFunction(functionId, storedException, stateJson, timestamp, expectedEpoch, complimentaryState);
-
-    public Task<bool> SuspendFunction(FunctionId functionId, long expectedInterruptCount, string stateJson, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _inner.SuspendFunction(functionId, expectedInterruptCount, stateJson, timestamp, expectedEpoch, complimentaryState);
+    public Task<bool> SuspendFunction(FunctionId functionId, long expectedInterruptCount, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+        => _inner.SuspendFunction(functionId, expectedInterruptCount, timestamp, expectedEpoch, complimentaryState);
 
     public Task<bool> IncrementInterruptCount(FunctionId functionId)
         => _inner.IncrementInterruptCount(functionId);

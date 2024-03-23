@@ -289,7 +289,6 @@ public abstract class EffectTests
         await store.CreateFunction(
             functionId,
             Test.SimpleStoredParameter,
-            Test.SimpleStoredState,
             leaseExpiration: (DateTime.Now + TimeSpan.FromMinutes(1)).Ticks,
             postponeUntil: null,
             timestamp: DateTime.Now.Ticks

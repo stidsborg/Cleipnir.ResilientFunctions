@@ -19,7 +19,7 @@ public class RActionWithStateRegistrationTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .RegisterAction<string, WorkflowState>(
+            .RegisterAction<string>(
                 _functionTypeId,
                 InnerAction
             )
@@ -34,7 +34,7 @@ public class RActionWithStateRegistrationTests
         using var rFunctions = CreateRFunctions();
         var serializer = new Serializer();
         var rAction = rFunctions
-            .RegisterAction<string, WorkflowState>(
+            .RegisterAction<string>(
                 _functionTypeId,
                 InnerAction,
                 new Settings(serializer: serializer)
@@ -45,7 +45,7 @@ public class RActionWithStateRegistrationTests
         serializer.Invoked.ShouldBeTrue();
     }
 
-    private async Task InnerAction(string param, WorkflowState workflowState) => await Task.CompletedTask;
+    private async Task InnerAction(string param) => await Task.CompletedTask;
     private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
@@ -61,11 +61,6 @@ public class RActionWithStateRegistrationTests
 
         public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
             => Default.DeserializeParameter<TParam>(json, type);
-
-        public StoredState SerializeState<TState>(TState state) where TState : Domain.WorkflowState
-            => Default.SerializeState(state);
-        public TState DeserializeState<TState>(string json, string type) where TState : Domain.WorkflowState 
-            => Default.DeserializeState<TState>(json, type);
 
         public StoredException SerializeException(Exception exception)
             => Default.SerializeException(exception);
@@ -86,6 +81,4 @@ public class RActionWithStateRegistrationTests
         public TResult DeserializeEffectResult<TResult>(string json)
             => Default.DeserializeEffectResult<TResult>(json);
     }
-    
-    private class WorkflowState : Domain.WorkflowState {}
 }

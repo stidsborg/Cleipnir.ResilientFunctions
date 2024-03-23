@@ -34,11 +34,12 @@ public class RegisterWithExplicitReturnTests
     {
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rFunc = rFunctions.RegisterFunc<string, WorkflowState, string>(
+        var rFunc = rFunctions.RegisterFunc<string, string>(
             "FunctionTypeId".ToFunctionTypeId(),
             inner: async (param, state) =>
             {
                 await Task.CompletedTask;
+                
                 syncedParam.Value = param;
                 return Succeed.WithValue(param.ToUpper());
             }).Invoke;
@@ -74,9 +75,9 @@ public class RegisterWithExplicitReturnTests
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
-            .RegisterAction<string, WorkflowState>(
+            .RegisterAction<string>(
                 "FunctionTypeId".ToFunctionTypeId(),
-                inner: async (param, state, _) =>
+                inner: async (param, workflow) =>
                 {
                     await Task.CompletedTask;
                     syncedParam.Value = param;
@@ -87,6 +88,4 @@ public class RegisterWithExplicitReturnTests
         await rAction("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
     }
-    
-    private class WorkflowState : Domain.WorkflowState {}
 }

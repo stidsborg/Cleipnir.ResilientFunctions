@@ -116,7 +116,7 @@ public abstract class FailedTests
             var nonCompletingFunctionsRegistry = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    (string _, WorkflowState _) =>
+                    (string _) =>
                         throwUnhandledException 
                             ? throw new Exception()
                             : Task.FromException(new Exception())
@@ -136,7 +136,7 @@ public abstract class FailedTests
                     )
                 );
             var rAction = functionsRegistry.RegisterAction(functionTypeId,
-                (string _, WorkflowState _) =>
+                (string _) =>
                 {
                     flag.Raise();
                     return Task.CompletedTask;
@@ -150,9 +150,6 @@ public abstract class FailedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
-
-            storedFunction.State.ShouldNotBeNull();
-            storedFunction.State.DefaultDeserialize().ShouldBeOfType<WorkflowState>();
 
             await Should.ThrowAsync<Exception>(() => rAction(PARAM, PARAM));
         }
@@ -270,7 +267,7 @@ public abstract class FailedTests
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
                     functionTypeId,
-                    (string _, WorkflowState _) => 
+                    (string _) => 
                         throwUnhandledException
                             ? throw new Exception()
                             : Task.FromException(new Exception())
@@ -286,7 +283,7 @@ public abstract class FailedTests
             );
             var rFunc = functionsRegistry.RegisterAction(
                 functionTypeId,
-                (string _, WorkflowState _) =>
+                (string _) =>
                 {
                     flag.Raise();
                     return Succeed.WithoutValue.ToTask();
@@ -299,10 +296,7 @@ public abstract class FailedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
-
-            storedFunction.State.ShouldNotBeNull();
-            storedFunction.State.DefaultDeserialize().ShouldBeOfType<WorkflowState>();
-
+            
             await Should.ThrowAsync<Exception>(() => rFunc(functionInstanceId.ToString(), param));
         }
         

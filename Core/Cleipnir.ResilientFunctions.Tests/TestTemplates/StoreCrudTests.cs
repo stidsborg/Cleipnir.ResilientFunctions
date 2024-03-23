@@ -14,7 +14,6 @@ public abstract class StoreCrudTests
     private FunctionId FunctionId { get; } = new FunctionId("funcType1", "funcInstance1");
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
     private StoredParameter Param => new(TestParam.ToJson(), typeof(TestParameters).SimpleQualifiedName());
-    private StoredState State => new(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName());
     private record TestParameters(string Name, int Age);
 
     private class TestWorkflowState : WorkflowState
@@ -33,7 +32,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new WorkflowState().ToJson(), typeof(WorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -43,8 +41,6 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.State.ShouldNotBeNull();
-        stored.State.StateType.ShouldBe(typeof(WorkflowState).SimpleQualifiedName());
         stored.Result.ResultJson.ShouldBeNull();
         stored.Result.ResultJson.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -61,7 +57,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -71,9 +66,6 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.State.ShouldNotBeNull();
-        stored.State.StateJson.ShouldNotBeNull();
-        stored.State.StateType.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
         stored.Result.ResultJson.ShouldBeNull();
         stored.Result.ResultType.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -90,7 +82,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -100,9 +91,6 @@ public abstract class StoreCrudTests
         stored!.FunctionId.ShouldBe(FunctionId);
         stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
         stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.State.ShouldNotBeNull();
-        stored.State.StateJson.ShouldNotBeNull();
-        stored.State.StateType.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
         stored.Result.ResultJson.ShouldBeNull();
         stored.Result.ResultType.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -125,7 +113,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -146,7 +133,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -159,65 +145,6 @@ public abstract class StoreCrudTests
         storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
     }
 
-    public abstract Task UpdateStateSunshineScenario();
-    protected async Task UpdateStateSunshineScenario(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        await store.CreateFunction(
-            FunctionId,
-            Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        var state = new TestWorkflowState { Note = "something is still something" };
-        var storedState = DefaultSerializer.Instance.SerializeState(state);
-        var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
-        await store.SaveStateForExecutingFunction(
-            FunctionId, 
-            storedState.StateJson, 
-            expectedEpoch: 0, 
-            complimentaryState: new ComplimentaryState(() => storedParam, () => storedState, LeaseLength: 0)
-        ).ShouldBeTrueAsync();
-
-        var storedFunction = await store.GetFunction(FunctionId);
-        storedFunction!.State.ShouldNotBeNull();
-        var (stateJson, s) = storedFunction.State;
-            
-        s.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
-        stateJson.ShouldBe(state.ToJson());
-    }
-        
-    public abstract Task StateUpdateFailsWhenEpochIsNotAsExpected();
-    protected async Task StateUpdateFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        await store.CreateFunction(
-            FunctionId,
-            Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        var state = new TestWorkflowState { Note = "something is still something" };
-        var storedParam = DefaultSerializer.Instance.SerializeParameter(Param);
-        var storedState = DefaultSerializer.Instance.SerializeState(state);
-        await store.SaveStateForExecutingFunction(
-            FunctionId, 
-            storedState.StateJson, 
-            expectedEpoch: 1,
-            complimentaryState: new ComplimentaryState(() => storedParam, () => storedState, LeaseLength: 0)
-        ).ShouldBeFalseAsync();
-
-        var (stateJson, stateType) = (await store.GetFunction(FunctionId))!.State;
-        stateType.ShouldBe(typeof(TestWorkflowState).SimpleQualifiedName());
-        stateJson.ShouldNotBeNull();
-    }
-
     public abstract Task ExistingFunctionCanBeDeleted();
     public async Task ExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
     {
@@ -225,7 +152,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -250,7 +176,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            new StoredState(new TestWorkflowState().ToJson(), typeof(TestWorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -272,7 +197,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -282,16 +206,10 @@ public abstract class StoreCrudTests
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName()
         );
-        var updatedStoredState = new StoredState(
-            new StateVersion2 { Name = "Peter" }.ToJson(),
-            typeof(StateVersion2).SimpleQualifiedName()
-        );
-
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            updatedStoredState,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -300,9 +218,6 @@ public abstract class StoreCrudTests
         sf.ShouldNotBeNull();
         var param = (string) sf.Parameter.DefaultDeserialize();
         param.ShouldBe("hello world");
-
-        var state = (StateVersion2) sf.State.DefaultDeserialize();
-        state.Name.ShouldBe("Peter");
     }
     
     public abstract Task ParameterCanBeUpdatedOnExistingFunction();
@@ -312,7 +227,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -326,7 +240,6 @@ public abstract class StoreCrudTests
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            storedState: State,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -335,8 +248,6 @@ public abstract class StoreCrudTests
         sf.ShouldNotBeNull();
         var param = (string) sf.Parameter.DefaultDeserialize();
         param.ShouldBe("hello world");
-
-        (sf.State.DefaultDeserialize() is TestWorkflowState).ShouldBeTrue();
     }
     
     public abstract Task StateCanBeUpdatedOnExistingFunction();
@@ -346,21 +257,14 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
-        var updatedStoredState = new StoredState(
-            new StateVersion2 { Name = "Peter" }.ToJson(),
-            typeof(StateVersion2).SimpleQualifiedName()
-        );
-        
         await store.SetParameters(
             FunctionId,
             storedParameter: Param,
-            updatedStoredState,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -368,9 +272,6 @@ public abstract class StoreCrudTests
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
         (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
-
-        var state = (StateVersion2) sf.State.DefaultDeserialize();
-        state.Name.ShouldBe("Peter");
     }
     
     public abstract Task ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch();
@@ -380,7 +281,6 @@ public abstract class StoreCrudTests
         await store.CreateFunction(
             FunctionId,
             Param,
-            State,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -395,15 +295,10 @@ public abstract class StoreCrudTests
             "hello world".ToJson(),
             typeof(string).SimpleQualifiedName()
         );
-        var updatedStoredState = new StoredState(
-            new StateVersion2 { Name = "Peter" }.ToJson(),
-            typeof(StateVersion2).SimpleQualifiedName()
-        );
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            updatedStoredState,
             storedResult: StoredResult.Null,
             expectedEpoch: 0
         ).ShouldBeFalseAsync();
@@ -411,11 +306,5 @@ public abstract class StoreCrudTests
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
         (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
-        (sf.State.DefaultDeserialize() is TestWorkflowState).ShouldBeTrue();
     }
-
-    private class StateVersion2 : WorkflowState
-    {
-        public string Name { get; set; } = "";
-    } 
 }

@@ -45,7 +45,7 @@ public abstract class ScheduledInvocationTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterFunc(
             functionTypeId,
-            (string _, WorkflowState _) => NeverCompletingTask.OfType<Result<string>>()
+            (string _) => NeverCompletingTask.OfType<Result<string>>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
@@ -54,8 +54,6 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.State.ShouldNotBeNull();
-        storedFunction.State.StateType.ResolveType().ShouldBe(typeof(WorkflowState));
         storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -72,7 +70,7 @@ public abstract class ScheduledInvocationTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterAction(
             functionTypeId,
-            (string _, WorkflowState _) => NeverCompletingTask.OfType<Result>()
+            (string _) => NeverCompletingTask.OfType<Result>()
         ).Schedule;
 
         await schedule(functionInstanceId, functionInstanceId);
@@ -81,8 +79,6 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.State.ShouldNotBeNull();
-        storedFunction.State.StateType.ResolveType().ShouldBe(typeof(WorkflowState));
         storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -111,6 +107,4 @@ public abstract class ScheduledInvocationTests
         storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
-
-    private class WorkflowState : Domain.WorkflowState {}
 }

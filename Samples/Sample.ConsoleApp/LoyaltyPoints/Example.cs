@@ -18,7 +18,7 @@ public static class Example
         );
 
         var registration = functions
-            .RegisterAction<string, LoyaltyPointsFlow.State>(
+            .RegisterAction<string>(
                 nameof(LoyaltyPointsFlow),
                 LoyaltyPointsFlow.Execute
             );

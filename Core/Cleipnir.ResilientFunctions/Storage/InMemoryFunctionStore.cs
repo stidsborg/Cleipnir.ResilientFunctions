@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -41,7 +40,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> CreateFunction(
         FunctionId functionId,
         StoredParameter param,
-        StoredState storedState,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -55,7 +53,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             {
                 FunctionId = functionId,
                 Param = param,
-                State = storedState,
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,
                 Exception = null,
@@ -142,7 +139,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         FunctionId functionId,
         Status status,
         StoredParameter storedParameter,
-        StoredState storedState,
         StoredResult storedResult,
         StoredException? storedException,
         long? postponeUntil,
@@ -159,7 +155,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = status;
             state.Param = storedParameter;
-            state.State = storedState;
             state.Result = storedResult;
             state.Exception = storedException;
             state.PostponeUntil = postponeUntil;
@@ -170,27 +165,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public virtual Task<bool> SaveStateForExecutingFunction( 
-        FunctionId functionId,
-        string stateJson,
-        int expectedEpoch,
-        ComplimentaryState _)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId)) return false.ToTask();
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
-
-            state.State = state.State with { StateJson = stateJson };
-            return true.ToTask();
-        }
-    }
-
     public virtual Task<bool> SetParameters(
         FunctionId functionId, 
         StoredParameter storedParameter, 
-        StoredState storedState, 
         StoredResult storedResult, 
         int expectedEpoch)
     {
@@ -201,7 +178,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Epoch != expectedEpoch) return false.ToTask();
             
             state.Param = storedParameter;
-            state.State = storedState;
             state.Result = storedResult;
             
             state.Epoch += 1;
@@ -213,7 +189,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SucceedFunction(
         FunctionId functionId, 
         StoredResult result, 
-        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -227,7 +202,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Succeeded;
             state.Result = result;
-            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
 
             return true.ToTask();
@@ -237,7 +211,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> PostponeFunction(
         FunctionId functionId, 
         long postponeUntil, 
-        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -251,7 +224,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Postponed;
             state.PostponeUntil = postponeUntil;
-            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
             
             return true.ToTask();
@@ -261,7 +233,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SuspendFunction(
         FunctionId functionId, 
         long expectedInterruptCount, 
-        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -279,7 +250,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
                 
             state.Status = Status.Suspended;
-            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
             
             return true.ToTask();
@@ -325,7 +295,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> FailFunction(
         FunctionId functionId, 
         StoredException storedException, 
-        string stateJson,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -339,7 +308,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Failed;
             state.Exception = storedException;
-            state.State = state.State with { StateJson = stateJson };
             state.Timestamp = timestamp;
             
             return true.ToTask();
@@ -358,7 +326,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return new StoredFunction(
                     functionId,
                     state.Param,
-                    state.State,
                     state.Status,
                     state.Result,
                     state.Exception,
@@ -403,7 +370,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         public FunctionId FunctionId { get; init; } = null!;
         public StoredParameter Param { get; set; } = null!;
-        public StoredState State { get; set; } = null!;
         public Status Status { get; set; }
         public StoredResult Result { get; set; } = new StoredResult(ResultJson: null, ResultType: null);
         public StoredException? Exception { get; set; }

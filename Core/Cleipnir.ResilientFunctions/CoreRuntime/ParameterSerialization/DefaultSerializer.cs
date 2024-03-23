@@ -15,19 +15,7 @@ public class DefaultSerializer : ISerializer
         => new(JsonSerializer.Serialize(parameter, parameter.GetType()), parameter.GetType().SimpleQualifiedName());
     public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
         => (TParam) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
-
-    public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
-        => new(JsonSerializer.Serialize(state, state.GetType()), state.GetType().SimpleQualifiedName());
-    public TState DeserializeState<TState>(string? json, string type)
-        where TState : WorkflowState
-    {
-        var stateType = Type.GetType(type, throwOnError: true)!;
-        if (json == null)
-            return (TState) Activator.CreateInstance(stateType)!;
-        
-        return (TState) JsonSerializer.Deserialize(json, stateType)!;
-    }
-
+    
     public StoredException SerializeException(Exception exception)
         => new StoredException(
             exception.Message,

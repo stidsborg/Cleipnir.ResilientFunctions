@@ -8,8 +8,6 @@ public interface ISerializer
 {
     StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull;
     TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull;
-    StoredState SerializeState<TState>(TState state) where TState : WorkflowState;
-    TState DeserializeState<TState>(string json, string type) where TState : WorkflowState;
     StoredException SerializeException(Exception exception);
     PreviouslyThrownException DeserializeException(StoredException storedException);
     StoredResult SerializeResult<TResult>(TResult result);

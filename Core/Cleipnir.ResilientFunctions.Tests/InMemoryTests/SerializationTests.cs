@@ -53,19 +53,6 @@ public class SerializationTests
         
         child.Value.ShouldBe("Hello World");
     }
-
-    [TestMethod]
-    public void ConcreteTypeOfStateIsSerializedAndDeserializedByDefaultSerializer()
-    {
-        var serializer = DefaultSerializer.Instance;
-        Domain.WorkflowState workflowState = new WorkflowState { Value = "Hello World" };
-        var serialized = serializer.SerializeState(workflowState);
-        var deserializedEvent = serializer.DeserializeParameter<Domain.WorkflowState>(serialized.StateJson, serialized.StateType);
-        if (deserializedEvent is not WorkflowState state)
-            throw new Exception("Expected event to be of child-type");
-        
-        state.Value.ShouldBe("Hello World");
-    }
     
     public record Parent;
     public record Child(string Value) : Parent;
@@ -86,7 +73,6 @@ public class SerializationTests
         await store.CreateFunction(
             new FunctionId("typeId", "instanceId"),
             new StoredParameter(prev.ToJson(), typeof(PersonPrev).SimpleQualifiedName()),
-            new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -147,11 +133,6 @@ public class SerializationTests
                 Type.GetType(type, throwOnError: true)!
             )!;
         }
-
-        public StoredState SerializeState<TState>(TState state) where TState : Domain.WorkflowState
-            => _defaultSerializer.SerializeState(state);
-        public TState DeserializeState<TState>(string? json, string type) where TState : Domain.WorkflowState
-            => _defaultSerializer.DeserializeState<TState>(json, type);
 
         public StoredException SerializeException(Exception exception)
             => _defaultSerializer.SerializeException(exception);

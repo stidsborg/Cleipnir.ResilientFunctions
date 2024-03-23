@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -82,7 +83,7 @@ public abstract class PostponedTests
                         postponedCheckFrequency: TimeSpan.Zero
                     )
                 );
-            var rFunc = functionsRegistry.RegisterFunc<string, WorkflowState, string>(
+            var rFunc = functionsRegistry.RegisterFunc<string, string>(
                     functionTypeId,
                     (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
                 )
@@ -104,8 +105,9 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry
                 .RegisterFunc(
                     functionTypeId,
-                    async (string s, WorkflowState state) =>
+                    async (string s, Workflow workflow) =>
                     {
+                        var state = await workflow.Effect.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                         return s.ToUpper();
@@ -117,8 +119,10 @@ public abstract class PostponedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
-            storedFunction.State.ShouldNotBeNull();
-            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var effect = effects.Single(e => e.EffectId == "State");
+            effect.Result.ShouldNotBeNull();
+            effect.Result.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             
             await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -193,7 +197,7 @@ public abstract class PostponedTests
             );
             var rAction = functionsRegistry.RegisterAction(
                 functionTypeId,
-                (string _, WorkflowState _) => Postpone.For(1_000)
+                (string _, Workflow _) => Postpone.For(1_000)
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
@@ -214,8 +218,9 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry
                 .RegisterAction(
                     functionTypeId,
-                    async (string _, WorkflowState state) =>
+                    async (string _, Workflow workflow) =>
                     {
+                        var state = await workflow.Effect.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                     }
@@ -225,8 +230,10 @@ public abstract class PostponedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
-            storedFunction.State.ShouldNotBeNull();
-            storedFunction.State.DefaultDeserialize().CastTo<WorkflowState>().Value.ShouldBe(1);
+            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var effect = effects.Single(e => e.EffectId == "State");
+            effect.Result.ShouldNotBeNull();
+            effect.Result.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
 
             await rFunc(functionInstanceId.Value, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -326,7 +333,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -348,7 +354,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -378,7 +383,7 @@ public abstract class PostponedTests
         );
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            (string _, UnitState _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
+            (string _, Workflow _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
         );
 
         //invoke
@@ -413,7 +418,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new UnitState().ToJson(), typeof(UnitState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -435,7 +439,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new UnitState().ToJson(), typeof(UnitState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -504,7 +507,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -524,7 +526,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -592,7 +593,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -613,7 +613,6 @@ public abstract class PostponedTests
             await store.CreateFunction(
                 functionId,
                 new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
-                new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName()),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -644,12 +643,10 @@ public abstract class PostponedTests
         var store = await storeTask;
 
         var storedParameter = new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName());
-        var storedState = new StoredState(new Domain.WorkflowState().ToJson(), typeof(Domain.WorkflowState).SimpleQualifiedName());
         
         await store.CreateFunction(
             functionId,
             storedParameter,
-            storedState,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -658,10 +655,9 @@ public abstract class PostponedTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
-            stateJson: new Domain.WorkflowState().ToJson(),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), storedState.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         using var functionsRegistry = new FunctionsRegistry(
@@ -687,7 +683,7 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    private class WorkflowState : Domain.WorkflowState
+    private class State : Domain.WorkflowState
     {
         public int Value { get; set; }
     }

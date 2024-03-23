@@ -77,14 +77,6 @@ public class StoreTests : TestTemplates.StoreTests
         => IncrementEpochFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected()
-        => SaveStateOfExecutingFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected()
-        => SaveStateOfExecutingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task DeletingExistingFunctionSucceeds()
         => DeletingExistingFunctionSucceeds(FunctionStoreFactory.Create());
 

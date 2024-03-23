@@ -12,7 +12,7 @@ public static class Do
         var paymentProviderService = new PaymentProviderStub(messageBroker);
         
         var orderProcessor = new OrderProcessor(messageBroker);
-        var rAction = functionsRegistry.RegisterAction<Order, OrderProcessor.State>(
+        var rAction = functionsRegistry.RegisterAction<Order>(
             "OrderProcessorMessaging",
             orderProcessor.Execute
         );        

@@ -19,7 +19,7 @@ public static class Example
         );
 
         var rAction = functions
-            .RegisterAction<MailAndRecipients, EmailSenderSaga.State>(
+            .RegisterAction<MailAndRecipients>(
              "OffersMailSender",
                 EmailSenderSaga.Start
             ).Invoke;

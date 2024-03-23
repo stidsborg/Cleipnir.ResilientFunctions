@@ -24,7 +24,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -59,7 +58,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -97,7 +95,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -140,7 +137,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -182,7 +178,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -220,7 +215,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -270,7 +264,6 @@ public abstract class MessagesTests
         await functionStore.CreateFunction(
             functionId, 
             Test.SimpleStoredParameter, 
-            Test.SimpleStoredState, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -305,11 +298,6 @@ public abstract class MessagesTests
 
         public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
             => DefaultSerializer.Instance.DeserializeParameter<TParam>(json, type);
-
-        public StoredState SerializeState<TState>(TState state) where TState : WorkflowState
-            => DefaultSerializer.Instance.SerializeState(state);
-        public TState DeserializeState<TState>(string json, string type) where TState : WorkflowState
-            => DefaultSerializer.Instance.DeserializeState<TState>(json, type);
 
         public StoredException SerializeException(Exception exception)
             => DefaultSerializer.Instance.SerializeException(exception);
