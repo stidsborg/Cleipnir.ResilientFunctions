@@ -54,7 +54,7 @@ public class SqlServerEffectsStore : IEffectsStore
                     VALUES (source.Id, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(sql, conn);
-        var escapedId = Escaper.Escape("|", functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId.ToString());    
+        var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
         command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) DBNull.Value);
@@ -71,7 +71,7 @@ public class SqlServerEffectsStore : IEffectsStore
             FROM {_tablePrefix}Activities
             WHERE Id LIKE @IdPrefix";
 
-        var idPrefix = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value);
+        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value);
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
 
@@ -80,7 +80,7 @@ public class SqlServerEffectsStore : IEffectsStore
         while (reader.HasRows && reader.Read())
         {
             var id = reader.GetString(0);
-            var effectId = Escaper.Unescape(id, '|', 3)[2];
+            var effectId = Escaper.Unescape(id)[2];
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? default : reader.GetString(2);
             var exception = reader.IsDBNull(3) ? default : reader.GetString(3);
@@ -100,7 +100,7 @@ public class SqlServerEffectsStore : IEffectsStore
             DELETE FROM {_tablePrefix}Activities
             WHERE Id = @Id";
 
-        var id = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

@@ -46,7 +46,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(delimiter: "|", functionTypeId.Value, functionInstanceId.Value, storedEffect.EffectId.Value)},
+                new() {Value = Escaper.Escape(functionTypeId.Value, functionInstanceId.Value, storedEffect.EffectId.Value)},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}
@@ -67,7 +67,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value) + "%"},
+                new() {Value = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + "%"},
             }
         };
 
@@ -77,7 +77,7 @@ public class MySqlEffectsStore : IEffectsStore
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0);
-            var effectId = Escaper.Unescape(id, delimiter: '|', arraySize: 3)[2];
+            var effectId = Escaper.Unescape(id)[2];
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? null : reader.GetString(2);
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
@@ -91,7 +91,7 @@ public class MySqlEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = ?";
-        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters = { new() { Value = id } }
