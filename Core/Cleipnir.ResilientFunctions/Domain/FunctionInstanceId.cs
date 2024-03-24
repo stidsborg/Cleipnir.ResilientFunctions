@@ -8,6 +8,8 @@ public class FunctionInstanceId
     public FunctionInstanceId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
+        Delimiters.EnsureNoUnitSeparator(value);
+        
         Value = value;
     }
     
