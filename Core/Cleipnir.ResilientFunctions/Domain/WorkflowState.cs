@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class WorkflowState
+public abstract class WorkflowState
 {
     private Func<Task>? OnSave { get; set; }
     
@@ -27,12 +27,4 @@ public class WorkflowState
         
         await OnSave!.Invoke();  
     } 
-}
-
-public sealed class StateSaveFailedException : Exception
-{
-    public FunctionId FunctionId { get; }
-    
-    public StateSaveFailedException(FunctionId functionId, string message) : base(message) 
-        => FunctionId = functionId;
 }
