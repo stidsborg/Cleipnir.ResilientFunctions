@@ -20,7 +20,7 @@ The framework also supports postponing/suspending invocations or failing invocat
 
 It requires a minimal amount of setup to get started and seamlessly scales with multiple running instances.
 
-Crucially, all this allows the **saga/'process manager' pattern** to be implemented in a simple yet powerful way. 
+Crucially, all this allows the **saga pattern / process manager pattern** to be implemented in a simple yet powerful way. 
 
 Out-of-the-box you also get:
 * synchronized invocation across multiple process instances
