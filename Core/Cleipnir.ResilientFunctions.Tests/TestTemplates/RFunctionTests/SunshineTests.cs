@@ -71,7 +71,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterFunc(
                 functionTypeId,
-                (string s, Workflow workflow) => ToUpper(s, workflow.Effect.CreateOrGet<State>("State").Result)
+                (string s, Workflow workflow) => ToUpper(s, workflow.Effect.CreateOrGet<State>("State"))
             )
             .Invoke;
 
@@ -133,7 +133,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 functionTypeId,
-                (string s, Workflow workflow) => workflow.Effect.CreateOrGet<State>("State").Result.Save()
+                (string s, Workflow workflow) => workflow.Effect.CreateOrGet<State>("State").Save()
             ).Invoke;
 
         await rFunc("hello", "hello");
@@ -179,7 +179,7 @@ public abstract class SunshineTests
             functionTypeId,
             (string _, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<ListState<string>>("State").Result;
+                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
                 state.List.Add("hello world");
                 state.Save().Wait();
                 return default(string).ToTask();
@@ -210,7 +210,7 @@ public abstract class SunshineTests
             functionTypeId,
             (string _, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<ListState<string>>("State").Result;
+                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
                 state.List.Add("hello world");
                 state.Save().Wait();
                 return default(string).ToTask();

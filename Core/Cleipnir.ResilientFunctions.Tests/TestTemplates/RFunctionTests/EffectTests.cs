@@ -342,7 +342,7 @@ public abstract class EffectTests
         await effect.Upsert("Id1", 100);
         effect.Get<int>("Id1").ShouldBe(100);
         
-        var state = await effect.CreateOrGet<FlowState>(nameof(FlowState));
+        var state = effect.CreateOrGet<FlowState>(nameof(FlowState));
         state.Value.ShouldBe("");
         state.Value = "123";
         await state.Save();

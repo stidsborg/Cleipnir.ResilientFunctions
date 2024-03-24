@@ -79,7 +79,7 @@ public abstract class ReInvocationTests
             functionTypeId,
             async (param, workflow) =>
             {
-                var state = await workflow.Effect.CreateOrGet<ListState<string>>("State");
+                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -273,7 +273,7 @@ public abstract class ReInvocationTests
             functionTypeId,
             async (param, workflow) =>
             {
-                var state = await workflow.Effect.CreateOrGet<ListState<string>>("State");
+                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");

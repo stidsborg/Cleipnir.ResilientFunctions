@@ -353,7 +353,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             void(string param, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<TestState>("State").Result;
+                var state = workflow.Effect.CreateOrGet<TestState>("State");
                 state.Value = param;
                 state.Save().Wait();
             });
@@ -430,7 +430,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             void(string param, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<TestState>("State").Result;
+                var state = workflow.Effect.CreateOrGet<TestState>("State");
                 state.Value = param;
                 state.Save().Wait();
             });

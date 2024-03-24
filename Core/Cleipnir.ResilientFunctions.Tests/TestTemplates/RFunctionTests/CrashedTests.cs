@@ -109,7 +109,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     async (string s, Workflow workflow) =>
                     {
-                        var state = await workflow.Effect.CreateOrGet<State>("State");
+                        var state = workflow.Effect.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                         return s.ToUpper();
@@ -233,7 +233,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     async (string _, Workflow workflow) =>
                     {
-                        var state = await workflow.Effect.CreateOrGet<State>("State");
+                        var state = workflow.Effect.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                     }

@@ -14,7 +14,7 @@ public class OrderProcessor
 
     public async Task Execute(Order order, Workflow workflow)
     {
-        var state = await workflow.Effect.CreateOrGet<State>("State");
+        var state = workflow.Effect.CreateOrGet<State>("State");
         Logger.Information($"Processing of order '{order.OrderId}' started");
         var messages = workflow.Messages;
 
