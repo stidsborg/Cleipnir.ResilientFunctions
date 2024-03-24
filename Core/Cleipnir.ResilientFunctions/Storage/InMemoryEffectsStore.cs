@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryEffectsStore : IEffectsStore
 {
-    private readonly Dictionary<FunctionId, Dictionary<string, StoredEffect>> _activities = new();
+    private readonly Dictionary<FunctionId, Dictionary<EffectId, StoredEffect>> _effects = new();
     private readonly object _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
@@ -17,10 +17,10 @@ public class InMemoryEffectsStore : IEffectsStore
     {
         lock (_sync)
         {
-            if (!_activities.ContainsKey(functionId))
-                _activities[functionId] = new Dictionary<string, StoredEffect>();
+            if (!_effects.ContainsKey(functionId))
+                _effects[functionId] = new Dictionary<EffectId, StoredEffect>();
                 
-            _activities[functionId][storedEffect.EffectId] = storedEffect;
+            _effects[functionId][storedEffect.EffectId] = storedEffect;
         }
         
         return Task.CompletedTask;
@@ -29,16 +29,16 @@ public class InMemoryEffectsStore : IEffectsStore
     public Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         lock (_sync)
-            return !_activities.ContainsKey(functionId)
+            return !_effects.ContainsKey(functionId)
                 ? Enumerable.Empty<StoredEffect>().ToTask()
-                : _activities[functionId].Values.ToList().AsEnumerable().ToTask();
+                : _effects[functionId].Values.ToList().AsEnumerable().ToTask();
     }
 
-    public Task DeleteEffectResult(FunctionId functionId, string effectId)
+    public Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         lock (_sync)
-            if (_activities.ContainsKey(functionId))
-                _activities[functionId].Remove(effectId);
+            if (_effects.ContainsKey(functionId))
+                _effects[functionId].Remove(effectId);
 
         return Task.CompletedTask;
     }

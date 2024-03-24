@@ -54,7 +54,7 @@ public class SqlServerEffectsStore : IEffectsStore
                     VALUES (source.Id, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(sql, conn);
-        var escapedId = Escaper.Escape("|", functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId);    
+        var escapedId = Escaper.Escape("|", functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
         command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) DBNull.Value);
@@ -93,14 +93,14 @@ public class SqlServerEffectsStore : IEffectsStore
         return storedActivities;
     }
 
-    public async Task DeleteEffectResult(FunctionId functionId, string effectId)
+    public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             DELETE FROM {_tablePrefix}Activities
             WHERE Id = @Id";
 
-        var id = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId);
+        var id = Escaper.Escape("|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

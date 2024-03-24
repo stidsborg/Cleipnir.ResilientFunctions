@@ -20,4 +20,11 @@ public class DelimiterTests
         var invalidId = "Test" + Delimiters.UnitSeparator;
         Assert.ThrowsException<ArgumentException>(() => new FunctionTypeId(invalidId));
     } 
+    
+    [TestMethod]
+    public void EffectIdIdMustNotContainUnitDelimiter()
+    {
+        var invalidId = "Test" + Delimiters.UnitSeparator;
+        Assert.ThrowsException<ArgumentException>(() => new EffectId(invalidId));
+    } 
 }

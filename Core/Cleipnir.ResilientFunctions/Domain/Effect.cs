@@ -19,7 +19,7 @@ public enum ResiliencyLevel
 
 public class Effect
 {
-    private readonly Dictionary<string, StoredEffect> _effectResults;
+    private readonly Dictionary<EffectId, StoredEffect> _effectResults;
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
     private readonly FunctionId _functionId;

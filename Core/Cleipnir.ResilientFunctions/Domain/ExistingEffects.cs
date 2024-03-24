@@ -9,11 +9,11 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ExistingEffects
 {
     private readonly FunctionId _functionId;
-    private readonly Dictionary<string, StoredEffect> _storedEffects;
+    private readonly Dictionary<EffectId, StoredEffect> _storedEffects;
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
 
-    public ExistingEffects(FunctionId functionId, Dictionary<string, StoredEffect> storedEffects, IEffectsStore effectsStore, ISerializer serializer)
+    public ExistingEffects(FunctionId functionId, Dictionary<EffectId, StoredEffect> storedEffects, IEffectsStore effectsStore, ISerializer serializer)
     {
         _functionId = functionId;
         _storedEffects = storedEffects;
@@ -21,7 +21,7 @@ public class ExistingEffects
         _serializer = serializer;
     }
 
-    public IReadOnlyDictionary<string, StoredEffect> All => _storedEffects;
+    public IReadOnlyDictionary<EffectId, StoredEffect> All => _storedEffects;
 
     public bool HasValue(string effectId) => _storedEffects.ContainsKey(effectId);
     public TResult? GetValue<TResult>(string effectId)

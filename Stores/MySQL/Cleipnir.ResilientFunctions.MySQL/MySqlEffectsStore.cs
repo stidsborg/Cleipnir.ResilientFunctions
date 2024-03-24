@@ -46,7 +46,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(delimiter: "|", functionTypeId.Value, functionInstanceId.Value, storedEffect.EffectId)},
+                new() {Value = Escaper.Escape(delimiter: "|", functionTypeId.Value, functionInstanceId.Value, storedEffect.EffectId.Value)},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}
@@ -87,11 +87,11 @@ public class MySqlEffectsStore : IEffectsStore
         return functions;
     }
 
-    public async Task DeleteEffectResult(FunctionId functionId, string effectId)
+    public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
         var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = ?";
-        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId);
+        var id = Escaper.Escape(delimiter: "|", functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters = { new() { Value = id } }
