@@ -64,15 +64,16 @@ Secondly, setup the framework:
 
 Finally, register and invoke a function using the framework:
 ```csharp
-var rAction = functionsRegistry.RegisterAction(
+var actionRegistration = functionsRegistry.RegisterAction(
   functionTypeId: "OrderProcessor",
-  async (Order order, OrderState state) => 
-  {
+  async (Order order, Workflow workflow) => 
+  {  
     await _paymentProviderClient.Reserve(order.CustomerId, state.TransactionId, order.TotalPrice);
 
-    await state.DoAtMostOnce(
-      workStatus: s => s.ProductsShippedStatus,
-      work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds)
+    await workflow.Effect.Capture(
+      "ShipProducts",
+      work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds),
+      ResiliencyLevel.AtMostOnce
     );
 
     await _paymentProviderClient.Capture(state.TransactionId);
@@ -86,7 +87,8 @@ var order = new Order(
   ProductIds: new[] { Guid.NewGuid(), Guid.NewGuid() },
   TotalPrice: 123.5M
 );
-await rAction.Invoke(order.OrderId, order);
+
+await actionRegistration.Invoke(order.OrderId, order);
 ```
 
 Congrats, any non-completed Order flows are now automatically restarted by the framework.
@@ -162,8 +164,9 @@ Consider a travel agency which wants to send a promotional email to its customer
 ```csharp
 public static class EmailSenderSaga
 {
-  public static async Task Start(MailAndRecipients mailAndRecipients, State state)
+  public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
   {
+    var state = workflow.Effect.CreateOrGet<State>();  
     var (recipients, subject, content) = mailAndRecipients;
 
     using var client = new SmtpClient();
