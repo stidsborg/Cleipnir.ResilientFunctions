@@ -12,8 +12,10 @@ public interface ISerializer
     PreviouslyThrownException DeserializeException(StoredException storedException);
     StoredResult SerializeResult<TResult>(TResult result);
     TResult DeserializeResult<TResult>(string json, string type);
-    JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull;
+    JsonAndType SerializeMessage<TMessage>(TMessage message) where TMessage : notnull;
     object DeserializeMessage(string json, string type);
     string SerializeEffectResult<TResult>(TResult result);
     TResult DeserializeEffectResult<TResult>(string json);
+    JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new();
+    WorkflowState DeserializeState(string json, string type);
 }

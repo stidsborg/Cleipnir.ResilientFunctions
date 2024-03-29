@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.Messaging;
 
 [TestClass]
-public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.MessagesSuscriptionTests
+public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates.MessagesSubscriptionTests
 {
     [TestMethod]
     public override Task EventsSubscriptionSunshineScenario()

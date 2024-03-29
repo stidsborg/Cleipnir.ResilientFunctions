@@ -144,8 +144,8 @@ public class SerializationTests
         public TResult DeserializeResult<TResult>(string json, string type)
             => _defaultSerializer.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
-            => _defaultSerializer.SerializeMessage(@event);
+        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+            => _defaultSerializer.SerializeMessage(message);
         public object DeserializeMessage(string json, string type)
             => _defaultSerializer.DeserializeMessage(json, type);
 
@@ -153,5 +153,10 @@ public class SerializationTests
             => _defaultSerializer.SerializeEffectResult(result);
         public TResult DeserializeEffectResult<TResult>(string json)
             => _defaultSerializer.DeserializeEffectResult<TResult>(json);
+
+        public JsonAndType SerializeState<TState>(TState state) where TState : Domain.WorkflowState, new()
+            => _defaultSerializer.SerializeState(state);
+        public Domain.WorkflowState DeserializeState(string json, string type)
+            => _defaultSerializer.DeserializeState(json, type);
     }
 }

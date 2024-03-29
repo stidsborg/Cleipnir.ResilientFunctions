@@ -70,10 +70,10 @@ public abstract class CustomMessageSerializerTests
         public TResult DeserializeResult<TResult>(string json, string type)
             => DefaultSerializer.Instance.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
+        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
         {
-            EventToSerialize.Add(@event);
-            return DefaultSerializer.Instance.SerializeMessage(@event);
+            EventToSerialize.Add(message);
+            return DefaultSerializer.Instance.SerializeMessage(message);
         }
         public object DeserializeMessage(string json, string type)
         {
@@ -85,5 +85,10 @@ public abstract class CustomMessageSerializerTests
             => DefaultSerializer.Instance.SerializeEffectResult(result);
         public TResult DeserializeEffectResult<TResult>(string json)
             => DefaultSerializer.Instance.DeserializeEffectResult<TResult>(json);
+
+        public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+            => DefaultSerializer.Instance.SerializeState(state);
+        public WorkflowState DeserializeState(string json, string type)
+            => DefaultSerializer.Instance.DeserializeState(json, type);
     }
 }

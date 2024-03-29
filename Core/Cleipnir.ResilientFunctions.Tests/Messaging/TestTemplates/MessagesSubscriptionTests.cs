@@ -11,7 +11,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
-public abstract class MessagesSuscriptionTests
+public abstract class MessagesSubscriptionTests
 {
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IFunctionStore> functionStoreTask)

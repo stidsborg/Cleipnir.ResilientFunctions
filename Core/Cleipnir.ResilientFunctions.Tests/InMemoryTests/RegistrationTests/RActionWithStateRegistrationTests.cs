@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
@@ -71,8 +72,8 @@ public class RActionWithStateRegistrationTests
         public TResult DeserializeResult<TResult>(string json, string type) 
             => Default.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
-            => Default.SerializeMessage(@event);
+        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+            => Default.SerializeMessage(message);
         public object DeserializeMessage(string json, string type)
             => Default.DeserializeMessage(json, type);
 
@@ -80,5 +81,10 @@ public class RActionWithStateRegistrationTests
             => Default.SerializeEffectResult(result);
         public TResult DeserializeEffectResult<TResult>(string json)
             => Default.DeserializeEffectResult<TResult>(json);
+
+        public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+            => Default.SerializeState(state);
+        public WorkflowState DeserializeState(string json, string type)
+            => Default.DeserializeState(json, type);
     }
 }

@@ -76,8 +76,8 @@ public class RFuncWithStateRegistrationTests
         public TResult DeserializeResult<TResult>(string json, string type) 
             => Default.DeserializeResult<TResult>(json, type);
 
-        public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
-            => Default.SerializeMessage(@event);
+        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+            => Default.SerializeMessage(message);
         public object DeserializeMessage(string json, string type)
             => Default.DeserializeMessage(json, type);
 
@@ -85,6 +85,11 @@ public class RFuncWithStateRegistrationTests
             => Default.SerializeEffectResult(result);
         public TResult DeserializeEffectResult<TResult>(string json)
             => Default.DeserializeEffectResult<TResult>(json);
+
+        public JsonAndType SerializeState<TState>(TState state) where TState : Domain.WorkflowState, new()
+            => Default.SerializeState(state);
+        public Domain.WorkflowState DeserializeState(string json, string type)
+            => Default.DeserializeState(json, type);
     }
 
     private class WorkflowState : Domain.WorkflowState { }

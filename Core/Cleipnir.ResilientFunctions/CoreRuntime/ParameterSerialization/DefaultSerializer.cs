@@ -35,8 +35,8 @@ public class DefaultSerializer : ISerializer
     public TResult DeserializeResult<TResult>(string json, string type) 
         => (TResult) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
-    public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull 
-        => new(JsonSerializer.Serialize(@event, @event.GetType()), @event.GetType().SimpleQualifiedName());
+    public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull 
+        => new(JsonSerializer.Serialize(message, message.GetType()), message.GetType().SimpleQualifiedName());
     public object DeserializeMessage(string json, string type)
         => JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 
@@ -44,4 +44,9 @@ public class DefaultSerializer : ISerializer
         => JsonSerializer.Serialize(result);
     public TResult DeserializeEffectResult<TResult>(string json)
         => JsonSerializer.Deserialize<TResult>(json)!;
+
+    public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+        => new(JsonSerializer.Serialize(state), typeof(TState).SimpleQualifiedName());
+    public WorkflowState DeserializeState(string json, string type)
+        => (WorkflowState) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
 }

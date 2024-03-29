@@ -82,8 +82,8 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public JsonAndType SerializeMessage<TEvent>(TEvent @event) where TEvent : notnull
-        => _inner.SerializeMessage(@event);
+    public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+        => _inner.SerializeMessage(message);
     public object DeserializeMessage(string json, string type)
     {
         try
@@ -126,7 +126,32 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Deserialized Effect's result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'",  
+                $"Unable to deserialize effect to type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'",  
+                e
+            );
+        }
+    }
+
+    public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+        => _inner.SerializeState(state);
+    public WorkflowState DeserializeState(string json, string type)
+    {
+        try
+        {
+            return _inner.DeserializeState(json, type)
+                   ?? throw new DeserializationException(
+                       $"Deserialized state was null with type: '{type}' and json: '{MinifyJson(json)}'", 
+                       new NullReferenceException()
+                   );
+        }
+        catch (DeserializationException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new DeserializationException(
+                $"Unable to deserialize state with type: '{type}' and json: '{MinifyJson(json)}'",  
                 e
             );
         }
