@@ -16,6 +16,7 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly object _sync = new();
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
+    public IStatesStore StatesStore => _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
     

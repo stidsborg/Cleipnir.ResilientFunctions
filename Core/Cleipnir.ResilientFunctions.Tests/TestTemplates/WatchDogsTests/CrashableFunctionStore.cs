@@ -18,6 +18,7 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly Subject<long> _afterPostponeFunctionSubject = new();
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
+    public IStatesStore StatesStore => _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
 

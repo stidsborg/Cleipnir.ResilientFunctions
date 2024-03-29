@@ -20,6 +20,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public IMessageStore MessageStore => this;
     public IEffectsStore EffectsStore { get; } = new InMemoryEffectsStore();
+    public IStatesStore StatesStore { get; } = new InMemoryStatesStore();
     public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
     public Utilities Utilities { get; }
     

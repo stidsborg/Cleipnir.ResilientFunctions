@@ -10,6 +10,7 @@ public interface IFunctionStore
 {
     public IMessageStore MessageStore { get; }
     public IEffectsStore EffectsStore { get; }
+    public IStatesStore StatesStore { get; }
     public ITimeoutStore TimeoutStore { get; }
     public Utilities Utilities { get; }
     public Task Initialize();

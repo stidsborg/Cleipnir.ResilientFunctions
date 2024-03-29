@@ -19,6 +19,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
+    public IStatesStore StatesStore => _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public Utilities Utilities => _inner.Utilities;
     public Task Initialize() => _inner.Initialize();
