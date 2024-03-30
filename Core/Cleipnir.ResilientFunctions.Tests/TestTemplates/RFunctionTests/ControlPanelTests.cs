@@ -1312,7 +1312,7 @@ public abstract class ControlPanelTests
         states.Get<State>().Value.ShouldBe("Some Param");
         states.Get<State>(stateId: "SomeId").Value.ShouldBe("NamedValue");
 
-        await states.Set(new State { Value = "NewValue" });
+        await states.Set(new State { Value = "New Value" });
         var s = states.Get<State>(stateId: "SomeId");
         s.Value = "New Value";
         await s.Save();
