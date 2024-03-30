@@ -169,7 +169,8 @@ public class Invoker<TParam, TReturn>
             );
             
             var effect = await _invocationHelper.CreateEffect(functionId, sync: false);
-            var workflow = new Workflow(functionId, messages, effect, _utilities, _messageWriterFunc);
+            var states = await _invocationHelper.CreateStates(functionId, sync: false);
+            var workflow = new Workflow(functionId, messages, effect, states, _utilities, _messageWriterFunc);
 
             return new PreparedInvocation(
                 persisted,
@@ -206,8 +207,9 @@ public class Invoker<TParam, TReturn>
                 ScheduleReInvoke,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: true));
-            var activitiesTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
-            var workflow = new Workflow(functionId, await messagesTask, await activitiesTask, _utilities, _messageWriterFunc);
+            var effectsTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
+            var statesTask = Task.Run(() => _invocationHelper.CreateStates(functionId, sync: true));
+            var workflow = new Workflow(functionId, await messagesTask, await effectsTask, await statesTask, _utilities, _messageWriterFunc);
 
             return new PreparedReInvocation(
                 _inner,

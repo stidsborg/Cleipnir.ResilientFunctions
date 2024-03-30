@@ -13,15 +13,17 @@ public class Workflow
     public FunctionId FunctionId { get; }
     public Messages Messages { get; }
     public Effect Effect { get; }
+    public States States { get; }
     public Utilities Utilities { get; }
     
-    public Workflow(FunctionId functionId, Messages messages, Effect effect, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
+    public Workflow(FunctionId functionId, Messages messages, Effect effect, States states, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
     {
         _messageWriterFunc = messageWriterFunc;
         FunctionId = functionId;
         Utilities = utilities;
         Messages = messages;
         Effect = effect;
+        States = states;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages)

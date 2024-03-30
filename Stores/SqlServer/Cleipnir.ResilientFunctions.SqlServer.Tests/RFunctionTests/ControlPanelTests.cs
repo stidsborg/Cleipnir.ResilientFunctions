@@ -139,6 +139,10 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => EffectsAreUpdatedAfterRefresh(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ExistingStateCanBeReplacedRemovedAndAdded()
+        => ExistingStateCanBeReplacedRemovedAndAdded(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task SaveChangesPersistsChangedResult()
         => SaveChangesPersistsChangedResult(FunctionStoreFactory.Create());
     

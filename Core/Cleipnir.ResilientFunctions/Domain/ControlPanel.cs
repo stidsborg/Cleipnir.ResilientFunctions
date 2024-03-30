@@ -23,6 +23,7 @@ public class ControlPanel<TParam> where TParam : notnull
         TParam param, 
         DateTime? postponedUntil, 
         ExistingEffects existingEffects,
+        ExistingStates existingStates,
         ExistingMessages existingMessages,
         ExistingTimeouts existingTimeouts,
         PreviouslyThrownException? previouslyThrownException)
@@ -37,6 +38,7 @@ public class ControlPanel<TParam> where TParam : notnull
         PostponedUntil = postponedUntil;
         PreviouslyThrownException = previouslyThrownException;
         Effects = existingEffects;
+        States = existingStates;
         Messages = existingMessages;
         Timeouts = existingTimeouts;
     }
@@ -48,6 +50,7 @@ public class ControlPanel<TParam> where TParam : notnull
     public DateTime LeaseExpiration { get; private set; }
     public ExistingMessages Messages { get; private set; }
     public ExistingEffects Effects { get; private set; } 
+    public ExistingStates States { get; private set; }
     public ExistingTimeouts Timeouts { get; private set; }
     
     private TParam _param;
@@ -158,6 +161,7 @@ public class ControlPanel<TParam> where TParam : notnull
         _changed = false;
         Messages = await _invocationHelper.GetExistingMessages(FunctionId);
         Effects = await _invocationHelper.GetExistingEffects(FunctionId);
+        States = await _invocationHelper.GetExistingStates(FunctionId);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId);
     }
 
@@ -181,6 +185,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
         TReturn? result,
         DateTime? postponedUntil, 
         ExistingEffects effects,
+        ExistingStates states,
         ExistingMessages messages,
         ExistingTimeouts timeouts,
         PreviouslyThrownException? previouslyThrownException)
@@ -196,6 +201,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
         Result = result;
         PostponedUntil = postponedUntil;
         Effects = effects;
+        States = states;
         Messages = messages;
         Timeouts = timeouts;
         PreviouslyThrownException = previouslyThrownException;
@@ -209,6 +215,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
     
     public ExistingMessages Messages { get; private set; }
     public ExistingEffects Effects { get; private set; } 
+    public ExistingStates States { get; private set; }
 
     public ExistingTimeouts Timeouts { get; private set; }
 
@@ -329,6 +336,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         Effects = await _invocationHelper.GetExistingEffects(FunctionId);
+        States = await _invocationHelper.GetExistingStates(FunctionId);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId); 
 
         _changed = false;

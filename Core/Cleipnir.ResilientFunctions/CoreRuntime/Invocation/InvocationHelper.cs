@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -380,6 +381,43 @@ internal class InvocationHelper<TParam, TReturn>
         return new Effect(functionId, existingActivities, effectsStore, _settings.Serializer);
     }
 
+    public async Task<States> CreateStates(FunctionId functionId, bool sync)
+    {
+        var statesStore = _functionStore.StatesStore;
+        var serializer = _settings.Serializer;
+        if (!sync)
+            return new States(
+                functionId,
+                existingStates: new Dictionary<StateId, WorkflowState>(),
+                statesStore,
+                serializer
+            );
+
+        
+        var existingStoredStates = await statesStore.GetStates(functionId);
+        var existingStates = new Dictionary<StateId, WorkflowState>();
+        foreach (var existingStoredState in existingStoredStates)
+        {
+            var (stateId, stateJson, stateType) = existingStoredState;
+            var state = serializer.DeserializeState(stateJson, stateType);
+            existingStates[stateId] = state;
+        }
+
+        return new States(functionId, existingStates, statesStore, serializer);
+    }
+
+    public async Task<ExistingStates> GetExistingStates(FunctionId functionId)
+    {
+        var statesStore = _functionStore.StatesStore;
+        var existingStates = await statesStore.GetStates(functionId);
+        return new ExistingStates(
+            functionId,
+            storedStates: existingStates.ToDictionary(s => s.StateId, _ => _),
+            statesStore,
+            _settings.Serializer
+        );
+    }
+    
     public async Task<ExistingEffects> GetExistingEffects(FunctionId functionId)
     {
         var effectsStore = _functionStore.EffectsStore;

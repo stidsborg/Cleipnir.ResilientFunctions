@@ -1270,6 +1270,71 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    private class State : WorkflowState
+    {
+        public string Value { get; set; } = "";
+    }
+    
+    public abstract Task ExistingStateCanBeReplacedRemovedAndAdded();
+    protected async Task ExistingStateCanBeReplacedRemovedAndAdded(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var rFunc = functionsRegistry.RegisterFunc(
+            functionTypeId,
+            async Task<string> (string param, Workflow workflow) =>
+            {
+                var state = workflow.States.GetOrCreate<State>();
+                state.Value = param;
+                await state.Save();
+                
+                var namedState = workflow.States.GetOrCreate<State>("SomeId");
+                namedState.Value = "NamedValue";
+                await namedState.Save();
+                
+                return state.Value;
+            });
+
+        var result = await rFunc.Invoke(functionInstanceId.Value, param: "Some Param");
+        result.ShouldBe("Some Param");
+        
+        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var otherControlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        
+        var states = controlPanel.States;
+        states.HasDefaultState().ShouldBeTrue();
+        states.HasState("SomeId").ShouldBeTrue();
+        states.Get<State>().Value.ShouldBe("Some Param");
+        states.Get<State>(stateId: "SomeId").Value.ShouldBe("NamedValue");
+
+        await states.Set(new State { Value = "NewValue" });
+        var s = states.Get<State>(stateId: "SomeId");
+        s.Value = "New Value";
+        await s.Save();
+        states.Get<State>().Value.ShouldBe("New Value");
+
+        await states.RemoveDefault();
+
+        await states.Set("NewState", new State { Value = "NewState's Value" });
+        
+        await otherControlPanel.Refresh();
+
+        states = otherControlPanel.States;
+        states.HasDefaultState().ShouldBeFalse();
+        states.HasState("SomeId").ShouldBeTrue();
+        states.HasState("NewState").ShouldBeTrue();
+        states.HasState("UnknownState").ShouldBeFalse();
+        states.Get<State>(stateId: "SomeId").Value.ShouldBe("New Value");
+        states.Get<State>(stateId: "NewState").Value.ShouldBe("NewState's Value");
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     public abstract Task SaveChangesPersistsChangedResult();
     protected async Task SaveChangesPersistsChangedResult(Task<IFunctionStore> storeTask)
     {
