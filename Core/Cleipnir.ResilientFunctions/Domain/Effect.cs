@@ -45,13 +45,7 @@ public class Effect
         lock (_sync)
         {
             if (_effectResults.TryGetValue(id, out var existing) && existing.WorkStatus == WorkStatus.Completed)
-            {
-                var existingValue = _serializer.DeserializeEffectResult<T>(existing.Result!);
-                if (existingValue is WorkflowState existingWorkflowState)
-                    existingWorkflowState.Initialize(onSave: () => Upsert(id, existingValue));
-
-                return existingValue;
-            }
+                return _serializer.DeserializeEffectResult<T>(existing.Result!);
             
             if (existing?.StoredException != null)
                 throw new EffectException(_functionId, id, _serializer.DeserializeException(existing.StoredException!));
@@ -63,9 +57,6 @@ public class Effect
         lock (_sync)
             _effectResults[id] = storedEffect;
         
-        if (value is WorkflowState workflowState)
-            workflowState.Initialize(onSave: () => Upsert(id, value));
-
         return value;
     }
 
