@@ -34,6 +34,12 @@ public class Effect
         _effectResults = existingEffects.ToDictionary(sa => sa.EffectId, sa => sa);
     }
 
+    public bool Contains(string id)
+    {
+        lock (_sync)
+            return _effectResults.ContainsKey(id);
+    }
+
     public async Task<T> CreateOrGet<T>(string id, T value)
     {
         lock (_sync)
