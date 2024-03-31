@@ -155,7 +155,7 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Workflow flow) =>
                 {
-                    var state = flow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = flow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(1);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -189,7 +189,7 @@ public abstract class WatchdogCompoundTests
                 async (p, workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(2);
                     await state.Save();
                     return Postpone.For(100);
@@ -216,7 +216,7 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(3);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -242,7 +242,7 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(4);
                     await state.Save();
                     return $"{p.Id}-{p.Value}";
@@ -258,9 +258,9 @@ public abstract class WatchdogCompoundTests
             storedFunction!.Result.DefaultDeserialize()!
                 .CastTo<string>()
                 .ShouldBe($"{param.Id}-{param.Value}");
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
-            effects.Single(e => e.EffectId == "Scraps")
-                .Result!
+            var states = await store.StatesStore.GetStates(functionId);
+            states.Single(e => e.StateId == "Scraps")
+                .StateJson
                 .DeserializeFromJsonTo<ListState>()
                 .Scraps
                 .ShouldBe(new [] {1,2,3,4});
@@ -411,7 +411,7 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(1);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -445,7 +445,7 @@ public abstract class WatchdogCompoundTests
                     async (Param p, Workflow workflow) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
-                        var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                        var state = workflow.States.CreateOrGet<ListState>("Scraps");
                         state.Scraps.Add(2);
                         await state.Save();
                         
@@ -474,7 +474,7 @@ public abstract class WatchdogCompoundTests
                 functionTypeId,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(3);
                     await state.Save();
                     var savedTask = state.Save();
@@ -505,7 +505,7 @@ public abstract class WatchdogCompoundTests
                 async (Param p, Workflow workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    var state = workflow.Effect.CreateOrGet<ListState>("Scraps");
+                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(4);
                     await state.Save();
                 }
@@ -519,9 +519,9 @@ public abstract class WatchdogCompoundTests
             
             var storedFunction = await store.GetFunction(functionId);
             storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
-            effects.Single(e => e.EffectId == "Scraps")
-                .Result!
+            var states = await store.StatesStore.GetStates(functionId);
+            states.Single(e => e.StateId == "Scraps")
+                .StateJson
                 .DeserializeFromJsonTo<ListState>()
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});

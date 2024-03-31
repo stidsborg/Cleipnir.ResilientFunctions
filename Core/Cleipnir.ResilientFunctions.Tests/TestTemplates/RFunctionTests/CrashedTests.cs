@@ -109,7 +109,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     async (string s, Workflow workflow) =>
                     {
-                        var state = workflow.Effect.CreateOrGet<State>("State");
+                        var state = workflow.States.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                         return s.ToUpper();
@@ -126,8 +126,8 @@ public abstract class CrashedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
-            var stateResult = effects.Single(e => e.EffectId == "State").Result;
+            var effects = await store.StatesStore.GetStates(functionId);
+            var stateResult = effects.Single(e => e.StateId == "State").StateJson;
             stateResult.ShouldNotBeNull();
             stateResult.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
@@ -233,7 +233,7 @@ public abstract class CrashedTests
                     functionTypeId,
                     async (string _, Workflow workflow) =>
                     {
-                        var state = workflow.Effect.CreateOrGet<State>("State");
+                        var state = workflow.States.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                     }
@@ -249,9 +249,9 @@ public abstract class CrashedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
-            var state = effects.Single(e => e.EffectId == "State").Result;
-            state!.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            var effects = await store.StatesStore.GetStates(functionId);
+            var state = effects.Single(e => e.StateId == "State").StateJson;
+            state.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rAction(functionInstanceId.Value, param);
         }
 

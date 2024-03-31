@@ -353,7 +353,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             void(string param, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<TestState>("State");
+                var state = workflow.States.CreateOrGet<TestState>("State");
                 state.Value = param;
                 state.Save().Wait();
             });
@@ -362,7 +362,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("first");
+        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -371,7 +371,7 @@ public abstract class ControlPanelTests
         await controlPanel.ReInvoke();
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("second");
+        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -430,7 +430,7 @@ public abstract class ControlPanelTests
             functionTypeId,
             void(string param, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<TestState>("State");
+                var state = workflow.States.CreateOrGet<TestState>("State");
                 state.Value = param;
                 state.Save().Wait();
             });
@@ -439,7 +439,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("first");
+        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -450,7 +450,7 @@ public abstract class ControlPanelTests
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.Effects.GetValue<TestState>("State")!.Value.ShouldBe("second");
+        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -1289,11 +1289,11 @@ public abstract class ControlPanelTests
             functionTypeId,
             async Task<string> (string param, Workflow workflow) =>
             {
-                var state = workflow.States.GetOrCreate<State>();
+                var state = workflow.States.CreateOrGet<State>();
                 state.Value = param;
                 await state.Save();
                 
-                var namedState = workflow.States.GetOrCreate<State>("SomeId");
+                var namedState = workflow.States.CreateOrGet<State>("SomeId");
                 namedState.Value = "NamedValue";
                 await namedState.Save();
                 

@@ -9,7 +9,7 @@ public class LoyaltyPointsFlow
 {
     public static async Task Execute(string customerId, Workflow workflow)
     {
-        var state = workflow.Effect.CreateOrGet<State>("State");
+        var state = workflow.States.CreateOrGet<State>();
         while (true)
         {
             var (date, points) = await Queue.Peek<LoyaltyPoints>();

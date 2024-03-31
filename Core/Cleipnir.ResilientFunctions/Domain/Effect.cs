@@ -34,29 +34,6 @@ public class Effect
         _effectResults = existingEffects.ToDictionary(sa => sa.EffectId, sa => sa);
     }
 
-    public T CreateOrGet<T>(string id) where T : WorkflowState, new()
-    {
-        lock (_sync)
-        {
-            if (_effectResults.TryGetValue(id, out var existing) && existing.WorkStatus == WorkStatus.Completed)
-            {
-                var existingValue = _serializer.DeserializeEffectResult<T>(existing.Result!);
-                if (existingValue is WorkflowState existingWorkflowState)
-                    existingWorkflowState.Initialize(onSave: () => Upsert(id, existingValue));
-
-                return existingValue;
-            }
-            
-            if (existing?.StoredException != null)
-                throw new EffectException(_functionId, id, _serializer.DeserializeException(existing.StoredException!));
-        }
-
-        var workflowState = new T();
-        workflowState.Initialize(onSave: () => Upsert(id, workflowState));
-
-        return workflowState;
-    }
-
     public async Task<T> CreateOrGet<T>(string id, T value)
     {
         lock (_sync)

@@ -107,7 +107,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     async (string s, Workflow workflow) =>
                     {
-                        var state = workflow.Effect.CreateOrGet<State>("State");
+                        var state = workflow.States.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                         return s.ToUpper();
@@ -119,10 +119,9 @@ public abstract class PostponedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
-            var effect = effects.Single(e => e.EffectId == "State");
-            effect.Result.ShouldNotBeNull();
-            effect.Result.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            var states = await store.StatesStore.GetStates(functionId);
+            var state = states.Single(e => e.StateId == "State");
+            state.StateJson.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             
             await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -220,7 +219,7 @@ public abstract class PostponedTests
                     functionTypeId,
                     async (string _, Workflow workflow) =>
                     {
-                        var state = workflow.Effect.CreateOrGet<State>("State");
+                        var state = workflow.States.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                     }
@@ -230,10 +229,9 @@ public abstract class PostponedTests
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
-            var effect = effects.Single(e => e.EffectId == "State");
-            effect.Result.ShouldNotBeNull();
-            effect.Result.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            var states = await store.StatesStore.GetStates(functionId);
+            var state = states.Single(e => e.StateId == "State");
+            state.StateJson.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
 
             await rFunc(functionInstanceId.Value, param);
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);

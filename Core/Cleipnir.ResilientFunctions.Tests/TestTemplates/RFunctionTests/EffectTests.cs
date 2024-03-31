@@ -341,18 +341,5 @@ public abstract class EffectTests
                 
         await effect.Upsert("Id1", 100);
         effect.Get<int>("Id1").ShouldBe(100);
-        
-        var state = effect.CreateOrGet<FlowState>(nameof(FlowState));
-        state.Value.ShouldBe("");
-        state.Value = "123";
-        await state.Save();
-
-        var state2 = effect.Get<FlowState>(nameof(FlowState));
-        state2.Value.ShouldBe("123");
-    }
-
-    private class FlowState : WorkflowState
-    {
-        public string Value { get; set; } = "";
     }
 }

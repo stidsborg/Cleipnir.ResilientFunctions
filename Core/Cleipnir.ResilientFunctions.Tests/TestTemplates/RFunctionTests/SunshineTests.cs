@@ -71,7 +71,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterFunc(
                 functionTypeId,
-                (string s, Workflow workflow) => ToUpper(s, workflow.Effect.CreateOrGet<State>("State"))
+                (string s, Workflow workflow) => ToUpper(s, workflow.States.CreateOrGet<State>("State"))
             )
             .Invoke;
 
@@ -133,7 +133,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 functionTypeId,
-                (string s, Workflow workflow) => workflow.Effect.CreateOrGet<State>("State").Save()
+                (string s, Workflow workflow) => workflow.States.CreateOrGet<State>("State").Save()
             ).Invoke;
 
         await rFunc("hello", "hello");
@@ -179,7 +179,7 @@ public abstract class SunshineTests
             functionTypeId,
             (string _, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
+                var state = workflow.States.CreateOrGet<ListState<string>>("State");
                 state.List.Add("hello world");
                 state.Save().Wait();
                 return default(string).ToTask();
@@ -193,8 +193,8 @@ public abstract class SunshineTests
             .GetFunction(functionId)
             .ShouldNotBeNullAsync();
 
-        var effects = await store.EffectsStore.GetEffectResults(functionId);
-        var state = effects.Single(e => e.EffectId == "State").Result!.DeserializeFromJsonTo<ListState<string>>();
+        var states = await store.StatesStore.GetStates(functionId);
+        var state = states.Single(e => e.StateId == "State").StateJson!.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("hello world");
     }
     
@@ -210,7 +210,7 @@ public abstract class SunshineTests
             functionTypeId,
             (string _, Workflow workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
+                var state = workflow.States.CreateOrGet<ListState<string>>("State");
                 state.List.Add("hello world");
                 state.Save().Wait();
                 return default(string).ToTask();

@@ -27,30 +27,15 @@ public class States
         _existingStates = new();
     }
 
-    public T GetOrCreate<T>() where T : WorkflowState, new()
+    public T CreateOrGet<T>() where T : WorkflowState, new()
         => InnerGetOrCreate<T>(id: "");
 
-    public T GetOrCreate<T>(string id) where T : WorkflowState, new()
+    public T CreateOrGet<T>(string id) where T : WorkflowState, new()
     {
         if (string.IsNullOrEmpty(id))
             throw new ArgumentException("Id must not be empty string or null", nameof(id));
 
         return InnerGetOrCreate<T>(id);
-    }
-    
-    public async Task Remove(string id)
-    {
-        if (string.IsNullOrEmpty(id))
-            throw new ArgumentException("Id must not be empty string or null", nameof(id));
-
-        lock (_sync)
-        {
-            var success = _existingStates.Remove(id);
-            if (!success)
-                return;
-        }
-
-        await _statesStore.RemoveState(_functionId, id);
     }
 
     private T InnerGetOrCreate<T>(string id) where T : WorkflowState, new()
@@ -62,6 +47,7 @@ public class States
             {
                 var s = _serializer.DeserializeState<T>(storedState.StateJson);
                 _existingStates[id] = s;
+                s.Initialize(onSave: () => SaveState(id, s));
                 return s;
             }
             else
@@ -71,6 +57,28 @@ public class States
                 _existingStates[id] = newState;
                 return newState;
             }
+    }
+    
+    public async Task Remove(string id)
+    {
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentException("Id must not be empty string or null", nameof(id));
+
+        await InnerRemove(id);
+    }
+    
+    public Task RemoveDefault() => InnerRemove(id: "");
+    
+    private async Task InnerRemove(string id)
+    {
+        lock (_sync)
+        {
+            var success = _existingStates.Remove(id);
+            if (!success)
+                return;
+        }
+
+        await _statesStore.RemoveState(_functionId, id);
     }
 
     private async Task SaveState<T>(string id, T state) where T : WorkflowState, new()

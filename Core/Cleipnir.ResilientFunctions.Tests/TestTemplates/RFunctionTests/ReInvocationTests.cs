@@ -79,7 +79,7 @@ public abstract class ReInvocationTests
             functionTypeId,
             async (param, workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
+                var state = workflow.States.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -99,8 +99,8 @@ public abstract class ReInvocationTests
         var syncedListFromState = new Synced<List<string>>();
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
             
-        syncedListFromState.Value = new List<string>(controlPanel.Effects.GetValue<ListState<string>>("State")!.List);
-        await controlPanel.Effects.SetValue("State", new ListState<string>());
+        syncedListFromState.Value = new List<string>(controlPanel.States.Get<ListState<string>>("State")!.List);
+        await controlPanel.States.Set("State", new ListState<string>());
         await controlPanel.SaveChanges();
         
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -109,8 +109,8 @@ public abstract class ReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         await controlPanel.Refresh();
-        var state = controlPanel.Effects.GetValue<ListState<string>>("State");
-        state!.List.Single().ShouldBe("world");
+        var state = controlPanel.States.Get<ListState<string>>("State");
+        state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -273,7 +273,7 @@ public abstract class ReInvocationTests
             functionTypeId,
             async (param, workflow) =>
             {
-                var state = workflow.Effect.CreateOrGet<ListState<string>>("State");
+                var state = workflow.States.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -291,7 +291,7 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.Effects.Remove("State");
+        await controlPanel.States.Remove("State");
         await controlPanel.SaveChanges();
         
         controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
@@ -303,7 +303,7 @@ public abstract class ReInvocationTests
         function.Status.ShouldBe(Status.Succeeded);
         function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
         await controlPanel.Refresh();
-        var state = controlPanel.Effects.GetValue<ListState<string>>("State");
+        var state = controlPanel.States.Get<ListState<string>>("State");
         state!.List.Single().ShouldBe("world");
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
