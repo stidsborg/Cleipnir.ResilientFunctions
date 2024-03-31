@@ -6,7 +6,7 @@
         <FileVersion>2.0.2.0</FileVersion>
         <InformationalVersion>2.0.2.0</InformationalVersion>
         <PackageVersion>2.0.2</PackageVersion>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</PackageProjectUrl>
