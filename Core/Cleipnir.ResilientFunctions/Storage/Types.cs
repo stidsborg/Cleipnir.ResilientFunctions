@@ -28,7 +28,7 @@ public record StoredException(string ExceptionMessage, string? ExceptionStackTra
 public record StatusAndEpoch(Status Status, int Epoch);
 
 public record StoredEffect(EffectId EffectId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
-public record StoredState(StateId StateId, string StateJson, string StateType);
+public record StoredState(StateId StateId, string StateJson);
 
 internal static class StorageTypeExtensions
 {

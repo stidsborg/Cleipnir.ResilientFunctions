@@ -82,9 +82,9 @@ public class RActionWithStateRegistrationTests
         public TResult DeserializeEffectResult<TResult>(string json)
             => Default.DeserializeEffectResult<TResult>(json);
 
-        public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+        public string SerializeState<TState>(TState state) where TState : WorkflowState, new()
             => Default.SerializeState(state);
-        public WorkflowState DeserializeState(string json, string type)
-            => Default.DeserializeState(json, type);
+        public TState DeserializeState<TState>(string json) where TState : WorkflowState, new()
+            => Default.DeserializeState<TState>(json);
     }
 }

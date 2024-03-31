@@ -26,42 +26,4 @@ public class RActionRegistrationTests
     
     private Task InnerAction(string param) => Task.CompletedTask;
     private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
-
-    private class Serializer : ISerializer
-    {
-        public bool Invoked { get; set; }
-        private ISerializer Default { get; } = DefaultSerializer.Instance;
-        
-        public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull
-        {
-            Invoked = true;
-            return Default.SerializeParameter(parameter);
-        }
-        public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
-            => Default.DeserializeParameter<TParam>(json, type);
-
-        public StoredException SerializeException(Exception exception)
-            => Default.SerializeException(exception);
-        public PreviouslyThrownException DeserializeException(StoredException storedException)
-            => Default.DeserializeException(storedException);
-        
-        public StoredResult SerializeResult<TResult>(TResult result) => Default.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(string json, string type) 
-            => Default.DeserializeResult<TResult>(json, type);
-
-        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
-            => Default.SerializeMessage(message);
-        public object DeserializeMessage(string json, string type)
-            => Default.DeserializeMessage(json, type);
-
-        public string SerializeEffectResult<TResult>(TResult result)
-            => Default.SerializeEffectResult(result);
-        public TResult DeserializeEffectResult<TResult>(string json)
-            => Default.DeserializeEffectResult<TResult>(json);
-
-        public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
-            => Default.SerializeState(state);
-        public WorkflowState DeserializeState(string json, string type)
-            => Default.DeserializeState(json, type);
-    }
 }

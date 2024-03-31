@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
@@ -12,10 +13,10 @@ public class ExistingStates
     private readonly IStatesStore _statesStore;
     private readonly ISerializer _serializer;
 
-    public ExistingStates(FunctionId functionId, Dictionary<StateId, StoredState> storedStates, IStatesStore statesStore, ISerializer serializer)
+    public ExistingStates(FunctionId functionId, IEnumerable<StoredState> storedStates, IStatesStore statesStore, ISerializer serializer)
     {
         _functionId = functionId;
-        _storedStates = storedStates;
+        _storedStates = storedStates.ToDictionary(s => s.StateId, s => s);
         _statesStore = statesStore;
         _serializer = serializer;
     }
@@ -31,7 +32,7 @@ public class ExistingStates
         if (!_storedStates.TryGetValue(stateId, out var storedState))
             throw new KeyNotFoundException($"State '{stateId}' was not found");
 
-        var state = (TState) _serializer.DeserializeState(storedState.StateJson, storedState.StateType);
+        var state = _serializer.DeserializeState<TState>(storedState.StateJson);
         state.Initialize(onSave: () => Set(stateId, state));
         return state;
     }
@@ -47,8 +48,8 @@ public class ExistingStates
         => Set(stateId: "", state);
     public async Task Set<TState>(string stateId, TState state) where TState : WorkflowState, new()
     {
-        var (json, type) = _serializer.SerializeState(state);
-        var storedState = new StoredState(stateId, json, type);
+        var json = _serializer.SerializeState(state);
+        var storedState = new StoredState(stateId, json);
         await _statesStore.UpsertState(_functionId, storedState);
         _storedStates[stateId] = storedState;
     }

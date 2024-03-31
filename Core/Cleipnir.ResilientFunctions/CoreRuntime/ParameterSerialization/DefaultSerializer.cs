@@ -45,8 +45,8 @@ public class DefaultSerializer : ISerializer
     public TResult DeserializeEffectResult<TResult>(string json)
         => JsonSerializer.Deserialize<TResult>(json)!;
 
-    public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
-        => new(JsonSerializer.Serialize(state), typeof(TState).SimpleQualifiedName());
-    public WorkflowState DeserializeState(string json, string type)
-        => (WorkflowState) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
+    public string SerializeState<TState>(TState state) where TState : WorkflowState, new()
+        => JsonSerializer.Serialize(state);
+    public TState DeserializeState<TState>(string json) where TState : WorkflowState, new()
+        => JsonSerializer.Deserialize<TState>(json)!;
 }

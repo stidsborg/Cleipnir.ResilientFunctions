@@ -25,8 +25,7 @@ public class SqlServerStatesStore : IStatesStore
         var sql = @$"    
             CREATE TABLE {_tablePrefix}States (
                 Id NVARCHAR(450) PRIMARY KEY,                
-                State NVARCHAR(MAX),
-                Type NVARCHAR(255)
+                State NVARCHAR(MAX)
             );";
 
         await using var command = new SqlCommand(sql, conn);
@@ -42,20 +41,19 @@ public class SqlServerStatesStore : IStatesStore
         await using var conn = await _connFunc();
         var sql = $@"
             MERGE INTO {_tablePrefix}States
-                USING (VALUES (@Id, @State, @Type)) 
-                AS source (Id,State,Type)
+                USING (VALUES (@Id, @State)) 
+                AS source (Id,State)
                 ON {_tablePrefix}States.Id = source.Id
                 WHEN MATCHED THEN
-                    UPDATE SET State = source.State, Type = source.Type
+                    UPDATE SET State = source.State
                 WHEN NOT MATCHED THEN
-                    INSERT (Id, State, Type)
-                    VALUES (source.Id, source.State, source.Type);";
+                    INSERT (Id, State)
+                    VALUES (source.Id, source.State);";
         
         await using var command = new SqlCommand(sql, conn);
         var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedState.StateId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@State", storedState.StateJson);
-        command.Parameters.AddWithValue("@Type", storedState.StateType);
 
         await command.ExecuteNonQueryAsync();
     }
@@ -64,7 +62,7 @@ public class SqlServerStatesStore : IStatesStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            SELECT Id, State, Type
+            SELECT Id, State
             FROM {_tablePrefix}States
             WHERE Id LIKE @IdPrefix";
 
@@ -79,9 +77,8 @@ public class SqlServerStatesStore : IStatesStore
             var id = reader.GetString(0);
             var stateId = Escaper.Unescape(id)[2];
             var state =  reader.GetString(1);
-            var type = reader.GetString(2);
             
-            var storedState = new StoredState(stateId, state, type);
+            var storedState = new StoredState(stateId, state);
             storedStates.Add(storedState);
         }
 

@@ -25,8 +25,7 @@ public class PostgresStatesStore : IStatesStore
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_states (
                 id VARCHAR(450) PRIMARY KEY,
-                state TEXT NOT NULL,
-                type VARCHAR(255) NOT NULL
+                state TEXT NOT NULL
             );";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -39,20 +38,19 @@ public class PostgresStatesStore : IStatesStore
         await using var conn = await CreateConnection();
         var sql = $@"
           INSERT INTO {_tablePrefix}rfunction_states 
-              (id, state, type)
+              (id, state)
           VALUES
-              ($1, $2, $3) 
+              ($1, $2) 
           ON CONFLICT (id) 
           DO 
-            UPDATE SET state = EXCLUDED.state, type = EXCLUDED.type";
+            UPDATE SET state = EXCLUDED.state";
         
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = Escaper.Escape(functionTypeId.Value, functionInstanceId.Value, storedState.StateId.Value)},
-                new() {Value = storedState.StateJson},
-                new() {Value = storedState.StateType},
+                new() {Value = storedState.StateJson}
             }
         };
 
@@ -63,7 +61,7 @@ public class PostgresStatesStore : IStatesStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            SELECT id, state, type
+            SELECT id, state
             FROM {_tablePrefix}rfunction_states
             WHERE id LIKE $1";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -82,8 +80,7 @@ public class PostgresStatesStore : IStatesStore
             var id = reader.GetString(0);
             var stateId = Escaper.Unescape(id)[2];
             var state = reader.GetString(1);
-            var type = reader.GetString(2);
-            functions.Add(new StoredState(stateId, state, type));
+            functions.Add(new StoredState(stateId, state));
         }
 
         return functions;

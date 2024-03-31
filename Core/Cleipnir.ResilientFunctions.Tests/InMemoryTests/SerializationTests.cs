@@ -154,9 +154,9 @@ public class SerializationTests
         public TResult DeserializeEffectResult<TResult>(string json)
             => _defaultSerializer.DeserializeEffectResult<TResult>(json);
 
-        public JsonAndType SerializeState<TState>(TState state) where TState : Domain.WorkflowState, new()
+        public string SerializeState<TState>(TState state) where TState : Domain.WorkflowState, new()
             => _defaultSerializer.SerializeState(state);
-        public Domain.WorkflowState DeserializeState(string json, string type)
-            => _defaultSerializer.DeserializeState(json, type);
+        public TState DeserializeState<TState>(string json) where TState : Domain.WorkflowState, new()
+            => _defaultSerializer.DeserializeState<TState>(json);
     }
 }

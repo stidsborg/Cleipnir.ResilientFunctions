@@ -388,22 +388,13 @@ internal class InvocationHelper<TParam, TReturn>
         if (!sync)
             return new States(
                 functionId,
-                existingStates: new Dictionary<StateId, WorkflowState>(),
+                existingStates: Enumerable.Empty<StoredState>(),
                 statesStore,
                 serializer
             );
 
-        
         var existingStoredStates = await statesStore.GetStates(functionId);
-        var existingStates = new Dictionary<StateId, WorkflowState>();
-        foreach (var existingStoredState in existingStoredStates)
-        {
-            var (stateId, stateJson, stateType) = existingStoredState;
-            var state = serializer.DeserializeState(stateJson, stateType);
-            existingStates[stateId] = state;
-        }
-
-        return new States(functionId, existingStates, statesStore, serializer);
+        return new States(functionId, existingStoredStates, statesStore, serializer);
     }
 
     public async Task<ExistingStates> GetExistingStates(FunctionId functionId)
@@ -412,7 +403,7 @@ internal class InvocationHelper<TParam, TReturn>
         var existingStates = await statesStore.GetStates(functionId);
         return new ExistingStates(
             functionId,
-            storedStates: existingStates.ToDictionary(s => s.StateId, _ => _),
+            existingStates,
             statesStore,
             _settings.Serializer
         );

@@ -326,9 +326,9 @@ public abstract class MessagesTests
         public TResult DeserializeEffectResult<TResult>(string json)
             => DefaultSerializer.Instance.DeserializeEffectResult<TResult>(json);
 
-        public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+        public string SerializeState<TState>(TState state) where TState : WorkflowState, new()
             => DefaultSerializer.Instance.SerializeState(state);
-        public WorkflowState DeserializeState(string json, string type)
-            => DefaultSerializer.Instance.DeserializeState(json, type);
+        public TState DeserializeState<TState>(string json) where TState : WorkflowState, new()
+            => DefaultSerializer.Instance.DeserializeState<TState>(json);
     }
 }

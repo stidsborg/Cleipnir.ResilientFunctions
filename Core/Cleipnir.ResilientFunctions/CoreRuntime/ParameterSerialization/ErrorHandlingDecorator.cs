@@ -132,15 +132,15 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public JsonAndType SerializeState<TState>(TState state) where TState : WorkflowState, new()
+    public string SerializeState<TState>(TState state) where TState : WorkflowState, new()
         => _inner.SerializeState(state);
-    public WorkflowState DeserializeState(string json, string type)
+    public TState DeserializeState<TState>(string json) where TState : WorkflowState, new()
     {
         try
         {
-            return _inner.DeserializeState(json, type)
+            return _inner.DeserializeState<TState>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized state was null with type: '{type}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized state was null with type: '{typeof(TState)}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -151,7 +151,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize state with type: '{type}' and json: '{MinifyJson(json)}'",  
+                $"Unable to deserialize state with type: '{typeof(TState)}' and json: '{MinifyJson(json)}'",  
                 e
             );
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
@@ -11,17 +12,19 @@ public class States
     private readonly FunctionId _functionId;
     private readonly IStatesStore _statesStore;
     private readonly ISerializer _serializer;
+    private readonly Dictionary<StateId, StoredState> _existingStoredStates;
     private readonly Dictionary<StateId, WorkflowState> _existingStates;
 
     private readonly object _sync = new();
 
-    public States(FunctionId functionId, Dictionary<StateId, WorkflowState> existingStates, IStatesStore statesStore, ISerializer serializer)
+    public States(FunctionId functionId, IEnumerable<StoredState> existingStates, IStatesStore statesStore, ISerializer serializer)
     {
         _functionId = functionId;
         _statesStore = statesStore;
         _serializer = serializer;
 
-        _existingStates = existingStates;
+        _existingStoredStates = existingStates.ToDictionary(s => s.StateId, s => s);
+        _existingStates = new();
     }
 
     public T GetOrCreate<T>() where T : WorkflowState, new()
@@ -53,8 +56,14 @@ public class States
     private T InnerGetOrCreate<T>(string id) where T : WorkflowState, new()
     {
         lock (_sync)
-            if (_existingStates.TryGetValue(key: id, out var state))
+            if (_existingStates.TryGetValue(id, out var state))
                 return (T)state;
+            else if (_existingStoredStates.TryGetValue(key: id, out var storedState))
+            {
+                var s = _serializer.DeserializeState<T>(storedState.StateJson);
+                _existingStates[id] = s;
+                return s;
+            }
             else
             {
                 var newState = new T();
@@ -66,8 +75,8 @@ public class States
 
     private async Task SaveState<T>(string id, T state) where T : WorkflowState, new()
     {
-        var (json, type) = _serializer.SerializeState(state);
-        var storedState = new StoredState(new StateId(id), json, type);
+        var json = _serializer.SerializeState(state);
+        var storedState = new StoredState(new StateId(id), json);
         await _statesStore.UpsertState(_functionId, storedState);
     }
 }

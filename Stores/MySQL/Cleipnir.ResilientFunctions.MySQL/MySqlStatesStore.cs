@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
 
-namespace Cleipnir.ResilientFunctions.PostgreSQL;
+namespace Cleipnir.ResilientFunctions.MySQL;
 
 public class MySqlStatesStore : IStatesStore
 {
@@ -22,8 +22,7 @@ public class MySqlStatesStore : IStatesStore
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_states (
                 id VARCHAR(450) PRIMARY KEY,
-                state TEXT NOT NULL,
-                type VARCHAR(255) NOT NULL
+                state TEXT NOT NULL
             );";
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
@@ -35,11 +34,11 @@ public class MySqlStatesStore : IStatesStore
         await using var conn = await CreateConnection();
         var sql = $@"
           INSERT INTO {_tablePrefix}rfunction_states 
-              (id, state, type)
+              (id, state)
           VALUES
-              (?, ?, ?)  
+              (?, ?)  
            ON DUPLICATE KEY UPDATE
-                state = VALUES(state), type = VALUES(type)";
+                state = VALUES(state)";
         
         await using var command = new MySqlCommand(sql, conn)
         {
@@ -47,7 +46,6 @@ public class MySqlStatesStore : IStatesStore
             {
                 new() {Value = Escaper.Escape(functionTypeId.Value, functionInstanceId.Value, storedState.StateId.Value)},
                 new() {Value = storedState.StateJson},
-                new() {Value = storedState.StateType},
             }
         };
 
@@ -58,7 +56,7 @@ public class MySqlStatesStore : IStatesStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            SELECT id, state, type
+            SELECT id, state
             FROM {_tablePrefix}rfunction_states
             WHERE id LIKE ?";
         await using var command = new MySqlCommand(sql, conn)
@@ -77,8 +75,7 @@ public class MySqlStatesStore : IStatesStore
             var id = reader.GetString(0);
             var stateId = Escaper.Unescape(id)[2];
             var json = reader.GetString(1);
-            var type = reader.GetString(2);
-            states.Add(new StoredState(stateId, json, type));
+            states.Add(new StoredState(stateId, json));
         }
 
         return states;
