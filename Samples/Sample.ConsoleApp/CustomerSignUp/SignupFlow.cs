@@ -9,9 +9,9 @@ public static class SignupFlow
 {
     public static async Task Start(string customerEmail, Workflow workflow)
     {
-        var (activities, messages) = workflow;
+        var (effect, messages, _) = workflow;
         
-        await activities.Capture("SendWelcomeMail", () => SendWelcomeMail(customerEmail));
+        await effect.Capture("SendWelcomeMail", () => SendWelcomeMail(customerEmail));
 
         for (var i = 0; i <= 5; i++)
         {
@@ -19,14 +19,14 @@ public static class SignupFlow
             if (emailVerifiedOption.HasValue)
                 break;
             
-            await activities.Capture($"Reminder_{i}", () => SendReminderMail(customerEmail));
+            await effect.Capture($"Reminder_{i}", () => SendReminderMail(customerEmail));
             
             if (i == 5)
                 throw new UserSignupFailedException($"User '{customerEmail}' did not activate within threshold");
         }
         
         await workflow.Delay("DelayUntilTomorrow", TimeSpan.FromDays(1)); //uses effect and postpone functionality?!
-        await activities.Capture("SendWelcomeMail", () => SendFollowUpMail(customerEmail));
+        await effect.Capture("SendWelcomeMail", () => SendFollowUpMail(customerEmail));
     }
 
     private static Task SendWelcomeMail(string customerEmail) => Task.CompletedTask;

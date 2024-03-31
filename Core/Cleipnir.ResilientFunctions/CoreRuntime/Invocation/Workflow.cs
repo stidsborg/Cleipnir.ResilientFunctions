@@ -26,10 +26,11 @@ public class Workflow
         States = states;
     }
 
-    public void Deconstruct(out Effect effect, out Messages messages)
+    public void Deconstruct(out Effect effect, out Messages messages, out States states)
     {
         effect = Effect;
         messages = Messages;
+        states = States;
     }
 
     public async Task PublishMessage<T>(FunctionId receiver, T message, string? idempotencyKey) where T : notnull

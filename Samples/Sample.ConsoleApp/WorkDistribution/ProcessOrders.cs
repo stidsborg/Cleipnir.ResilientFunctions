@@ -16,13 +16,13 @@ public static class ProcessOrders
     
     public static async Task Execute(List<string> orderIds, Workflow workflow)
     {
-        var (activities, messages) = workflow;
-        await activities.Capture(
+        var (effect, messages, _) = workflow;
+        await effect.Capture(
             "Log_ProcessingStarted",
             () => Console.WriteLine("Processing of orders started")
         );
 
-        await activities.Capture(
+        await effect.Capture(
             "ScheduleOrders",
             async () =>
             {
@@ -39,7 +39,7 @@ public static class ProcessOrders
             .Take(orderIds.Count)
             .SuspendUntilCompletion();
 
-        await activities.Capture(
+        await effect.Capture(
             "Log_ProcessingFinished",
             () => Console.WriteLine($"Processing of orders completed - total: '{orderIds.Count}'")
         );

@@ -26,7 +26,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 await effect.Capture(
                     id: "Test",
                     work: () => syncedCounter.Increment()
@@ -64,7 +64,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 await effect.Capture(
                     id: "Test",
                     work: () => { syncedCounter.Increment(); return Task.CompletedTask; });
@@ -101,7 +101,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 await effect.Capture(
                     id: "Test",
                     work: () =>
@@ -146,7 +146,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 await effect.Capture(
                     id: "Test",
                     work: () =>
@@ -191,7 +191,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 await effect.Capture(
                     id: "Test",
                     work: () =>
@@ -237,7 +237,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task<int> (string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 var t1 = new Task<int>(() => 1);
                 var t2 = Task.FromResult(2);
                 return await effect.WhenAny("WhenAny", t1, t2);
@@ -263,7 +263,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task<int[]> (string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 var t1 = Task.FromResult(1);
                 var t2 = Task.FromResult(2);
                 return await effect.WhenAll("WhenAll", t1, t2);
@@ -298,7 +298,7 @@ public abstract class EffectTests
             functionTypeId,
             async Task (string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var (effect, _, _) = workflow;
                 await effect.Clear("SomeEffect");
             });
 
