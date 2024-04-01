@@ -3,7 +3,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
 
-namespace Cleipnir.ResilientFunctions.PostgreSQL;
+namespace Cleipnir.ResilientFunctions.MySQL;
 
 public class MySqlEffectsStore : IEffectsStore
 {
@@ -20,7 +20,7 @@ public class MySqlEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_activities (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_effects (
                 id VARCHAR(450) PRIMARY KEY,
                 status INT NOT NULL,
                 result TEXT NULL,
@@ -35,7 +35,7 @@ public class MySqlEffectsStore : IEffectsStore
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await CreateConnection();
         var sql = $@"
-          INSERT INTO {_tablePrefix}rfunction_activities 
+          INSERT INTO {_tablePrefix}rfunction_effects 
               (id, status, result, exception)
           VALUES
               (?, ?, ?, ?)  
@@ -61,13 +61,13 @@ public class MySqlEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT id, status, result, exception
-            FROM {_tablePrefix}rfunction_activities
+            FROM {_tablePrefix}rfunction_effects
             WHERE id LIKE ?";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + "%"},
+                new() {Value = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" },
             }
         };
 
@@ -90,8 +90,21 @@ public class MySqlEffectsStore : IEffectsStore
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = ?";
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id = ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters = { new() { Value = id } }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id LIKE ?";
+        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters = { new() { Value = id } }

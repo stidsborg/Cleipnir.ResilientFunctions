@@ -24,7 +24,7 @@ public class SqlServerEffectsStore : IEffectsStore
     {
         await using var conn = await _connFunc();
         var sql = @$"    
-            CREATE TABLE {_tablePrefix}Activities (
+            CREATE TABLE {_tablePrefix}Effects (
                 Id NVARCHAR(450) PRIMARY KEY,
                 Status INT NOT NULL,
                 Result NVARCHAR(MAX),
@@ -43,10 +43,10 @@ public class SqlServerEffectsStore : IEffectsStore
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
         var sql = $@"
-            MERGE INTO {_tablePrefix}Activities
+            MERGE INTO {_tablePrefix}Effects
                 USING (VALUES (@Id,@Status,@Result,@Exception)) 
                 AS source (Id,Status,Result,Exception)
-                ON {_tablePrefix}Activities.Id = source.Id
+                ON {_tablePrefix}Effects.Id = source.Id
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
@@ -68,14 +68,14 @@ public class SqlServerEffectsStore : IEffectsStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT Id, Status, Result, Exception
-            FROM {_tablePrefix}Activities
+            FROM {_tablePrefix}Effects
             WHERE Id LIKE @IdPrefix";
 
-        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value);
+        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
+        command.Parameters.AddWithValue("@IdPrefix", idPrefix);
 
-        var storedActivities = new List<StoredEffect>();
+        var storedEffects = new List<StoredEffect>();
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
@@ -87,20 +87,34 @@ public class SqlServerEffectsStore : IEffectsStore
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
             var storedEffect = new StoredEffect(effectId, status, result, storedException);
-            storedActivities.Add(storedEffect);
+            storedEffects.Add(storedEffect);
         }
 
-        return storedActivities;
+        return storedEffects;
     }
 
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            DELETE FROM {_tablePrefix}Activities
+            DELETE FROM {_tablePrefix}Effects
             WHERE Id = @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Id", id);
+        
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+            DELETE FROM {_tablePrefix}Effects
+            WHERE Id LIKE @Id";
+
+        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

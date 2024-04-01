@@ -10,4 +10,5 @@ public interface IEffectsStore
     Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect);
     Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId);
     Task DeleteEffectResult(FunctionId functionId, EffectId effectId);
+    Task Remove(FunctionId functionId);
 }

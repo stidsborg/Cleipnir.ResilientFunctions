@@ -21,4 +21,8 @@ public class EffectsStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task EffectCanBeDeleted()
         => EffectCanBeDeleted(FunctionStoreFactory.Create().SelectAsync(f => f.EffectsStore));
+
+    [TestMethod]
+    public override Task DeleteFunctionIdDeletesAllRelatedEffects()
+        => DeleteFunctionIdDeletesAllRelatedEffects(FunctionStoreFactory.Create().SelectAsync(f => f.EffectsStore));
 }

@@ -2,7 +2,6 @@
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.PostgreSQL;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
 using static Cleipnir.ResilientFunctions.MySQL.DatabaseHelper;
@@ -606,14 +605,10 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task DeleteFunction(FunctionId functionId)
     {
+        await _messageStore.Truncate(functionId);
         await using var conn = await CreateOpenConnection(_connectionString);
         
-        var sql = $@"
-            START TRANSACTION;
-            DELETE FROM {_tablePrefix}rfunctions_messages
-            WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ?;
+        var sql = $@"            
             DELETE FROM {_tablePrefix}rfunctions
             WHERE 
                 function_type_id = ? AND 

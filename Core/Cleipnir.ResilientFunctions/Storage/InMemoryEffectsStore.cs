@@ -42,4 +42,12 @@ public class InMemoryEffectsStore : IEffectsStore
 
         return Task.CompletedTask;
     }
+
+    public Task Remove(FunctionId functionId)
+    {
+        lock (_sync)
+            _effects.Remove(functionId);
+
+        return Task.CompletedTask;
+    }
 }

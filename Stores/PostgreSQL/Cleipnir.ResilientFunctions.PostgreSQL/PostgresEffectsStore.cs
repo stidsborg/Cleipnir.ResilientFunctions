@@ -24,7 +24,7 @@ public class PostgresEffectsStore : IEffectsStore
         
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_activities (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_effects (
                 id VARCHAR(450) PRIMARY KEY,
                 status INT NOT NULL,
                 result TEXT NULL,
@@ -40,7 +40,7 @@ public class PostgresEffectsStore : IEffectsStore
         
         await using var conn = await CreateConnection();
         var sql = $@"
-          INSERT INTO {_tablePrefix}rfunction_activities 
+          INSERT INTO {_tablePrefix}rfunction_effects 
               (id, status, result, exception)
           VALUES
               ($1, $2, $3, $4) 
@@ -67,13 +67,13 @@ public class PostgresEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT id, status, result, exception
-            FROM {_tablePrefix}rfunction_activities
+            FROM {_tablePrefix}rfunction_effects
             WHERE id LIKE $1";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + "%" }
+                new() { Value = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" }
             }
         };
 
@@ -96,9 +96,23 @@ public class PostgresEffectsStore : IEffectsStore
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_activities WHERE id = $1";
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id = $1";
         
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters = { new() {Value = id } }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id LIKE $1";
+        
+        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters = { new() {Value = id } }
