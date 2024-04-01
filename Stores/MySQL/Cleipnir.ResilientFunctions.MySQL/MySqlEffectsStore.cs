@@ -29,7 +29,15 @@ public class MySqlEffectsStore : IEffectsStore
         var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    public async Task Truncate()
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunction_effects";
+        var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;

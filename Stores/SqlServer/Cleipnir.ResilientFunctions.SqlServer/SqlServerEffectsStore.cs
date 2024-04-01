@@ -37,7 +37,15 @@ public class SqlServerEffectsStore : IEffectsStore
             await command.ExecuteNonQueryAsync();    
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
-    
+
+    public async Task Truncate()
+    {
+        await using var conn = await _connFunc();
+        var sql = $"TRUNCATE TABLE {_tablePrefix}Effects";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;

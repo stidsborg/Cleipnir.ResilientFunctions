@@ -13,6 +13,14 @@ public class InMemoryEffectsStore : IEffectsStore
 
     public Task Initialize() => Task.CompletedTask;
 
+    public Task Truncate()
+    {
+        lock (_sync)
+            _effects.Clear();
+
+        return Task.CompletedTask;
+    }
+
     public Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         lock (_sync)

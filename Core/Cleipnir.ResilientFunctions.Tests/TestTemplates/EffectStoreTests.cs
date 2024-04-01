@@ -198,4 +198,43 @@ public abstract class EffectStoreTests
             .SelectAsync(e => e.Any())
             .ShouldBeTrueAsync();
     }
+    
+    public abstract Task TruncateDeletesAllEffects();
+    protected async Task TruncateDeletesAllEffects(Task<IEffectsStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var otherFunctionId = new FunctionId(functionId.TypeId, functionInstanceId: functionId.InstanceId + "123");
+        
+        var storedEffect1 = new StoredEffect(
+            "EffectId1",
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+        var storedEffect2 = new StoredEffect(
+            "EffectId2",
+            WorkStatus.Completed,
+            Result: null,
+            StoredException: null
+        );
+        
+        await store.SetEffectResult(functionId, storedEffect1);
+        await store.SetEffectResult(functionId, storedEffect2);
+        await store.SetEffectResult(otherFunctionId, storedEffect1);
+
+        await store.Truncate();
+        
+        await store
+            .GetEffectResults(functionId)
+            .SelectAsync(e => e.Any())
+            .ShouldBeFalseAsync();
+        
+        await store
+            .GetEffectResults(otherFunctionId)
+            .SelectAsync(e => e.Any())
+            .ShouldBeFalseAsync();
+    }
+    
+    
 }
