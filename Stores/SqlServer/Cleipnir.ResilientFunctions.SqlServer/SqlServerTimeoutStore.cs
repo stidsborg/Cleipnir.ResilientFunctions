@@ -35,11 +35,10 @@ public class SqlServerTimeoutStore : ITimeoutStore
             await command.ExecuteNonQueryAsync();    
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
-    
-    public async Task TruncateTable()
+
+    public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        
         var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions_Timeouts";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();

@@ -107,7 +107,9 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _underlyingRegister.TruncateTable();
         await _messageStore.TruncateTable();
-        await _timeoutStore.TruncateTable();
+        await _timeoutStore.Truncate();
+        await _effectsStore.Truncate();
+        await _statesStore.Truncate();
         
         await using var conn = await _connFunc();
         var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions";

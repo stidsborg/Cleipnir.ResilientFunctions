@@ -12,6 +12,14 @@ public class InMemoryStatesStore : IStatesStore
     private readonly object _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
+    
+    public Task Truncate()
+    {
+        lock (_sync)
+            _states.Clear();
+
+        return Task.CompletedTask;
+    }
 
     public Task UpsertState(FunctionId functionId, StoredState storedState)
     {

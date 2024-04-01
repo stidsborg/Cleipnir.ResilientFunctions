@@ -32,10 +32,10 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task TruncateTable()
+    public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }

@@ -194,6 +194,7 @@ public abstract class TimeoutStoreTests
         }
 
         public Task Initialize() => _inner.Initialize();
+        public Task Truncate() => _inner.Truncate();
 
         public Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
         {

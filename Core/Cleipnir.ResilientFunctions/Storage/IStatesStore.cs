@@ -7,6 +7,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public interface IStatesStore
 {
     Task Initialize();
+    Task Truncate();
     Task UpsertState(FunctionId functionId, StoredState storedState);
     Task<IEnumerable<StoredState>> GetStates(FunctionId functionId);
     Task RemoveState(FunctionId functionId, StateId stateId);

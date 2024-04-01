@@ -20,13 +20,20 @@ public class PostgresStatesStore : IStatesStore
 
     public async Task Initialize()
     {
-        
         await using var conn = await CreateConnection();
         var sql = @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_states (
                 id VARCHAR(450) PRIMARY KEY,
                 state TEXT NOT NULL
             );";
+        var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task Truncate()
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunction_states";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }

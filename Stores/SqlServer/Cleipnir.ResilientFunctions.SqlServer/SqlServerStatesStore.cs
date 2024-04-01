@@ -35,6 +35,14 @@ public class SqlServerStatesStore : IStatesStore
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
+    public async Task Truncate()
+    {
+        await using var conn = await _connFunc();
+        var sql = $"TRUNCATE TABLE {_tablePrefix}States";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task UpsertState(FunctionId functionId, StoredState storedState)
     {
         var (functionTypeId, functionInstanceId) = functionId;

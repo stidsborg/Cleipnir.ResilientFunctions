@@ -30,7 +30,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task TruncateTable()
+    public async Task Truncate()
     {
         await using var conn = await CreateConnection();
         var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";

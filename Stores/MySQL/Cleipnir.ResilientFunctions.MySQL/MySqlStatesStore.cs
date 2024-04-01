@@ -28,6 +28,14 @@ public class MySqlStatesStore : IStatesStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task Truncate()
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunction_states";
+        var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task UpsertState(FunctionId functionId, StoredState storedState)
     {
         var (functionTypeId, functionInstanceId) = functionId;

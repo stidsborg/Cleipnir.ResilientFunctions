@@ -12,6 +12,13 @@ public class InMemoryTimeoutStore : ITimeoutStore
     private readonly object _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
+    public Task Truncate()
+    {
+        lock (_sync)
+            _timeouts.Clear();
+
+        return Task.CompletedTask;
+    }
 
     public Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
