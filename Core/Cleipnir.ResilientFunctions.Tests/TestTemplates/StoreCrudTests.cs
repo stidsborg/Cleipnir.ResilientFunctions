@@ -157,7 +157,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.DeleteFunction(FunctionId).ShouldBeTrueAsync();
+        await store.DeleteFunction(FunctionId);
 
         await store.GetFunction(FunctionId).ShouldBeNullAsync();
     }
@@ -166,7 +166,7 @@ public abstract class StoreCrudTests
     public async Task NonExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.DeleteFunction(FunctionId).ShouldBeFalseAsync();
+        await store.DeleteFunction(FunctionId);
     }
 
     public abstract Task ParameterAndStateCanBeUpdatedOnExistingFunction();

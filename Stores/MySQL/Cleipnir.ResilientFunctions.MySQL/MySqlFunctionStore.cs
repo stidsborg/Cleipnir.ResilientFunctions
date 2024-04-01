@@ -604,7 +604,7 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> DeleteFunction(FunctionId functionId)
+    public async Task DeleteFunction(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
@@ -632,7 +632,6 @@ public class MySqlFunctionStore : IFunctionStore
             }
         };
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        await command.ExecuteNonQueryAsync();
     }
 }

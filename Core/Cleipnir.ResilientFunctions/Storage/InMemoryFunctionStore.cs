@@ -341,14 +341,15 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
     
-    public virtual Task<bool> DeleteFunction(FunctionId functionId)
+    public virtual Task DeleteFunction(FunctionId functionId)
     {
         lock (_sync)
         {
             _states.Remove(functionId);
             _messages.Remove(functionId);
-            return true.ToTask();
         }
+
+        return Task.CompletedTask;
     }
 
     private class InnerState

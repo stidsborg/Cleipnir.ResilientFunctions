@@ -630,7 +630,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return null;
     }
     
-    public async Task<bool> DeleteFunction(FunctionId functionId)
+    public async Task DeleteFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -647,7 +647,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             }
         };
        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        await command.ExecuteNonQueryAsync();
     }
 }

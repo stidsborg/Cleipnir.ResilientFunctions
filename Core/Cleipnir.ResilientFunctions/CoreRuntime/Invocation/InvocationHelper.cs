@@ -312,13 +312,9 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task Delete(FunctionId functionId)
     {
-        var success = await _functionStore.DeleteFunction(functionId);
-        
-        if (!success)
-            throw new ConcurrentModificationException(functionId);
+        await _functionStore.DeleteFunction(functionId);
     }
-        
-
+    
     public async Task<FunctionState<TParam, TReturn>?> GetFunction(FunctionId functionId)
     {
         var serializer = _settings.Serializer;

@@ -605,7 +605,7 @@ public class SqlServerFunctionStore : IFunctionStore
         return default;
     }
 
-    public async Task<bool> DeleteFunction(FunctionId functionId)
+    public async Task DeleteFunction(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
@@ -617,7 +617,6 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        await command.ExecuteNonQueryAsync();
     }
 }

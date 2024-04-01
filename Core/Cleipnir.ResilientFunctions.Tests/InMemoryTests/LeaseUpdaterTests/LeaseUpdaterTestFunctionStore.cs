@@ -82,5 +82,5 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<StoredFunction?> GetFunction(FunctionId functionId)
         => _inner.GetFunction(functionId);
 
-    public Task<bool> DeleteFunction(FunctionId functionId) => _inner.DeleteFunction(functionId);
+    public Task DeleteFunction(FunctionId functionId) => _inner.DeleteFunction(functionId);
 }
