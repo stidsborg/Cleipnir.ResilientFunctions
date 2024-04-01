@@ -168,27 +168,6 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         await store.DeleteFunction(FunctionId).ShouldBeFalseAsync();
     }
-    
-    public abstract Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected();
-    public async Task ExistingFunctionIsNotDeletedWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        await store.CreateFunction(
-            FunctionId,
-            Param,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-        await store.RestartExecution(
-            FunctionId,
-            expectedEpoch: 0,
-            leaseExpiration: DateTime.UtcNow.Ticks
-        ).ShouldNotBeNullAsync();
-        await store.DeleteFunction(FunctionId, expectedEpoch: 0).ShouldBeFalseAsync();
-
-        await store.GetFunction(FunctionId).ShouldNotBeNullAsync();
-    }
 
     public abstract Task ParameterAndStateCanBeUpdatedOnExistingFunction();
     public async Task ParameterAndStateCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)

@@ -630,16 +630,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return null;
     }
     
-    public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+    public async Task<bool> DeleteFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {_tablePrefix}rfunctions
             WHERE function_type_id = $1
             AND function_instance_id = $2 ";
-        
-        if (expectedEpoch != null)
-            sql += "AND epoch = $3";
 
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -649,9 +646,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = functionId.InstanceId.Value},
             }
         };
-        if (expectedEpoch != null)
-            command.Parameters.Add(new() { Value = expectedEpoch.Value });
-
+       
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

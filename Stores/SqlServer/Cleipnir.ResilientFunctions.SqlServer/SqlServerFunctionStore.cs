@@ -605,22 +605,17 @@ public class SqlServerFunctionStore : IFunctionStore
         return default;
     }
 
-    public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+    public async Task<bool> DeleteFunction(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         var sql = @$"
             DELETE FROM {_tablePrefix}RFunctions
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId ";
-
-        if (expectedEpoch != null)
-            sql += "AND Epoch = @ExpectedEpoch ";
-
+        
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        if (expectedEpoch != null)
-            command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch.Value);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;

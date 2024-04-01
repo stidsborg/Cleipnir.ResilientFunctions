@@ -81,10 +81,6 @@ public class StoreTests : TestTemplates.StoreTests
         => DeletingExistingFunctionSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected()
-        => DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task FailFunctionSucceedsWhenEpochIsAsExpected()
         => FailFunctionSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 

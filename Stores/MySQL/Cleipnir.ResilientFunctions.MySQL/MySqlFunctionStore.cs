@@ -604,7 +604,7 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
-    public async Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+    public async Task<bool> DeleteFunction(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
@@ -619,9 +619,6 @@ public class MySqlFunctionStore : IFunctionStore
                 function_type_id = ? AND 
                 function_instance_id = ?";
         
-        if (expectedEpoch != null)
-            sql += " AND epoch = ? ";
-
         sql += "; COMMIT";
         
         await using var command = new MySqlCommand(sql, conn)
@@ -634,8 +631,6 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = functionId.InstanceId.Value}
             }
         };
-        if (expectedEpoch != null)
-            command.Parameters.Add(new() { Value = expectedEpoch.Value });
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;

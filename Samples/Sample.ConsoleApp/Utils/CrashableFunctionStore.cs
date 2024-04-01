@@ -124,8 +124,8 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<StoredFunction?>(new TimeoutException())
             : _inner.GetFunction(functionId);
 
-    public Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+    public Task<bool> DeleteFunction(FunctionId functionId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.DeleteFunction(functionId, expectedEpoch);
+            : _inner.DeleteFunction(functionId);
 }

@@ -129,7 +129,7 @@ public class ControlPanel<TParam> where TParam : notnull
         _changed = false;
     }
 
-    public Task Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+    public Task Delete() => _invocationHelper.Delete(FunctionId);
 
     public async Task ReInvoke()
     {
@@ -305,7 +305,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
         _changed = false;
     }
     
-    public Task Delete() => _invocationHelper.Delete(FunctionId, Epoch);
+    public Task Delete() => _invocationHelper.Delete(FunctionId);
 
     public async Task<TReturn> ReInvoke()
     {

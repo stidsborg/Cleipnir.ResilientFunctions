@@ -505,34 +505,10 @@ public abstract class StoreTests
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         
-        await store.DeleteFunction(functionId, expectedEpoch: 0);
+        await store.DeleteFunction(functionId);
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldBeNull();
-    }
-    
-    public abstract Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected();
-    public async Task DeletingExistingFunctionFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-
-        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
-        await store.CreateFunction(
-            functionId,
-            storedParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
-        
-        await store.DeleteFunction(functionId, expectedEpoch: 1).ShouldBeFalseAsync();
-        
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.Epoch.ShouldBe(0);
     }
 
     public abstract Task FailFunctionSucceedsWhenEpochIsAsExpected();

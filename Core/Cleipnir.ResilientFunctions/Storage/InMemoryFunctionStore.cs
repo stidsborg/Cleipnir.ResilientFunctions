@@ -341,29 +341,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
     
-    public virtual Task<bool> DeleteFunction(FunctionId functionId, int? expectedEpoch = null)
+    public virtual Task<bool> DeleteFunction(FunctionId functionId)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(functionId))
-                return false.ToTask();
-            
-            if (expectedEpoch == null)
-            {
-                _states.Remove(functionId);
-                _messages.Remove(functionId);
-                return true.ToTask();
-            }
-            
-            var state = _states[functionId];
-            if (state.Epoch == expectedEpoch.Value)
-            {
-                _states.Remove(functionId);
-                _messages.Remove(functionId);
-                return true.ToTask();
-            }
-            
-            return false.ToTask();
+            _states.Remove(functionId);
+            _messages.Remove(functionId);
+            return true.ToTask();
         }
     }
 
