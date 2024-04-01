@@ -605,28 +605,26 @@ public class MySqlFunctionStore : IFunctionStore
 
     public async Task DeleteFunction(FunctionId functionId)
     {
-        await _messageStore.Truncate(functionId);
         await using var conn = await CreateOpenConnection(_connectionString);
         
         var sql = $@"            
             DELETE FROM {_tablePrefix}rfunctions
-            WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ?";
-        
-        sql += "; COMMIT";
+            WHERE function_type_id = ? AND function_instance_id = ?";
         
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value}
             }
         };
 
         await command.ExecuteNonQueryAsync();
+        
+        await _messageStore.Truncate(functionId);
+        await _effectsStore.Remove(functionId);
+        await _statesStore.Remove(functionId);
+        await _timeoutStore.Remove(functionId);
     }
 }

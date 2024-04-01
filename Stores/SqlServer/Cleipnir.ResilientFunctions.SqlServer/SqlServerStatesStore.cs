@@ -98,7 +98,18 @@ public class SqlServerStatesStore : IStatesStore
         
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await _connFunc();
+        var sql = $"DELETE FROM {_tablePrefix}States WHERE Id LIKE @Id";
+
+        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Id", idPrefix);
+        
+        await command.ExecuteNonQueryAsync();    }
+
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
     {
         return async () =>

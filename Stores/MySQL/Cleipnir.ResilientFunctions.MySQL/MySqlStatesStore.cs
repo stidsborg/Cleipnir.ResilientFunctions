@@ -93,7 +93,20 @@ public class MySqlStatesStore : IStatesStore
 
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_states WHERE id LIKE ?";
+        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters = { new() { Value = id } }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private async Task<MySqlConnection> CreateConnection()
     {
         var conn = new MySqlConnection(_connectionString);

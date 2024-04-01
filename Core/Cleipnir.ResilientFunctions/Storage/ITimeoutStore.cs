@@ -9,6 +9,7 @@ public interface ITimeoutStore
     Task Initialize();
     Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite);
     Task RemoveTimeout(FunctionId functionId, string timeoutId);
+    Task Remove(FunctionId functionId);
     Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore);
     Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId);
 }

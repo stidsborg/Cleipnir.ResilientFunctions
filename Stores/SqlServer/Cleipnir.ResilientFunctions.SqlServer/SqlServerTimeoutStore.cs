@@ -101,6 +101,20 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+
+        var sql = @$"    
+            DELETE FROM {_tablePrefix}RFunctions_Timeouts
+            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+        
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
     {
         await using var conn = await CreateConnection();

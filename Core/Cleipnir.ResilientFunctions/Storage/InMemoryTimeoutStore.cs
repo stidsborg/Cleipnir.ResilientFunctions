@@ -33,6 +33,16 @@ public class InMemoryTimeoutStore : ITimeoutStore
         return Task.CompletedTask;
     }
 
+    public Task Remove(FunctionId functionId)
+    {
+        lock (_sync)
+            foreach (var key in _timeouts.Keys.ToList())
+                if (functionId.TypeId == key.FunctionTypeId && functionId.InstanceId == key.FunctionInstanceId)
+                    _timeouts.Remove(key);
+
+        return Task.CompletedTask;
+    }
+
     public Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
     {
         lock (_sync)

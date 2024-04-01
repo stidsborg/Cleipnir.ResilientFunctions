@@ -104,6 +104,25 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {_tablePrefix}rfunctions_timeouts 
+            WHERE function_type_id = $1 AND function_instance_id = $2";
+        
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value},
+            }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
     {
         await using var conn = await CreateConnection();

@@ -204,6 +204,9 @@ public abstract class TimeoutStoreTests
         public Task RemoveTimeout(FunctionId functionId, string timeoutId)
             => _inner.RemoveTimeout(functionId, timeoutId);
 
+        public Task Remove(FunctionId functionId)
+            => _inner.Remove(functionId); 
+
         public Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
             => _inner.GetTimeouts(functionTypeId, expiresBefore);
 

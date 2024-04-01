@@ -44,6 +44,14 @@ public class InMemoryStatesStore : IStatesStore
         return Task.CompletedTask;
     }
 
+    public Task Remove(FunctionId functionId)
+    {
+        lock (_sync)
+            _states.Remove(functionId);
+
+        return Task.CompletedTask;
+    }
+
     private void AddDictionaryIfNotExists(FunctionId functionId)
     {
         lock (_sync)

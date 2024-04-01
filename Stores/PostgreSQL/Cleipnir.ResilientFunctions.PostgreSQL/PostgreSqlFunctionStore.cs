@@ -648,5 +648,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
        
         await command.ExecuteNonQueryAsync();
+        
+        await _messageStore.Truncate(functionId);
+        await _effectsStore.Remove(functionId);
+        await _statesStore.Remove(functionId);
+        await _timeoutStore.Remove(functionId);
     }
 }

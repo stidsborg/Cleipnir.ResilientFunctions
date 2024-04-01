@@ -10,4 +10,5 @@ public interface IStatesStore
     Task UpsertState(FunctionId functionId, StoredState storedState);
     Task<IEnumerable<StoredState>> GetStates(FunctionId functionId);
     Task RemoveState(FunctionId functionId, StateId stateId);
+    Task Remove(FunctionId functionId);
 }

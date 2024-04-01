@@ -27,7 +27,16 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
-            (string _) => { }
+            async (string _, Workflow workflow) =>
+            {
+                var (effect, messages, states) = workflow;
+                await effect.CreateOrGet("Effect", 123);
+                await messages.AppendMessage("Message");
+                var state = states.CreateOrGet<State>();
+                state.Value = "State";
+                await workflow.Messages.TimeoutProvider.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
+                await state.Save();
+            }
         );
         
         await rAction.Invoke(functionInstanceId.Value, "");
@@ -38,6 +47,30 @@ public abstract class ControlPanelTests
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
 
         await store.GetFunction(functionId).ShouldBeNullAsync();
+
+        await store
+            .MessageStore
+            .GetMessages(functionId, skip: 0)
+            .SelectAsync(messages => messages.Count)
+            .ShouldBeAsync(0);
+
+        await store
+            .EffectsStore
+            .GetEffectResults(functionId)
+            .SelectAsync(effects => effects.Count())
+            .ShouldBeAsync(0);
+
+        await store
+            .StatesStore
+            .GetStates(functionId)
+            .SelectAsync(states => states.Count())
+            .ShouldBeAsync(0);
+
+        await store
+            .TimeoutStore
+            .GetTimeouts(functionId)
+            .SelectAsync(timeouts => timeouts.Count())
+            .ShouldBeAsync(0);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -54,8 +87,17 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
-            string(string _) => "hello"
-        );
+            async Task<string>(string _, Workflow workflow) =>
+            {
+                var (effect, messages, states) = workflow;
+                await effect.CreateOrGet("Effect", 123);
+                await messages.AppendMessage("Message");
+                var state = states.CreateOrGet<State>();
+                state.Value = "State";
+                await state.Save();
+                await workflow.Messages.TimeoutProvider.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
+                return "hello";
+            });
         
         await rFunc.Invoke(functionInstanceId.Value, "");
 
@@ -65,6 +107,30 @@ public abstract class ControlPanelTests
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
 
         await store.GetFunction(functionId).ShouldBeNullAsync();
+        
+        await store
+            .MessageStore
+            .GetMessages(functionId, skip: 0)
+            .SelectAsync(messages => messages.Count)
+            .ShouldBeAsync(0);
+
+        await store
+            .EffectsStore
+            .GetEffectResults(functionId)
+            .SelectAsync(effects => effects.Count())
+            .ShouldBeAsync(0);
+
+        await store
+            .StatesStore
+            .GetStates(functionId)
+            .SelectAsync(states => states.Count())
+            .ShouldBeAsync(0);
+        
+        await store
+            .TimeoutStore
+            .GetTimeouts(functionId)
+            .SelectAsync(timeouts => timeouts.Count())
+            .ShouldBeAsync(0);
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

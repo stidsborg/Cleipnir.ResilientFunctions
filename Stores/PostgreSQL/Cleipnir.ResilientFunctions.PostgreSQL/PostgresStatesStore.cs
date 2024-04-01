@@ -99,7 +99,21 @@ public class PostgresStatesStore : IStatesStore
 
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    public async Task Remove(FunctionId functionId)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $"DELETE FROM {_tablePrefix}rfunction_states WHERE id LIKE $1";
+        
+        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters = { new() {Value = idPrefix } }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private async Task<NpgsqlConnection> CreateConnection()
     {
         var conn = new NpgsqlConnection(_connectionString);

@@ -618,5 +618,10 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         
         await command.ExecuteNonQueryAsync();
+        
+        await _messageStore.Truncate(functionId);
+        await _effectsStore.Remove(functionId);
+        await _statesStore.Remove(functionId);
+        await _timeoutStore.Remove(functionId);
     }
 }

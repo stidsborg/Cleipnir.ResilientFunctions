@@ -350,6 +350,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         {
             _states.Remove(functionId);
             _messages.Remove(functionId);
+            _effectsStore.Remove(functionId);
+            _statesStore.Remove(functionId);
+            _timeoutStore.Remove(functionId);
         }
 
         return Task.CompletedTask;
@@ -360,7 +363,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public FunctionId FunctionId { get; init; } = null!;
         public StoredParameter Param { get; set; } = null!;
         public Status Status { get; set; }
-        public StoredResult Result { get; set; } = new StoredResult(ResultJson: null, ResultType: null);
+        public StoredResult Result { get; set; } = new(ResultJson: null, ResultType: null);
         public StoredException? Exception { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
@@ -420,7 +423,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         => ((IReadOnlyList<StoredMessage>)GetMessages(functionId).Skip(skip).ToList()).ToTask();
 
     public Task<bool> HasMoreMessages(FunctionId functionId, int skip)
-        => GetMessages(functionId, skip).SelectAsync(msgs => msgs.Any());
+        => GetMessages(functionId, skip).SelectAsync(messages => messages.Any());
 
     #endregion
 }
