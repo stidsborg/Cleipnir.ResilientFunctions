@@ -19,9 +19,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private readonly object _sync = new();
 
     public IMessageStore MessageStore => this;
-    public IEffectsStore EffectsStore { get; } = new InMemoryEffectsStore();
-    public IStatesStore StatesStore { get; } = new InMemoryStatesStore();
-    public ITimeoutStore TimeoutStore { get; } = new InMemoryTimeoutStore();
+    private readonly InMemoryEffectsStore _effectsStore = new();
+    public IEffectsStore EffectsStore => _effectsStore;
+    private readonly InMemoryStatesStore _statesStore = new();
+    public IStatesStore StatesStore => _statesStore;
+    private readonly InMemoryTimeoutStore _timeoutStore = new();
+    public ITimeoutStore TimeoutStore => _timeoutStore;
     public Utilities Utilities { get; }
     
     public Task Initialize() => Task.CompletedTask;
