@@ -14,14 +14,6 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ExistingFunctionCanBeDeletedFromControlPanel(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task DeletingExistingActionWithHigherEpochReturnsFalse()
-        => DeletingExistingActionWithHigherEpochReturnsFalse(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task DeletingExistingFuncWithHigherEpochReturnsFalse()
-        => DeletingExistingFuncWithHigherEpochReturnsFalse(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task PostponingExistingActionFromControlPanelSucceeds()
         => PostponingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 

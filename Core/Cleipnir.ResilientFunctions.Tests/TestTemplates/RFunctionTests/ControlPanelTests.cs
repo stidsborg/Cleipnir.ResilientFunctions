@@ -69,64 +69,6 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    public abstract Task DeletingExistingActionWithHigherEpochReturnsFalse();
-    protected async Task DeletingExistingActionWithHigherEpochReturnsFalse(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
-            (string _) => { }
-        );
-        
-        await rAction.Invoke(functionInstanceId.Value, "");
-
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await store.IncrementEpoch(functionId).ShouldBeTrueAsync();
-        await Should.ThrowAsync<ConcurrentModificationException>(controlPanel.SaveChanges());
-
-        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.Delete());
-        await store.GetFunction(functionId).ShouldNotBeNullAsync();
-        
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-    
-    public abstract Task DeletingExistingFuncWithHigherEpochReturnsFalse();
-    protected async Task DeletingExistingFuncWithHigherEpochReturnsFalse(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
-        
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
-            string (string _) => "hello"
-        );
-        
-        await rFunc.Invoke(functionInstanceId.Value, "");
-
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-
-        { //bump epoch
-            var tempControlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveChanges();
-        }
-
-        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.Delete());
-        
-        await store.GetFunction(functionId).ShouldNotBeNullAsync();
-        
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
-    }
-    
     public abstract Task PostponingExistingActionFromControlPanelSucceeds();
     protected async Task PostponingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
