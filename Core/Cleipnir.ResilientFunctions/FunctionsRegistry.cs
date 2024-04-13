@@ -255,7 +255,8 @@ public class FunctionsRegistry : IDisposable
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleAt,
                 controlPanels,
-                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke)
+                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke),
+                new StateFetcher(_functionStore.StatesStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
             
@@ -307,7 +308,8 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,
                 controlPanels,
-                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke)
+                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke),
+                new StateFetcher(_functionStore.StatesStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
             

@@ -24,7 +24,8 @@ public class ActionRegistration<TParam> where TParam : notnull
     
     public ActionRegistration.Invoke<TParam> Invoke { get; }
     public ActionRegistration.Schedule<TParam> Schedule { get; }
-    public ActionRegistration.ScheduleAt<TParam> ScheduleAt { get; }    
+    public ActionRegistration.ScheduleAt<TParam> ScheduleAt { get; }   
+    private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
     
     public ActionRegistration(
@@ -33,7 +34,8 @@ public class ActionRegistration<TParam> where TParam : notnull
         ActionRegistration.Schedule<TParam> schedule,
         ActionRegistration.ScheduleAt<TParam> scheduleAt,
         ControlPanels<TParam> controlPanels, 
-        MessageWriters messageWriters)
+        MessageWriters messageWriters, 
+        StateFetcher stateFetcher)
     {
         TypeId = functionTypeId;
         
@@ -42,10 +44,14 @@ public class ActionRegistration<TParam> where TParam : notnull
         ScheduleAt = scheduleAt;
         _controlPanels = controlPanels;
         MessageWriters = messageWriters;
+        _stateFetcher = stateFetcher;
     }
 
     public Task<ControlPanel<TParam>?> ControlPanel(FunctionInstanceId functionInstanceId)
         => _controlPanels.For(functionInstanceId);
+    
+    public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null) 
+        where TState : WorkflowState, new() => _stateFetcher.FetchState<TState>(new FunctionId(TypeId, instanceId), stateId);
     
     public Task ScheduleIn(string functionInstanceId, TParam param, TimeSpan delay) 
         => ScheduleAt(functionInstanceId, param, delayUntil: DateTime.UtcNow.Add(delay));
