@@ -153,6 +153,7 @@ public class RFunctionsShutdownTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             new ComplimentaryState(() => storedParameter, LeaseLength: 0)

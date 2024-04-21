@@ -653,6 +653,7 @@ public abstract class PostponedTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)

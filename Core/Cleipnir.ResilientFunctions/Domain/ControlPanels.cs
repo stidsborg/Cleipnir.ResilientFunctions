@@ -34,7 +34,7 @@ public class ControlPanels<TParam> where TParam : notnull
             functionState.Param,
             functionState.PostponedUntil,
             await _invocationHelper.GetExistingEffects(functionId),
-            await _invocationHelper.GetExistingStates(functionId),
+            await _invocationHelper.GetExistingStates(functionId, functionState.DefaultState),
             await _invocationHelper.GetExistingMessages(functionId),
             await _invocationHelper.GetExistingTimeouts(functionId),
             functionState.PreviouslyThrownException
@@ -76,7 +76,7 @@ public class ControlPanels<TParam, TReturn> where TParam : notnull
             f.Result,
             f.PostponedUntil,
             await _invocationHelper.GetExistingEffects(functionId),
-            await _invocationHelper.GetExistingStates(functionId),
+            await _invocationHelper.GetExistingStates(functionId, f.DefaultState),
             await _invocationHelper.GetExistingMessages(functionId),
             await _invocationHelper.GetExistingTimeouts(functionId),
             f.PreviouslyThrownException

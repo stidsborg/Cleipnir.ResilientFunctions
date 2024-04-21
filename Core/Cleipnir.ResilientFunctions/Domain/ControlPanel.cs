@@ -161,7 +161,7 @@ public class ControlPanel<TParam> where TParam : notnull
         _changed = false;
         Messages = await _invocationHelper.GetExistingMessages(FunctionId);
         Effects = await _invocationHelper.GetExistingEffects(FunctionId);
-        States = await _invocationHelper.GetExistingStates(FunctionId);
+        States = await _invocationHelper.GetExistingStates(FunctionId, sf.DefaultState);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId);
     }
 
@@ -336,7 +336,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         Effects = await _invocationHelper.GetExistingEffects(FunctionId);
-        States = await _invocationHelper.GetExistingStates(FunctionId);
+        States = await _invocationHelper.GetExistingStates(FunctionId, sf.DefaultState);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId); 
 
         _changed = false;

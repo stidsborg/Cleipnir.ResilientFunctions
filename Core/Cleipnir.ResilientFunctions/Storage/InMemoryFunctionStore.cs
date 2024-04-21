@@ -169,6 +169,106 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task<bool> SucceedFunction(
+        FunctionId functionId, 
+        StoredResult result, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+
+            state.Status = Status.Succeeded;
+            state.Result = result;
+            state.Timestamp = timestamp;
+            state.DefaultState = defaultState;
+
+            return true.ToTask();
+        }
+    }
+
+    public Task<bool> PostponeFunction(
+        FunctionId functionId, 
+        long postponeUntil, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+
+            state.Status = Status.Postponed;
+            state.PostponeUntil = postponeUntil;
+            state.Timestamp = timestamp;
+            state.DefaultState = defaultState;
+            
+            return true.ToTask();
+        }
+    }
+
+    public Task<bool> FailFunction(
+        FunctionId functionId, 
+        StoredException storedException, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId)) return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch) return false.ToTask();
+
+            state.Status = Status.Failed;
+            state.Exception = storedException;
+            state.Timestamp = timestamp;
+            state.DefaultState = defaultState;
+            
+            return true.ToTask();
+        }
+    }
+
+    public Task<bool> SuspendFunction(
+        FunctionId functionId, 
+        long expectedInterruptCount, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(functionId))
+                return false.ToTask();
+
+            var state = _states[functionId];
+            if (state.Epoch != expectedEpoch)
+                return false.ToTask();
+
+            if (state.InterruptCount != expectedInterruptCount)
+                return false.ToTask();
+                
+            state.Status = Status.Suspended;
+            state.Timestamp = timestamp;
+            state.DefaultState = defaultState;
+            
+            return true.ToTask();
+        }
+    }
+
     public virtual Task<bool> SetParameters(
         FunctionId functionId, 
         StoredParameter storedParameter, 
@@ -190,74 +290,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public virtual Task<bool> SucceedFunction(
-        FunctionId functionId, 
-        StoredResult result, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState)
+    public Task SetDefaultState(FunctionId functionId, string stateJson)
     {
         lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId)) return false.ToTask();
+            if (_states.TryGetValue(functionId, out var state))
+                state.DefaultState = stateJson;
 
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
-
-            state.Status = Status.Succeeded;
-            state.Result = result;
-            state.Timestamp = timestamp;
-
-            return true.ToTask();
-        }
-    }
-
-    public virtual Task<bool> PostponeFunction(
-        FunctionId functionId, 
-        long postponeUntil, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId)) return false.ToTask();
-
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
-
-            state.Status = Status.Postponed;
-            state.PostponeUntil = postponeUntil;
-            state.Timestamp = timestamp;
-            
-            return true.ToTask();
-        }
-    }
-    
-    public virtual Task<bool> SuspendFunction(
-        FunctionId functionId, 
-        long expectedInterruptCount, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId))
-                return false.ToTask();
-
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch)
-                return false.ToTask();
-
-            if (state.InterruptCount != expectedInterruptCount)
-                return false.ToTask();
-                
-            state.Status = Status.Suspended;
-            state.Timestamp = timestamp;
-            
-            return true.ToTask();
-        }
+        return Task.CompletedTask;
     }
 
     public Task<bool> IncrementInterruptCount(FunctionId functionId)
@@ -295,29 +334,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return ((StatusAndEpoch?) new StatusAndEpoch(state.Status, state.Epoch)).ToTask();
         }
     }
-
-    public virtual Task<bool> FailFunction(
-        FunctionId functionId, 
-        StoredException storedException, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(functionId)) return false.ToTask();
-
-            var state = _states[functionId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
-
-            state.Status = Status.Failed;
-            state.Exception = storedException;
-            state.Timestamp = timestamp;
-            
-            return true.ToTask();
-        }
-    }
-
+    
     public virtual Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         lock (_sync)
@@ -330,6 +347,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return new StoredFunction(
                     functionId,
                     state.Param,
+                    state.DefaultState,
                     state.Status,
                     state.Result,
                     state.Exception,
@@ -362,6 +380,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         public FunctionId FunctionId { get; init; } = null!;
         public StoredParameter Param { get; set; } = null!;
+        public string? DefaultState { get; set; }
         public Status Status { get; set; }
         public StoredResult Result { get; set; } = new(ResultJson: null, ResultType: null);
         public StoredException? Exception { get; set; }

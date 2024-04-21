@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -67,6 +66,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 Status INT NOT NULL,
                 ResultJson NVARCHAR(MAX) NULL,
                 ResultType NVARCHAR(255) NULL,
+                DefaultStateJson NVARCHAR(MAX) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,
                 PostponedUntil BIGINT NULL,            
                 Epoch INT NOT NULL,
@@ -180,6 +180,7 @@ public class SqlServerFunctionStore : IFunctionStore
             SELECT ParamJson, ParamType,                
                    Status,
                    ResultJson, ResultType,
+                   DefaultStateJson,
                    ExceptionJson,
                    PostponedUntil,
                    Epoch, 
@@ -325,28 +326,140 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> SaveStateForExecutingFunction( 
-        FunctionId functionId,
-        string stateJson,
-        int expectedEpoch,
-        ComplimentaryState _)
+    public async Task<bool> SucceedFunction(
+        FunctionId functionId, 
+        StoredResult result, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
+        
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET stateJson = @StateJson
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
-        
+
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@StateJson", stateJson);
+        command.Parameters.AddWithValue("@ResultJson", result.ResultJson ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@ResultType", result.ResultType ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
+    }
+
+    public async Task<bool> PostponeFunction(
+        FunctionId functionId, 
+        long postponeUntil, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        await using var conn = await _connFunc();
+        
+        var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, DefaultStateJson = @DefaultState, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@PostponedUntil", postponeUntil);
+        command.Parameters.AddWithValue("@DefaultState", defaultState ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
+    }
+
+    public async Task<bool> FailFunction(
+        FunctionId functionId, 
+        StoredException storedException, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        
+        await using var conn = await _connFunc();
+        
+        var sql = @$"
+            UPDATE {_tablePrefix}RFunctions
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, DefaultStateJson = @DefaultStateJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
+            WHERE FunctionTypeId = @FunctionTypeId
+            AND FunctionInstanceId = @FunctionInstanceId
+            AND Epoch = @ExpectedEpoch";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
+        command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
+    }
+
+    public async Task<bool> SuspendFunction(
+        FunctionId functionId, 
+        long expectedInterruptCount, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        await using var conn = await _connFunc();
+
+        var sql = @$"
+                UPDATE {_tablePrefix}RFunctions
+                SET Status = {(int)Status.Suspended}, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp
+                WHERE FunctionTypeId = @FunctionTypeId AND 
+                      FunctionInstanceId = @FunctionInstanceId AND                       
+                      Epoch = @ExpectedEpoch AND
+                      InterruptCount = @ExpectedInterruptCount;";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Timestamp", timestamp);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        command.Parameters.AddWithValue("@ExpectedInterruptCount", expectedInterruptCount);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
+    public async Task SetDefaultState(FunctionId functionId, string? stateJson)
+    {
+        await using var conn = await _connFunc();
+
+        var sql = @$"
+                UPDATE {_tablePrefix}RFunctions
+                SET DefaultStateJson = @DefaultStateJson
+                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@DefaultStateJson", stateJson ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<bool> SetParameters(
@@ -374,89 +487,6 @@ public class SqlServerFunctionStore : IFunctionStore
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
-    }
-
-    public async Task<bool> SucceedFunction(
-        FunctionId functionId, 
-        StoredResult result, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState _)
-    {
-        await using var conn = await _connFunc();
-        
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE FunctionTypeId = @FunctionTypeId
-            AND FunctionInstanceId = @FunctionInstanceId
-            AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ResultJson", result.ResultJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ResultType", result.ResultType ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-
-    public async Task<bool> PostponeFunction(
-        FunctionId functionId, 
-        long postponeUntil, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState _)
-    {
-        await using var conn = await _connFunc();
-        
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE FunctionTypeId = @FunctionTypeId
-            AND FunctionInstanceId = @FunctionInstanceId
-            AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@PostponedUntil", postponeUntil);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-
-    public async Task<bool> SuspendFunction(
-        FunctionId functionId,
-        long expectedInterruptCount,
-        long timestamp,
-        int expectedEpoch,
-        ComplimentaryState _)
-    {
-        await using var conn = await _connFunc();
-
-        var sql = @$"
-                UPDATE {_tablePrefix}RFunctions
-                SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp
-                WHERE FunctionTypeId = @FunctionTypeId AND 
-                      FunctionInstanceId = @FunctionInstanceId AND 
-                      Epoch = @ExpectedEpoch AND
-                      InterruptCount = @ExpectedInterruptCount;";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-        command.Parameters.AddWithValue("@ExpectedInterruptCount", expectedInterruptCount);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
     }
 
     public async Task<bool> IncrementInterruptCount(FunctionId functionId)
@@ -515,33 +545,6 @@ public class SqlServerFunctionStore : IFunctionStore
 
         return null;
     }
-
-    public async Task<bool> FailFunction(
-        FunctionId functionId, 
-        StoredException storedException, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState _)
-    {
-        await using var conn = await _connFunc();
-        
-        var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
-            WHERE FunctionTypeId = @FunctionTypeId
-            AND FunctionInstanceId = @FunctionInstanceId
-            AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
     
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
@@ -550,6 +553,7 @@ public class SqlServerFunctionStore : IFunctionStore
             SELECT  ParamJson, ParamType,
                     Status,
                     ResultJson, ResultType,
+                    DefaultStateJson,
                     ExceptionJson,
                     PostponedUntil,
                     Epoch, 
@@ -579,19 +583,21 @@ public class SqlServerFunctionStore : IFunctionStore
                 var status = (Status) reader.GetInt32(2);
                 var resultJson = reader.IsDBNull(3) ? null : reader.GetString(3);
                 var resultType = reader.IsDBNull(4) ? null : reader.GetString(4);
-                var exceptionJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+                var defaultStateJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+                var exceptionJson = reader.IsDBNull(6) ? null : reader.GetString(6);
                 var storedException = exceptionJson == null
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
-                var postponedUntil = reader.IsDBNull(6) ? default(long?) : reader.GetInt64(6);
-                var epoch = reader.GetInt32(7);
-                var leaseExpiration = reader.GetInt64(8);
-                var interruptCount = reader.GetInt64(9);
-                var timestamp = reader.GetInt64(10);
+                var postponedUntil = reader.IsDBNull(7) ? default(long?) : reader.GetInt64(7);
+                var epoch = reader.GetInt32(8);
+                var leaseExpiration = reader.GetInt64(9);
+                var interruptCount = reader.GetInt64(10);
+                var timestamp = reader.GetInt64(11);
 
                 return new StoredFunction(
                     functionId,
                     new StoredParameter(paramJson, paramType),
+                    defaultStateJson,
                     status,
                     new StoredResult(resultJson, resultType),
                     storedException,

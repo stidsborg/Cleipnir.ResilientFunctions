@@ -50,14 +50,16 @@ public interface IFunctionStore
     Task<bool> SucceedFunction(
         FunctionId functionId, 
         StoredResult result, 
+        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     );
     
     Task<bool> PostponeFunction(
-        FunctionId functionId, 
+        FunctionId functionId,
         long postponeUntil, 
+        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -65,7 +67,8 @@ public interface IFunctionStore
     
     Task<bool> FailFunction(
         FunctionId functionId, 
-        StoredException storedException, 
+        StoredException storedException,
+        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -73,11 +76,14 @@ public interface IFunctionStore
     
     Task<bool> SuspendFunction(
         FunctionId functionId, 
-        long expectedInterruptCount, 
+        long expectedInterruptCount,
+        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     );
+
+    Task SetDefaultState(FunctionId functionId, string? stateJson);
 
     Task<bool> IncrementInterruptCount(FunctionId functionId);
     Task<long?> GetInterruptCount(FunctionId functionId); 

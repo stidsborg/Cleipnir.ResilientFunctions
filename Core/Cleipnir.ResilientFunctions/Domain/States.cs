@@ -11,24 +11,61 @@ public class States
 {
     private readonly FunctionId _functionId;
     private readonly IStatesStore _statesStore;
+    private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly Dictionary<StateId, StoredState> _existingStoredStates;
     private readonly Dictionary<StateId, WorkflowState> _existingStates;
 
+    private string? _defaultStateJson;
+    private WorkflowState? _defaultState;
+    private Func<string>? _defaultStateSerializer = null;
+    
     private readonly object _sync = new();
 
-    public States(FunctionId functionId, IEnumerable<StoredState> existingStates, IStatesStore statesStore, ISerializer serializer)
+    public States(
+        FunctionId functionId, 
+        string? defaultStateJson,
+        IEnumerable<StoredState> existingStates, 
+        IFunctionStore functionStore, 
+        IStatesStore statesStore, 
+        ISerializer serializer)
     {
         _functionId = functionId;
         _statesStore = statesStore;
+        _functionStore = functionStore;
         _serializer = serializer;
+        _defaultStateJson = defaultStateJson;
 
         _existingStoredStates = existingStates.ToDictionary(s => s.StateId, s => s);
         _existingStates = new();
     }
 
     public T CreateOrGet<T>() where T : WorkflowState, new()
-        => InnerGetOrCreate<T>(id: "");
+    {
+        lock (_sync)
+            if (_defaultState != null)
+                return (T) _defaultState;
+            else if (_defaultStateJson != null)
+                return (T)(_defaultState = _serializer.DeserializeState<T>(_defaultStateJson));
+            else
+            {
+                var newState = new T();
+                newState.Initialize(
+                    onSave: () => _functionStore.SetDefaultState(_functionId, _serializer.SerializeState(newState))
+                );
+                _defaultStateSerializer = () => _serializer.SerializeState(newState);
+                _defaultState = newState;
+                return newState;
+            }
+    }
+
+    internal string? SerializeDefaultState()
+    {
+        lock (_sync) 
+            return _defaultStateSerializer == null 
+                ? _defaultStateJson 
+                : _defaultStateSerializer();
+    }
 
     public T CreateOrGet<T>(string id) where T : WorkflowState, new()
     {
@@ -63,14 +100,7 @@ public class States
     {
         if (string.IsNullOrEmpty(id))
             throw new ArgumentException("Id must not be empty string or null", nameof(id));
-
-        await InnerRemove(id);
-    }
-    
-    public Task RemoveDefault() => InnerRemove(id: "");
-    
-    private async Task InnerRemove(string id)
-    {
+        
         lock (_sync)
         {
             var success = _existingStates.Remove(id);

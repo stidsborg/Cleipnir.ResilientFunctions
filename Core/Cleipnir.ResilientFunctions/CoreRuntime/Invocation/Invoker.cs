@@ -49,10 +49,10 @@ public class Invoker<TParam, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, workflow);
         }
-        catch (Exception exception) { await PersistFailure(functionId, exception, param); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, param, workflow); throw; }
         finally{ disposables.Dispose(); }
 
-        await PersistResultAndEnsureSuccess(functionId, result, param);
+        await PersistResultAndEnsureSuccess(functionId, result, param, workflow);
         return result.SucceedWithValue!;
     }
 
@@ -72,10 +72,10 @@ public class Invoker<TParam, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param, workflow);
                 }
-                catch (Exception exception) { await PersistFailure(functionId, exception, param); throw; }
+                catch (Exception exception) { await PersistFailure(functionId, exception, param, workflow); throw; }
                 finally{ disposables.Dispose(); }
 
-                await PersistResultAndEnsureSuccess(functionId, result, param, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(functionId, result, param, workflow, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
         });
@@ -110,10 +110,10 @@ public class Invoker<TParam, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, workflow);
         }
-        catch (Exception exception) { await PersistFailure(functionId, exception, param, epoch); throw; }
+        catch (Exception exception) { await PersistFailure(functionId, exception, param, workflow, epoch); throw; }
         finally{ disposables.Dispose(); }
         
-        await PersistResultAndEnsureSuccess(functionId, result, param, epoch);
+        await PersistResultAndEnsureSuccess(functionId, result, param, workflow, epoch);
         return result.SucceedWithValue!;
     }
 
@@ -132,10 +132,10 @@ public class Invoker<TParam, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }
-                catch (Exception exception) { await PersistFailure(functionId, exception, param, epoch); throw; }
+                catch (Exception exception) { await PersistFailure(functionId, exception, param, workflow, epoch); throw; }
                 finally{ disposables.Dispose(); }
                 
-                await PersistResultAndEnsureSuccess(functionId, result, param, epoch, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(functionId, result, param, workflow, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
         });
@@ -169,7 +169,7 @@ public class Invoker<TParam, TReturn>
             );
             
             var effect = await _invocationHelper.CreateEffect(functionId, sync: false);
-            var states = await _invocationHelper.CreateStates(functionId, sync: false);
+            var states = await _invocationHelper.CreateStates(functionId, defaultState: null, sync: false);
             var workflow = new Workflow(functionId, messages, effect, states, _utilities, _messageWriterFunc);
 
             return new PreparedInvocation(
@@ -195,7 +195,7 @@ public class Invoker<TParam, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var (param, epoch, interruptCount, runningFunction) = 
+            var (param, epoch, defaultState, runningFunction) = 
                 await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
@@ -208,7 +208,7 @@ public class Invoker<TParam, TReturn>
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: true));
             var effectsTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
-            var statesTask = Task.Run(() => _invocationHelper.CreateStates(functionId, sync: true));
+            var statesTask = Task.Run(() => _invocationHelper.CreateStates(functionId, defaultState, sync: true));
             var workflow = new Workflow(functionId, await messagesTask, await effectsTask, await statesTask, _utilities, _messageWriterFunc);
 
             return new PreparedReInvocation(
@@ -227,19 +227,19 @@ public class Invoker<TParam, TReturn>
     }
     private record PreparedReInvocation(Func<TParam, Workflow, Task<Result<TReturn>>> Inner, TParam Param, Workflow Workflow, int Epoch, IDisposable Disposables);
 
-    private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, int expectedEpoch = 0)
-        => await _invocationHelper.PersistFailure(functionId, exception, param, expectedEpoch);
+    private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, Workflow workflow, int expectedEpoch = 0)
+        => await _invocationHelper.PersistFailure(functionId, exception, param, workflow.States.SerializeDefaultState(), expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
+    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, Workflow workflow, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
         if (result.Succeed && result.SucceedWithValue is Task)
         {
             var serializationException = new SerializationException("Unable to serialize result of Task-type");
-            await _invocationHelper.PersistFailure(functionId, serializationException, param, expectedEpoch);
+            await _invocationHelper.PersistFailure(functionId, serializationException, param, workflow.States.SerializeDefaultState(), expectedEpoch);
             throw serializationException;
         }
             
-        var outcome = await _invocationHelper.PersistResult(functionId, result, param, expectedEpoch);
+        var outcome = await _invocationHelper.PersistResult(functionId, result, param, workflow.States.SerializeDefaultState(), expectedEpoch);
         switch (outcome)
         {
             case PersistResultOutcome.Failed:

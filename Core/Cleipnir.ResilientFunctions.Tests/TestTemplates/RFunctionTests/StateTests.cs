@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -42,12 +43,15 @@ public abstract class StateTests
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
 
-        state.Value = "SomeOtherValue";
-        await state.Save();
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+        {
+            state.Value = "SomeOtherValue";
+            await state.Save();
+        });
 
         state = await funcRegistration.GetState<State>(functionInstanceId);
         state.ShouldNotBeNull();
-        state.Value.ShouldBe("SomeOtherValue");
+        state.Value.ShouldBe("SomeValue");
     }
     
     public abstract Task StateCanBeFetchedFromActionRegistration();
@@ -76,11 +80,14 @@ public abstract class StateTests
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
 
-        state.Value = "SomeOtherValue";
-        await state.Save();
-
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+        {
+            state.Value = "SomeOtherValue";
+            await state.Save();
+        });
+        
         state = await actionRegistration.GetState<State>(functionInstanceId);
         state.ShouldNotBeNull();
-        state.Value.ShouldBe("SomeOtherValue");
+        state.Value.ShouldBe("SomeValue");
     }
 }

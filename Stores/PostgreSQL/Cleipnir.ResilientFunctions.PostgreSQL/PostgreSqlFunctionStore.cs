@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -66,6 +65,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
                 result_type VARCHAR(255) NULL,
+                default_state TEXT NULL,
                 exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
                 epoch INT NOT NULL DEFAULT 0,
@@ -163,6 +163,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 status,
                 result_json, 
                 result_type,
+                default_state,
                 exception_json,
                 postponed_until,
                 epoch, 
@@ -313,35 +314,159 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task<bool> SaveStateForExecutingFunction( 
-        FunctionId functionId,
-        string stateJson,
-        int expectedEpoch,
-        ComplimentaryState _)
+    public async Task<bool> SucceedFunction(
+        FunctionId functionId, 
+        StoredResult result, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET state_json = $1
+            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, default_state = $3, timestamp = $4
             WHERE 
-                function_type_id = $2 AND 
-                function_instance_id = $3 AND 
-                epoch = $4";
+                function_type_id = $5 AND 
+                function_instance_id = $6 AND 
+                epoch = $7";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = stateJson},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
-                new() {Value = expectedEpoch},
+                new() { Value = result.ResultJson ?? (object) DBNull.Value },
+                new() { Value = result.ResultType ?? (object) DBNull.Value },
+                new() { Value = defaultState ?? (object) DBNull.Value },
+                new() { Value = timestamp },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
             }
         };
-
+        
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
 
+    public async Task<bool> PostponeFunction(
+        FunctionId functionId, 
+        long postponeUntil, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Postponed}, postponed_until = $1, default_state = $2, timestamp = $3
+            WHERE 
+                function_type_id = $4 AND 
+                function_instance_id = $5 AND 
+                epoch = $6";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = postponeUntil },
+                new() { Value = defaultState ?? (object) DBNull.Value },
+                new() { Value = timestamp },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
+    public async Task<bool> FailFunction(
+        FunctionId functionId, 
+        StoredException storedException, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int) Status.Failed}, exception_json = $1, default_state = $2, timestamp = $3
+            WHERE 
+                function_type_id = $4 AND 
+                function_instance_id = $5 AND 
+                epoch = $6";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = JsonSerializer.Serialize(storedException) },
+                new() { Value = defaultState ?? (object) DBNull.Value },
+                new() { Value = timestamp },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+            }
+        };
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
+    public async Task<bool> SuspendFunction(
+        FunctionId functionId, 
+        long expectedInterruptCount, 
+        string? defaultState, 
+        long timestamp,
+        int expectedEpoch, 
+        ComplimentaryState complimentaryState)
+    {
+        await using var conn = await CreateConnection();
+
+        var postponeSql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET status = {(int)Status.Suspended}, default_state = $1, timestamp = $2
+            WHERE function_type_id = $3 AND 
+                  function_instance_id = $4 AND 
+                  epoch = $5 AND
+                  interrupt_count = $6";
+        await using var command = new NpgsqlCommand(postponeSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = defaultState ?? (object) DBNull.Value },
+                new() { Value = timestamp },
+                new() { Value = functionId.TypeId.Value },
+                new() { Value = functionId.InstanceId.Value },
+                new() { Value = expectedEpoch },
+                new() { Value = expectedInterruptCount },
+            }
+        };
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
+    public async Task SetDefaultState(FunctionId functionId, string? stateJson)
+    {
+        await using var conn = await CreateConnection();
+        var sql = $@"
+            UPDATE {_tablePrefix}rfunctions
+            SET default_state = $1
+            WHERE function_type_id = $2 AND function_instance_id = $3";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = stateJson ?? (object) DBNull.Value},
+                new() {Value = functionId.TypeId.Value},
+                new() {Value = functionId.InstanceId.Value}
+            }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+    
     public async Task<bool> SetParameters(
         FunctionId functionId,
         StoredParameter storedParameter, StoredResult storedResult,
@@ -371,100 +496,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
 
         await using var _ = command;
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
-    public async Task<bool> SucceedFunction(
-        FunctionId functionId, 
-        StoredResult result, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState)
-    {
-        await using var conn = await CreateConnection();
-        var sql = $@"
-            UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, timestamp = $3
-            WHERE 
-                function_type_id = $4 AND 
-                function_instance_id = $5 AND 
-                epoch = $6";
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = result?.ResultJson ?? (object) DBNull.Value},
-                new() {Value = result?.ResultType ?? (object) DBNull.Value},
-                new() { Value = timestamp },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
-    public async Task<bool> PostponeFunction(
-        FunctionId functionId, 
-        long postponeUntil, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState)
-    {
-        await using var conn = await CreateConnection();
-        var sql = $@"
-            UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Postponed}, postponed_until = $1, timestamp = $2
-            WHERE 
-                function_type_id = $3 AND 
-                function_instance_id = $4 AND 
-                epoch = $5";
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = postponeUntil },
-                new() { Value = timestamp },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
-    public async Task<bool> SuspendFunction(
-        FunctionId functionId,
-        long expectedInterruptCount,
-        long timestamp,
-        int expectedEpoch,
-        ComplimentaryState complimentaryState)
-    {
-        await using var conn = await CreateConnection();
-
-        var postponeSql = $@"
-            UPDATE {_tablePrefix}rfunctions
-            SET status = {(int)Status.Suspended}, timestamp = $1
-            WHERE function_type_id = $2 AND 
-                  function_instance_id = $3 AND 
-                  epoch = $4 AND
-                  interrupt_count = $5";
-        await using var command = new NpgsqlCommand(postponeSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = timestamp },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-                new() { Value = expectedInterruptCount },
-            }
-        };
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
@@ -534,33 +565,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         return null;
     }
-
-    public async Task<bool> FailFunction(FunctionId functionId, StoredException storedException, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-    {
-        await using var conn = await CreateConnection();
-        var sql = $@"
-            UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2
-            WHERE 
-                function_type_id = $3 AND 
-                function_instance_id = $4 AND 
-                epoch = $5";
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = JsonSerializer.Serialize(storedException) },
-                new() { Value = timestamp },
-                new() { Value = functionId.TypeId.Value },
-                new() { Value = functionId.InstanceId.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
+    
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
@@ -571,6 +576,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 status,
                 result_json, 
                 result_type,
+                default_state,
                 exception_json,
                 postponed_until,
                 epoch, 
@@ -599,18 +605,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
            2  status,
            3  result_json, 
            4  result_type,
-           5  exception_json,
-           6  postponed_until,
-           7  epoch, 
-           8  lease_expiration,
-           9 interrupt_count,
-           10 timestamp
+           5  default_state
+           6  exception_json,
+           7  postponed_until,
+           8  epoch, 
+           9  lease_expiration,
+           10 interrupt_count,
+           11 timestamp
          */
         while (await reader.ReadAsync())
         {
             var hasResult = !await reader.IsDBNullAsync(4);
-            var hasException = !await reader.IsDBNullAsync(5);
-            var postponedUntil = !await reader.IsDBNullAsync(6);
+            var hasDefaultState = !await reader.IsDBNullAsync(5);
+            var hasException = !await reader.IsDBNullAsync(6);
+            var postponedUntil = !await reader.IsDBNullAsync(7);
             
             return new StoredFunction(
                 functionId,
@@ -620,12 +628,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
                     hasResult ? reader.GetString(3) : null, 
                     hasResult ? reader.GetString(4) : null
                 ),
-                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(5)),
-                postponedUntil ? reader.GetInt64(6) : null,
-                Epoch: reader.GetInt32(7),
-                LeaseExpiration: reader.GetInt64(8),
-                InterruptCount: reader.GetInt64(9),
-                Timestamp: reader.GetInt64(10)
+                DefaultState: hasDefaultState ? reader.GetString(5) : null,
+                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(6)),
+                PostponedUntil: postponedUntil ? reader.GetInt64(7) : null,
+                Epoch: reader.GetInt32(8),
+                LeaseExpiration: reader.GetInt64(9),
+                InterruptCount: reader.GetInt64(10),
+                Timestamp: reader.GetInt64(11)
             );
         }
 

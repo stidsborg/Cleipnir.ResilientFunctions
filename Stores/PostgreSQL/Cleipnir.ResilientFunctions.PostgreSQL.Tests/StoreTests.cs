@@ -135,4 +135,20 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task InterruptCountForNonExistingFunctionIsNull()
         => InterruptCountForNonExistingFunctionIsNull(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task DefaultStateCanSetAndFetchedAfterwards()
+        => DefaultStateCanSetAndFetchedAfterwards(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DefaultStateCanSetOnPostponeAndFetchedAfterwards()
+        => DefaultStateCanSetOnPostponeAndFetchedAfterwards(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DefaultStateCanSetOnSuspendAndFetchedAfterwards()
+        => DefaultStateCanSetOnSuspendAndFetchedAfterwards(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DefaultStateCanSetOnSucceedAndFetchedAfterwards()
+        => DefaultStateCanSetOnSucceedAndFetchedAfterwards(FunctionStoreFactory.Create());
 }

@@ -87,36 +87,67 @@ public class CrashableFunctionStore : IFunctionStore
                 expectedEpoch
             );
 
+    public Task<bool> SucceedFunction(
+        FunctionId functionId,
+        StoredResult result,
+        string? defaultState,
+        long timestamp,
+        int expectedEpoch,
+        ComplimentaryState complimentaryState
+    ) => _crashed
+        ? Task.FromException<bool>(new TimeoutException())
+        : _inner.SucceedFunction(functionId, result, defaultState, timestamp, expectedEpoch, complimentaryState);
+
+    public async Task<bool> PostponeFunction(
+        FunctionId functionId,
+        long postponeUntil,
+        string? defaultState,
+        long timestamp,
+        int expectedEpoch,
+        ComplimentaryState complimentaryState
+    )
+    {
+        if (_crashed)
+            throw new TimeoutException();
+
+        var result = await _inner.PostponeFunction(functionId, postponeUntil, defaultState, timestamp, expectedEpoch, complimentaryState);
+        _afterPostponeFunctionSubject.OnNext(postponeUntil);
+
+        return result;
+    } 
+
+    public Task<bool> FailFunction(
+        FunctionId functionId,
+        StoredException storedException,
+        string? defaultState,
+        long timestamp,
+        int expectedEpoch,
+        ComplimentaryState complimentaryState
+    ) => _crashed
+        ? Task.FromException<bool>(new TimeoutException())
+        : _inner.FailFunction(functionId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState);
+
+    public Task<bool> SuspendFunction(
+        FunctionId functionId,
+        long expectedInterruptCount,
+        string? defaultState,
+        long timestamp,
+        int expectedEpoch,
+        ComplimentaryState complimentaryState
+    ) => _crashed
+        ? Task.FromException<bool>(new TimeoutException())
+        : _inner.SuspendFunction(functionId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
+
+    public Task SetDefaultState(FunctionId functionId, string stateJson)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.SetDefaultState(functionId, stateJson);
+
     public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredResult storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(functionId, storedParameter, storedResult, expectedEpoch);
-
-    public Task<bool> SucceedFunction(FunctionId functionId, StoredResult result, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SucceedFunction(functionId, result, timestamp, expectedEpoch, complimentaryState);
-
-    public Task<bool> PostponeFunction(FunctionId functionId, long postponeUntil, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-    {
-        if (_crashed)
-            return Task.FromException<bool>(new TimeoutException());
-                
-        var success = _inner.PostponeFunction(functionId, postponeUntil, timestamp, expectedEpoch, complimentaryState);
-        _afterPostponeFunctionSubject.OnNext(postponeUntil);
-        return success;
-    }
-
-    public Task<bool> FailFunction(FunctionId functionId, StoredException storedException, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.FailFunction(functionId, storedException, timestamp, expectedEpoch, complimentaryState);
-
-    public Task<bool> SuspendFunction(FunctionId functionId, long expectedInterruptCount, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(functionId, expectedInterruptCount, timestamp, expectedEpoch, complimentaryState);
-
+    
     public Task<bool> IncrementInterruptCount(FunctionId functionId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

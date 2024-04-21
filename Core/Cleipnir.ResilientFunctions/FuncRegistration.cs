@@ -59,8 +59,14 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         => _controlPanels.For(functionInstanceId);
 
     public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null) 
-        where TState : WorkflowState, new() => _stateFetcher.FetchState<TState>(new FunctionId(TypeId, instanceId), stateId);
-    
+        where TState : WorkflowState, new()
+    {
+        var functionId = new FunctionId(TypeId, instanceId);
+        return stateId is null 
+            ? _stateFetcher.FetchState<TState>(functionId) 
+            : _stateFetcher.FetchState<TState>(functionId, stateId);
+    }
+
     public Task ScheduleIn(string functionInstanceId, TParam param, TimeSpan delay) 
         => ScheduleAt(functionInstanceId, param, delayUntil: DateTime.UtcNow.Add(delay));
 }

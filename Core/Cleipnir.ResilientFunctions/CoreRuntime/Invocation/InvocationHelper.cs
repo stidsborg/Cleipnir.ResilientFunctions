@@ -100,7 +100,7 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, int expectedEpoch)
+    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, string? defaultState, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
         var storedException = serializer.SerializeException(exception);
@@ -108,6 +108,7 @@ internal class InvocationHelper<TParam, TReturn>
         var success = await _functionStore.FailFunction(
             functionId,
             storedException,
+            defaultState,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
             complimentaryState: new ComplimentaryState(
@@ -123,6 +124,7 @@ internal class InvocationHelper<TParam, TReturn>
         FunctionId functionId,
         Result<TReturn> result,
         TParam param,
+        string? defaultState,
         int expectedEpoch)
     {
         var complementaryState = new ComplimentaryState(
@@ -135,6 +137,7 @@ internal class InvocationHelper<TParam, TReturn>
                 return await _functionStore.SucceedFunction(
                     functionId,
                     result: Serializer.SerializeResult(result.SucceedWithValue),
+                    defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -143,6 +146,7 @@ internal class InvocationHelper<TParam, TReturn>
                 return await _functionStore.PostponeFunction(
                     functionId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
+                    defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -151,6 +155,7 @@ internal class InvocationHelper<TParam, TReturn>
                 return await _functionStore.FailFunction(
                     functionId,
                     storedException: Serializer.SerializeException(result.Fail!),
+                    defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -159,6 +164,7 @@ internal class InvocationHelper<TParam, TReturn>
                 var success = await _functionStore.SuspendFunction(
                     functionId,
                     result.Suspend!.InterruptCount,
+                    defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -167,6 +173,7 @@ internal class InvocationHelper<TParam, TReturn>
                 success = await _functionStore.PostponeFunction(
                     functionId,
                     postponeUntil: DateTime.UtcNow.Add(_settings.LeaseLength).Ticks,
+                    defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
@@ -219,7 +226,7 @@ internal class InvocationHelper<TParam, TReturn>
             
             var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
             
-            return new PreparedReInvocation(param, sf.Epoch, sf.InterruptCount, runningFunction);
+            return new PreparedReInvocation(param, sf.Epoch, sf.DefaultState, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -231,6 +238,7 @@ internal class InvocationHelper<TParam, TReturn>
             await _functionStore.FailFunction(
                 functionId,
                 storedException: Serializer.SerializeException(e),
+                sf.DefaultState,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
                 complimentaryState: new ComplimentaryState(
@@ -247,7 +255,7 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, long InterruptCount, IDisposable RunningFunction);
+    internal record PreparedReInvocation(TParam Param, int Epoch, string? DefaultState, IDisposable RunningFunction);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
@@ -332,6 +340,7 @@ internal class InvocationHelper<TParam, TReturn>
             Result: sf.Result.ResultType == null 
                 ? default 
                 : serializer.DeserializeResult<TReturn>(sf.Result.ResultJson!, sf.Result.ResultType),
+            sf.DefaultState,
             PostponedUntil: sf.PostponedUntil == null ? null : new DateTime(sf.PostponedUntil.Value),
             PreviouslyThrownException: sf.Exception == null 
                 ? null 
@@ -377,33 +386,32 @@ internal class InvocationHelper<TParam, TReturn>
         return new Effect(functionId, existingActivities, effectsStore, _settings.Serializer);
     }
 
-    public async Task<States> CreateStates(FunctionId functionId, bool sync)
+    public async Task<States> CreateStates(FunctionId functionId, string? defaultState, bool sync)
     {
         var statesStore = _functionStore.StatesStore;
         var serializer = _settings.Serializer;
         if (!sync)
             return new States(
                 functionId,
+                defaultState,
                 existingStates: Enumerable.Empty<StoredState>(),
+                _functionStore,
                 statesStore,
                 serializer
             );
 
         var existingStoredStates = await statesStore.GetStates(functionId);
-        return new States(functionId, existingStoredStates, statesStore, serializer);
+        return new States(functionId, defaultState, existingStoredStates, _functionStore, statesStore, serializer);
     }
 
-    public async Task<ExistingStates> GetExistingStates(FunctionId functionId)
-    {
-        var statesStore = _functionStore.StatesStore;
-        var existingStates = await statesStore.GetStates(functionId);
-        return new ExistingStates(
+    public async Task<ExistingStates> GetExistingStates(FunctionId functionId, string? defaultState)
+        => new(
             functionId,
-            existingStates,
-            statesStore,
+            defaultState,
+            await _functionStore.StatesStore.GetStates(functionId),
+            _functionStore,
             _settings.Serializer
         );
-    }
     
     public async Task<ExistingEffects> GetExistingEffects(FunctionId functionId)
     {

@@ -6,6 +6,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public record StoredFunction(
     FunctionId FunctionId,
     StoredParameter Parameter,
+    string? DefaultState,
     Status Status,
     StoredResult Result,
     StoredException? Exception,

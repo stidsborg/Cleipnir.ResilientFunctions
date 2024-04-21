@@ -10,6 +10,7 @@ public record FunctionState<TParam, TReturn>(
     long LeaseExpiration,
     TParam Param, 
     TReturn? Result,
+    string? DefaultState,
     DateTime? PostponedUntil,
     PreviouslyThrownException? PreviouslyThrownException
 ) where TParam : notnull;
