@@ -138,7 +138,7 @@ public class CrashableFunctionStore : IFunctionStore
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.SuspendFunction(functionId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
 
-    public Task SetDefaultState(FunctionId functionId, string stateJson)
+    public Task SetDefaultState(FunctionId functionId, string? stateJson)
         => _crashed
             ? Task.FromException(new TimeoutException())
             : _inner.SetDefaultState(functionId, stateJson);

@@ -290,7 +290,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task SetDefaultState(FunctionId functionId, string stateJson)
+    public Task SetDefaultState(FunctionId functionId, string? stateJson)
     {
         lock (_sync)
             if (_states.TryGetValue(functionId, out var state))

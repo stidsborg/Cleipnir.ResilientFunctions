@@ -82,16 +82,17 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _inner.FailFunction(functionId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> SuspendFunction(FunctionId functionId, long expectedInterruptCount, string? defaultState, long timestamp,
-        int expectedEpoch, ComplimentaryState complimentaryState)
-    {
-        throw new System.NotImplementedException();
-    }
+    public Task<bool> SuspendFunction(
+        FunctionId functionId,
+        long expectedInterruptCount,
+        string? defaultState,
+        long timestamp,
+        int expectedEpoch,
+        ComplimentaryState complimentaryState
+    ) => _inner.SuspendFunction(functionId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
 
-    public Task SetDefaultState(FunctionId functionId, string stateJson)
-    {
-        throw new System.NotImplementedException();
-    }
+    public Task SetDefaultState(FunctionId functionId, string? stateJson)
+        => _inner.SetDefaultState(functionId, stateJson); 
 
     public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredResult storedResult, int expectedEpoch)
         => _inner.SetParameters(functionId, storedParameter, storedResult, expectedEpoch);
