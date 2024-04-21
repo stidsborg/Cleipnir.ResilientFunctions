@@ -28,10 +28,10 @@ jobs:
         with:
           dotnet-version: '8.0.x' # SDK Version to use; x will use the latest version of the 3.1 channel
 
-      - run: dotnet build Cleipnir.ResilientFunctions.sln
-
       - name: Start containers
         run: docker-compose -f "docker-compose.yml" up -d --build
+
+      - run: dotnet build Cleipnir.ResilientFunctions.sln  
 
       - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj
 
@@ -44,4 +44,5 @@ jobs:
       - run: dotnet test ./Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests --logger "console;verbosity=detailed"
 
       - name: Stop containers
+        if: always()
         run: docker-compose -f "docker-compose.yml" down
