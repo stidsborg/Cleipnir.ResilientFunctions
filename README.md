@@ -1,6 +1,7 @@
 [![.NET](https://github.com/stidsborg/Cleipnir.ResilientFunctions/actions/workflows/dotnet.yml/badge.svg)](https://github.com/stidsborg/Cleipnir.ResilientFunctions/actions/workflows/dotnet.yml)
 [![NuGet](https://img.shields.io/nuget/dt/Cleipnir.ResilientFunctions.svg)](https://www.nuget.org/packages/Cleipnir.ResilientFunctions)
 [![NuGet](https://img.shields.io/nuget/vpre/Cleipnir.ResilientFunctions.svg)](https://www.nuget.org/packages/Cleipnir.ResilientFunctions)
+[![Changelog](https://img.shields.io/badge/-Changelog-darkred)](./CHANGELOG.md)
 
 <p align="center">
   <img src="cleipnir.png" alt="logo" />
