@@ -27,8 +27,9 @@ public class SmsVerificationFlow
             );
             
             var codeFromUser = await messages
+                .OfType<CodeFromUser>()
                 .Skip(i)
-                .SuspendUntilFirstOfType<CodeFromUser>();
+                .SuspendUntilFirst();
 
             if (IsExpired(codeFromUser))
                 state.Status = MostRecentAttempt.CodeExpired;
