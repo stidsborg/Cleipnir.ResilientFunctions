@@ -19,13 +19,12 @@ public static class SignupFlow
             if (emailVerifiedOption.HasValue)
                 break;
             
-            await effect.Capture($"Reminder_{i}", () => SendReminderMail(customerEmail));
-            
             if (i == 5)
                 throw new UserSignupFailedException($"User '{customerEmail}' did not activate within threshold");
+            
+            await effect.Capture($"Reminder_{i}", () => SendReminderMail(customerEmail));
         }
         
-        await workflow.Delay("DelayUntilTomorrow", TimeSpan.FromDays(1)); //uses effect and postpone functionality?!
         await effect.Capture("SendWelcomeMail", () => SendFollowUpMail(customerEmail));
     }
 
