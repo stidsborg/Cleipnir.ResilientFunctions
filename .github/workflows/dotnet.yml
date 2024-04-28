@@ -33,7 +33,7 @@ jobs:
 
       - run: dotnet build Cleipnir.ResilientFunctions.sln  
 
-      - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj
+      - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build
 
       - run: dotnet test ./Core/Cleipnir.ResilientFunctions.Tests --no-build --logger "console;verbosity=detailed"
 
