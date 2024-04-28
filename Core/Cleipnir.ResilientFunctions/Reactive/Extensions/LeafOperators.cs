@@ -99,11 +99,8 @@ public static class LeafOperators
         => s.ToList();
     
     #endregion
-
-    public static List<T> Existing<T>(this IReactiveChain<T> s)
-        => Existing(s, out _);
     
-    public static List<T> Existing<T>(this IReactiveChain<T> s, out bool streamCompleted)
+    internal static List<T> Existing<T>(this IReactiveChain<T> s, out bool streamCompleted)
     {
         var completed = false;
         var error = default(Exception);

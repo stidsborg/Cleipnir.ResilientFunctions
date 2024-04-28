@@ -800,7 +800,7 @@ public abstract class ControlPanelTests
                 }
                 else
                 {
-                    var existing = messages.Select(e => e.ToString()!).Existing();
+                    var existing = messages.Select(e => e.ToString()!).Existing(out _);
                     syncedList.AddRange(existing);
                 }
             }

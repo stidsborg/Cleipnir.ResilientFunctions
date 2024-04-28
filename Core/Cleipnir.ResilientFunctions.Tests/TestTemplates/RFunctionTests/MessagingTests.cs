@@ -95,7 +95,7 @@ public abstract class MessagingTests
                 
                 var timeoutEvent = messages
                     .OfType<TimeoutEvent>()
-                    .Existing()
+                    .Existing(out var __)
                     .SingleOrDefault();
                 
                 return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId ?? "");

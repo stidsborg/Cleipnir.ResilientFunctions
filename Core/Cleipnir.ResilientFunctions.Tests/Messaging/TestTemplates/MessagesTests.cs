@@ -81,7 +81,7 @@ public abstract class MessagesTests
 
         var next = messages
             .OfType<string>()
-            .Existing(out var emittedFromSource)
+            .Existing(out _)
             .First();
         
         next.ShouldBe("hello world");

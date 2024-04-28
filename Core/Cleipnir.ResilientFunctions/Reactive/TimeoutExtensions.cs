@@ -29,7 +29,7 @@ public static class TimeoutExtensions
 
     private static bool DoesMessagesAlreadyContainTimeoutEvent(Messages messages, string timeoutId)
         => messages
-            .Existing()
+            .Existing(out _)
             .OfType<TimeoutEvent>()
             .Any(t => t.TimeoutId == timeoutId);
 }

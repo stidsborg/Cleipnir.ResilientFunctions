@@ -10,7 +10,6 @@ public class Messages : IReactiveChain<object>
 {
     public TimeoutProvider TimeoutProvider { get; }
     public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
-    public IEnumerable<object> Existing => _messagePullerAndEmitter.Source.Existing;
     
     private readonly MessageWriter _messageWriter;
     private readonly MessagesPullerAndEmitter _messagePullerAndEmitter;

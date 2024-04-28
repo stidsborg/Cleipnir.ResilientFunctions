@@ -639,7 +639,7 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello", new InterruptCount(1));
-        var existing = source.Chunk(2).Existing();
+        var existing = source.Chunk(2).Existing(out _);
         existing.Count.ShouldBe(0);
     }
     
@@ -649,7 +649,7 @@ public class LeafOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext("world", new InterruptCount(2));
-        var existing = source.Existing();
+        var existing = source.Existing(out _);
         existing.Count.ShouldBe(2);
         existing[0].ShouldBe("hello");
         existing[1].ShouldBe("world");

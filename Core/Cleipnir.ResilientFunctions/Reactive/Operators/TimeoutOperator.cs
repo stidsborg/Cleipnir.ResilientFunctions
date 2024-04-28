@@ -93,7 +93,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
                 .OfType<TimeoutEvent>()
                 .Where(t => t.TimeoutId == _timeoutId)
                 .Take(1)
-                .Existing()
+                .Existing(out _)
                 .Any();
 
             if (timeoutExists)
