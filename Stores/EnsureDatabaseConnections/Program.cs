@@ -68,7 +68,7 @@ internal static class Program
     
     private static async Task CreateAndOpenMySqlConnection()
     {
-        const string connectionString = "server=localhost;userid=root;password=Pa55word!;SSL Mode=None";
+        const string connectionString = "server=127.0.0.1;userid=root;password=Pa55word!;SSL Mode=None";
         var conn = new MySqlConnection(connectionString);
         await conn.OpenAsync();
     }
