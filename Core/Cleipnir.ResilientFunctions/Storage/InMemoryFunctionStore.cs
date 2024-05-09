@@ -43,7 +43,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<bool> CreateFunction(
         FunctionId functionId,
-        StoredParameter param,
+        string? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -60,7 +60,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,
                 Exception = null,
-                Result = new StoredResult(ResultJson: null, ResultType: null),
+                Result = null,
                 PostponeUntil = postponeUntil,
                 LeaseExpiration = leaseExpiration,
                 Timestamp = timestamp
@@ -142,8 +142,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
-        StoredParameter storedParameter,
-        StoredResult storedResult,
+        string? param,
+        string? result,
         StoredException? storedException,
         long? postponeUntil,
         int expectedEpoch)
@@ -158,8 +158,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             state.Status = status;
-            state.Param = storedParameter;
-            state.Result = storedResult;
+            state.Param = param;
+            state.Result = result;
             state.Exception = storedException;
             state.PostponeUntil = postponeUntil;
 
@@ -171,7 +171,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public Task<bool> SucceedFunction(
         FunctionId functionId, 
-        StoredResult result, 
+        string? result, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -271,8 +271,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<bool> SetParameters(
         FunctionId functionId, 
-        StoredParameter storedParameter, 
-        StoredResult storedResult, 
+        string? param, 
+        string? result, 
         int expectedEpoch)
     {
         lock (_sync)
@@ -281,8 +281,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[functionId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
             
-            state.Param = storedParameter;
-            state.Result = storedResult;
+            state.Param = param;
+            state.Result = result;
             
             state.Epoch += 1;
 
@@ -379,10 +379,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private class InnerState
     {
         public FunctionId FunctionId { get; init; } = null!;
-        public StoredParameter Param { get; set; } = null!;
+        public string? Param { get; set; }
         public string? DefaultState { get; set; }
         public Status Status { get; set; }
-        public StoredResult Result { get; set; } = new(ResultJson: null, ResultType: null);
+        public string? Result { get; set; }
         public StoredException? Exception { get; set; }
         public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }

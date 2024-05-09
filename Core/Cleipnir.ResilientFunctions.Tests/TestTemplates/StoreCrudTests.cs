@@ -13,7 +13,7 @@ public abstract class StoreCrudTests
 {
     private FunctionId FunctionId { get; } = new FunctionId("funcType1", "funcInstance1");
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
-    private StoredParameter Param => new(TestParam.ToJson(), typeof(TestParameters).SimpleQualifiedName());
+    private string Param => TestParam.ToJson();
     private record TestParameters(string Name, int Age);
 
     private class TestWorkflowState : WorkflowState
@@ -39,10 +39,8 @@ public abstract class StoreCrudTests
 
         var stored = await store.GetFunction(FunctionId);
         stored!.FunctionId.ShouldBe(FunctionId);
-        stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
-        stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Result.ResultJson.ShouldBeNull();
-        stored.Result.ResultJson.ShouldBeNull();
+        stored.Parameter.ShouldBe(Param);
+        stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
@@ -64,10 +62,8 @@ public abstract class StoreCrudTests
 
         var stored = await store.GetFunction(FunctionId);
         stored!.FunctionId.ShouldBe(FunctionId);
-        stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
-        stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Result.ResultJson.ShouldBeNull();
-        stored.Result.ResultType.ShouldBeNull();
+        stored.Parameter.ShouldBe(Param);
+        stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
@@ -89,10 +85,8 @@ public abstract class StoreCrudTests
 
         var stored = await store.GetFunction(FunctionId);
         stored!.FunctionId.ShouldBe(FunctionId);
-        stored.Parameter.ParamJson.ShouldBe(Param.ParamJson);
-        stored.Parameter.ParamType.ShouldBe(Param.ParamType);
-        stored.Result.ResultJson.ShouldBeNull();
-        stored.Result.ResultType.ShouldBeNull();
+        stored.Parameter.ShouldBe(Param);
+        stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
@@ -181,21 +175,19 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var updatedStoredParameter = new StoredParameter(
-            "hello world".ToJson(),
-            typeof(string).SimpleQualifiedName()
-        );
+        var updatedStoredParameter = "hello world".ToJson();
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            storedResult: StoredResult.Null,
+            result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
-        var param = (string) sf.Parameter.DefaultDeserialize();
+        sf.Parameter.ShouldNotBeNull();
+        var param = sf.Parameter.DeserializeFromJsonTo<string>();
         param.ShouldBe("hello world");
     }
     
@@ -211,21 +203,18 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var updatedStoredParameter = new StoredParameter(
-            "hello world".ToJson(),
-            typeof(string).SimpleQualifiedName()
-        );
+        var updatedStoredParameter = "hello world".ToJson();
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            storedResult: StoredResult.Null,
+            result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
-        var param = (string) sf.Parameter.DefaultDeserialize();
+        var param = sf.Parameter!.DeserializeFromJsonTo<string>();
         param.ShouldBe("hello world");
     }
     
@@ -243,14 +232,14 @@ public abstract class StoreCrudTests
         
         await store.SetParameters(
             FunctionId,
-            storedParameter: Param,
-            storedResult: StoredResult.Null,
+            param: Param,
+            result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
-        (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
+        sf.Parameter.ShouldNotBeNull();
     }
     
     public abstract Task ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch();
@@ -270,20 +259,17 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldNotBeNullAsync();
 
-        var updatedStoredParameter = new StoredParameter(
-            "hello world".ToJson(),
-            typeof(string).SimpleQualifiedName()
-        );
+        var updatedStoredParameter = "hello world".ToJson();
 
         await store.SetParameters(
             FunctionId,
             updatedStoredParameter,
-            storedResult: StoredResult.Null,
+            result: null,
             expectedEpoch: 0
         ).ShouldBeFalseAsync();
         
         var sf = await store.GetFunction(FunctionId);
         sf.ShouldNotBeNull();
-        (sf.Parameter.DefaultDeserialize() is TestParameters).ShouldBeTrue();
+        sf.Parameter.ShouldNotBeNull();
     }
 }

@@ -17,7 +17,7 @@ public interface IFunctionStore
     
     Task<bool> CreateFunction(
         FunctionId functionId, 
-        StoredParameter param,
+        string? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -32,16 +32,16 @@ public interface IFunctionStore
     
     Task<bool> SetParameters(
         FunctionId functionId,
-        StoredParameter storedParameter,
-        StoredResult storedResult,
+        string? param,
+        string? result,
         int expectedEpoch
     );
     
     Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,
-        StoredParameter storedParameter,
-        StoredResult storedResult,
+        string? param,
+        string? result,
         StoredException? storedException,
         long? postponeUntil,
         int expectedEpoch
@@ -49,7 +49,7 @@ public interface IFunctionStore
 
     Task<bool> SucceedFunction(
         FunctionId functionId, 
-        StoredResult result, 
+        string? result, 
         string? defaultState,
         long timestamp,
         int expectedEpoch, 

@@ -18,7 +18,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
-            param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -45,7 +45,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
-            param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -72,7 +72,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
-            param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -93,7 +93,7 @@ public abstract class InitialInvocationFailedTests
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result?.ResultJson);
+        var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson).ShouldBe("HELLO WORLD");
     }
@@ -105,7 +105,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             functionId,
-            param: new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -127,10 +127,8 @@ public abstract class InitialInvocationFailedTests
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
         
-        var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result?.ResultJson);
+        var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson).ShouldBe("HELLO WORLD");
     }
-    
-    private class WorkflowState : Domain.WorkflowState {}
 }

@@ -11,10 +11,10 @@ public class DefaultSerializer : ISerializer
     public static readonly DefaultSerializer Instance = new();
     private DefaultSerializer() {}
     
-    public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull
-        => new(JsonSerializer.Serialize(parameter, parameter.GetType()), parameter.GetType().SimpleQualifiedName());
-    public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
-        => (TParam) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
+    public string SerializeParameter<TParam>(TParam parameter)  
+        => JsonSerializer.Serialize(parameter);
+    public TParam DeserializeParameter<TParam>(string json) 
+        => JsonSerializer.Deserialize<TParam>(json)!;
     
     public StoredException SerializeException(Exception exception)
         => new StoredException(
@@ -30,10 +30,10 @@ public class DefaultSerializer : ISerializer
             Type.GetType(storedException.ExceptionType, throwOnError: true)!
         );
 
-    public StoredResult SerializeResult<TResult>(TResult result)
-        => new(JsonSerializer.Serialize(result, result?.GetType() ?? typeof(TResult)), result?.GetType().SimpleQualifiedName());
-    public TResult DeserializeResult<TResult>(string json, string type) 
-        => (TResult) JsonSerializer.Deserialize(json, Type.GetType(type, throwOnError: true)!)!;
+    public string SerializeResult<TResult>(TResult result)  
+        => JsonSerializer.Serialize(result);
+    public TResult DeserializeResult<TResult>(string json)  
+        => JsonSerializer.Deserialize<TResult>(json)!;
 
     public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull 
         => new(JsonSerializer.Serialize(message, message.GetType()), message.GetType().SimpleQualifiedName());

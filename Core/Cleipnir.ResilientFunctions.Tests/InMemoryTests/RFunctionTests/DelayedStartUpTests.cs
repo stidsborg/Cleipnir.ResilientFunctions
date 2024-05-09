@@ -21,7 +21,7 @@ public class DelayedStartUpTests
         var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -49,7 +49,7 @@ public class DelayedStartUpTests
         var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,
-            new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName()),
+            "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -70,7 +70,7 @@ public class DelayedStartUpTests
     public async Task PostponedWatchDogStartUpIsDelayedByOneSecondSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedParameter = "hello world".ToJson();
         var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId"); 
         await store.CreateFunction(
             functionId,
@@ -108,7 +108,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
-        var storedParameter = new StoredParameter("hello world".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedParameter = "hello world".ToJson();
         var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,

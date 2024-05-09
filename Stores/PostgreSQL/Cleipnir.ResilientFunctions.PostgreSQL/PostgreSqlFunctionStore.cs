@@ -60,11 +60,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
-                param_json TEXT NOT NULL,
-                param_type VARCHAR(255) NOT NULL,
+                param_json TEXT NULL,            
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
-                result_type VARCHAR(255) NULL,
                 default_state TEXT NULL,
                 exception_json TEXT NULL,
                 postponed_until BIGINT NULL,
@@ -117,7 +115,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
-        StoredParameter param, 
+        string? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -126,9 +124,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         var sql = @$"
             INSERT INTO {_tablePrefix}rfunctions
-                (function_type_id, function_instance_id, status, param_json, param_type, lease_expiration, postponed_until, timestamp)
+                (function_type_id, function_instance_id, status, param_json, lease_expiration, postponed_until, timestamp)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -137,8 +135,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = (int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
-                new() {Value = param.ParamJson},
-                new() {Value = param.ParamType},
+                new() {Value = param == null ? DBNull.Value : param},
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil == null ? DBNull.Value : postponeUntil.Value},
                 new() {Value = timestamp}
@@ -159,10 +156,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4
             RETURNING               
                 param_json, 
-                param_type,
                 status,
                 result_json, 
-                result_type,
                 default_state,
                 exception_json,
                 postponed_until,
@@ -275,7 +270,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredResult storedResult, 
+        string? param, string? result, 
         StoredException? storedException, 
         long? postponeUntil,
         int expectedEpoch)
@@ -285,23 +280,21 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = $1,
-                param_json = $2, param_type = $3,
-                result_json = $4, result_type = $5, 
-                exception_json = $6, postponed_until = $7,
+                param_json = $2, 
+                result_json = $3, 
+                exception_json = $4, postponed_until = $5,
                 epoch = epoch + 1
             WHERE 
-                function_type_id = $8 AND 
-                function_instance_id = $9 AND 
-                epoch = $10";
+                function_type_id = $6 AND 
+                function_instance_id = $7 AND 
+                epoch = $8";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() {Value = (int) status},
-                new() {Value = storedParameter.ParamJson},
-                new() {Value = storedParameter.ParamType},
-                new() {Value = storedResult.ResultJson ?? (object) DBNull.Value},
-                new() {Value = storedResult.ResultType ?? (object) DBNull.Value},
+                new() {Value = param == null ? DBNull.Value : param},
+                new() {Value = result == null ? DBNull.Value : result},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = postponeUntil ?? (object) DBNull.Value},
                 new() {Value = functionId.TypeId.Value},
@@ -316,7 +309,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<bool> SucceedFunction(
         FunctionId functionId, 
-        StoredResult result, 
+        string? result, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -325,17 +318,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET status = {(int) Status.Succeeded}, result_json = $1, result_type = $2, default_state = $3, timestamp = $4
+            SET status = {(int) Status.Succeeded}, result_json = $1, default_state = $2, timestamp = $3
             WHERE 
-                function_type_id = $5 AND 
-                function_instance_id = $6 AND 
-                epoch = $7";
+                function_type_id = $4 AND 
+                function_instance_id = $5 AND 
+                epoch = $6";
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = result.ResultJson ?? (object) DBNull.Value },
-                new() { Value = result.ResultType ?? (object) DBNull.Value },
+                new() { Value = result == null ? DBNull.Value : result },
                 new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = functionId.TypeId.Value },
@@ -469,26 +461,24 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     public async Task<bool> SetParameters(
         FunctionId functionId,
-        StoredParameter storedParameter, StoredResult storedResult,
+        string? param, string? result,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
         
         var sql = $@"
             UPDATE {_tablePrefix}rfunctions
-            SET param_json = $1, param_type = $2,             
-                result_json = $3, result_type = $4,
+            SET param_json = $1,             
+                result_json = $2, 
                 epoch = epoch + 1
-            WHERE function_type_id = $5 AND function_instance_id = $6 AND epoch = $7";
+            WHERE function_type_id = $3 AND function_instance_id = $4 AND epoch = $5";
         
         var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() { Value = storedParameter.ParamJson },
-                new() { Value = storedParameter.ParamType },
-                new() { Value = storedResult.ResultJson ?? (object) DBNull.Value },
-                new() { Value = storedResult.ResultType ?? (object) DBNull.Value },
+                new() { Value = param ?? (object) DBNull.Value },
+                new() { Value = result ?? (object) DBNull.Value },
                 new() { Value = functionId.TypeId.Value },
                 new() { Value = functionId.InstanceId.Value },
                 new() { Value = expectedEpoch },
@@ -571,11 +561,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         var sql = $@"
             SELECT               
-                param_json, 
-                param_type,
+                param_json,             
                 status,
-                result_json, 
-                result_type,
+                result_json,         
                 default_state,
                 exception_json,
                 postponed_until,
@@ -600,41 +588,37 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private async Task<StoredFunction?> ReadToStoredFunction(FunctionId functionId, NpgsqlDataReader reader)
     {
         /*
-           0  param_json, 
-           1  param_type,
-           2  status,
-           3  result_json, 
-           4  result_type,
-           5  default_state
-           6  exception_json,
-           7  postponed_until,
-           8  epoch, 
-           9  lease_expiration,
-           10 interrupt_count,
-           11 timestamp
+           0  param_json,         
+           1  status,
+           2  result_json,         
+           3  default_state
+           4  exception_json,
+           5  postponed_until,
+           6  epoch, 
+           7  lease_expiration,
+           8 interrupt_count,
+           9 timestamp
          */
         while (await reader.ReadAsync())
         {
-            var hasResult = !await reader.IsDBNullAsync(4);
-            var hasDefaultState = !await reader.IsDBNullAsync(5);
-            var hasException = !await reader.IsDBNullAsync(6);
-            var postponedUntil = !await reader.IsDBNullAsync(7);
+            var hasParameter = !await reader.IsDBNullAsync(0);
+            var hasResult = !await reader.IsDBNullAsync(2);
+            var hasDefaultState = !await reader.IsDBNullAsync(3);
+            var hasException = !await reader.IsDBNullAsync(4);
+            var postponedUntil = !await reader.IsDBNullAsync(5);
             
             return new StoredFunction(
                 functionId,
-                new StoredParameter(reader.GetString(0), reader.GetString(1)),
-                Status: (Status) reader.GetInt32(2),
-                Result: new StoredResult(
-                    hasResult ? reader.GetString(3) : null, 
-                    hasResult ? reader.GetString(4) : null
-                ),
-                DefaultState: hasDefaultState ? reader.GetString(5) : null,
-                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(6)),
-                PostponedUntil: postponedUntil ? reader.GetInt64(7) : null,
-                Epoch: reader.GetInt32(8),
-                LeaseExpiration: reader.GetInt64(9),
-                InterruptCount: reader.GetInt64(10),
-                Timestamp: reader.GetInt64(11)
+                hasParameter ? reader.GetString(0) : null,
+                Status: (Status) reader.GetInt32(1),
+                Result: hasResult ? reader.GetString(2) : null, 
+                DefaultState: hasDefaultState ? reader.GetString(3) : null,
+                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(4)),
+                PostponedUntil: postponedUntil ? reader.GetInt64(5) : null,
+                Epoch: reader.GetInt32(6),
+                LeaseExpiration: reader.GetInt64(7),
+                InterruptCount: reader.GetInt64(8),
+                Timestamp: reader.GetInt64(9)
             );
         }
 

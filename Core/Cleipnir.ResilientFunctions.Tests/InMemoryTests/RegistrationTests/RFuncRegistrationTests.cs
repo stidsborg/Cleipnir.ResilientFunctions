@@ -59,23 +59,23 @@ public class RFuncRegistrationTests
         public bool Invoked { get; set; }
         private ISerializer Default { get; } = DefaultSerializer.Instance;
         
-        public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull
+        public string SerializeParameter<TParam>(TParam parameter) 
         {
             Invoked = true;
             return Default.SerializeParameter(parameter);
         }
-        public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
-            => Default.DeserializeParameter<TParam>(json, type);
+        public TParam DeserializeParameter<TParam>(string json) 
+            => Default.DeserializeParameter<TParam>(json);
 
         public StoredException SerializeException(Exception exception)
             => Default.SerializeException(exception);
         public PreviouslyThrownException DeserializeException(StoredException storedException)
             => Default.DeserializeException(storedException);
 
-        public StoredResult SerializeResult<TResult>(TResult result)
+        public string SerializeResult<TResult>(TResult result)
             => Default.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(string json, string type) 
-            => Default.DeserializeResult<TResult>(json, type);
+        public TResult DeserializeResult<TResult>(string json) 
+            => Default.DeserializeResult<TResult>(json);
 
         public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
             => Default.SerializeMessage(message);

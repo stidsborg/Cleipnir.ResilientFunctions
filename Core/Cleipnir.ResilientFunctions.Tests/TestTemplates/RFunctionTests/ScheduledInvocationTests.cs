@@ -29,7 +29,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -54,7 +54,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -79,7 +79,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -104,7 +104,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter.DefaultDeserialize().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 }

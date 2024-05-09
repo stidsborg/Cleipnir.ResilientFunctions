@@ -39,7 +39,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         FunctionId functionId,
-        StoredParameter param,
+        string? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -74,8 +74,8 @@ public class CrashableFunctionStore : IFunctionStore
             : _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);
 
     public Task<bool> SetFunctionState(
-        FunctionId functionId, Status status, StoredParameter storedParameter,
-        StoredResult storedResult, StoredException? storedException, 
+        FunctionId functionId, Status status, string? storedParameter,
+        string? storedResult, StoredException? storedException, 
         long? postponeUntil, 
         int expectedEpoch
     ) => _crashed
@@ -89,7 +89,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task<bool> SucceedFunction(
         FunctionId functionId,
-        StoredResult result,
+        string? result,
         string? defaultState,
         long timestamp,
         int expectedEpoch,
@@ -143,7 +143,7 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.SetDefaultState(functionId, stateJson);
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredResult storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, string? storedParameter, string? storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(functionId, storedParameter, storedResult, expectedEpoch);

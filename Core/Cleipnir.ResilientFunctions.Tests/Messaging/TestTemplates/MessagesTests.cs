@@ -293,21 +293,21 @@ public abstract class MessagesTests
         public ExceptionThrowingEventSerializer(Type failDeserializationOnType) 
             => _failDeserializationOnType = failDeserializationOnType;
 
-        public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull 
+        public string SerializeParameter<TParam>(TParam parameter) 
             => DefaultSerializer.Instance.SerializeParameter(parameter);
 
-        public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
-            => DefaultSerializer.Instance.DeserializeParameter<TParam>(json, type);
+        public TParam DeserializeParameter<TParam>(string json)
+            => DefaultSerializer.Instance.DeserializeParameter<TParam>(json);
 
         public StoredException SerializeException(Exception exception)
             => DefaultSerializer.Instance.SerializeException(exception);
         public PreviouslyThrownException DeserializeException(StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(storedException);
 
-        public StoredResult SerializeResult<TResult>(TResult result)
+        public string SerializeResult<TResult>(TResult result)
             => DefaultSerializer.Instance.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(string json, string type)
-            => DefaultSerializer.Instance.DeserializeResult<TResult>(json, type);
+        public TResult DeserializeResult<TResult>(string json)
+            => DefaultSerializer.Instance.DeserializeResult<TResult>(json);
 
         public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
             => DefaultSerializer.Instance.SerializeMessage(message);

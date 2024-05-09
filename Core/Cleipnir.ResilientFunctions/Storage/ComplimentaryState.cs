@@ -2,4 +2,4 @@
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public record ComplimentaryState(Func<StoredParameter> StoredParameterFunc, long LeaseLength);
+public record ComplimentaryState(Func<string?> StoredParameterFunc, long LeaseLength);

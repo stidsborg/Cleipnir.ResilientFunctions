@@ -61,11 +61,9 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE TABLE {_tablePrefix}RFunctions (
                 FunctionTypeId NVARCHAR(200) NOT NULL,
                 FunctionInstanceId NVARCHAR(200) NOT NULL,
-                ParamJson NVARCHAR(MAX) NOT NULL,
-                ParamType NVARCHAR(255) NOT NULL,            
+                ParamJson NVARCHAR(MAX) NULL,                        
                 Status INT NOT NULL,
                 ResultJson NVARCHAR(MAX) NULL,
-                ResultType NVARCHAR(255) NULL,
                 DefaultStateJson NVARCHAR(MAX) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,
                 PostponedUntil BIGINT NULL,            
@@ -119,7 +117,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
-        StoredParameter param, 
+        string? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -131,7 +129,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var sql = @$"
                 INSERT INTO {_tablePrefix}RFunctions(
                     FunctionTypeId, FunctionInstanceId, 
-                    ParamJson, ParamType, 
+                    ParamJson, 
                     Status,
                     Epoch, 
                     LeaseExpiration,
@@ -139,7 +137,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     Timestamp)
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
-                    @ParamJson, @ParamType,  
+                    @ParamJson,   
                     {(int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                     0, 
                     @LeaseExpiration,
@@ -151,8 +149,7 @@ public class SqlServerFunctionStore : IFunctionStore
             
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-            command.Parameters.AddWithValue("@ParamJson", param.ParamJson);
-            command.Parameters.AddWithValue("@ParamType", param.ParamType);
+            command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
             command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
             command.Parameters.AddWithValue("@PostponeUntil", postponeUntil == null ? DBNull.Value : postponeUntil.Value);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
@@ -177,9 +174,9 @@ public class SqlServerFunctionStore : IFunctionStore
                 LeaseExpiration = @LeaseExpiration
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch;
 
-            SELECT ParamJson, ParamType,                
+            SELECT ParamJson,                
                    Status,
-                   ResultJson, ResultType,
+                   ResultJson, 
                    DefaultStateJson,
                    ExceptionJson,
                    PostponedUntil,
@@ -289,7 +286,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredResult storedResult, 
+        string? param, string? result, 
         StoredException? storedException, 
         long? postponeUntil,
         int expectedEpoch)
@@ -300,8 +297,8 @@ public class SqlServerFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}RFunctions
             SET
                 Status = @Status,
-                ParamJson = @ParamJson, ParamType = @ParamType,            
-                ResultJson = @ResultJson, ResultType = @ResultType,
+                ParamJson = @ParamJson,             
+                ResultJson = @ResultJson,
                 ExceptionJson = @ExceptionJson,
                 PostponedUntil = @PostponedUntil,
                 Epoch = Epoch + 1
@@ -311,10 +308,8 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Status", (int) status);
-        command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
-        command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
-        command.Parameters.AddWithValue("@ResultJson", storedResult?.ResultJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ResultType", storedResult?.ResultType ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
+        command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
         var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
         command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@PostponedUntil", postponeUntil ?? (object) DBNull.Value);
@@ -328,7 +323,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> SucceedFunction(
         FunctionId functionId, 
-        StoredResult result, 
+        string? result, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -338,14 +333,13 @@ public class SqlServerFunctionStore : IFunctionStore
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, ResultType = @ResultType, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
             AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ResultJson", result.ResultJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ResultType", result.ResultType ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
         command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
@@ -464,23 +458,21 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task<bool> SetParameters(
         FunctionId functionId,
-        StoredParameter storedParameter, StoredResult storedResult,
+        string? param, string? result,
         int expectedEpoch)
     {
         await using var conn = await _connFunc();
         
         var sql = @$"
             UPDATE {_tablePrefix}RFunctions
-            SET ParamJson = @ParamJson, ParamType = @ParamType, 
-                ResultJson = @ResultJson, ResultType = @ResultType,
+            SET ParamJson = @ParamJson,  
+                ResultJson = @ResultJson,
                 Epoch = Epoch + 1
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ParamJson", storedParameter.ParamJson);
-        command.Parameters.AddWithValue("@ParamType", storedParameter.ParamType);
-        command.Parameters.AddWithValue("@ResultJson", storedResult.ResultJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@ResultType", storedResult.ResultType ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
+        command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -550,9 +542,9 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            SELECT  ParamJson, ParamType,
+            SELECT  ParamJson, 
                     Status,
-                    ResultJson, ResultType,
+                    ResultJson, 
                     DefaultStateJson,
                     ExceptionJson,
                     PostponedUntil,
@@ -578,28 +570,26 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             while (reader.Read())
             {
-                var paramJson = reader.GetString(0);
-                var paramType = reader.GetString(1);
-                var status = (Status) reader.GetInt32(2);
-                var resultJson = reader.IsDBNull(3) ? null : reader.GetString(3);
-                var resultType = reader.IsDBNull(4) ? null : reader.GetString(4);
-                var defaultStateJson = reader.IsDBNull(5) ? null : reader.GetString(5);
-                var exceptionJson = reader.IsDBNull(6) ? null : reader.GetString(6);
+                var parameter = reader.IsDBNull(0) ? null : reader.GetString(0);
+                var status = (Status) reader.GetInt32(1);
+                var result = reader.IsDBNull(2) ? null : reader.GetString(2);
+                var defaultStateJson = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var exceptionJson = reader.IsDBNull(4) ? null : reader.GetString(4);
                 var storedException = exceptionJson == null
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
-                var postponedUntil = reader.IsDBNull(7) ? default(long?) : reader.GetInt64(7);
-                var epoch = reader.GetInt32(8);
-                var leaseExpiration = reader.GetInt64(9);
-                var interruptCount = reader.GetInt64(10);
-                var timestamp = reader.GetInt64(11);
+                var postponedUntil = reader.IsDBNull(5) ? default(long?) : reader.GetInt64(5);
+                var epoch = reader.GetInt32(6);
+                var leaseExpiration = reader.GetInt64(7);
+                var interruptCount = reader.GetInt64(8);
+                var timestamp = reader.GetInt64(9);
 
                 return new StoredFunction(
                     functionId,
-                    new StoredParameter(paramJson, paramType),
+                    parameter,
                     defaultStateJson,
                     status,
-                    new StoredResult(resultJson, resultType),
+                    result,
                     storedException,
                     postponedUntil,
                     epoch,

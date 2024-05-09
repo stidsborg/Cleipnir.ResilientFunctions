@@ -95,7 +95,7 @@ public class RFunctionsShutdownTests
 
         await store.CreateFunction(
             functionId,
-            new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName()),
+            param: "".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -140,7 +140,7 @@ public class RFunctionsShutdownTests
         var store = new InMemoryFunctionStore();
         var functionId = new FunctionId("someFunctionType", "someFunctionInstanceId");
 
-        var storedParameter = new StoredParameter("".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedParameter = "".ToJson();
         
         await store.CreateFunction(
             functionId,

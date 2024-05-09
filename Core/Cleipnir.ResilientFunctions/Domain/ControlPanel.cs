@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanel<TParam> where TParam : notnull 
+public class ControlPanel<TParam>  
 {
     private readonly Invoker<TParam, Unit> _invoker;
     private readonly InvocationHelper<TParam, Unit> _invocationHelper;
@@ -155,7 +155,7 @@ public class ControlPanel<TParam> where TParam : notnull
         Status = sf.Status;
         Epoch = sf.Epoch;
         LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
-        Param = sf.Param;
+        Param = sf.Param!;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _changed = false;
@@ -331,7 +331,7 @@ public class ControlPanel<TParam, TReturn> where TParam : notnull
         Status = sf.Status;
         Epoch = sf.Epoch;
         LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
-        Param = sf.Param;
+        Param = sf.Param!;
         Result = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;

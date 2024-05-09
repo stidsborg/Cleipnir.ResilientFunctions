@@ -163,7 +163,7 @@ public abstract class ScheduleReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -218,7 +218,7 @@ public abstract class ScheduleReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         var states = await store.StatesStore.GetStates(functionId);
         var state = states.Single(e => e.StateId == "State").StateJson.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");

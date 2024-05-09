@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -11,7 +10,6 @@ using Cleipnir.ResilientFunctions.Storage;
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 internal class InvocationHelper<TParam, TReturn> 
-    where TParam : notnull 
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
@@ -75,13 +73,13 @@ internal class InvocationHelper<TParam, TReturn>
             switch (storedFunction.Status)
             {
                 case Status.Executing:
-                    await Task.Delay(100);
+                    await Task.Delay(250);
                     continue;
                 case Status.Succeeded:
                     return 
-                        storedFunction.Result.ResultType == default 
-                            ? default! 
-                            : storedFunction.Result.Deserialize<TReturn>(Serializer)!;
+                        storedFunction.Result == null 
+                            ? default!
+                            : _settings.Serializer.DeserializeResult<TReturn>(storedFunction.Result);
                 case Status.Failed:
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
                     throw new PreviousFunctionInvocationException(functionId, error);
@@ -136,7 +134,9 @@ internal class InvocationHelper<TParam, TReturn>
             case Outcome.Succeed:
                 return await _functionStore.SucceedFunction(
                     functionId,
-                    result: Serializer.SerializeResult(result.SucceedWithValue),
+                    result: result.SucceedWithValue == null 
+                        ? null 
+                        : Serializer.SerializeResult(result.SucceedWithValue),
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
@@ -223,8 +223,10 @@ internal class InvocationHelper<TParam, TReturn>
                 throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{expectedEpoch}'");
 
             expectedEpoch = sf.Epoch;
-            
-            var param = Serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType);
+
+            var param = sf.Parameter == null 
+                ? default 
+                : Serializer.DeserializeParameter<TParam>(sf.Parameter);                
             
             return new PreparedReInvocation(param, sf.Epoch, sf.DefaultState, runningFunction);
         }
@@ -255,7 +257,7 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam Param, int Epoch, string? DefaultState, IDisposable RunningFunction);
+    internal record PreparedReInvocation(TParam? Param, int Epoch, string? DefaultState, IDisposable RunningFunction);
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
@@ -273,8 +275,8 @@ internal class InvocationHelper<TParam, TReturn>
         return await _functionStore.SetFunctionState(
             functionId,
             status,
-            storedParameter: serializer.SerializeParameter(param),
-            storedResult: StoredResult.Null,
+            param: serializer.SerializeParameter(param),
+            result: null,
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
             expectedEpoch
@@ -295,8 +297,8 @@ internal class InvocationHelper<TParam, TReturn>
         return await _functionStore.SetFunctionState(
             functionId,
             status,
-            storedParameter: serializer.SerializeParameter(param),
-            storedResult: result == null ? StoredResult.Null : serializer.SerializeResult(result),
+            param: serializer.SerializeParameter(param),
+            result: result == null ? null : serializer.SerializeResult(result),
             exception == null ? null : serializer.SerializeException(exception),
             postponeUntil?.Ticks,
             expectedEpoch
@@ -312,8 +314,8 @@ internal class InvocationHelper<TParam, TReturn>
         var serializer = _settings.Serializer;
         return await _functionStore.SetParameters(
             functionId,
-            storedParameter: serializer.SerializeParameter(param),
-            storedResult: serializer.SerializeResult(@return),
+            param: serializer.SerializeParameter(param),
+            result: serializer.SerializeResult(@return),
             expectedEpoch
         );
     }
@@ -336,10 +338,13 @@ internal class InvocationHelper<TParam, TReturn>
             sf.Status,
             sf.Epoch,
             sf.LeaseExpiration,
-            Param: serializer.DeserializeParameter<TParam>(sf.Parameter.ParamJson, sf.Parameter.ParamType),
-            Result: sf.Result.ResultType == null 
+            Param:
+                sf.Parameter == null 
+                ? default
+                : serializer.DeserializeParameter<TParam>(sf.Parameter),
+            Result: sf.Result == null 
                 ? default 
-                : serializer.DeserializeResult<TReturn>(sf.Result.ResultJson!, sf.Result.ResultType),
+                : serializer.DeserializeResult<TReturn>(sf.Result),
             sf.DefaultState,
             PostponedUntil: sf.PostponedUntil == null ? null : new DateTime(sf.PostponedUntil.Value),
             PreviouslyThrownException: sf.Exception == null 

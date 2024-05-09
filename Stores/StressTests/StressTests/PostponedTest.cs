@@ -23,10 +23,7 @@ public static class PostponedTest
         Console.WriteLine("POSTPONED_TEST: Initializing");
         for (var i = 0; i < testSize; i++)
         {
-            var storedParameter = new StoredParameter(
-                ParamJson: JsonSerializer.Serialize("hello world"),
-                ParamType: typeof(string).SimpleQualifiedName()
-            );
+            var storedParameter = JsonSerializer.Serialize("hello world");
             var functionId = new FunctionId(nameof(PostponedTest), i.ToString());
             await store.CreateFunction(
                 functionId,

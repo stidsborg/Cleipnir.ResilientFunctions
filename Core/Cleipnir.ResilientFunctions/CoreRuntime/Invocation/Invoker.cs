@@ -10,7 +10,6 @@ using Cleipnir.ResilientFunctions.Messaging;
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class Invoker<TParam, TReturn> 
-    where TParam : notnull 
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Func<TParam, Workflow, Task<Result<TReturn>>> _inner;
@@ -213,7 +212,7 @@ public class Invoker<TParam, TReturn>
 
             return new PreparedReInvocation(
                 _inner,
-                param,
+                param!, //todo implement param null case 
                 workflow,
                 epoch,
                 Disposable.Combine(disposables)
@@ -225,7 +224,14 @@ public class Invoker<TParam, TReturn>
             throw;
         }
     }
-    private record PreparedReInvocation(Func<TParam, Workflow, Task<Result<TReturn>>> Inner, TParam Param, Workflow Workflow, int Epoch, IDisposable Disposables);
+
+    private record PreparedReInvocation(
+        Func<TParam, Workflow, Task<Result<TReturn>>> Inner,
+        TParam Param,
+        Workflow Workflow,
+        int Epoch,
+        IDisposable Disposables
+    );
 
     private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, Workflow workflow, int expectedEpoch = 0)
         => await _invocationHelper.PersistFailure(functionId, exception, param, workflow.States.SerializeDefaultState(), expectedEpoch);

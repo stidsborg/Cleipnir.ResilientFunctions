@@ -48,7 +48,7 @@ public abstract class SunshineTests
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldNotBeNull();
-        var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
+        var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
@@ -87,7 +87,7 @@ public abstract class SunshineTests
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldNotBeNull();
-        var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
+        var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();

@@ -132,8 +132,8 @@ public abstract class ReInvocationTests
             )
         );
 
-        var syncedParam = new Synced<object>();
-        var rAction = functionsRegistry.RegisterAction<object>(
+        var syncedParam = new Synced<string>();
+        var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,
             param =>
             {
@@ -153,13 +153,13 @@ public abstract class ReInvocationTests
         
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
-        controlPanel.Param = 10;
+        controlPanel.Param = "something_else";
         await controlPanel.SaveChanges();
        
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
         
-        syncedParam.Value.ShouldBe(10);
+        syncedParam.Value.ShouldBe("something_else");
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
@@ -180,16 +180,18 @@ public abstract class ReInvocationTests
             )
         );
 
-        
-        var rAction = functionsRegistry.RegisterAction<object>(
+        var syncedValue = new Synced<string>();
+        var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,
-            (p, workflow) =>
+            (param, workflow) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
                     throw new Exception("oh no");
                 }
+                
+                syncedValue.Value = param;
             }
         );
 
@@ -199,11 +201,13 @@ public abstract class ReInvocationTests
 
         var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
-        controlPanel.Param = 10;
+        controlPanel.Param = "something_else";
         await controlPanel.SaveChanges();
        
         controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
         await controlPanel.ReInvoke();
+        
+        syncedValue.Value.ShouldBe("something_else");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -247,7 +251,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -301,7 +305,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result.ResultJson!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         await controlPanel.Refresh();
         var state = controlPanel.States.Get<ListState<string>>("State");
         state!.List.Single().ShouldBe("world");

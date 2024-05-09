@@ -26,7 +26,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         FunctionId functionId, 
-        StoredParameter param, 
+        string? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -49,7 +49,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
-        StoredParameter storedParameter, StoredResult storedResult, 
+        string? storedParameter, string? storedResult, 
         StoredException? storedException, 
         long? postponeUntil, 
         int expectedEpoch
@@ -57,7 +57,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> SucceedFunction(
         FunctionId functionId, 
-        StoredResult result, 
+        string? result, 
         string? defaultState, 
         long timestamp, 
         int expectedEpoch, 
@@ -94,7 +94,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task SetDefaultState(FunctionId functionId, string? stateJson)
         => _inner.SetDefaultState(functionId, stateJson); 
 
-    public Task<bool> SetParameters(FunctionId functionId, StoredParameter storedParameter, StoredResult storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(FunctionId functionId, string? storedParameter, string? storedResult, int expectedEpoch)
         => _inner.SetParameters(functionId, storedParameter, storedResult, expectedEpoch);
     
     public Task<bool> IncrementInterruptCount(FunctionId functionId)

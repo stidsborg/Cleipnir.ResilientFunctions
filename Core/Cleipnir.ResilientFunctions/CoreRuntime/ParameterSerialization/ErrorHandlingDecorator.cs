@@ -1,5 +1,6 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using static Cleipnir.ResilientFunctions.Helpers.Helpers;
 
@@ -11,15 +12,15 @@ public class ErrorHandlingDecorator : ISerializer
 
     public ErrorHandlingDecorator(ISerializer inner) => _inner = inner;
     
-    public StoredParameter SerializeParameter<TParam>(TParam parameter) where TParam : notnull 
+    public string SerializeParameter<TParam>(TParam parameter) 
         => _inner.SerializeParameter(parameter);
-    public TParam DeserializeParameter<TParam>(string json, string type) where TParam : notnull
+    public TParam DeserializeParameter<TParam>(string json) 
     {
         try
         {
-            return _inner.DeserializeParameter<TParam>(json, type)
+            return _inner.DeserializeParameter<TParam>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized parameter was null with type: '{type}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized parameter was null for type '{typeof(TParam).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -30,7 +31,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize parameter with type: '{type}' and json: '{MinifyJson(json)}'", 
+                $"Unable to deserialize parameter with type: '{typeof(TParam).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
                 e
             );
         }
@@ -57,15 +58,15 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public StoredResult SerializeResult<TResult>(TResult result)
+    public string SerializeResult<TResult>(TResult result) 
         => _inner.SerializeResult(result);
-    public TResult DeserializeResult<TResult>(string json, string type)
+    public TResult DeserializeResult<TResult>(string json) 
     {
         try
         {
-            return _inner.DeserializeResult<TResult>(json, type)
+            return _inner.DeserializeResult<TResult>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized result was null with type: '{type}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized result was null with type: '{typeof(TResult).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -76,7 +77,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize result with type: '{type}' and json: '{MinifyJson(json)}'", 
+                $"Unable to deserialize result with type: '{typeof(TResult).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
                 e
             );
         }

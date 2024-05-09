@@ -40,7 +40,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
-            var storedResult = storedFunction.Result.Deserialize<string>(_serializer);
+            var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
             storedResult.ShouldBe("HELLO");
             var effects = await store.EffectsStore.GetEffectResults(functionId);
             effects

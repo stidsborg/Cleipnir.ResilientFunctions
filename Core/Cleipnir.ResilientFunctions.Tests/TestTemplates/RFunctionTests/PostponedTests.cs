@@ -330,7 +330,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -351,7 +351,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -415,7 +415,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(), 
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -436,7 +436,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -504,7 +504,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -523,7 +523,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -590,7 +590,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -610,7 +610,7 @@ public abstract class PostponedTests
             var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName()),
+                param: "hello".ToJson(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -640,7 +640,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
 
-        var storedParameter = new StoredParameter("hello".ToJson(), typeof(string).SimpleQualifiedName());
+        var storedParameter = "hello".ToJson();
         
         await store.CreateFunction(
             functionId,

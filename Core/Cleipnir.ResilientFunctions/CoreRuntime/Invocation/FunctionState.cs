@@ -8,9 +8,9 @@ public record FunctionState<TParam, TReturn>(
     Status Status,
     int Epoch,
     long LeaseExpiration,
-    TParam Param, 
+    TParam? Param, 
     TReturn? Result,
     string? DefaultState,
     DateTime? PostponedUntil,
     PreviouslyThrownException? PreviouslyThrownException
-) where TParam : notnull;
+);

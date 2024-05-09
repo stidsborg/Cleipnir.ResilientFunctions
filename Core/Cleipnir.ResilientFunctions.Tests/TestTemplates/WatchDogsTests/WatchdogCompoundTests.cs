@@ -123,7 +123,7 @@ public abstract class WatchdogCompoundTests
             );
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result.DefaultDeserialize()!.CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
+            storedFunction!.Result!.DeserializeFromJsonTo<string>().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
 
@@ -255,9 +255,7 @@ public abstract class WatchdogCompoundTests
             );
 
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result.DefaultDeserialize()!
-                .CastTo<string>()
-                .ShouldBe($"{param.Id}-{param.Value}");
+            storedFunction!.Result!.DeserializeFromJsonTo<string>().ShouldBe($"{param.Id}-{param.Value}");
             var states = await store.StatesStore.GetStates(functionId);
             states.Single(e => e.StateId == "Scraps")
                 .StateJson
@@ -383,7 +381,6 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
         }
     }
     
@@ -518,7 +515,6 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            storedFunction!.Result.ResultType.ShouldBe(typeof(Unit).SimpleQualifiedName());
             var states = await store.StatesStore.GetStates(functionId);
             states.Single(e => e.StateId == "Scraps")
                 .StateJson
@@ -526,11 +522,6 @@ public abstract class WatchdogCompoundTests
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});
         }
-    }
-
-    private class WorkflowState : Domain.WorkflowState
-    {
-        public List<int> Scraps { get; set; } = new();
     }
     
     private record Param(string Id, int Value);
