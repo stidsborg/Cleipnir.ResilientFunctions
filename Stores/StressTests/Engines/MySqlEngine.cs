@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 public class MySqlEngine : IEngine
 {
     private const string ConnectionString 
-        = "server=localhost;userid=root;password=Pa55word!;database=rfunctions_tests;SSL Mode=None";
+        = "server=localhost;userid=root;password=Pa55word!;AllowPublicKeyRetrieval=True;database=rfunctions_tests;";
 
     public async Task RecreateDatabase()
     {

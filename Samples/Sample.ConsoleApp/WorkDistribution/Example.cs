@@ -20,7 +20,7 @@ public static class Example
         await postgresStore.DropIfExists();
         var sqlServerStore = new SqlServerFunctionStore("Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;Max Pool Size=200;");
         await sqlServerStore.DropIfExists();
-        var mySqlStore = new MySqlFunctionStore("server=localhost;userid=root;password=Pa55word!;database=rfunctions;SSL Mode=None");
+        var mySqlStore = new MySqlFunctionStore("server=localhost;userid=root;password=Pa55word!;database=rfunctions;AllowPublicKeyRetrieval=True;");
         await mySqlStore.DropIfExists();
         
         Console.WriteLine();
