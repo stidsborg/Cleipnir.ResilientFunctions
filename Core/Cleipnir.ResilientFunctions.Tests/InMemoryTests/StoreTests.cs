@@ -11,6 +11,10 @@ public class StoreTests : TestTemplates.StoreTests
         => SunshineScenarioTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task NullParamScenarioTest()
+        => NullParamScenarioTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task LeaseIsUpdatedWhenAsExpected() 
         => LeaseIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
 

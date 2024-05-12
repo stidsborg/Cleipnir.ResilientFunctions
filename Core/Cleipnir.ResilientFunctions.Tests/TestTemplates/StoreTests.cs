@@ -73,6 +73,27 @@ public abstract class StoreTests
         storedFunction.Result.ShouldNotBeNull();
         storedFunction.Result.DeserializeFromJsonTo<string>().ShouldBe(result);
     }
+    
+    public abstract Task NullParamScenarioTest();
+    protected async Task NullParamScenarioTest(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestFunctionId.Create();
+        
+        var store = await storeTask;
+        var leaseExpiration = DateTime.UtcNow.Ticks;
+        var timestamp = leaseExpiration + 1;
+        await store.CreateFunction(
+            functionId,
+            param: null,
+            leaseExpiration,
+            postponeUntil: null,
+            timestamp
+        ).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Parameter.ShouldBeNull();
+    }
 
     public abstract Task LeaseIsUpdatedWhenAsExpected();
     protected async Task LeaseIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
