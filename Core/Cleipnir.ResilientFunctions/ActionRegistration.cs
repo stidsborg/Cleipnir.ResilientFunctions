@@ -19,7 +19,7 @@ public static class ActionRegistration
 
 public class ActionRegistration<TParam> where TParam : notnull
 {
-    private readonly ControlPanels<TParam> _controlPanels;
+    private readonly ControlPanelFactory<TParam> _controlPanelFactory;
     public FunctionTypeId TypeId { get; }
     
     public ActionRegistration.Invoke<TParam> Invoke { get; }
@@ -33,7 +33,7 @@ public class ActionRegistration<TParam> where TParam : notnull
         ActionRegistration.Invoke<TParam> invoke,
         ActionRegistration.Schedule<TParam> schedule,
         ActionRegistration.ScheduleAt<TParam> scheduleAt,
-        ControlPanels<TParam> controlPanels, 
+        ControlPanelFactory<TParam> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
     {
@@ -42,13 +42,13 @@ public class ActionRegistration<TParam> where TParam : notnull
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;
-        _controlPanels = controlPanels;
+        _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
         _stateFetcher = stateFetcher;
     }
 
     public Task<ControlPanel<TParam>?> ControlPanel(FunctionInstanceId functionInstanceId)
-        => _controlPanels.For(functionInstanceId);
+        => _controlPanelFactory.Create(functionInstanceId);
 
     public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null)
         where TState : WorkflowState, new()

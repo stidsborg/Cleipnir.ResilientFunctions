@@ -4,20 +4,20 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanels<TParam> where TParam : notnull 
+public class ControlPanelFactory<TParam> where TParam : notnull 
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly Invoker<TParam, Unit> _invoker;
     private readonly InvocationHelper<TParam, Unit> _invocationHelper;
 
-    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper)
+    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _functionTypeId = functionTypeId;
     }
     
-    public async Task<ControlPanel<TParam>?> For(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel<TParam>?> Create(FunctionInstanceId functionInstanceId)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var functionState = await _invocationHelper.GetFunction(functionId);
@@ -42,23 +42,20 @@ public class ControlPanels<TParam> where TParam : notnull
     }
 }
 
-public class ControlPanels<TParam, TReturn> where TParam : notnull
+public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
 {
-    public delegate Task<TReturn> ReInvoke(string functionInstanceId, int expectedEpoch);
-    public delegate Task ScheduleReInvoke(string functionInstanceId, int expectedEpoch);
-    
     private readonly FunctionTypeId _functionTypeId;
     private readonly Invoker<TParam, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
 
-    internal ControlPanels(FunctionTypeId functionTypeId, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper)
+    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _functionTypeId = functionTypeId;
     }
 
-    public async Task<ControlPanel<TParam, TReturn>?> For(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel<TParam, TReturn>?> Create(FunctionInstanceId functionInstanceId)
     {
         var functionId = new FunctionId(_functionTypeId, functionInstanceId);
         var f = await _invocationHelper.GetFunction(functionId);

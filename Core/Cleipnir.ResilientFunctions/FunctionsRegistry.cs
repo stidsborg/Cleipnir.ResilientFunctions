@@ -244,7 +244,7 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanels = new ControlPanels<TParam, TReturn>(
+            var controlPanels = new ControlPanelFactory<TParam, TReturn>(
                 functionTypeId,
                 rFuncInvoker,
                 invocationHelper
@@ -297,7 +297,7 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator
             );
 
-            var controlPanels = new ControlPanels<TParam>(
+            var controlPanels = new ControlPanelFactory<TParam>(
                 functionTypeId,
                 rActionInvoker,
                 invocationHelper

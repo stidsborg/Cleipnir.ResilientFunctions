@@ -31,7 +31,7 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
     public FuncRegistration.Invoke<TParam, TReturn> Invoke { get; }
     public FuncRegistration.Schedule<TParam> Schedule { get; }
     public FuncRegistration.ScheduleAt<TParam> ScheduleAt { get; }
-    private readonly ControlPanels<TParam,TReturn> _controlPanels;
+    private readonly ControlPanelFactory<TParam,TReturn> _controlPanelFactory;
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
 
@@ -40,7 +40,7 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         FuncRegistration.Invoke<TParam, TReturn> invoke,
         FuncRegistration.Schedule<TParam> schedule,
         FuncRegistration.ScheduleAt<TParam> scheduleAt,
-        ControlPanels<TParam, TReturn> controlPanel, 
+        ControlPanelFactory<TParam, TReturn> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
     {
@@ -50,13 +50,13 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         Schedule = schedule;
         ScheduleAt = scheduleAt;
 
-        _controlPanels = controlPanel;
+        _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
         _stateFetcher = stateFetcher;
     }
 
     public Task<ControlPanel<TParam, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
-        => _controlPanels.For(functionInstanceId);
+        => _controlPanelFactory.Create(functionInstanceId);
 
     public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null) 
         where TState : WorkflowState, new()
