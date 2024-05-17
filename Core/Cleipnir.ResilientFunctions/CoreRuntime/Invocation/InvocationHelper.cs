@@ -14,21 +14,15 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
-    private readonly Func<FunctionId, MessageWriter?> _messageWriterFunc;
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(
-        SettingsWithDefaults settings,
-        IFunctionStore functionStore,
-        ShutdownCoordinator shutdownCoordinator, 
-        Func<FunctionId, MessageWriter> messageWriterFunc)
+    public InvocationHelper(SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
     {
         _settings = settings;
 
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
-        _messageWriterFunc = messageWriterFunc;
         _functionStore = functionStore;
     }
 
@@ -261,27 +255,6 @@ internal class InvocationHelper<TParam, TReturn>
 
     public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
-
-    public async Task<bool> SetFunctionState(
-        FunctionId functionId,
-        Status status,
-        TParam param,
-        DateTime? postponeUntil,
-        Exception? exception,
-        int expectedEpoch
-    )
-    {
-        var serializer = _settings.Serializer;
-        return await _functionStore.SetFunctionState(
-            functionId,
-            status,
-            param: serializer.SerializeParameter(param),
-            result: null,
-            exception == null ? null : serializer.SerializeException(exception),
-            postponeUntil?.Ticks,
-            expectedEpoch
-        );
-    }
     
     public async Task<bool> SetFunctionState(
         FunctionId functionId,

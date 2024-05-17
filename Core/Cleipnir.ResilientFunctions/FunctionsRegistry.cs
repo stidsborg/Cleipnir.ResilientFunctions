@@ -226,7 +226,7 @@ public class FunctionsRegistry : IDisposable
                 return (FuncRegistration<TParam, TReturn>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
+            var invocationHelper = new InvocationHelper<TParam, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TParam, TReturn>(
                 functionTypeId, 
                 inner,
@@ -279,7 +279,7 @@ public class FunctionsRegistry : IDisposable
                 return (ActionRegistration<TParam>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator, GetMessageWriter);
+            var invocationHelper = new InvocationHelper<TParam, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rActionInvoker = new Invoker<TParam, Unit>(
                 functionTypeId, 
                 inner, 
