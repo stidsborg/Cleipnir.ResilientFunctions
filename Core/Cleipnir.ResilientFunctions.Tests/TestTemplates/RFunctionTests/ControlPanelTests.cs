@@ -1363,8 +1363,7 @@ public abstract class ControlPanelTests
         {
             var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
             controlPanel.Result.ShouldBe("param");
-            controlPanel.Result = "changed";
-            await controlPanel.SaveChanges();
+            await controlPanel.Succeed("changed");
         }
         
         {
