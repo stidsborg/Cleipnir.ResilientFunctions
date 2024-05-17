@@ -312,6 +312,39 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task SucceedingExistingParamlessFromControlPanelSucceeds();
+    protected async Task SucceedingExistingParamlessFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        var paramlessRegistration = functionsRegistry.RegisterParamless(
+            functionTypeId,
+            inner: () => throw new Exception("oh no")
+        );
+        
+        await Should.ThrowAsync<Exception>(() => paramlessRegistration.Invoke(functionInstanceId.Value));
+
+        var controlPanel = await paramlessRegistration.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        controlPanel.Status.ShouldBe(Status.Failed);
+        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+
+        await controlPanel.Succeed();
+
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     public abstract Task SucceedingExistingFunctionFromControlPanelSucceeds();
     protected async Task SucceedingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {

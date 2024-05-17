@@ -9,9 +9,40 @@ namespace Cleipnir.ResilientFunctions.InnerAdapters;
 
 internal static class InnerToAsyncResultAdapters
 {
+    // ** !! PARAMLESS !! ** //
+    public static Func<Unit?, Workflow, Task<Result<Unit?>>> ToInnerParamlessWithTaskResultReturn(Func<Task> inner)
+    {
+        return async (_, _) =>
+        {
+            try
+            {
+                await inner();
+                return default(Unit?);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (Exception exception) { return Fail.WithException(exception); }
+        };
+    }
+    
+    public static Func<Unit?, Workflow, Task<Result<Unit?>>> ToInnerParamlessWithTaskResultReturn(Func<Workflow, Task> inner)
+    {
+        return async (_, workflow) =>
+        {
+            try
+            {
+                await inner(workflow);
+                return default(Unit?);
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (Exception exception) { return Fail.WithException(exception); }
+        };
+    }
+    
     // ** !! ACTION !! ** //
     // ** SYNC ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
     {
         return (param, workflow) =>
         {
@@ -20,14 +51,14 @@ internal static class InnerToAsyncResultAdapters
                 inner(param);
                 return Result.Succeed.ToUnit().ToTask();    
             }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit?>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit?>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit?>().ToTask(); }
         };
     }
 
     // ** SYNC W. workflow ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam, Workflow> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam, Workflow> inner) where TParam : notnull
     {
         return (param, workflow) =>
         {
@@ -36,14 +67,14 @@ internal static class InnerToAsyncResultAdapters
                 inner(param, workflow);
                 return Result.Succeed.ToUnit().ToTask();    
             }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit?>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit?>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit?>().ToTask(); }
         };
     }
     
     // ** ASYNC ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task> inner) where TParam : notnull
     {
         return async (param, workflow) =>
         {
@@ -59,7 +90,7 @@ internal static class InnerToAsyncResultAdapters
     }
     
     // ** ASYNC W. workflow * //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Task> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Task> inner) where TParam : notnull
     {
         return async (param, workflow) =>
         {
@@ -75,7 +106,7 @@ internal static class InnerToAsyncResultAdapters
     }
     
     // ** SYNC W. RESULT ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Result> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Result> inner) where TParam : notnull
     {
         return (param, workflow) =>
         {
@@ -84,14 +115,14 @@ internal static class InnerToAsyncResultAdapters
                 var result = inner(param);
                 return result.ToUnit().ToTask();    
             }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit?>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit?>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit?>().ToTask(); }
         };
     }
     
     // ** SYNC W. RESULT AND workflow ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Result> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Result> inner) where TParam : notnull
     {
         return (param, workflow) =>
         {
@@ -100,14 +131,14 @@ internal static class InnerToAsyncResultAdapters
                 var result = inner(param, workflow);
                 return result.ToUnit().ToTask();    
             }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit>().ToTask(); }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<Unit?>().ToTask(); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<Unit?>().ToTask(); }
+            catch (Exception exception) { return Fail.WithException(exception).ToResult<Unit?>().ToTask(); }
         };
     }
    
     // ** ASYNC W. RESULT ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task<Result>> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task<Result>> inner) where TParam : notnull
     {
         return async (param, workflow) =>
         {
@@ -123,7 +154,7 @@ internal static class InnerToAsyncResultAdapters
     }
     
     // ** ASYNC W. RESULT AND workflow ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Task<Result>> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Task<Result>> inner) where TParam : notnull
     {
         return async (param, workflow) =>
         {

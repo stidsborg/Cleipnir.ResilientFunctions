@@ -209,6 +209,47 @@ public class FunctionsRegistry : IDisposable
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
                 settings
             );
+        
+        // ** PARAMLESS ** //   
+        public ParamlessRegistration RegisterParamless(
+            FunctionTypeId functionTypeId,
+            Func<Workflow, Task<Result>> inner,
+            Settings? settings = null
+        ) => RegisterParamless(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+            settings
+        );
+
+        public ParamlessRegistration RegisterParamless(
+            FunctionTypeId functionTypeId,
+            Func<Task<Result>> inner,
+            Settings? settings = null
+        ) => RegisterParamless(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+            settings
+        );
+        
+        public ParamlessRegistration RegisterParamless(
+            FunctionTypeId functionTypeId,
+            Func<Workflow, Task> inner,
+            Settings? settings = null
+        ) => RegisterParamless(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+            settings
+        );
+
+        public ParamlessRegistration RegisterParamless(
+            FunctionTypeId functionTypeId,
+            Func<Task> inner,
+            Settings? settings = null
+        ) => RegisterParamless(
+            functionTypeId,
+            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+            settings
+        );
     
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
@@ -226,7 +267,7 @@ public class FunctionsRegistry : IDisposable
                 return (FuncRegistration<TParam, TReturn>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TReturn>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TReturn>(isNullParamAllowed: false, settingsWithDefaults, _functionStore, _shutdownCoordinator);
             var rFuncInvoker = new Invoker<TParam, TReturn>(
                 functionTypeId, 
                 inner,
@@ -264,9 +305,62 @@ public class FunctionsRegistry : IDisposable
         }
     }
     
+    private ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Unit?, Workflow, Task<Result<Unit?>>> inner,
+        Settings? settings = null
+    ) 
+    {
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
+        
+        lock (_sync)
+        {
+            if (_functions.ContainsKey(functionTypeId))
+                return (ParamlessRegistration)_functions[functionTypeId];
+            
+            var settingsWithDefaults = _settings.Merge(settings);
+            var invocationHelper = new InvocationHelper<Unit?, Unit?>(isNullParamAllowed: true, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invoker = new Invoker<Unit?, Unit?>(
+                functionTypeId, 
+                inner, 
+                invocationHelper,
+                settingsWithDefaults.UnhandledExceptionHandler,
+                _functionStore.Utilities,
+                GetMessageWriter
+            );
+            
+            WatchDogsFactory.CreateAndStart(
+                functionTypeId,
+                _functionStore,
+                invoker.ReInvoke,
+                settingsWithDefaults,
+                _shutdownCoordinator
+            );
+
+            var controlPanels = new ControlPanelFactory(
+                functionTypeId,
+                invoker,
+                invocationHelper
+            );
+            var registration = new ParamlessRegistration(
+                functionTypeId,
+                invoke: id => invoker.Invoke(id.Value, param: null),
+                schedule: id => invoker.ScheduleInvoke(id.Value, param: null),
+                scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: null, at),
+                controlPanels,
+                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleReInvoke),
+                new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
+            );
+            _functions[functionTypeId] = registration;
+            
+            return registration;
+        }
+    }
+    
     private ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Workflow, Task<Result<Unit>>> inner,
+        Func<TParam, Workflow, Task<Result<Unit?>>> inner,
         Settings? settings = null
     ) where TParam : notnull
     {
@@ -279,8 +373,8 @@ public class FunctionsRegistry : IDisposable
                 return (ActionRegistration<TParam>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, Unit>(settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rActionInvoker = new Invoker<TParam, Unit>(
+            var invocationHelper = new InvocationHelper<TParam, Unit?>(isNullParamAllowed: false, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var rActionInvoker = new Invoker<TParam, Unit?>(
                 functionTypeId, 
                 inner, 
                 invocationHelper,

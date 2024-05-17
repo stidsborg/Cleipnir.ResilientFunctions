@@ -6,11 +6,30 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam : notnull  
+public class ControlPanel : BaseControlPanel<Unit?, Unit?>  
 {
     internal ControlPanel(
-        Invoker<TParam, Unit> invoker, 
-        InvocationHelper<TParam, Unit> invocationHelper, 
+        Invoker<Unit?, Unit?> invoker, 
+        InvocationHelper<Unit?, Unit?> invocationHelper, 
+        FunctionId functionId, 
+        Status status, int epoch, long leaseExpiration,  
+        DateTime? postponedUntil, ExistingEffects effects, 
+        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, 
+        PreviouslyThrownException? previouslyThrownException
+    ) : base(
+        invoker, invocationHelper, functionId, status, epoch, 
+        leaseExpiration, innerParam: null, innerResult: null, postponedUntil, 
+        effects, states, messages, timeouts, previouslyThrownException
+    ) { }
+    
+    public Task Succeed() => InnerSucceed(result: null);
+}
+
+public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit?> where TParam : notnull  
+{
+    internal ControlPanel(
+        Invoker<TParam, Unit?> invoker, 
+        InvocationHelper<TParam, Unit?> invocationHelper, 
         FunctionId functionId, 
         Status status, int epoch, long leaseExpiration, TParam innerParam, 
         DateTime? postponedUntil, ExistingEffects effects, 

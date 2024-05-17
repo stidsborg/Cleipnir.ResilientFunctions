@@ -1,10 +1,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -13,8 +11,6 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class SunshineTests
 {
-    private readonly DefaultSerializer _serializer = DefaultSerializer.Instance;
-        
     public abstract Task SunshineScenarioFunc();
     public async Task SunshineScenarioFunc(Task<IFunctionStore> storeTask)
     {
@@ -50,6 +46,37 @@ public abstract class SunshineTests
         storedFunction.Result.ShouldNotBeNull();
         var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
+            
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
+    public abstract Task SunshineScenarioParamless();
+    public async Task SunshineScenarioParamless(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = TestFunctionId.Create().TypeId;
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var flag = new SyncedFlag();
+        var registration = functionsRegistry
+            .RegisterParamless(
+                functionTypeId,
+                inner: () =>
+                {
+                    flag.Raise();
+                    return Task.CompletedTask;
+                })
+            .Invoke;
+
+        await registration("SomeInstanceId");
+        flag.Position.ShouldBe(FlagPosition.Raised);
+            
+        var storedFunction = await store.GetFunction(new FunctionId(functionTypeId, functionInstanceId: "SomeInstanceId"));
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Succeeded);
+        storedFunction.Result.ShouldBeNull();
+        storedFunction.Parameter.ShouldBeNull();
             
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }

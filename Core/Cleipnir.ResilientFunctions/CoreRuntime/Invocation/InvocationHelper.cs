@@ -14,11 +14,13 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
+    private readonly bool _isNullParamAllowed;
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
+    public InvocationHelper(bool isNullParamAllowed, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
     {
+        _isNullParamAllowed = isNullParamAllowed;
         _settings = settings;
 
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
@@ -31,11 +33,15 @@ internal class InvocationHelper<TParam, TReturn>
         TParam param, 
         DateTime? scheduleAt)
     {
-        ArgumentNullException.ThrowIfNull(param);
+        if (!_isNullParamAllowed)
+            ArgumentNullException.ThrowIfNull(param);
+        
         var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
         try
         {
-            var storedParameter = Serializer.SerializeParameter(param);
+            var storedParameter = param is null 
+                ? null 
+                : Serializer.SerializeParameter(param);
 
             var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(

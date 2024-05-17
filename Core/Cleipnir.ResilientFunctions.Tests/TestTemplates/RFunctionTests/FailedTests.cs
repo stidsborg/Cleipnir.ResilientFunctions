@@ -236,7 +236,7 @@ public abstract class FailedTests
         flag.Position.ShouldBe(Lowered);
 
         await Should.ThrowAsync<ArgumentNullException>(
-            () => rFunc("someFunctionInstanceId", null!)
+            () => rFunc("someFunctionInstanceId", param: null!)
         );
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }

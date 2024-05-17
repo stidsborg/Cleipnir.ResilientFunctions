@@ -32,6 +32,10 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task SucceedingExistingActionFromControlPanelSucceeds()
         => SucceedingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task SucceedingExistingParamlessFromControlPanelSucceeds()
+        => SucceedingExistingParamlessFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SucceedingExistingFunctionFromControlPanelSucceeds()
