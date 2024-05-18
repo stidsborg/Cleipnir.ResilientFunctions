@@ -324,7 +324,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var paramlessRegistration = functionsRegistry.RegisterParamless(
             functionTypeId,
-            inner: () => throw new Exception("oh no")
+            inner: Task () => throw new Exception("oh no")
         );
         
         await Should.ThrowAsync<Exception>(() => paramlessRegistration.Invoke(functionInstanceId.Value));
