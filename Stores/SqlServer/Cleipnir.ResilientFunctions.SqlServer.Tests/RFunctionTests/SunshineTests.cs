@@ -13,7 +13,11 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
     [TestMethod]
     public override Task SunshineScenarioParamless()
         => SunshineScenarioParamless(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task SunshineScenarioParamlessWithResultReturnType()
+        => SunshineScenarioParamlessWithResultReturnType(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task SunshineScenarioFuncWithState() 
         => SunshineScenarioFuncWithState(FunctionStoreFactory.Create());

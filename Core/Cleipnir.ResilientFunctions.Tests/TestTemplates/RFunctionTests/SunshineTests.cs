@@ -80,6 +80,37 @@ public abstract class SunshineTests
             
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
+    
+    public abstract Task SunshineScenarioParamlessWithResultReturnType();
+    public async Task SunshineScenarioParamlessWithResultReturnType(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionTypeId = TestFunctionId.Create().TypeId;
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var flag = new SyncedFlag();
+        var registration = functionsRegistry
+            .RegisterParamless(
+                functionTypeId,
+                inner: () =>
+                {
+                    flag.Raise();
+                    return Result.Succeed.ToTask();
+                })
+            .Invoke;
+
+        await registration("SomeInstanceId");
+        flag.Position.ShouldBe(FlagPosition.Raised);
+            
+        var storedFunction = await store.GetFunction(new FunctionId(functionTypeId, functionInstanceId: "SomeInstanceId"));
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Succeeded);
+        storedFunction.Result.ShouldBeNull();
+        storedFunction.Parameter.ShouldBeNull();
+            
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
         
     public abstract Task SunshineScenarioFuncWithState();
     public async Task SunshineScenarioFuncWithState(Task<IFunctionStore> storeTask)

@@ -1,6 +1,4 @@
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
@@ -15,6 +13,10 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
     [TestMethod]
     public override Task SunshineScenarioParamless()
         => SunshineScenarioParamless(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SunshineScenarioParamlessWithResultReturnType()
+        => SunshineScenarioParamlessWithResultReturnType(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineScenarioFuncWithState()

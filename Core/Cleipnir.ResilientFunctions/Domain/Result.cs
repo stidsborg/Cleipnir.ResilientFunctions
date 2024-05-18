@@ -41,7 +41,7 @@ public class Result
 
     public Result<Unit?> ToUnit() => Outcome switch
     {
-        Outcome.Succeed => new Result<Unit?>(Unit.Instance),
+        Outcome.Succeed => new Result<Unit?>(succeedWithValue: default),
         Outcome.Postpone => new Result<Unit?>(Postpone!),
         Outcome.Fail => new Result<Unit?>(Fail!),
         Outcome.Suspend => new Result<Unit?>(Suspend!),

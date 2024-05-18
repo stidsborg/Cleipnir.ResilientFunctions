@@ -40,6 +40,36 @@ internal static class InnerToAsyncResultAdapters
         };
     }
     
+    public static Func<Unit?, Workflow, Task<Result<Unit?>>> ToInnerParamlessWithTaskResultReturn(Func<Task<Result>> inner)
+    {
+        return async (_, _) =>
+        {
+            try
+            {
+                var result = await inner();
+                return result.ToUnit();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (Exception exception) { return Fail.WithException(exception); }
+        };
+    }
+    
+    public static Func<Unit?, Workflow, Task<Result<Unit?>>> ToInnerParamlessWithTaskResultReturn(Func<Workflow, Task<Result>> inner)
+    {
+        return async (_, workflow) =>
+        {
+            try
+            {
+                var result = await inner(workflow);
+                return result.ToUnit();
+            }
+            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
+            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (Exception exception) { return Fail.WithException(exception); }
+        };
+    }
+    
     // ** !! ACTION !! ** //
     // ** SYNC ** //
     public static Func<TParam, Workflow, Task<Result<Unit?>>> ToInnerActionWithTaskResultReturn<TParam>(Action<TParam> inner) where TParam : notnull
