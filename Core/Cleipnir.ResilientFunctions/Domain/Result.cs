@@ -39,12 +39,12 @@ public class Result
     public static implicit operator Result(Suspend suspend) => new Result(suspend);
     public static Result<T> SucceedWithValue<T>(T value) => new(value);
 
-    public Result<Unit?> ToUnit() => Outcome switch
+    public Result<Unit> ToUnit() => Outcome switch
     {
-        Outcome.Succeed => new Result<Unit?>(succeedWithValue: default),
-        Outcome.Postpone => new Result<Unit?>(Postpone!),
-        Outcome.Fail => new Result<Unit?>(Fail!),
-        Outcome.Suspend => new Result<Unit?>(Suspend!),
+        Outcome.Succeed => new Result<Unit>(Unit.Instance),
+        Outcome.Postpone => new Result<Unit>(Postpone!),
+        Outcome.Fail => new Result<Unit>(Fail!),
+        Outcome.Suspend => new Result<Unit>(Suspend!),
         _ => throw new ArgumentOutOfRangeException()
     };
 }

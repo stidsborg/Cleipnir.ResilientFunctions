@@ -6,11 +6,11 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ControlPanel : BaseControlPanel<Unit?, Unit?>  
+public class ControlPanel : BaseControlPanel<Unit, Unit>  
 {
     internal ControlPanel(
-        Invoker<Unit?, Unit?> invoker, 
-        InvocationHelper<Unit?, Unit?> invocationHelper, 
+        Invoker<Unit, Unit> invoker, 
+        InvocationHelper<Unit, Unit> invocationHelper, 
         FunctionId functionId, 
         Status status, int epoch, long leaseExpiration,  
         DateTime? postponedUntil, ExistingEffects effects, 
@@ -18,18 +18,18 @@ public class ControlPanel : BaseControlPanel<Unit?, Unit?>
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, functionId, status, epoch, 
-        leaseExpiration, innerParam: null, innerResult: null, postponedUntil, 
+        leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, 
         effects, states, messages, timeouts, previouslyThrownException
     ) { }
     
-    public Task Succeed() => InnerSucceed(result: null);
+    public Task Succeed() => InnerSucceed(result: Unit.Instance);
 }
 
-public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit?> where TParam : notnull  
+public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam : notnull  
 {
     internal ControlPanel(
-        Invoker<TParam, Unit?> invoker, 
-        InvocationHelper<TParam, Unit?> invocationHelper, 
+        Invoker<TParam, Unit> invoker, 
+        InvocationHelper<TParam, Unit> invocationHelper, 
         FunctionId functionId, 
         Status status, int epoch, long leaseExpiration, TParam innerParam, 
         DateTime? postponedUntil, ExistingEffects effects, 
@@ -37,7 +37,7 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit?> where TParam
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, functionId, status, epoch, 
-        leaseExpiration, innerParam, innerResult: null, postponedUntil, 
+        leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, 
         effects, states, messages, timeouts, previouslyThrownException
     ) { }
     
@@ -47,7 +47,7 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit?> where TParam
         set => InnerParam = value;
     }
     
-    public Task Succeed() => InnerSucceed(result: null);
+    public Task Succeed() => InnerSucceed(result: Unit.Instance);
 }
 
 public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> where TParam : notnull

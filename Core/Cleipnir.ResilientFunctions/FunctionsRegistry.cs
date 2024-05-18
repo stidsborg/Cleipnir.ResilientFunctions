@@ -307,7 +307,7 @@ public class FunctionsRegistry : IDisposable
     
     private ParamlessRegistration RegisterParamless(
         FunctionTypeId functionTypeId,
-        Func<Unit?, Workflow, Task<Result<Unit?>>> inner,
+        Func<Unit, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) 
     {
@@ -320,8 +320,8 @@ public class FunctionsRegistry : IDisposable
                 return (ParamlessRegistration)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<Unit?, Unit?>(isNullParamAllowed: true, settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var invoker = new Invoker<Unit?, Unit?>(
+            var invocationHelper = new InvocationHelper<Unit, Unit>(isNullParamAllowed: true, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invoker = new Invoker<Unit, Unit>(
                 functionTypeId, 
                 inner, 
                 invocationHelper,
@@ -345,9 +345,9 @@ public class FunctionsRegistry : IDisposable
             );
             var registration = new ParamlessRegistration(
                 functionTypeId,
-                invoke: id => invoker.Invoke(id.Value, param: null),
-                schedule: id => invoker.ScheduleInvoke(id.Value, param: null),
-                scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: null, at),
+                invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
+                schedule: id => invoker.ScheduleInvoke(id.Value, param: Unit.Instance),
+                scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
                 controlPanels,
                 new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
@@ -360,7 +360,7 @@ public class FunctionsRegistry : IDisposable
     
     private ActionRegistration<TParam> RegisterAction<TParam>(
         FunctionTypeId functionTypeId,
-        Func<TParam, Workflow, Task<Result<Unit?>>> inner,
+        Func<TParam, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) where TParam : notnull
     {
@@ -373,8 +373,8 @@ public class FunctionsRegistry : IDisposable
                 return (ActionRegistration<TParam>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, Unit?>(isNullParamAllowed: false, settingsWithDefaults, _functionStore, _shutdownCoordinator);
-            var rActionInvoker = new Invoker<TParam, Unit?>(
+            var invocationHelper = new InvocationHelper<TParam, Unit>(isNullParamAllowed: false, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var rActionInvoker = new Invoker<TParam, Unit>(
                 functionTypeId, 
                 inner, 
                 invocationHelper,

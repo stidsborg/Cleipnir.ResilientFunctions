@@ -7,10 +7,10 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ControlPanelFactory 
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Invoker<Unit?, Unit?> _invoker;
-    private readonly InvocationHelper<Unit?, Unit?> _invocationHelper;
+    private readonly Invoker<Unit, Unit> _invoker;
+    private readonly InvocationHelper<Unit, Unit> _invocationHelper;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<Unit?, Unit?> invoker, InvocationHelper<Unit?, Unit?> invocationHelper)
+    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<Unit, Unit> invoker, InvocationHelper<Unit, Unit> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
@@ -45,10 +45,10 @@ public class ControlPanelFactory
 public class ControlPanelFactory<TParam> where TParam : notnull 
 {
     private readonly FunctionTypeId _functionTypeId;
-    private readonly Invoker<TParam, Unit?> _invoker;
-    private readonly InvocationHelper<TParam, Unit?> _invocationHelper;
+    private readonly Invoker<TParam, Unit> _invoker;
+    private readonly InvocationHelper<TParam, Unit> _invocationHelper;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<TParam, Unit?> invoker, InvocationHelper<TParam, Unit?> invocationHelper)
+    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;

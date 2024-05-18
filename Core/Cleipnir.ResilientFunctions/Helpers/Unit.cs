@@ -1,6 +1,6 @@
 ﻿namespace Cleipnir.ResilientFunctions.Helpers;
 
-public sealed class Unit
+public struct Unit
 {
     public static Unit Instance { get; } = new();
 }
