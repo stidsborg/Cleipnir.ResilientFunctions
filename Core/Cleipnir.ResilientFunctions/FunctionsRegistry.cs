@@ -210,46 +210,66 @@ public class FunctionsRegistry : IDisposable
                 settings
             );
         
-        // ** PARAMLESS ** //   
-        public ParamlessRegistration RegisterParamless(
-            FunctionTypeId functionTypeId,
-            Func<Workflow, Task<Result>> inner,
-            Settings? settings = null
-        ) => RegisterParamless(
-            functionTypeId,
-            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
-            settings
-        );
-
-        public ParamlessRegistration RegisterParamless(
-            FunctionTypeId functionTypeId,
-            Func<Task<Result>> inner,
-            Settings? settings = null
-        ) => RegisterParamless(
-            functionTypeId,
-            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
-            settings
-        );
+    // ** PARAMLESS ** //   
+    public ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Task<Result>> inner,
+        Settings? settings = null
+    ) => RegisterParamless(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+        settings
+    );
         
-        public ParamlessRegistration RegisterParamless(
-            FunctionTypeId functionTypeId,
-            Func<Workflow, Task> inner,
-            Settings? settings = null
-        ) => RegisterParamless(
-            functionTypeId,
-            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
-            settings
-        );
+    public ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Workflow, Task<Result>> inner,
+        Settings? settings = null
+    ) => RegisterParamless(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+        settings
+    );
+        
+    public ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Task<Result<Unit>>> inner,
+        Settings? settings = null
+    ) => RegisterParamless(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+        settings
+    );
+        
+    public ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Workflow, Task<Result<Unit>>> inner,
+        Settings? settings = null
+    ) => RegisterParamless(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+        settings
+    );
 
-        public ParamlessRegistration RegisterParamless(
-            FunctionTypeId functionTypeId,
-            Func<Task> inner,
-            Settings? settings = null
-        ) => RegisterParamless(
-            functionTypeId,
-            InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
-            settings
-        );
+    public ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Task> inner,
+        Settings? settings = null
+    ) => RegisterParamless(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+        settings
+    );
+        
+    public ParamlessRegistration RegisterParamless(
+        FunctionTypeId functionTypeId,
+        Func<Workflow, Task> inner,
+        Settings? settings = null
+    ) => RegisterParamless(
+        functionTypeId,
+        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
+        settings
+    );
     
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
