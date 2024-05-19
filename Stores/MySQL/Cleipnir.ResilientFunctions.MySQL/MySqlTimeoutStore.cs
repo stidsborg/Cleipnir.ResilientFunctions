@@ -13,12 +13,13 @@ public class MySqlTimeoutStore : ITimeoutStore
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix.ToLower();
-    } 
-    
+    }
+
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_timeouts (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
@@ -26,37 +27,39 @@ public class MySqlTimeoutStore : ITimeoutStore
                 expires BIGINT,
                 PRIMARY KEY (function_type_id, function_instance_id, timeout_id)
             )";
-        var command = new MySqlCommand(sql, conn);
+        var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";
-        var command = new MySqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";
+        var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _upsertTimeoutSql;
+    private string? _insertTimeoutSql;
     public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _upsertTimeoutSql ??= @$"
             INSERT INTO {_tablePrefix}rfunctions_timeouts 
                 (function_type_id, function_instance_id, timeout_id, expires)
             VALUES
                 (?, ?, ?, ?) 
            ON DUPLICATE KEY UPDATE
                 expires = ?";
-        
-        if (!overwrite)
-            sql = @$"
+        _insertTimeoutSql ??= @$"
                 INSERT IGNORE INTO {_tablePrefix}rfunctions_timeouts 
                     (function_type_id, function_instance_id, timeout_id, expires)
                 VALUES
                     (?, ?, ?, ?)";
-        
+
+        var sql = overwrite ? _upsertTimeoutSql : _insertTimeoutSql;
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -72,17 +75,18 @@ public class MySqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeTimeoutSql;
     public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _removeTimeoutSql ??= @$"
             DELETE FROM {_tablePrefix}rfunctions_timeouts 
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 timeout_id = ?";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_removeTimeoutSql, conn)
         {
             Parameters =
             {
@@ -95,14 +99,15 @@ public class MySqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _removeSql ??= @$"
             DELETE FROM {_tablePrefix}rfunctions_timeouts 
             WHERE function_type_id = ? AND function_instance_id = ?";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_removeSql, conn)
         {
             Parameters =
             {
@@ -114,15 +119,16 @@ public class MySqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getTimeoutsSqlExpiresBefore;
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"    
+        _getTimeoutsSqlExpiresBefore ??= @$"    
             SELECT function_instance_id, timeout_id, expires
             FROM {_tablePrefix}rfunctions_timeouts
             WHERE function_type_id = ? AND expires <= ?";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getTimeoutsSqlExpiresBefore, conn)
         {
             Parameters =
             {
@@ -144,17 +150,18 @@ public class MySqlTimeoutStore : ITimeoutStore
 
         return storedTimeouts;
     }
-
+    
+    private string? _getFunctionTimeoutsSql;
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
     {
         var (typeId, instanceId) = functionId;
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"    
+        _getFunctionTimeoutsSql ??= @$"    
             SELECT timeout_id, expires
             FROM {_tablePrefix}rfunctions_timeouts
             WHERE function_type_id = ? AND function_instance_id = ?";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getFunctionTimeoutsSql, conn)
         {
             Parameters =
             {
@@ -177,11 +184,12 @@ public class MySqlTimeoutStore : ITimeoutStore
 
     private Task<MySqlConnection> CreateConnection() => DatabaseHelper.CreateOpenConnection(_connectionString);
 
+    private string? _dropUnderlyingTable;
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_timeouts";
-        await using var command = new MySqlCommand(sql, conn);
+        _dropUnderlyingTable ??= $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_timeouts";
+        await using var command = new MySqlCommand(_dropUnderlyingTable, conn);
         await command.ExecuteNonQueryAsync();
     }
 }
