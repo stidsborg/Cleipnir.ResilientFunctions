@@ -17,10 +17,11 @@ public class MySqlMessageStore : IMessageStore
         _tablePrefix = tablePrefix.ToLower();
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"
+        _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_messages (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
@@ -30,26 +31,29 @@ public class MySqlMessageStore : IMessageStore
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (function_type_id, function_instance_id, position)
             );";
-        var command = new MySqlCommand(sql, conn);
+        var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _dropUnderlyingTableSql;
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_messages";
-        await using var command = new MySqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-    
-    public async Task TruncateTable()
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_messages;";
-        var command = new MySqlCommand(sql, conn);
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_messages";
+        await using var command = new MySqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateTableSql;
+    public async Task TruncateTable()
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunctions_messages;";
+        var command = new MySqlCommand(_truncateTableSql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private string? _appendMessageSql;
     public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         for (var i = 0; i < 10; i++) //retry if deadlock is occurs
@@ -59,7 +63,7 @@ public class MySqlMessageStore : IMessageStore
                 var (messageJson, messageType, idempotencyKey) = storedMessage;
                 //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
                 var lockName = functionId.ToString().GenerateSHA256Hash();
-                var sql = @$"    
+                _appendMessageSql ??= @$"    
                     SELECT GET_LOCK(?, 10);
                     INSERT INTO {_tablePrefix}rfunctions_messages
                         (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
@@ -72,7 +76,7 @@ public class MySqlMessageStore : IMessageStore
                     FROM {_tablePrefix}rfunctions
                     WHERE function_type_id = ? AND function_instance_id = ?;";
 
-                await using var command = new MySqlCommand(sql, conn)
+                await using var command = new MySqlCommand(_appendMessageSql, conn)
                 {
                     Parameters =
                     {
@@ -110,17 +114,18 @@ public class MySqlMessageStore : IMessageStore
         
         throw new ConcurrentModificationException(functionId);
     }
-    
+
+    private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var (messageJson, messageType, idempotencyKey) = storedMessage;
         
-        var sql = @$"    
+        _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}rfunctions_messages
                 SET message_json = ?, message_type = ?, idempotency_key = ?
                 WHERE function_type_id = ? AND function_instance_id = ? AND position = ?";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_replaceMessageSql, conn)
         {
             Parameters =
             {
@@ -135,40 +140,32 @@ public class MySqlMessageStore : IMessageStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
+    private string? _truncateSql;
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await Truncate(functionId, conn, transaction: null);
-    }
-
-    internal async Task<int> Truncate(FunctionId functionId, MySqlConnection connection, MySqlTransaction? transaction)
-    {
-        var sql = @$"    
+        _truncateSql ??= @$"    
                 DELETE FROM {_tablePrefix}rfunctions_messages
                 WHERE function_type_id = ? AND function_instance_id = ?";
         
-        await using var command =
-            transaction == null
-                ? new MySqlCommand(sql, connection)
-                : new MySqlCommand(sql, connection, transaction);
-
+        await using var command = new MySqlCommand(_truncateSql, conn);
         command.Parameters.Add(new() { Value = functionId.TypeId.Value });
         command.Parameters.Add(new() { Value = functionId.InstanceId.Value });
         
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows;
+        await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _getMessagesSql;
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"    
+        _getMessagesSql ??= @$"    
             SELECT message_json, message_type, idempotency_key
             FROM {_tablePrefix}rfunctions_messages
             WHERE function_type_id = ? AND function_instance_id = ? AND position >= ?
             ORDER BY position ASC;";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getMessagesSql, conn)
         {
             Parameters =
             {
@@ -191,14 +188,15 @@ public class MySqlMessageStore : IMessageStore
         return storedMessages;
     }
 
+    private string? _hasMoreMessagesSql;
     public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"    
+        _hasMoreMessagesSql ??= @$"    
             SELECT COALESCE(MAX(position), -1)
             FROM {_tablePrefix}rfunctions_messages
             WHERE function_type_id = ? AND function_instance_id = ?;";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_hasMoreMessagesSql, conn)
         {
             Parameters =
             {
