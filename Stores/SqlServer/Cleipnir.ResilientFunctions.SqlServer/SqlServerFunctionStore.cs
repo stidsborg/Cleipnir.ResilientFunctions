@@ -138,7 +138,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 VALUES(
                     @FunctionTypeId, @FunctionInstanceId, 
                     @ParamJson,   
-                    {(int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
+                    @Status,
                     0, 
                     @LeaseExpiration,
                     @PostponeUntil,
@@ -149,6 +149,7 @@ public class SqlServerFunctionStore : IFunctionStore
             
             command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
             command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+            command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
             command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
             command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
             command.Parameters.AddWithValue("@PostponeUntil", postponeUntil == null ? DBNull.Value : postponeUntil.Value);

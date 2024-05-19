@@ -110,7 +110,7 @@ public class MySqlFunctionStore : IFunctionStore
             INSERT IGNORE INTO {_tablePrefix}rfunctions
                 (function_type_id, function_instance_id, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
-                (?, ?, ?, {(int) status}, 0, ?, ?, ?)";
+                (?, ?, ?, ?, 0, ?, ?, ?)";
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -118,6 +118,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = functionId.TypeId.Value},
                 new() {Value = functionId.InstanceId.Value},
                 new() {Value = param ?? (object) DBNull.Value},
+                new() {Value = (int) status}, 
                 new() {Value = leaseExpiration},
                 new() {Value = postponeUntil},
                 new() {Value = timestamp}
