@@ -40,6 +40,7 @@ public class MySqlFunctionStore : IFunctionStore
         Utilities = new Utilities(_mySqlUnderlyingRegister);
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await _mySqlUnderlyingRegister.Initialize();
@@ -48,7 +49,7 @@ public class MySqlFunctionStore : IFunctionStore
         await StatesStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
@@ -66,10 +67,11 @@ public class MySqlFunctionStore : IFunctionStore
                 INDEX (function_type_id, status, function_instance_id)   
             );";
 
-        await using var command = new MySqlCommand(sql, conn);
+        await using var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _dropIfExistsSql;
     public async Task DropIfExists()
     {
         await _messageStore.DropUnderlyingTable();
@@ -77,11 +79,12 @@ public class MySqlFunctionStore : IFunctionStore
         await _timeoutStore.DropUnderlyingTable();
 
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";
-        await using var command = new MySqlCommand(sql, conn);
+        _dropIfExistsSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";
+        await using var command = new MySqlCommand(_dropIfExistsSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateTablesSql;
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
@@ -91,11 +94,12 @@ public class MySqlFunctionStore : IFunctionStore
         await _statesStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions";
-        await using var command = new MySqlCommand(sql, conn);
+        _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunctions";
+        await using var command = new MySqlCommand(_truncateTablesSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         FunctionId functionId, 
         string? param, 
@@ -106,12 +110,12 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
-        var sql = @$"
+        _createFunctionSql ??= @$"
             INSERT IGNORE INTO {_tablePrefix}rfunctions
                 (function_type_id, function_instance_id, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
                 (?, ?, ?, ?, 0, ?, ?, ?)";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_createFunctionSql, conn)
         {
             Parameters =
             {
@@ -129,10 +133,11 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _restartExecutionSql;
     public async Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = @$"
+        _restartExecutionSql ??= @$"
             UPDATE {_tablePrefix}rfunctions
             SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
@@ -150,7 +155,7 @@ public class MySqlFunctionStore : IFunctionStore
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_restartExecutionSql, conn)
         {
             Parameters =
             {
@@ -173,14 +178,15 @@ public class MySqlFunctionStore : IFunctionStore
             : default;
     }
 
+    private string? _renewLeaseSql;
     public async Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _renewLeaseSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET lease_expiration = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ? AND status = {(int) Status.Executing}";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_renewLeaseSql, conn)
         {
             Parameters =
             {
@@ -195,14 +201,15 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _getCrashedFunctionsSql;
     public async Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = @$"
+        _getCrashedFunctionsSql ??= @$"
             SELECT function_instance_id, epoch, lease_expiration 
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getCrashedFunctionsSql, conn)
         {
             Parameters =
             {
@@ -225,14 +232,15 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    private string? _getPostponedFunctionsSql;
     public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = @$"
+        _getPostponedFunctionsSql ??= @$"
             SELECT function_instance_id, epoch, postponed_until
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getPostponedFunctionsSql, conn)
         {
             Parameters =
             {
@@ -254,6 +262,7 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         string? storedParameter, string? storedResult, 
@@ -263,7 +272,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
       
-        var sql = $@"
+        _setFunctionStateSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = ?, 
                 param_json = ?,  
@@ -274,7 +283,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
                 epoch = ?";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_setFunctionStateSql, conn)
         {
             Parameters =
             {
@@ -293,6 +302,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _succeedFunctionSql;
     public async Task<bool> SucceedFunction(
         FunctionId functionId, 
         string? result, 
@@ -302,7 +312,7 @@ public class MySqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _succeedFunctionSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = {(int) Status.Succeeded}, result_json = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
@@ -310,7 +320,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_instance_id = ? AND 
                 epoch = ?";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_succeedFunctionSql, conn)
         {
             Parameters =
             {
@@ -328,6 +338,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _postponedFunctionSql;
     public async Task<bool> PostponeFunction(
         FunctionId functionId, 
         long postponeUntil, 
@@ -337,7 +348,7 @@ public class MySqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _postponedFunctionSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = {(int) Status.Postponed}, postponed_until = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
@@ -345,7 +356,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_instance_id = ? AND 
                 epoch = ?";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_postponedFunctionSql, conn)
         {
             Parameters =
             {
@@ -363,6 +374,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _failFunctionSql;
     public async Task<bool> FailFunction(
         FunctionId functionId, 
         StoredException storedException, 
@@ -372,7 +384,7 @@ public class MySqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _failFunctionSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = {(int) Status.Failed}, exception_json = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
@@ -380,7 +392,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_instance_id = ? AND 
                 epoch = ?";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_failFunctionSql, conn)
         {
             Parameters =
             {
@@ -398,6 +410,7 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FunctionId functionId, 
         long expectedInterruptCount, 
@@ -408,7 +421,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
-        var sql = $@"
+        _suspendFunctionSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET status = {(int) Status.Suspended}, default_state = ?, timestamp = ?
             WHERE function_type_id = ? AND 
@@ -416,7 +429,7 @@ public class MySqlFunctionStore : IFunctionStore
                   epoch = ? AND
                   interrupt_count = ?;";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_suspendFunctionSql, conn)
         {
             Parameters =
             {
@@ -433,14 +446,15 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    private string? _setDefaultStateSql;
     public async Task SetDefaultState(FunctionId functionId, string? stateJson)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _setDefaultStateSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET default_state = ?
             WHERE function_type_id = ? AND function_instance_id = ?";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_setDefaultStateSql, conn)
         {
             Parameters =
             {
@@ -452,7 +466,8 @@ public class MySqlFunctionStore : IFunctionStore
 
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _setParametersSql;
     public async Task<bool> SetParameters(
         FunctionId functionId,
         string? storedParameter, string? storedResult,
@@ -460,7 +475,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
       
-        var sql = $@"
+        _setParametersSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET param_json = ?,  
                 result_json = ?,
@@ -470,7 +485,7 @@ public class MySqlFunctionStore : IFunctionStore
                 function_instance_id = ? AND 
                 epoch = ?";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_setParametersSql, conn)
         {
             Parameters =
             {
@@ -485,17 +500,18 @@ public class MySqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
+    private string? _incrementInterruptCountSql;
     public async Task<bool> IncrementInterruptCount(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
-        var sql = $@"
+        _incrementInterruptCountSql ??= $@"
             UPDATE {_tablePrefix}rfunctions
             SET interrupt_count = interrupt_count + 1
             WHERE function_type_id = ? AND function_instance_id = ? AND status = {(int) Status.Executing};";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_incrementInterruptCountSql, conn)
         {
             Parameters =
             {
@@ -507,17 +523,18 @@ public class MySqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
+    private string? _getInterruptCountSql;
     public async Task<long?> GetInterruptCount(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
-        var sql = $@"
+        _getInterruptCountSql ??= $@"
             SELECT interrupt_count 
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getInterruptCountSql, conn)
         {
             Parameters =
             {
@@ -529,14 +546,15 @@ public class MySqlFunctionStore : IFunctionStore
         return (long?) await command.ExecuteScalarAsync();
     }
 
+    private string? _getFunctionStatusSql;
     public async Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _getFunctionStatusSql ??= $@"
             SELECT status, epoch
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
                 new() {Value = functionId.TypeId.Value},
@@ -557,10 +575,11 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
+    private string? _getFunctionSql;
     public async Task<StoredFunction?> GetFunction(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql = $@"
+        _getFunctionSql ??= $@"
             SELECT               
                 param_json,             
                 status,
@@ -574,7 +593,7 @@ public class MySqlFunctionStore : IFunctionStore
                 timestamp
             FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?;";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
                 new() {Value = functionId.TypeId.Value},
@@ -630,15 +649,16 @@ public class MySqlFunctionStore : IFunctionStore
         return null;
     }
 
+    private string? _deleteFunctionSql;
     public async Task DeleteFunction(FunctionId functionId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
-        var sql = $@"            
+        _deleteFunctionSql ??= $@"            
             DELETE FROM {_tablePrefix}rfunctions
             WHERE function_type_id = ? AND function_instance_id = ?";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_deleteFunctionSql, conn)
         {
             Parameters =
             {
