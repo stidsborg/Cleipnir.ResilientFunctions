@@ -16,33 +16,36 @@ public class MySqlEffectsStore : IEffectsStore
         _tablePrefix = tablePrefix;
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_effects (
                 id VARCHAR(450) PRIMARY KEY,
                 status INT NOT NULL,
                 result TEXT NULL,
                 exception TEXT NULL
             );";
-        var command = new MySqlCommand(sql, conn);
+        var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunction_effects";
-        var command = new MySqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunction_effects";
+        var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _setEffectResultSql;
     public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await CreateConnection();
-        var sql = $@"
+        _setEffectResultSql ??= $@"
           INSERT INTO {_tablePrefix}rfunction_effects 
               (id, status, result, exception)
           VALUES
@@ -50,7 +53,7 @@ public class MySqlEffectsStore : IEffectsStore
            ON DUPLICATE KEY UPDATE
                 status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_setEffectResultSql, conn)
         {
             Parameters =
             {
@@ -64,14 +67,15 @@ public class MySqlEffectsStore : IEffectsStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getEffectResultsSql;
     public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _getEffectResultsSql ??= @$"
             SELECT id, status, result, exception
             FROM {_tablePrefix}rfunction_effects
             WHERE id LIKE ?";
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_getEffectResultsSql, conn)
         {
             Parameters =
             {
@@ -95,12 +99,13 @@ public class MySqlEffectsStore : IEffectsStore
         return functions;
     }
 
+    private string? _deleteEffectResultSql;
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id = ?";
+        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id = ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters = { new() { Value = id } }
         };
@@ -108,12 +113,13 @@ public class MySqlEffectsStore : IEffectsStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id LIKE ?";
+        _removeSql ??= $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id LIKE ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_removeSql, conn)
         {
             Parameters = { new() { Value = id } }
         };
