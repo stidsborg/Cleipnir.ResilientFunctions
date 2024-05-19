@@ -21,7 +21,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_timeouts (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 timeout_id VARCHAR(255),
@@ -35,7 +35,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_timeouts";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -52,7 +52,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
         var sql = @$"
-            INSERT INTO {_tablePrefix}rfunctions_timeouts 
+            INSERT INTO {_tablePrefix}_timeouts 
                 (function_type_id, function_instance_id, timeout_id, expires)
             VALUES
                 ($1, $2, $3, $4) 
@@ -61,7 +61,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         
         if (!overwrite)
             sql = @$"
-                INSERT INTO {_tablePrefix}rfunctions_timeouts 
+                INSERT INTO {_tablePrefix}_timeouts 
                     (function_type_id, function_instance_id, timeout_id, expires)
                 VALUES
                     ($1, $2, $3, $4) 
@@ -85,7 +85,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            DELETE FROM {_tablePrefix}rfunctions_timeouts 
+            DELETE FROM {_tablePrefix}_timeouts 
             WHERE 
                 function_type_id = $1 AND 
                 function_instance_id = $2 AND
@@ -108,7 +108,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            DELETE FROM {_tablePrefix}rfunctions_timeouts 
+            DELETE FROM {_tablePrefix}_timeouts 
             WHERE function_type_id = $1 AND function_instance_id = $2";
         
         await using var command = new NpgsqlCommand(sql, conn)
@@ -128,7 +128,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT function_instance_id, timeout_id, expires
-            FROM {_tablePrefix}rfunctions_timeouts 
+            FROM {_tablePrefix}_timeouts 
             WHERE 
                 function_type_id = $1 AND 
                 expires <= $2";
@@ -162,7 +162,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT timeout_id, expires
-            FROM {_tablePrefix}rfunctions_timeouts 
+            FROM {_tablePrefix}_timeouts 
             WHERE function_type_id = $1 AND function_instance_id = $2";
         
         await using var command = new NpgsqlCommand(sql, conn)
@@ -189,7 +189,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_timeouts;";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_timeouts;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }

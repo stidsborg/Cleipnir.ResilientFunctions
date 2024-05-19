@@ -19,7 +19,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_register (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_register (
                 registertype INT NOT NULL,
                 `group` VARCHAR(255) NOT NULL,                
                 name VARCHAR(255) NOT NULL,
@@ -36,7 +36,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _setIfEmptySql ??= @$"
-            INSERT IGNORE INTO {_tablePrefix}rfunctions_register
+            INSERT IGNORE INTO {_tablePrefix}_register
                 (registertype, `group`, name, value)   
             VALUES
                 (?, ?, ?, ?);";
@@ -64,7 +64,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
         if (!setIfEmpty)
         {
             _compareAndSwapUpdateSql ??= @$"
-            UPDATE {_tablePrefix}rfunctions_register
+            UPDATE {_tablePrefix}_register
             SET value = ?
             WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;";
             
@@ -87,8 +87,8 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
         {
             _compareAndSwapUpsertSql ??= @$"
             START TRANSACTION;
-            DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;
-            INSERT IGNORE INTO {_tablePrefix}rfunctions_register
+            DELETE FROM {_tablePrefix}_register WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;
+            INSERT IGNORE INTO {_tablePrefix}_register
                 (registertype, `group`, name, value)   
             VALUES
                 (?, ?, ?, ?);
@@ -120,7 +120,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getSql ??= @$"    
             SELECT value 
-            FROM {_tablePrefix}rfunctions_register  
+            FROM {_tablePrefix}_register  
             WHERE registertype = ? AND `group` = ? AND name = ?;";
        
         await using var command = new MySqlCommand(_getSql, conn)
@@ -145,7 +145,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
-        _conditionalDeleteSql ??= $"DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;";
+        _conditionalDeleteSql ??= $"DELETE FROM {_tablePrefix}_register WHERE registertype = ? AND `group` = ? AND name = ? AND value = ?;";
 
         await using var command = new MySqlCommand(_conditionalDeleteSql, conn)
         {
@@ -167,7 +167,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
 
-        _deleteSql ??= $"DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = ? AND `group` = ? AND name = ?;";
+        _deleteSql ??= $"DELETE FROM {_tablePrefix}_register WHERE registertype = ? AND `group` = ? AND name = ?;";
 
         await using var command = new MySqlCommand(_deleteSql, conn)
         {
@@ -187,7 +187,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _existsSql ??= @$"    
             SELECT COUNT(*)
-            FROM {_tablePrefix}rfunctions_register  
+            FROM {_tablePrefix}_register  
             WHERE registertype = ? AND `group` = ? AND name = ?;";
        
         await using var command = new MySqlCommand(_existsSql, conn)
@@ -208,7 +208,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_register";
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_register";
         
         await using var command = new MySqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -218,7 +218,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
     public async Task TruncateTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunctions_register";
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_register";
         var command = new MySqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }

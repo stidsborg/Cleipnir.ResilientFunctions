@@ -22,7 +22,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         
         var sql = @$"            
-            CREATE TABLE {_tablePrefix}RFunctions_Timeouts (
+            CREATE TABLE {_tablePrefix}_Timeouts (
                 FunctionTypeId NVARCHAR(255),
                 FunctionInstanceId NVARCHAR(255),
                 TimeoutId NVARCHAR(255),
@@ -39,7 +39,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions_Timeouts";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_Timeouts";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -47,7 +47,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Timeouts;";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_Timeouts;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -59,17 +59,17 @@ public class SqlServerTimeoutStore : ITimeoutStore
 
         var sql = @$"
             IF EXISTS (
-                SELECT * FROM {_tablePrefix}RFunctions_Timeouts 
+                SELECT * FROM {_tablePrefix}_Timeouts 
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId=@TimeoutId
             )           
             BEGIN
-                UPDATE {_tablePrefix}RFunctions_Timeouts
+                UPDATE {_tablePrefix}_Timeouts
                 SET Expires = @Expiry
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId = @TimeoutId AND @Overwrite = 1
             END
             ELSE
             BEGIN                
-                INSERT INTO {_tablePrefix}RFunctions_Timeouts
+                INSERT INTO {_tablePrefix}_Timeouts
                     (FunctionTypeId, FunctionInstanceId, TimeoutId, Expires)
                 VALUES 
                     (@FunctionTypeId, @FunctionInstanceId, @TimeoutId, @Expiry);
@@ -88,7 +88,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
 
         var sql = @$"    
-            DELETE FROM {_tablePrefix}RFunctions_Timeouts
+            DELETE FROM {_tablePrefix}_Timeouts
             WHERE
                 FunctionTypeId = @FunctionTypeId AND
                 FunctionInstanceId = @FunctionInstanceId AND 
@@ -105,7 +105,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
 
         var sql = @$"    
-            DELETE FROM {_tablePrefix}RFunctions_Timeouts
+            DELETE FROM {_tablePrefix}_Timeouts
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(sql, conn);
@@ -119,7 +119,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT FunctionInstanceId, TimeoutId, Expires
-            FROM {_tablePrefix}RFunctions_Timeouts
+            FROM {_tablePrefix}_Timeouts
             WHERE FunctionTypeId = @FunctionTypeId AND Expires <= @ExpiresBefore";
         
         await using var command = new SqlCommand(sql, conn);
@@ -146,7 +146,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT TimeoutId, Expires
-            FROM {_tablePrefix}RFunctions_Timeouts
+            FROM {_tablePrefix}_Timeouts
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(sql, conn);

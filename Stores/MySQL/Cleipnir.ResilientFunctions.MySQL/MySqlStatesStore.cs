@@ -21,7 +21,7 @@ public class MySqlStatesStore : IStatesStore
     {
         await using var conn = await CreateConnection();
         _initialize ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_states (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_states (
                 id VARCHAR(450) PRIMARY KEY,
                 state TEXT NOT NULL
             );";
@@ -33,7 +33,7 @@ public class MySqlStatesStore : IStatesStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunction_states";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_states";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -44,7 +44,7 @@ public class MySqlStatesStore : IStatesStore
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await CreateConnection();
         _upsertStateSql ??= $@"
-          INSERT INTO {_tablePrefix}rfunction_states 
+          INSERT INTO {_tablePrefix}_states 
               (id, state)
           VALUES
               (?, ?)  
@@ -69,7 +69,7 @@ public class MySqlStatesStore : IStatesStore
         await using var conn = await CreateConnection();
         _getStatesSql ??= @$"
             SELECT id, state
-            FROM {_tablePrefix}rfunction_states
+            FROM {_tablePrefix}_states
             WHERE id LIKE ?";
         await using var command = new MySqlCommand(_getStatesSql, conn)
         {
@@ -97,7 +97,7 @@ public class MySqlStatesStore : IStatesStore
     public async Task RemoveState(FunctionId functionId, StateId stateId)
     {
         await using var conn = await CreateConnection();
-        _removeStatesSql ??= $"DELETE FROM {_tablePrefix}rfunction_states WHERE id = ?";
+        _removeStatesSql ??= $"DELETE FROM {_tablePrefix}_states WHERE id = ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, stateId.Value);
         await using var command = new MySqlCommand(_removeStatesSql, conn)
         {
@@ -111,7 +111,7 @@ public class MySqlStatesStore : IStatesStore
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}rfunction_states WHERE id LIKE ?";
+        _removeSql ??= $"DELETE FROM {_tablePrefix}_states WHERE id LIKE ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
         await using var command = new MySqlCommand(_removeSql, conn)
         {

@@ -24,7 +24,7 @@ public class SqlServerEffectsStore : IEffectsStore
     {
         await using var conn = await _connFunc();
         var sql = @$"    
-            CREATE TABLE {_tablePrefix}Effects (
+            CREATE TABLE {_tablePrefix}_Effects (
                 Id NVARCHAR(450) PRIMARY KEY,
                 Status INT NOT NULL,
                 Result NVARCHAR(MAX),
@@ -41,7 +41,7 @@ public class SqlServerEffectsStore : IEffectsStore
     public async Task Truncate()
     {
         await using var conn = await _connFunc();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}Effects";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_Effects";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -51,10 +51,10 @@ public class SqlServerEffectsStore : IEffectsStore
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
         var sql = $@"
-            MERGE INTO {_tablePrefix}Effects
+            MERGE INTO {_tablePrefix}_Effects
                 USING (VALUES (@Id,@Status,@Result,@Exception)) 
                 AS source (Id,Status,Result,Exception)
-                ON {_tablePrefix}Effects.Id = source.Id
+                ON {_tablePrefix}_Effects.Id = source.Id
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
@@ -76,7 +76,7 @@ public class SqlServerEffectsStore : IEffectsStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT Id, Status, Result, Exception
-            FROM {_tablePrefix}Effects
+            FROM {_tablePrefix}_Effects
             WHERE Id LIKE @IdPrefix";
 
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
@@ -105,7 +105,7 @@ public class SqlServerEffectsStore : IEffectsStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            DELETE FROM {_tablePrefix}Effects
+            DELETE FROM {_tablePrefix}_Effects
             WHERE Id = @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
@@ -119,7 +119,7 @@ public class SqlServerEffectsStore : IEffectsStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            DELETE FROM {_tablePrefix}Effects
+            DELETE FROM {_tablePrefix}_Effects
             WHERE Id LIKE @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;

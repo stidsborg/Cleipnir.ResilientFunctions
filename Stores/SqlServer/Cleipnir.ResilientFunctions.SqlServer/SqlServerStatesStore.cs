@@ -23,7 +23,7 @@ public class SqlServerStatesStore : IStatesStore
     {
         await using var conn = await _connFunc();
         var sql = @$"    
-            CREATE TABLE {_tablePrefix}States (
+            CREATE TABLE {_tablePrefix}_States (
                 Id NVARCHAR(450) PRIMARY KEY,                
                 State NVARCHAR(MAX)
             );";
@@ -38,7 +38,7 @@ public class SqlServerStatesStore : IStatesStore
     public async Task Truncate()
     {
         await using var conn = await _connFunc();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}States";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_States";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -48,10 +48,10 @@ public class SqlServerStatesStore : IStatesStore
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
         var sql = $@"
-            MERGE INTO {_tablePrefix}States
+            MERGE INTO {_tablePrefix}_States
                 USING (VALUES (@Id, @State)) 
                 AS source (Id,State)
-                ON {_tablePrefix}States.Id = source.Id
+                ON {_tablePrefix}_States.Id = source.Id
                 WHEN MATCHED THEN
                     UPDATE SET State = source.State
                 WHEN NOT MATCHED THEN
@@ -71,7 +71,7 @@ public class SqlServerStatesStore : IStatesStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT Id, State
-            FROM {_tablePrefix}States
+            FROM {_tablePrefix}_States
             WHERE Id LIKE @IdPrefix";
 
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value);
@@ -97,7 +97,7 @@ public class SqlServerStatesStore : IStatesStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            DELETE FROM {_tablePrefix}States
+            DELETE FROM {_tablePrefix}_States
             WHERE Id = @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, stateId.Value);
@@ -110,7 +110,7 @@ public class SqlServerStatesStore : IStatesStore
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await _connFunc();
-        var sql = $"DELETE FROM {_tablePrefix}States WHERE Id LIKE @Id";
+        var sql = $"DELETE FROM {_tablePrefix}_States WHERE Id LIKE @Id";
 
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
         await using var command = new SqlCommand(sql, conn);

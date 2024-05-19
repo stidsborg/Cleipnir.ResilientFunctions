@@ -22,7 +22,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         try
         {
             var sql = @$"            
-                CREATE TABLE {_tablePrefix}RFunctions_Register (
+                CREATE TABLE {_tablePrefix}_Register (
                     RegisterType INT NOT NULL,
                     [Group] VARCHAR(255) NOT NULL,
                     Name VARCHAR(255) NOT NULL,
@@ -44,7 +44,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Register";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_Register";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -55,7 +55,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         await conn.OpenAsync();
 
         var sql = @$" 
-            INSERT INTO {_tablePrefix}RFunctions_Register 
+            INSERT INTO {_tablePrefix}_Register 
                 (RegisterType, [Group], Name, Value)
             VALUES 
                 (@RegisterType, @Group, @Name, @Value)";
@@ -90,7 +90,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         {
             //as setIfEmpty is false then only update if expected value is found
             var sql = @$" 
-                UPDATE {_tablePrefix}RFunctions_Register
+                UPDATE {_tablePrefix}_Register
                 SET Value = @NewValue
                 WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue";
         
@@ -113,8 +113,8 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
             //setIfEmpty is true
             var sql = @$"               
                 BEGIN TRANSACTION;
-                DELETE FROM {_tablePrefix}RFunctions_Register WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue;
-                INSERT INTO {_tablePrefix}RFunctions_Register (RegisterType, [Group], Name, Value)
+                DELETE FROM {_tablePrefix}_Register WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue;
+                INSERT INTO {_tablePrefix}_Register (RegisterType, [Group], Name, Value)
                 VALUES (@RegisterType, @Group, @Name, @NewValue);
                 COMMIT TRANSACTION;";
 
@@ -148,7 +148,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         
         var sql = @$"    
             SELECT Value
-            FROM {_tablePrefix}RFunctions_Register
+            FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
         await using var command = new SqlCommand(sql, conn)
         {
@@ -173,7 +173,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         await conn.OpenAsync();
 
         var sql = @$" 
-            DELETE FROM {_tablePrefix}RFunctions_Register
+            DELETE FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @Value";
 
         await using var command = new SqlCommand(sql, conn)
@@ -197,7 +197,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         await conn.OpenAsync();
 
         var sql = @$" 
-            DELETE FROM {_tablePrefix}RFunctions_Register
+            DELETE FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
 
         await using var command = new SqlCommand(sql, conn)
@@ -220,7 +220,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         
         var sql = @$"    
             SELECT COUNT(*)
-            FROM {_tablePrefix}RFunctions_Register
+            FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
         await using var command = new SqlCommand(sql, conn)
         {
@@ -241,7 +241,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions_Register";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_Register";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }

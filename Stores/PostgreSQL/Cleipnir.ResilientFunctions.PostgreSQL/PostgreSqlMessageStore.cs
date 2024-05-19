@@ -30,7 +30,7 @@ public class PostgreSqlMessageStore : IMessageStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_messages (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 position INT NOT NULL,
@@ -47,7 +47,7 @@ public class PostgreSqlMessageStore : IMessageStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_messages;";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_messages;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -55,7 +55,7 @@ public class PostgreSqlMessageStore : IMessageStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}rfunctions_messages;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}_messages;";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -68,11 +68,11 @@ public class PostgreSqlMessageStore : IMessageStore
        
         { //append Message to message stream sql
             var sql = @$"    
-                INSERT INTO {_tablePrefix}rfunctions_messages
+                INSERT INTO {_tablePrefix}_messages
                     (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
                 VALUES (
                      $1, $2, 
-                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}rfunctions_messages WHERE function_type_id = $1 AND function_instance_id = $2), 
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE function_type_id = $1 AND function_instance_id = $2), 
                      $3, $4, $5
                 ) RETURNING position;";
             var command = new NpgsqlBatchCommand(sql)
@@ -92,7 +92,7 @@ public class PostgreSqlMessageStore : IMessageStore
         { //get function status
             var sql = @$"    
             SELECT epoch, status
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = $1 AND function_instance_id = $2;";
            
             var command = new NpgsqlBatchCommand(sql)
@@ -138,7 +138,7 @@ public class PostgreSqlMessageStore : IMessageStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
-                UPDATE {_tablePrefix}rfunctions_messages
+                UPDATE {_tablePrefix}_messages
                 SET message_json = $1, message_type = $2, idempotency_key = $3
                 WHERE function_type_id = $4 AND function_instance_id = $5 AND position = $6";
 
@@ -169,7 +169,7 @@ public class PostgreSqlMessageStore : IMessageStore
     internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
     {
         var sql = @$"    
-                DELETE FROM {_tablePrefix}rfunctions_messages
+                DELETE FROM {_tablePrefix}_messages
                 WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, connection, transaction)
         {
@@ -188,7 +188,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT message_json, message_type, idempotency_key
-            FROM {_tablePrefix}rfunctions_messages
+            FROM {_tablePrefix}_messages
             WHERE function_type_id = $1 AND function_instance_id = $2 AND position >= $3
             ORDER BY position ASC;";
         await using var command = new NpgsqlCommand(sql, conn)
@@ -219,7 +219,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT COALESCE(MAX(position), -1) 
-            FROM {_tablePrefix}rfunctions_messages 
+            FROM {_tablePrefix}_messages 
             WHERE function_type_id = $1 AND function_instance_id = $2";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -242,7 +242,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT epoch, status
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = $1 AND function_instance_id = $2;";
         await using var command = new NpgsqlCommand(sql, conn)
         {

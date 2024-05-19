@@ -20,7 +20,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_timeouts (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
                 timeout_id VARCHAR(255),
@@ -35,7 +35,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunctions_timeouts";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_timeouts";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -47,14 +47,14 @@ public class MySqlTimeoutStore : ITimeoutStore
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
         _upsertTimeoutSql ??= @$"
-            INSERT INTO {_tablePrefix}rfunctions_timeouts 
+            INSERT INTO {_tablePrefix}_timeouts 
                 (function_type_id, function_instance_id, timeout_id, expires)
             VALUES
                 (?, ?, ?, ?) 
            ON DUPLICATE KEY UPDATE
                 expires = ?";
         _insertTimeoutSql ??= @$"
-                INSERT IGNORE INTO {_tablePrefix}rfunctions_timeouts 
+                INSERT IGNORE INTO {_tablePrefix}_timeouts 
                     (function_type_id, function_instance_id, timeout_id, expires)
                 VALUES
                     (?, ?, ?, ?)";
@@ -80,7 +80,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
-            DELETE FROM {_tablePrefix}rfunctions_timeouts 
+            DELETE FROM {_tablePrefix}_timeouts 
             WHERE 
                 function_type_id = ? AND 
                 function_instance_id = ? AND 
@@ -104,7 +104,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     {
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
-            DELETE FROM {_tablePrefix}rfunctions_timeouts 
+            DELETE FROM {_tablePrefix}_timeouts 
             WHERE function_type_id = ? AND function_instance_id = ?";
         
         await using var command = new MySqlCommand(_removeSql, conn)
@@ -125,7 +125,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getTimeoutsSqlExpiresBefore ??= @$"    
             SELECT function_instance_id, timeout_id, expires
-            FROM {_tablePrefix}rfunctions_timeouts
+            FROM {_tablePrefix}_timeouts
             WHERE function_type_id = ? AND expires <= ?";
         
         await using var command = new MySqlCommand(_getTimeoutsSqlExpiresBefore, conn)
@@ -158,7 +158,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getFunctionTimeoutsSql ??= @$"    
             SELECT timeout_id, expires
-            FROM {_tablePrefix}rfunctions_timeouts
+            FROM {_tablePrefix}_timeouts
             WHERE function_type_id = ? AND function_instance_id = ?";
         
         await using var command = new MySqlCommand(_getFunctionTimeoutsSql, conn)
@@ -188,7 +188,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _dropUnderlyingTable ??= $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_timeouts";
+        _dropUnderlyingTable ??= $"DROP TABLE IF EXISTS {_tablePrefix}_timeouts";
         await using var command = new MySqlCommand(_dropUnderlyingTable, conn);
         await command.ExecuteNonQueryAsync();
     }

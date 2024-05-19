@@ -61,7 +61,7 @@ public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Uti
     private async Task<IRegister> CreateAndInitializeRegister([CallerMemberName] string memberName = "")
     {
         var count = _syncedCounter.Increment();
-        var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString, tablePrefix: count.ToString());
+        var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString);
         await underlyingRegister.DropUnderlyingTable();
         await underlyingRegister.Initialize();
         return new Register(underlyingRegister);

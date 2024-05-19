@@ -29,13 +29,14 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
+        _tablePrefix = tablePrefix == "" ? "RFunctions" : tablePrefix;
+        
         _connFunc = CreateConnection(connectionString);
-        _tablePrefix = tablePrefix;
-        _messageStore = new SqlServerMessageStore(connectionString, tablePrefix);
-        _timeoutStore = new SqlServerTimeoutStore(connectionString, tablePrefix);
-        _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, tablePrefix);
-        _effectsStore = new SqlServerEffectsStore(connectionString, tablePrefix);
-        _statesStore = new SqlServerStatesStore(connectionString, tablePrefix);
+        _messageStore = new SqlServerMessageStore(connectionString, _tablePrefix);
+        _timeoutStore = new SqlServerTimeoutStore(connectionString, _tablePrefix);
+        _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tablePrefix);
+        _effectsStore = new SqlServerEffectsStore(connectionString, _tablePrefix);
+        _statesStore = new SqlServerStatesStore(connectionString, _tablePrefix);
         Utilities = new Utilities(_underlyingRegister);
     }
     
@@ -58,7 +59,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _timeoutStore.Initialize();
         await using var conn = await _connFunc();
         var sql = @$"    
-            CREATE TABLE {_tablePrefix}RFunctions (
+            CREATE TABLE {_tablePrefix} (
                 FunctionTypeId NVARCHAR(200) NOT NULL,
                 FunctionInstanceId NVARCHAR(200) NOT NULL,
                 ParamJson NVARCHAR(MAX) NULL,                        
@@ -73,12 +74,12 @@ public class SqlServerFunctionStore : IFunctionStore
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId)
             );
-            CREATE INDEX {_tablePrefix}RFunctions_idx_Executing
-                ON {_tablePrefix}RFunctions (FunctionTypeId, LeaseExpiration, FunctionInstanceId)
+            CREATE INDEX {_tablePrefix}_idx_Executing
+                ON {_tablePrefix} (FunctionTypeId, LeaseExpiration, FunctionInstanceId)
                 INCLUDE (Epoch)
                 WHERE Status = {(int)Status.Executing};
-            CREATE INDEX {_tablePrefix}RFunctions_idx_Postponed
-                ON {_tablePrefix}RFunctions (FunctionTypeId, PostponedUntil, FunctionInstanceId)
+            CREATE INDEX {_tablePrefix}_idx_Postponed
+                ON {_tablePrefix} (FunctionTypeId, PostponedUntil, FunctionInstanceId)
                 INCLUDE (Epoch)
                 WHERE Status = {(int)Status.Postponed};";
 
@@ -96,7 +97,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _timeoutStore.DropUnderlyingTable();
         
         await using var conn = await _connFunc();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}RFunctions";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -110,7 +111,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _statesStore.Truncate();
         
         await using var conn = await _connFunc();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}RFunctions";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}";
         await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -127,7 +128,7 @@ public class SqlServerFunctionStore : IFunctionStore
         try
         {
             var sql = @$"
-                INSERT INTO {_tablePrefix}RFunctions(
+                INSERT INTO {_tablePrefix}(
                     FunctionTypeId, FunctionInstanceId, 
                     ParamJson, 
                     Status,
@@ -169,7 +170,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
                 LeaseExpiration = @LeaseExpiration
@@ -185,7 +186,7 @@ public class SqlServerFunctionStore : IFunctionStore
                    LeaseExpiration,
                    InterruptCount,
                    Timestamp
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
 
@@ -209,7 +210,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET LeaseExpiration = @LeaseExpiration
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Epoch = @Epoch";
         
@@ -228,7 +229,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, LeaseExpiration
-            FROM {_tablePrefix}RFunctions WITH (NOLOCK)
+            FROM {_tablePrefix} WITH (NOLOCK)
             WHERE FunctionTypeId = @FunctionTypeId AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}";
 
         await using var command = new SqlCommand(sql, conn);
@@ -258,7 +259,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT FunctionInstanceId, Epoch, PostponedUntil
-            FROM {_tablePrefix}RFunctions 
+            FROM {_tablePrefix} 
             WHERE FunctionTypeId = @FunctionTypeId 
               AND Status = {(int) Status.Postponed} 
               AND PostponedUntil <= @PostponedUntil";
@@ -295,7 +296,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
     
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET
                 Status = @Status,
                 ParamJson = @ParamJson,             
@@ -333,7 +334,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
@@ -362,7 +363,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, DefaultStateJson = @DefaultState, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
@@ -392,7 +393,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, DefaultStateJson = @DefaultStateJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId
@@ -421,7 +422,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
 
         var sql = @$"
-                UPDATE {_tablePrefix}RFunctions
+                UPDATE {_tablePrefix}
                 SET Status = {(int)Status.Suspended}, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp
                 WHERE FunctionTypeId = @FunctionTypeId AND 
                       FunctionInstanceId = @FunctionInstanceId AND                       
@@ -445,7 +446,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
 
         var sql = @$"
-                UPDATE {_tablePrefix}RFunctions
+                UPDATE {_tablePrefix}
                 SET DefaultStateJson = @DefaultStateJson
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
 
@@ -465,7 +466,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         var sql = @$"
-            UPDATE {_tablePrefix}RFunctions
+            UPDATE {_tablePrefix}
             SET ParamJson = @ParamJson,  
                 ResultJson = @ResultJson,
                 Epoch = Epoch + 1
@@ -486,7 +487,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-                UPDATE {_tablePrefix}RFunctions
+                UPDATE {_tablePrefix}
                 SET InterruptCount = InterruptCount + 1
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Status = {(int) Status.Executing};";
 
@@ -503,7 +504,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
                 SELECT InterruptCount 
-                FROM {_tablePrefix}RFunctions            
+                FROM {_tablePrefix}            
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId;";
 
         await using var command = new SqlCommand(sql, conn);
@@ -519,7 +520,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         var sql = @$"
             SELECT Status, Epoch
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(sql, conn);
@@ -553,7 +554,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     LeaseExpiration,
                     InterruptCount,
                     Timestamp
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId";
         
@@ -608,7 +609,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         var sql = @$"
-            DELETE FROM {_tablePrefix}RFunctions
+            DELETE FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId
             AND FunctionInstanceId = @FunctionInstanceId ";
         

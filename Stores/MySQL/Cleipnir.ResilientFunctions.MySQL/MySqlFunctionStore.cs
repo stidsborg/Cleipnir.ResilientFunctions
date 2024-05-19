@@ -30,6 +30,8 @@ public class MySqlFunctionStore : IFunctionStore
 
     public MySqlFunctionStore(string connectionString, string tablePrefix = "")
     {
+        tablePrefix = tablePrefix == "" ? "rfunctions" : tablePrefix;
+        
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _messageStore = new MySqlMessageStore(connectionString, tablePrefix);
@@ -50,7 +52,7 @@ public class MySqlFunctionStore : IFunctionStore
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         _initializeSql ??= $@"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix} (
                 function_type_id VARCHAR(200) NOT NULL,
                 function_instance_id VARCHAR(200) NOT NULL,
                 param_json TEXT NULL,                    
@@ -79,7 +81,7 @@ public class MySqlFunctionStore : IFunctionStore
         await _timeoutStore.DropUnderlyingTable();
 
         await using var conn = await CreateOpenConnection(_connectionString);
-        _dropIfExistsSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions";
+        _dropIfExistsSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}";
         await using var command = new MySqlCommand(_dropIfExistsSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -94,7 +96,7 @@ public class MySqlFunctionStore : IFunctionStore
         await _statesStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
-        _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunctions";
+        _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}";
         await using var command = new MySqlCommand(_truncateTablesSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -111,7 +113,7 @@ public class MySqlFunctionStore : IFunctionStore
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         _createFunctionSql ??= @$"
-            INSERT IGNORE INTO {_tablePrefix}rfunctions
+            INSERT IGNORE INTO {_tablePrefix}
                 (function_type_id, function_instance_id, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
                 (?, ?, ?, ?, 0, ?, ?, ?)";
@@ -138,7 +140,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _restartExecutionSql ??= @$"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
             SELECT               
@@ -152,7 +154,7 @@ public class MySqlFunctionStore : IFunctionStore
                 lease_expiration,
                 interrupt_count,
                 timestamp
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = ? AND function_instance_id = ?;";
 
         await using var command = new MySqlCommand(_restartExecutionSql, conn)
@@ -183,7 +185,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _renewLeaseSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET lease_expiration = ?
             WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(_renewLeaseSql, conn)
@@ -207,7 +209,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _getCrashedFunctionsSql ??= @$"
             SELECT function_instance_id, epoch, lease_expiration 
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(_getCrashedFunctionsSql, conn)
         {
@@ -238,7 +240,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _getPostponedFunctionsSql ??= @$"
             SELECT function_instance_id, epoch, postponed_until
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
         await using var command = new MySqlCommand(_getPostponedFunctionsSql, conn)
         {
@@ -273,7 +275,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
       
         _setFunctionStateSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET status = ?, 
                 param_json = ?,  
                 result_json = ?,  
@@ -313,7 +315,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _succeedFunctionSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET status = {(int) Status.Succeeded}, result_json = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
@@ -349,7 +351,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _postponedFunctionSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET status = {(int) Status.Postponed}, postponed_until = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
@@ -385,7 +387,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _failFunctionSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET status = {(int) Status.Failed}, exception_json = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
                 function_type_id = ? AND 
@@ -422,7 +424,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         
         _suspendFunctionSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET status = {(int) Status.Suspended}, default_state = ?, timestamp = ?
             WHERE function_type_id = ? AND 
                   function_instance_id = ? AND 
@@ -451,7 +453,7 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _setDefaultStateSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET default_state = ?
             WHERE function_type_id = ? AND function_instance_id = ?";
         await using var command = new MySqlCommand(_setDefaultStateSql, conn)
@@ -476,7 +478,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
       
         _setParametersSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET param_json = ?,  
                 result_json = ?,
                 epoch = epoch + 1
@@ -507,7 +509,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         
         _incrementInterruptCountSql ??= $@"
-            UPDATE {_tablePrefix}rfunctions
+            UPDATE {_tablePrefix}
             SET interrupt_count = interrupt_count + 1
             WHERE function_type_id = ? AND function_instance_id = ? AND status = {(int) Status.Executing};";
 
@@ -531,7 +533,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         _getInterruptCountSql ??= $@"
             SELECT interrupt_count 
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = ? AND function_instance_id = ?;";
 
         await using var command = new MySqlCommand(_getInterruptCountSql, conn)
@@ -552,7 +554,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _getFunctionStatusSql ??= $@"
             SELECT status, epoch
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(_getFunctionStatusSql, conn)
         {
@@ -591,7 +593,7 @@ public class MySqlFunctionStore : IFunctionStore
                 lease_expiration,
                 interrupt_count,
                 timestamp
-            FROM {_tablePrefix}rfunctions
+            FROM {_tablePrefix}
             WHERE function_type_id = ? AND function_instance_id = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
@@ -655,7 +657,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         
         _deleteFunctionSql ??= $@"            
-            DELETE FROM {_tablePrefix}rfunctions
+            DELETE FROM {_tablePrefix}
             WHERE function_type_id = ? AND function_instance_id = ?";
         
         await using var command = new MySqlCommand(_deleteFunctionSql, conn)

@@ -21,7 +21,7 @@ public class MySqlEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_effects (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_effects (
                 id VARCHAR(450) PRIMARY KEY,
                 status INT NOT NULL,
                 result TEXT NULL,
@@ -35,7 +35,7 @@ public class MySqlEffectsStore : IEffectsStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}rfunction_effects";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_effects";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -46,7 +46,7 @@ public class MySqlEffectsStore : IEffectsStore
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
-          INSERT INTO {_tablePrefix}rfunction_effects 
+          INSERT INTO {_tablePrefix}_effects 
               (id, status, result, exception)
           VALUES
               (?, ?, ?, ?)  
@@ -73,7 +73,7 @@ public class MySqlEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
             SELECT id, status, result, exception
-            FROM {_tablePrefix}rfunction_effects
+            FROM {_tablePrefix}_effects
             WHERE id LIKE ?";
         await using var command = new MySqlCommand(_getEffectResultsSql, conn)
         {
@@ -103,7 +103,7 @@ public class MySqlEffectsStore : IEffectsStore
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id = ?";
+        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
@@ -117,7 +117,7 @@ public class MySqlEffectsStore : IEffectsStore
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}rfunction_effects WHERE id LIKE ?";
+        _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE ?";
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;
         await using var command = new MySqlCommand(_removeSql, conn)
         {

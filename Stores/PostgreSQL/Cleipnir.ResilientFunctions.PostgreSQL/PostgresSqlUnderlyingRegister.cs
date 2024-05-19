@@ -20,7 +20,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         var sql = @$"            
-                CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunctions_register (
+                CREATE TABLE IF NOT EXISTS {_tablePrefix}_register (
                     registertype INT NOT NULL,
                     groupname VARCHAR(255) NOT NULL,
                     name VARCHAR(255) NOT NULL,
@@ -36,7 +36,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}rfunctions_register";
+        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_register";
         await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -47,7 +47,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await conn.OpenAsync();
 
         var sql = @$" 
-            INSERT INTO {_tablePrefix}rfunctions_register
+            INSERT INTO {_tablePrefix}_register
                 (registertype, groupname, name, value)
             VALUES
                 ($1, $2, $3, $4)
@@ -77,7 +77,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         {
             //as setIfEmpty is false then only update if expected value is found
             var sql = @$" 
-                UPDATE {_tablePrefix}rfunctions_register
+                UPDATE {_tablePrefix}_register
                 SET value = $1
                 WHERE registertype = $2 AND groupname = $3 AND name = $4 AND value = $5";
         
@@ -102,7 +102,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
             await using var batch = new NpgsqlBatch(conn);
             {
                 var command = 
-                    new NpgsqlBatchCommand($"DELETE FROM {_tablePrefix}rfunctions_register WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4")
+                    new NpgsqlBatchCommand($"DELETE FROM {_tablePrefix}_register WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4")
                     {
                         Parameters =
                         {
@@ -116,7 +116,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
             }
             {
                 var sql = @$" 
-                    INSERT INTO {_tablePrefix}rfunctions_register
+                    INSERT INTO {_tablePrefix}_register
                         (registertype, groupname, name, value)
                     VALUES
                         ($1, $2, $3, $4)
@@ -148,7 +148,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         
         var sql = @$"    
             SELECT value
-            FROM {_tablePrefix}rfunctions_register
+            FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -173,7 +173,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await conn.OpenAsync();
 
         var sql = @$" 
-            DELETE FROM {_tablePrefix}rfunctions_register
+            DELETE FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4";
 
         await using var command = new NpgsqlCommand(sql, conn)
@@ -197,7 +197,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await conn.OpenAsync();
 
         var sql = @$" 
-            DELETE FROM {_tablePrefix}rfunctions_register
+            DELETE FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3";
 
         await using var command = new NpgsqlCommand(sql, conn)
@@ -220,7 +220,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         
         var sql = @$"    
             SELECT COUNT(*)
-            FROM {_tablePrefix}rfunctions_register
+            FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -241,7 +241,7 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         
-        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunctions_register";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_register";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }

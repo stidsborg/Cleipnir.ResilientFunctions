@@ -22,7 +22,7 @@ public class PostgresStatesStore : IStatesStore
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}rfunction_states (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_states (
                 id VARCHAR(450) PRIMARY KEY,
                 state TEXT NOT NULL
             );";
@@ -33,7 +33,7 @@ public class PostgresStatesStore : IStatesStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}rfunction_states";
+        var sql = $"TRUNCATE TABLE {_tablePrefix}_states";
         var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -44,7 +44,7 @@ public class PostgresStatesStore : IStatesStore
         
         await using var conn = await CreateConnection();
         var sql = $@"
-          INSERT INTO {_tablePrefix}rfunction_states 
+          INSERT INTO {_tablePrefix}_states 
               (id, state)
           VALUES
               ($1, $2) 
@@ -69,7 +69,7 @@ public class PostgresStatesStore : IStatesStore
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT id, state
-            FROM {_tablePrefix}rfunction_states
+            FROM {_tablePrefix}_states
             WHERE id LIKE $1";
         await using var command = new NpgsqlCommand(sql, conn)
         {
@@ -96,7 +96,7 @@ public class PostgresStatesStore : IStatesStore
     public async Task RemoveState(FunctionId functionId, StateId stateId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_states WHERE id = $1";
+        var sql = $"DELETE FROM {_tablePrefix}_states WHERE id = $1";
         
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, stateId.Value);
         await using var command = new NpgsqlCommand(sql, conn)
@@ -110,7 +110,7 @@ public class PostgresStatesStore : IStatesStore
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}rfunction_states WHERE id LIKE $1";
+        var sql = $"DELETE FROM {_tablePrefix}_states WHERE id LIKE $1";
         
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
         await using var command = new NpgsqlCommand(sql, conn)

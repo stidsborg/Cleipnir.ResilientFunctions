@@ -25,7 +25,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
 
         var sql = @$"
-        CREATE TABLE {_tablePrefix}RFunctions_Messages (
+        CREATE TABLE {_tablePrefix}_Messages (
             FunctionTypeId NVARCHAR(255),
             FunctionInstanceId NVARCHAR(255),
             Position INT NOT NULL,
@@ -44,7 +44,7 @@ public class SqlServerMessageStore : IMessageStore
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}RFunctions_Messages;";
+        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}_Messages;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -52,7 +52,7 @@ public class SqlServerMessageStore : IMessageStore
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}RFunctions_Messages;";
+        var sql = @$"TRUNCATE TABLE {_tablePrefix}_Messages;";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -62,12 +62,12 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         
         var sql = @$"    
-            INSERT INTO {_tablePrefix}RFunctions_Messages
+            INSERT INTO {_tablePrefix}_Messages
                 (FunctionTypeId, FunctionInstanceId, Position, MessageJson, MessageType, IdempotencyKey)
             VALUES ( 
                 @FunctionTypeId, 
                 @FunctionInstanceId, 
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}RFunctions_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_Messages WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId), 
                 @MessageJson, @MessageType, @IdempotencyKey
             );";
         
@@ -101,7 +101,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         
         var sql = @$"    
-            UPDATE {_tablePrefix}RFunctions_Messages
+            UPDATE {_tablePrefix}_Messages
             SET MessageJson = @MessageJson, MessageType = @MessageType, IdempotencyKey = @IdempotencyKey
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position = @Position";
         
@@ -126,7 +126,7 @@ public class SqlServerMessageStore : IMessageStore
     internal async Task<int> Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
     {
         var sql = @$"    
-            DELETE FROM {_tablePrefix}RFunctions_Messages
+            DELETE FROM {_tablePrefix}_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = 
@@ -144,7 +144,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT MessageJson, MessageType, IdempotencyKey
-            FROM {_tablePrefix}RFunctions_Messages
+            FROM {_tablePrefix}_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position >= @Position
             ORDER BY Position ASC;";
         
@@ -181,7 +181,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT COALESCE(MAX(position), -1)
-            FROM {_tablePrefix}RFunctions_Messages
+            FROM {_tablePrefix}_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(sql, conn);
@@ -206,7 +206,7 @@ public class SqlServerMessageStore : IMessageStore
     {
         var sql = @$"    
             SELECT Epoch, Status
-            FROM {_tablePrefix}RFunctions
+            FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
