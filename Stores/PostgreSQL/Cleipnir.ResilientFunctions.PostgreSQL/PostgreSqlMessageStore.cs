@@ -25,11 +25,12 @@ public class PostgreSqlMessageStore : IMessageStore
         await conn.OpenAsync();
         return conn;
     }
-    
+
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
@@ -40,26 +41,30 @@ public class PostgreSqlMessageStore : IMessageStore
                 PRIMARY KEY (function_type_id, function_instance_id, position)
             );";
         
-        var command = new NpgsqlCommand(sql, conn);
+        var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _dropUnderlyingTableSql;
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_messages;";
-        var command = new NpgsqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-    
-    public async Task TruncateTable()
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}_messages;";
-        var command = new NpgsqlCommand(sql, conn);
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_messages;";
+        var command = new NpgsqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateTableSql;
+    public async Task TruncateTable()
+    {
+        await using var conn = await CreateConnection();
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_messages;";
+        var command = new NpgsqlCommand(_truncateTableSql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private string? _appendMessageSql;
+    private string? _getFunctionStatusInAppendMessageSql;
     public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
@@ -67,7 +72,7 @@ public class PostgreSqlMessageStore : IMessageStore
         var (messageJson, messageType, idempotencyKey) = storedMessage;
        
         { //append Message to message stream sql
-            var sql = @$"    
+            _appendMessageSql ??= @$"    
                 INSERT INTO {_tablePrefix}_messages
                     (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
                 VALUES (
@@ -75,7 +80,7 @@ public class PostgreSqlMessageStore : IMessageStore
                      (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE function_type_id = $1 AND function_instance_id = $2), 
                      $3, $4, $5
                 ) RETURNING position;";
-            var command = new NpgsqlBatchCommand(sql)
+            var command = new NpgsqlBatchCommand(_appendMessageSql)
             {
                 Parameters =
                 {
@@ -90,12 +95,12 @@ public class PostgreSqlMessageStore : IMessageStore
         }
 
         { //get function status
-            var sql = @$"    
+            _getFunctionStatusInAppendMessageSql ??= @$"    
             SELECT epoch, status
             FROM {_tablePrefix}
             WHERE function_type_id = $1 AND function_instance_id = $2;";
            
-            var command = new NpgsqlBatchCommand(sql)
+            var command = new NpgsqlBatchCommand(_getFunctionStatusInAppendMessageSql)
             {
                 Parameters = { 
                     new() {Value = functionId.TypeId.Value},
@@ -134,16 +139,17 @@ public class PostgreSqlMessageStore : IMessageStore
         throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
     }
     
+    private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}_messages
                 SET message_json = $1, message_type = $2, idempotency_key = $3
                 WHERE function_type_id = $4 AND function_instance_id = $5 AND position = $6";
 
         var (messageJson, messageType, idempotencyKey) = storedMessage;
-        var command = new NpgsqlCommand(sql, conn)
+        var command = new NpgsqlCommand(_replaceMessageSql, conn)
         {
             Parameters =
             {
@@ -159,19 +165,15 @@ public class PostgreSqlMessageStore : IMessageStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
+    private string? _truncateFunctionSql;
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        await Truncate(functionId, conn, transaction: null);
-    }
-    
-    internal async Task<int> Truncate(FunctionId functionId, NpgsqlConnection connection, NpgsqlTransaction? transaction)
-    {
-        var sql = @$"    
+        _truncateFunctionSql ??= @$"    
                 DELETE FROM {_tablePrefix}_messages
                 WHERE function_type_id = $1 AND function_instance_id = $2;";
-        await using var command = new NpgsqlCommand(sql, connection, transaction)
+        await using var command = new NpgsqlCommand(_truncateFunctionSql, conn)
         {
             Parameters =
             {
@@ -179,19 +181,19 @@ public class PostgreSqlMessageStore : IMessageStore
                 new() {Value = functionId.InstanceId.Value}
             }
         };
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows;
+        await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _getMessagesSql;
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _getMessagesSql ??= @$"    
             SELECT message_json, message_type, idempotency_key
             FROM {_tablePrefix}_messages
             WHERE function_type_id = $1 AND function_instance_id = $2 AND position >= $3
             ORDER BY position ASC;";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_getMessagesSql, conn)
         {
             Parameters =
             {
@@ -214,14 +216,15 @@ public class PostgreSqlMessageStore : IMessageStore
         return storedMessages;
     }
 
+    private string? _hasMoreMessagesSql;
     public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _hasMoreMessagesSql ??= @$"    
             SELECT COALESCE(MAX(position), -1) 
             FROM {_tablePrefix}_messages 
             WHERE function_type_id = $1 AND function_instance_id = $2";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_hasMoreMessagesSql, conn)
         {
             Parameters =
             {
@@ -237,14 +240,15 @@ public class PostgreSqlMessageStore : IMessageStore
         return maxPosition + 1 > skip;
     }
 
+    private string? _getSuspensionStatusSql;
     private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _getSuspensionStatusSql ??= @$"    
             SELECT epoch, status
             FROM {_tablePrefix}
             WHERE function_type_id = $1 AND function_instance_id = $2;";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
         {
             Parameters = { 
                 new() {Value = functionId.TypeId.Value},
