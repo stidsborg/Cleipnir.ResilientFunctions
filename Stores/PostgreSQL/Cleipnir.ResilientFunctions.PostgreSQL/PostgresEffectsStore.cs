@@ -19,35 +19,38 @@ public class PostgresEffectsStore : IEffectsStore
         _tablePrefix = tablePrefix;
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_effects (
                 id VARCHAR(450) PRIMARY KEY,
                 status INT NOT NULL,
                 result TEXT NULL,
                 exception TEXT NULL
             );";
-        var command = new NpgsqlCommand(sql, conn);
+        var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_effects";
-        var command = new NpgsqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_effects";
+        var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _setEffectResultSql;
     public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         
         await using var conn = await CreateConnection();
-        var sql = $@"
+        _setEffectResultSql ??= $@"
           INSERT INTO {_tablePrefix}_effects 
               (id, status, result, exception)
           VALUES
@@ -56,7 +59,7 @@ public class PostgresEffectsStore : IEffectsStore
           DO 
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_setEffectResultSql, conn)
         {
             Parameters =
             {
@@ -70,14 +73,15 @@ public class PostgresEffectsStore : IEffectsStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getEffectResultsSql;
     public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _getEffectResultsSql ??= @$"
             SELECT id, status, result, exception
             FROM {_tablePrefix}_effects
             WHERE id LIKE $1";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_getEffectResultsSql, conn)
         {
             Parameters =
             {
@@ -101,13 +105,14 @@ public class PostgresEffectsStore : IEffectsStore
         return functions;
     }
 
+    private string? _deleteEffectResultSql;
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}_effects WHERE id = $1";
+        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = $1";
         
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters = { new() {Value = id } }
         };
@@ -115,13 +120,14 @@ public class PostgresEffectsStore : IEffectsStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE $1";
+        _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE $1";
         
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_removeSql, conn)
         {
             Parameters = { new() {Value = id } }
         };
