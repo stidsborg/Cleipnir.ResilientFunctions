@@ -15,12 +15,13 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix.ToLower();
-    } 
-    
+    }
+
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
                 function_type_id VARCHAR(255),
                 function_instance_id VARCHAR(255),
@@ -28,15 +29,16 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
                 expires BIGINT,
                 PRIMARY KEY (function_type_id, function_instance_id, timeout_id)
             )";
-        var command = new NpgsqlCommand(sql, conn);
+        var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_timeouts";
-        var command = new NpgsqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_timeouts";
+        var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
     
@@ -46,27 +48,29 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await conn.OpenAsync();
         return conn;
     }
-    
+
+    private string? _upsertTimeoutSql;
+    private string? _insertTimeoutSql;
     public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _upsertTimeoutSql ??= @$"
             INSERT INTO {_tablePrefix}_timeouts 
                 (function_type_id, function_instance_id, timeout_id, expires)
             VALUES
                 ($1, $2, $3, $4) 
             ON CONFLICT (function_type_id, function_instance_id, timeout_id) 
             DO UPDATE SET expires = EXCLUDED.expires";
-        
-        if (!overwrite)
-            sql = @$"
-                INSERT INTO {_tablePrefix}_timeouts 
-                    (function_type_id, function_instance_id, timeout_id, expires)
-                VALUES
-                    ($1, $2, $3, $4) 
-                ON CONFLICT DO NOTHING";
-        
+
+        _insertTimeoutSql ??= @$"
+            INSERT INTO {_tablePrefix}_timeouts 
+                (function_type_id, function_instance_id, timeout_id, expires)
+            VALUES
+                ($1, $2, $3, $4) 
+            ON CONFLICT DO NOTHING";
+
+        var sql = overwrite ? _upsertTimeoutSql : _insertTimeoutSql;
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
@@ -81,17 +85,18 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeTimeoutSql;
     public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _removeTimeoutSql ??= @$"
             DELETE FROM {_tablePrefix}_timeouts 
             WHERE 
                 function_type_id = $1 AND 
                 function_instance_id = $2 AND
                 timeout_id = $3";
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_removeTimeoutSql, conn)
         {
             Parameters =
             {
@@ -104,14 +109,15 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _removeSql ??= @$"
             DELETE FROM {_tablePrefix}_timeouts 
             WHERE function_type_id = $1 AND function_instance_id = $2";
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_removeSql, conn)
         {
             Parameters =
             {
@@ -123,17 +129,18 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getTimeoutsSqlExpiresBefore;
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _getTimeoutsSqlExpiresBefore ??= @$"
             SELECT function_instance_id, timeout_id, expires
             FROM {_tablePrefix}_timeouts 
             WHERE 
                 function_type_id = $1 AND 
                 expires <= $2";
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_getTimeoutsSqlExpiresBefore, conn)
         {
             Parameters =
             {
@@ -156,16 +163,17 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         return storedMessages;
     }
 
+    private string? _getTimeoutsSql;    
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
     {
         var (typeId, instanceId) = functionId;
         await using var conn = await CreateConnection();
-        var sql = @$"
+        _getTimeoutsSql ??= @$"
             SELECT timeout_id, expires
             FROM {_tablePrefix}_timeouts 
             WHERE function_type_id = $1 AND function_instance_id = $2";
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_getTimeoutsSql, conn)
         {
             Parameters =
             {
@@ -186,11 +194,12 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         return storedMessages;
     }
 
+    private string? _dropUnderlyingTableSql;
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_timeouts;";
-        var command = new NpgsqlCommand(sql, conn);
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_timeouts;";
+        var command = new NpgsqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 }
