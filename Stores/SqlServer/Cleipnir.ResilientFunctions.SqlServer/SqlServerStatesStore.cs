@@ -19,35 +19,38 @@ public class SqlServerStatesStore : IStatesStore
         _connFunc = CreateConnection(connectionString);
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await _connFunc();
-        var sql = @$"    
+        _initializeSql ??= @$"    
             CREATE TABLE {_tablePrefix}_States (
                 Id NVARCHAR(450) PRIMARY KEY,                
                 State NVARCHAR(MAX)
             );";
 
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_initializeSql, conn);
         try
         {
             await command.ExecuteNonQueryAsync();    
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await _connFunc();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_States";
-        await using var command = new SqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_States";
+        await using var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _upsertStateSql;
     public async Task UpsertState(FunctionId functionId, StoredState storedState)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
-        var sql = $@"
+        _upsertStateSql ??= $@"
             MERGE INTO {_tablePrefix}_States
                 USING (VALUES (@Id, @State)) 
                 AS source (Id,State)
@@ -58,7 +61,7 @@ public class SqlServerStatesStore : IStatesStore
                     INSERT (Id, State)
                     VALUES (source.Id, source.State);";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_upsertStateSql, conn);
         var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedState.StateId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@State", storedState.StateJson);
@@ -66,16 +69,17 @@ public class SqlServerStatesStore : IStatesStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getStates;
     public async Task<IEnumerable<StoredState>> GetStates(FunctionId functionId)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        _getStates ??= @$"
             SELECT Id, State
             FROM {_tablePrefix}_States
             WHERE Id LIKE @IdPrefix";
 
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value);
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_getStates, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
 
         var storedStates = new List<StoredState>();
@@ -93,27 +97,29 @@ public class SqlServerStatesStore : IStatesStore
         return storedStates;
     }
 
+    private string? _removeStateSql;
     public async Task RemoveState(FunctionId functionId, StateId stateId)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        _removeStateSql ??= @$"
             DELETE FROM {_tablePrefix}_States
             WHERE Id = @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, stateId.Value);
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_removeStateSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         
         await command.ExecuteNonQueryAsync();
     }
-
+    
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await _connFunc();
-        var sql = $"DELETE FROM {_tablePrefix}_States WHERE Id LIKE @Id";
+        _removeSql ??= $"DELETE FROM {_tablePrefix}_States WHERE Id LIKE @Id";
 
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@Id", idPrefix);
         
         await command.ExecuteNonQueryAsync();    }
