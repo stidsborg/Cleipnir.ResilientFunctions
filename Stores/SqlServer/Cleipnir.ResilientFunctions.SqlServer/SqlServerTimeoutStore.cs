@@ -17,11 +17,12 @@ public class SqlServerTimeoutStore : ITimeoutStore
         _tablePrefix = tablePrefix;
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
         
-        var sql = @$"            
+        _initializeSql ??= @$"            
             CREATE TABLE {_tablePrefix}_Timeouts (
                 FunctionTypeId NVARCHAR(255),
                 FunctionInstanceId NVARCHAR(255),
@@ -29,35 +30,38 @@ public class SqlServerTimeoutStore : ITimeoutStore
                 Expires BIGINT,          
                 PRIMARY KEY (FunctionTypeId, FunctionInstanceId, TimeoutId)
             );";
-        var command = new SqlCommand(sql, conn);
+        var command = new SqlCommand(_initializeSql, conn);
         try
         {
             await command.ExecuteNonQueryAsync();    
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_Timeouts";
-        var command = new SqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-    
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await CreateConnection();
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_Timeouts;";
-        var command = new SqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_Timeouts";
+        var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _dropUnderlyingTableSql;
+    public async Task DropUnderlyingTable()
+    {
+        await using var conn = await CreateConnection();
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_Timeouts;";
+        var command = new SqlCommand(_dropUnderlyingTableSql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private string? _upsertTimeoutSql;
     public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {
         var (functionId, timeoutId, expiry) = storedTimeout;
         await using var conn = await CreateConnection();
 
-        var sql = @$"
+        _upsertTimeoutSql ??= @$"
             IF EXISTS (
                 SELECT * FROM {_tablePrefix}_Timeouts 
                 WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId=@TimeoutId
@@ -74,7 +78,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
                 VALUES 
                     (@FunctionTypeId, @FunctionInstanceId, @TimeoutId, @Expiry);
             END";
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_upsertTimeoutSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
@@ -83,46 +87,49 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeTimeoutSql;
     public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
     {
         await using var conn = await CreateConnection();
 
-        var sql = @$"    
+        _removeTimeoutSql ??= @$"    
             DELETE FROM {_tablePrefix}_Timeouts
             WHERE
                 FunctionTypeId = @FunctionTypeId AND
                 FunctionInstanceId = @FunctionInstanceId AND 
                 TimeoutId = @TimeoutId";
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_removeTimeoutSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
 
-        var sql = @$"    
+        _removeSql ??= @$"    
             DELETE FROM {_tablePrefix}_Timeouts
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getTimeoutsExpiresBeforeSql;
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _getTimeoutsExpiresBeforeSql ??= @$"    
             SELECT FunctionInstanceId, TimeoutId, Expires
             FROM {_tablePrefix}_Timeouts
             WHERE FunctionTypeId = @FunctionTypeId AND Expires <= @ExpiresBefore";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_getTimeoutsExpiresBeforeSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId);
         command.Parameters.AddWithValue("@ExpiresBefore", expiresBefore);
         
@@ -140,16 +147,17 @@ public class SqlServerTimeoutStore : ITimeoutStore
         return storedTimeouts;
     }
 
+    private string? _getTimeoutsSql;
     public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
     {
         var (typeId, instanceId) = functionId;
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _getTimeoutsSql ??= @$"    
             SELECT TimeoutId, Expires
             FROM {_tablePrefix}_Timeouts
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_getTimeoutsSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", typeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", instanceId.Value);
         
