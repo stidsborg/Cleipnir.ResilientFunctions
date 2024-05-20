@@ -15,13 +15,14 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         _tablePrefix = tablePrefix;
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
         try
         {
-            var sql = @$"            
+            _initializeSql ??= @$"            
                 CREATE TABLE {_tablePrefix}_Register (
                     RegisterType INT NOT NULL,
                     [Group] VARCHAR(255) NOT NULL,
@@ -29,7 +30,7 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
                     Value VARCHAR(255) NOT NULL,
                     PRIMARY KEY (RegisterType, [Group], Name)
                 );";
-            await using var command = new SqlCommand(sql, conn);
+            await using var command = new SqlCommand(_initializeSql, conn);
             await command.ExecuteNonQueryAsync();
         }
         catch (SqlException e)
@@ -39,28 +40,30 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         }
     }
 
+    private string? _dropUnderlyingTableSql;
     public async Task DropUnderlyingTable()
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_Register";
-        await using var command = new SqlCommand(sql, conn);
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_Register";
+        await using var command = new SqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _setIfEmptySql;
     public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = @$" 
+        _setIfEmptySql ??= @$" 
             INSERT INTO {_tablePrefix}_Register 
                 (RegisterType, [Group], Name, Value)
             VALUES 
                 (@RegisterType, @Group, @Name, @Value)";
         
-        await using var command = new SqlCommand(sql, conn)
+        await using var command = new SqlCommand(_setIfEmptySql, conn)
         {
             Parameters =
             {
@@ -81,6 +84,8 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         }
     }
 
+    private string? _compareAndSwapNonEmptySql;
+    private string? _compareAndSwapEmptySql;
     public async Task<bool> CompareAndSwap(RegisterType registerType, string group, string name, string newValue, string expectedValue, bool setIfEmpty = true)
     {
         await using var conn = new SqlConnection(_connectionString);
@@ -89,12 +94,12 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         if (!setIfEmpty)
         {
             //as setIfEmpty is false then only update if expected value is found
-            var sql = @$" 
+            _compareAndSwapNonEmptySql ??= @$" 
                 UPDATE {_tablePrefix}_Register
                 SET Value = @NewValue
                 WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue";
         
-            await using var command = new SqlCommand(sql, conn)
+            await using var command = new SqlCommand(_compareAndSwapNonEmptySql, conn)
             {
                 Parameters =
                 {
@@ -111,14 +116,14 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         } else
         {
             //setIfEmpty is true
-            var sql = @$"               
+            _compareAndSwapEmptySql ??= @$"               
                 BEGIN TRANSACTION;
                 DELETE FROM {_tablePrefix}_Register WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @ExpectedValue;
                 INSERT INTO {_tablePrefix}_Register (RegisterType, [Group], Name, Value)
                 VALUES (@RegisterType, @Group, @Name, @NewValue);
                 COMMIT TRANSACTION;";
 
-            await using var command = new SqlCommand(sql, conn)
+            await using var command = new SqlCommand(_compareAndSwapEmptySql, conn)
             {
                 Parameters =
                 {
@@ -141,16 +146,17 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         }
     }
 
+    private string? _getSql;
     public async Task<string?> Get(RegisterType registerType, string group, string name)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
         
-        var sql = @$"    
+        _getSql ??= @$"    
             SELECT Value
             FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
-        await using var command = new SqlCommand(sql, conn)
+        await using var command = new SqlCommand(_getSql, conn)
         {
             Parameters =
             {
@@ -167,16 +173,17 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         return default;
     }
 
+    private string? _deleteExpectedValueSql;
     public async Task<bool> Delete(RegisterType registerType, string group, string name, string expectedValue)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = @$" 
+        _deleteExpectedValueSql ??= @$" 
             DELETE FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name AND Value = @Value";
 
-        await using var command = new SqlCommand(sql, conn)
+        await using var command = new SqlCommand(_deleteExpectedValueSql, conn)
         {
             Parameters =
             {
@@ -191,16 +198,17 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         return affectedRows > 0;
     }
 
+    private string? _deleteSql;
     public async Task Delete(RegisterType registerType, string group, string name)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = @$" 
+        _deleteSql ??= @$" 
             DELETE FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
 
-        await using var command = new SqlCommand(sql, conn)
+        await using var command = new SqlCommand(_deleteSql, conn)
         {
             Parameters =
             {
@@ -213,16 +221,17 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _existsSql;
     public async Task<bool> Exists(RegisterType registerType, string group, string name)
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
         
-        var sql = @$"    
+        _existsSql ??= @$"    
             SELECT COUNT(*)
             FROM {_tablePrefix}_Register
             WHERE RegisterType = @RegisterType AND [Group] = @Group AND Name = @Name";
-        await using var command = new SqlCommand(sql, conn)
+        await using var command = new SqlCommand(_existsSql, conn)
         {
             Parameters =
             {
@@ -236,13 +245,14 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         return count > 0;
     }
 
+    private string? _truncateTableSql;
     public async Task TruncateTable()
     {
         await using var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_Register";
-        await using var command = new SqlCommand(sql, conn);
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_Register";
+        await using var command = new SqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 }
