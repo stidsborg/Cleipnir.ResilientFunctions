@@ -20,10 +20,11 @@ public class SqlServerEffectsStore : IEffectsStore
         _connFunc = CreateConnection(connectionString);
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await _connFunc();
-        var sql = @$"    
+        _initializeSql ??= @$"    
             CREATE TABLE {_tablePrefix}_Effects (
                 Id NVARCHAR(450) PRIMARY KEY,
                 Status INT NOT NULL,
@@ -31,26 +32,28 @@ public class SqlServerEffectsStore : IEffectsStore
                 Exception NVARCHAR(MAX)
             );";
 
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_initializeSql, conn);
         try
         {
             await command.ExecuteNonQueryAsync();    
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
+    private string? _truncateSql;
     public async Task Truncate()
     {
         await using var conn = await _connFunc();
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_Effects";
-        await using var command = new SqlCommand(sql, conn);
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_Effects";
+        await using var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _setEffectResultSql;
     public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
-        var sql = $@"
+        _setEffectResultSql ??= $@"
             MERGE INTO {_tablePrefix}_Effects
                 USING (VALUES (@Id,@Status,@Result,@Exception)) 
                 AS source (Id,Status,Result,Exception)
@@ -61,7 +64,7 @@ public class SqlServerEffectsStore : IEffectsStore
                     INSERT (Id, Status, Result, Exception)
                     VALUES (source.Id, source.Status, source.Result, source.Exception);";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_setEffectResultSql, conn);
         var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
@@ -71,16 +74,17 @@ public class SqlServerEffectsStore : IEffectsStore
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _getEffectResultsSql;
     public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        _getEffectResultsSql ??= @$"
             SELECT Id, Status, Result, Exception
             FROM {_tablePrefix}_Effects
             WHERE Id LIKE @IdPrefix";
 
         var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_getEffectResultsSql, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix);
 
         var storedEffects = new List<StoredEffect>();
@@ -101,29 +105,31 @@ public class SqlServerEffectsStore : IEffectsStore
         return storedEffects;
     }
 
+    private string? _deleteEffectResultSql;
     public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        _deleteEffectResultSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id = @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _removeSql;
     public async Task Remove(FunctionId functionId)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        _removeSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id LIKE @Id";
 
         var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         
         await command.ExecuteNonQueryAsync();
