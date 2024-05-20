@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -20,11 +19,12 @@ public class SqlServerMessageStore : IMessageStore
         _tablePrefix = tablePrefix;
     }
 
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
 
-        var sql = @$"
+        _initializeSql ??= @$"
         CREATE TABLE {_tablePrefix}_Messages (
             FunctionTypeId NVARCHAR(255),
             FunctionInstanceId NVARCHAR(255),
@@ -34,34 +34,37 @@ public class SqlServerMessageStore : IMessageStore
             IdempotencyKey NVARCHAR(255),          
             PRIMARY KEY (FunctionTypeId, FunctionInstanceId, Position)
         );";
-        var command = new SqlCommand(sql, conn);
+        var command = new SqlCommand(_initializeSql, conn);
         try
         {
             await command.ExecuteNonQueryAsync();    
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
-    
+
+    private string? _dropUnderlyingTableSql;
     public async Task DropUnderlyingTable()
     {
         await using var conn = await CreateConnection();
-        var sql = @$"DROP TABLE IF EXISTS {_tablePrefix}_Messages;";
-        var command = new SqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-    
-    public async Task TruncateTable()
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"TRUNCATE TABLE {_tablePrefix}_Messages;";
-        var command = new SqlCommand(sql, conn);
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_Messages;";
+        var command = new SqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _truncateTableSql;
+    public async Task TruncateTable()
+    {
+        await using var conn = await CreateConnection();
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_Messages;";
+        var command = new SqlCommand(_truncateTableSql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private string? _appendMessageSql;
     public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         
-        var sql = @$"    
+        _appendMessageSql ??= @$"    
             INSERT INTO {_tablePrefix}_Messages
                 (FunctionTypeId, FunctionInstanceId, Position, MessageJson, MessageType, IdempotencyKey)
             VALUES ( 
@@ -71,7 +74,7 @@ public class SqlServerMessageStore : IMessageStore
                 @MessageJson, @MessageType, @IdempotencyKey
             );";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
@@ -95,17 +98,18 @@ public class SqlServerMessageStore : IMessageStore
         
         return await GetSuspensionStatus(functionId, conn);
     }
-    
+
+    private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         
-        var sql = @$"    
+        _replaceMessageSql ??= @$"    
             UPDATE {_tablePrefix}_Messages
             SET MessageJson = @MessageJson, MessageType = @MessageType, IdempotencyKey = @IdempotencyKey
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position = @Position";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_replaceMessageSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@Position", position);
@@ -117,38 +121,32 @@ public class SqlServerMessageStore : IMessageStore
         return affectedRows == 1;
     }
 
+    private string? _truncateSql;
     public async Task Truncate(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
-        await Truncate(functionId, conn, transaction: null);
-    }
-
-    internal async Task<int> Truncate(FunctionId functionId, SqlConnection connection, SqlTransaction? transaction)
-    {
-        var sql = @$"    
+        _truncateSql ??= @$"    
             DELETE FROM {_tablePrefix}_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        
-        await using var command = 
-            transaction == null
-                ? new SqlCommand(sql, connection)
-                : new SqlCommand(sql, connection, transaction);
+
+        await using var command = new SqlCommand(_truncateSql, conn);
         
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
-        return await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _getMessagesSql;
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _getMessagesSql ??= @$"    
             SELECT MessageJson, MessageType, IdempotencyKey
             FROM {_tablePrefix}_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position >= @Position
             ORDER BY Position ASC;";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_getMessagesSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@Position", skip);
@@ -176,15 +174,16 @@ public class SqlServerMessageStore : IMessageStore
         return storedMessages;
     }
 
+    private string? _hasMoreMessagesSql;
     public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
     {
         await using var conn = await CreateConnection();
-        var sql = @$"    
+        _hasMoreMessagesSql ??= @$"    
             SELECT COALESCE(MAX(position), -1)
             FROM {_tablePrefix}_Messages
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_hasMoreMessagesSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
 
@@ -201,14 +200,15 @@ public class SqlServerMessageStore : IMessageStore
         await conn.OpenAsync();
         return conn;
     }
-    
+
+    private string? _getSuspensionStatusSql;
     private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId, SqlConnection connection)
     {
-        var sql = @$"    
+        _getSuspensionStatusSql ??= @$"    
             SELECT Epoch, Status
             FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
-        await using var command = new SqlCommand(sql, connection);
+        await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
 
