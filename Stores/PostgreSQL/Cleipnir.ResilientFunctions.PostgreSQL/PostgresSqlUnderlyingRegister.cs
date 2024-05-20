@@ -14,12 +14,13 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
     }
-    
+
+    private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
-        var sql = @$"            
+        _initializeSql ??= @$"            
                 CREATE TABLE IF NOT EXISTS {_tablePrefix}_register (
                     registertype INT NOT NULL,
                     groupname VARCHAR(255) NOT NULL,
@@ -27,33 +28,35 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
                     value VARCHAR(255) NOT NULL,
                     PRIMARY KEY (registertype, groupname, name)
                 );";
-        await using var command = new NpgsqlCommand(sql, conn);
+        await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _dropUnderlyingTableSql;
     public async Task DropUnderlyingTable()
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = $"DROP TABLE IF EXISTS {_tablePrefix}_register";
-        await using var command = new NpgsqlCommand(sql, conn);
+        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_register";
+        await using var command = new NpgsqlCommand(_dropUnderlyingTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    private string? _setIfEmptySql;
     public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = @$" 
+        _setIfEmptySql ??= @$" 
             INSERT INTO {_tablePrefix}_register
                 (registertype, groupname, name, value)
             VALUES
                 ($1, $2, $3, $4)
             ON CONFLICT DO NOTHING";
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_setIfEmptySql, conn)
         {
             Parameters =
             {
@@ -68,6 +71,9 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         return affectedRows > 0;
     }
 
+    private string? _compareAndSwapUpdateSql;
+    private string? _compareAndSwapDeleteExistingSql;
+    private string? _compareAndSwapInsertSql;
     public async Task<bool> CompareAndSwap(RegisterType registerType, string group, string name, string newValue, string expectedValue, bool setIfEmpty = true)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
@@ -76,12 +82,12 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         if (!setIfEmpty)
         {
             //as setIfEmpty is false then only update if expected value is found
-            var sql = @$" 
+            _compareAndSwapUpdateSql ??= @$" 
                 UPDATE {_tablePrefix}_register
                 SET value = $1
                 WHERE registertype = $2 AND groupname = $3 AND name = $4 AND value = $5";
         
-            await using var command = new NpgsqlCommand(sql, conn)
+            await using var command = new NpgsqlCommand(_compareAndSwapUpdateSql, conn)
             {
                 Parameters =
                 {
@@ -101,8 +107,11 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
             //setIfEmpty is true
             await using var batch = new NpgsqlBatch(conn);
             {
-                var command = 
-                    new NpgsqlBatchCommand($"DELETE FROM {_tablePrefix}_register WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4")
+                _compareAndSwapDeleteExistingSql ??= @$"
+                    DELETE FROM {_tablePrefix}_register 
+                    WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4";
+                var command =
+                    new NpgsqlBatchCommand(_compareAndSwapDeleteExistingSql)
                     {
                         Parameters =
                         {
@@ -115,14 +124,14 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
                 batch.BatchCommands.Add(command);
             }
             {
-                var sql = @$" 
+                _compareAndSwapInsertSql ??= @$" 
                     INSERT INTO {_tablePrefix}_register
                         (registertype, groupname, name, value)
                     VALUES
                         ($1, $2, $3, $4)
                     ON CONFLICT DO NOTHING";
 
-                var command = new NpgsqlBatchCommand(sql)
+                var command = new NpgsqlBatchCommand(_compareAndSwapInsertSql)
                 {
                     Parameters =
                     {
@@ -141,16 +150,17 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         }
     }
 
+    private string? _getSql;
     public async Task<string?> Get(RegisterType registerType, string group, string key)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         
-        var sql = @$"    
+        _getSql ??= @$"    
             SELECT value
             FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_getSql, conn)
         {
             Parameters =
             {
@@ -167,16 +177,17 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         return default;
     }
 
+    private string? _deleteExpectedValueSql;
     public async Task<bool> Delete(RegisterType registerType, string group, string name, string expectedValue)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = @$" 
+        _deleteExpectedValueSql ??= @$" 
             DELETE FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3 AND value = $4";
 
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_deleteExpectedValueSql, conn)
         {
             Parameters =
             {
@@ -191,16 +202,17 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         return affectedRows > 0;
     }
 
+    private string? _deleteSql;
     public async Task Delete(RegisterType registerType, string group, string name)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        var sql = @$" 
+        _deleteSql ??= @$" 
             DELETE FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3";
 
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_deleteSql, conn)
         {
             Parameters =
             {
@@ -213,16 +225,17 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _existsSql;
     public async Task<bool> Exists(RegisterType registerType, string group, string name)
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         
-        var sql = @$"    
+        _existsSql ??= @$"    
             SELECT COUNT(*)
             FROM {_tablePrefix}_register
             WHERE registertype = $1 AND groupname = $2 AND name = $3";
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_existsSql, conn)
         {
             Parameters =
             {
@@ -236,13 +249,14 @@ public class PostgresSqlUnderlyingRegister : IUnderlyingRegister
         return count > 0;
     }
 
+    private string? _truncateTableSql;
     public async Task TruncateTable()
     {
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
         
-        var sql = $"TRUNCATE TABLE {_tablePrefix}_register";
-        var command = new NpgsqlCommand(sql, conn);
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_register";
+        var command = new NpgsqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 }
