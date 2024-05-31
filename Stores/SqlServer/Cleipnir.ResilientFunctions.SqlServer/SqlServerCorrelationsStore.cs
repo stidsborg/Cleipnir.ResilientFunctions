@@ -3,34 +3,28 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerCorrelationsStore : ICorrelationStore
+public class SqlServerCorrelationsStore(string connectionString, string tablePrefix = "") : ICorrelationStore
 {
-    private readonly string _tablePrefix;
-    private readonly Func<Task<SqlConnection>> _connFunc;
-
-    public SqlServerCorrelationsStore(string connectionString, string tablePrefix = "")
-    {
-        _tablePrefix = tablePrefix;
-        _connFunc = CreateConnection(connectionString);
-    }
+    private readonly Func<Task<SqlConnection>> _connFunc = CreateConnection(connectionString);
 
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
-            CREATE TABLE {_tablePrefix}_Correlations (
+            CREATE TABLE {tablePrefix}_Correlations (
                 Function_Type NVARCHAR(200),
                 Function_Instance NVARCHAR(200),
                 Correlation NVARCHAR(200),                
-                PRIMARY KEY (Function_Type, Function_Instance, Correlation),
-                INDEX(Correlation, Function_Type, Function_Instance)
-            );";
+                PRIMARY KEY (Function_Type, Function_Instance, Correlation)        
+            );
+
+            CREATE INDEX IDX_{tablePrefix}_Correlations ON {tablePrefix}_Correlations (Correlation, Function_Type, Function_Instance);
+        ";
 
         await using var command = new SqlCommand(_initializeSql, conn);
         try
@@ -43,114 +37,116 @@ public class SqlServerCorrelationsStore : ICorrelationStore
     public async Task Truncate()
     {
         await using var conn = await _connFunc();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_Correlations";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_Correlations";
         await using var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public Task SetCorrelation(FunctionId functionId, string correlationId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IReadOnlyList<FunctionId>> GetCorrelations(string correlationId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IReadOnlyList<string>> GetCorrelations(FunctionId functionId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task RemoveCorrelations(FunctionId functionId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task RemoveCorrelation(FunctionId functionId, string correlationId)
-    {
-        throw new NotImplementedException();
-    }
-
-    private string? _upsertStateSql;
-    public async Task UpsertState(FunctionId functionId, StoredState storedState)
+    private string? _setCorrelationSql;
+    public async Task SetCorrelation(FunctionId functionId, string correlationId)
     {
         var (functionTypeId, functionInstanceId) = functionId;
         await using var conn = await _connFunc();
-        _upsertStateSql ??= $@"
-            MERGE INTO {_tablePrefix}_States
-                USING (VALUES (@Id, @State)) 
-                AS source (Id,State)
-                ON {_tablePrefix}_States.Id = source.Id
-                WHEN MATCHED THEN
-                    UPDATE SET State = source.State
+        _setCorrelationSql ??= $@"
+            MERGE INTO {tablePrefix}_Correlations
+                USING (VALUES (@Function_Type, @Function_Instance, @Correlation)) 
+                AS source (Function_Type, Function_Instance, Correlation)
+                ON {tablePrefix}_Correlations.Function_Type = source.Function_Type AND 
+                   {tablePrefix}_Correlations.Function_Instance = source.Function_Instance AND
+                   {tablePrefix}_Correlations.Correlation = source.Correlation
                 WHEN NOT MATCHED THEN
-                    INSERT (Id, State)
-                    VALUES (source.Id, source.State);";
+                    INSERT (Function_Type, Function_Instance, Correlation)
+                    VALUES (source.Function_Type, source.Function_Instance, source.Correlation);";
         
-        await using var command = new SqlCommand(_upsertStateSql, conn);
-        var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedState.StateId.ToString());    
-        command.Parameters.AddWithValue("@Id", escapedId);
-        command.Parameters.AddWithValue("@State", storedState.StateJson);
-
+        await using var command = new SqlCommand(_setCorrelationSql, conn);
+        command.Parameters.AddWithValue("@Function_Type", functionTypeId.Value);
+        command.Parameters.AddWithValue("@Function_Instance", functionInstanceId.Value);
+        command.Parameters.AddWithValue("@Correlation", correlationId);
+        
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _getStates;
-    public async Task<IEnumerable<StoredState>> GetStates(FunctionId functionId)
+    private string? _getCorrelations;
+    public async Task<IReadOnlyList<FunctionId>> GetCorrelations(string correlationId)
     {
         await using var conn = await _connFunc();
-        _getStates ??= @$"
-            SELECT Id, State
-            FROM {_tablePrefix}_States
-            WHERE Id LIKE @IdPrefix";
+        _getCorrelations ??= @$"
+            SELECT Function_Type, Function_Instance
+            FROM {tablePrefix}_Correlations
+            WHERE Correlation = @CorrelationId";
+        
+        await using var command = new SqlCommand(_getCorrelations, conn);
+        command.Parameters.AddWithValue("@CorrelationId", correlationId);
 
-        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value);
-        await using var command = new SqlCommand(_getStates, conn);
-        command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
-
-        var storedStates = new List<StoredState>();
+        var functions = new List<FunctionId>();
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
-            var id = reader.GetString(0);
-            var stateId = Escaper.Unescape(id)[2];
-            var state =  reader.GetString(1);
-            
-            var storedState = new StoredState(stateId, state);
-            storedStates.Add(storedState);
+            var functionType = reader.GetString(0);
+            var functionInstance = reader.GetString(1);
+            functions.Add(new FunctionId(functionType, functionInstance));
         }
 
-        return storedStates;
+        return functions;
     }
 
-    private string? _removeStateSql;
-    public async Task RemoveState(FunctionId functionId, StateId stateId)
+    private string? _getCorrelationsForFunction;
+    public async Task<IReadOnlyList<string>> GetCorrelations(FunctionId functionId)
     {
+        var (typeId, instanceId) = functionId;
         await using var conn = await _connFunc();
-        _removeStateSql ??= @$"
-            DELETE FROM {_tablePrefix}_States
-            WHERE Id = @Id";
+        _getCorrelationsForFunction ??= @$"
+            SELECT Correlation
+            FROM {tablePrefix}_Correlations
+            WHERE Function_Type = @FunctionType AND Function_Instance = @FunctionInstance";
+        
+        await using var command = new SqlCommand(_getCorrelationsForFunction, conn);
+        command.Parameters.AddWithValue("@FunctionType", typeId.Value);
+        command.Parameters.AddWithValue("@FunctionInstance", instanceId.Value);
 
-        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, stateId.Value);
-        await using var command = new SqlCommand(_removeStateSql, conn);
-        command.Parameters.AddWithValue("@Id", id);
+        var correlations = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (reader.HasRows && reader.Read())
+        {
+            var correlation = reader.GetString(0);
+            correlations.Add(correlation);
+        }
+
+        return correlations;
+    }
+
+    private string? _removeCorrelationsSql;
+    public async Task RemoveCorrelations(FunctionId functionId)
+    {
+        var (typeId, instanceId) = functionId;
+        await using var conn = await _connFunc();
+        _removeCorrelationsSql ??= @$"
+            DELETE FROM {tablePrefix}_Correlations
+            WHERE Function_Type = @Function_Type AND Function_Instance = @Function_Instance";
+        
+        await using var command = new SqlCommand(_removeCorrelationsSql, conn);
+        command.Parameters.AddWithValue("@Function_Type", typeId.Value);
+        command.Parameters.AddWithValue("@Function_Instance", instanceId.Value);
         
         await command.ExecuteNonQueryAsync();
     }
-    
-    private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
-    {
-        await using var conn = await _connFunc();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}_States WHERE Id LIKE @Id";
 
-        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
-        await using var command = new SqlCommand(_removeSql, conn);
-        command.Parameters.AddWithValue("@Id", idPrefix);
+    private string? _removeCorrelationSql;
+    public async Task RemoveCorrelation(FunctionId functionId, string correlationId)
+    {
+        var (typeId, instanceId) = functionId;
+        await using var conn = await _connFunc();
+        _removeCorrelationSql ??= @$"
+            DELETE FROM {tablePrefix}_Correlations
+            WHERE Function_Type = @Function_Type AND Function_Instance = @Function_Instance AND Correlation = @Correlation";
         
-        await command.ExecuteNonQueryAsync();    }
+        await using var command = new SqlCommand(_removeCorrelationSql, conn);
+        command.Parameters.AddWithValue("@Function_Type", typeId.Value);
+        command.Parameters.AddWithValue("@Function_Instance", instanceId.Value);
+        command.Parameters.AddWithValue("@Correlation", correlationId);
+        
+        await command.ExecuteNonQueryAsync();
+    }
 
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
     {
