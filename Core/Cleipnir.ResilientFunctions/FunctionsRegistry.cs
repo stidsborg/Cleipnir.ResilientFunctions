@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -20,6 +22,8 @@ public class FunctionsRegistry : IDisposable
     public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
+
+    private readonly Dictionary<FunctionTypeId, List<RoutingInformation>> _routes = new();
     
     private volatile bool _disposed;
     private readonly object _sync = new();
@@ -320,6 +324,9 @@ public class FunctionsRegistry : IDisposable
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
             _functions[functionTypeId] = registration;
+
+            if (settingsWithDefaults.Routes.Any())
+                _routes[functionTypeId] = settingsWithDefaults.Routes.ToList();
             
             return registration;
         }
@@ -374,6 +381,9 @@ public class FunctionsRegistry : IDisposable
             );
             _functions[functionTypeId] = registration;
             
+            if (settingsWithDefaults.Routes.Any())
+                _routes[functionTypeId] = settingsWithDefaults.Routes.ToList();
+            
             return registration;
         }
     }
@@ -427,6 +437,9 @@ public class FunctionsRegistry : IDisposable
             );
             _functions[functionTypeId] = registration;
             
+            if (settingsWithDefaults.Routes.Any())
+                _routes[functionTypeId] = settingsWithDefaults.Routes.ToList();
+            
             return registration;
         }
     }
@@ -442,6 +455,39 @@ public class FunctionsRegistry : IDisposable
             throw new ArgumentException($"Cannot create {nameof(MessageWriter)} for unregistered function type '{functionId.TypeId}'");
         
         return (MessageWriter) registration.MessageWriters.For(functionId.InstanceId);
+    }
+
+    public async Task DeliverMessage<TMessage>(TMessage message) where TMessage : notnull
+    {
+        Dictionary<FunctionTypeId, Tuple<RouteResolver, MessageWriters>> resolvers;
+        
+        lock (_sync)
+        {
+            resolvers = _routes
+                .SelectMany(kv =>
+                    kv.Value.Select(ri => new { FunctionTypeId = kv.Key, RouteInfo = ri })
+                )
+                .Where(a => a.RouteInfo.MessageType == typeof(TMessage))
+                .ToDictionary(
+                    a => a.FunctionTypeId, 
+                    a => 
+                        Tuple.Create(
+                            a.RouteInfo.RouteResolver,
+                            (MessageWriters) ((dynamic) _functions[a.FunctionTypeId]).MessageWriters
+                        )
+                );
+            
+        }
+
+        foreach (var (_, (routeResolver, messageWriters)) in resolvers)
+        {
+            var routingInfo = routeResolver(message);
+            if (routingInfo.FlowInstanceId is null)
+                throw new NotImplementedException("Routing using correlation id is not supported yet");
+
+            var messageWriter = messageWriters.For(routingInfo.FlowInstanceId!);
+            await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);
+        }
     }
     
     public void Dispose() => _ = ShutdownGracefully();

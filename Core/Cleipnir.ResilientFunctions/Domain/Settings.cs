@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -15,6 +16,7 @@ public class Settings
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? MessagesPullFrequency { get; }
     internal ISerializer? Serializer { get; }
+    internal IEnumerable<RoutingInformation>? Routes { get; }
 
     public Settings(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
@@ -24,7 +26,8 @@ public class Settings
         TimeSpan? messagesPullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
-        ISerializer? serializer = null)
+        ISerializer? serializer = null,
+        IEnumerable<RoutingInformation>? routes = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         LeaseLength = leaseLength;
@@ -34,6 +37,7 @@ public class Settings
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
         MessagesPullFrequency = messagesPullFrequency;
+        Routes = routes;
     }
 }
 
@@ -45,7 +49,8 @@ public record SettingsWithDefaults(
     TimeSpan MessagesPullFrequency,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
-    ISerializer Serializer)
+    ISerializer Serializer,
+    IEnumerable<RoutingInformation> Routes)
 {
     public SettingsWithDefaults Merge(Settings? child)
     {
@@ -61,7 +66,8 @@ public record SettingsWithDefaults(
             child.MessagesPullFrequency ?? MessagesPullFrequency,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
-            child.Serializer ?? Serializer
+            child.Serializer ?? Serializer,
+            child.Routes ?? Routes
         );
     }
 
@@ -74,6 +80,7 @@ public record SettingsWithDefaults(
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 100,
-            Serializer: DefaultSerializer.Instance
+            Serializer: DefaultSerializer.Instance,
+            Routes: []
         );
 }

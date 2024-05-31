@@ -23,6 +23,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public IEffectsStore EffectsStore => _effectsStore;
     public IStatesStore StatesStore => _statesStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
+    public ICorrelationStore CorrelationStore => throw new NotImplementedException(); //todo
     public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
