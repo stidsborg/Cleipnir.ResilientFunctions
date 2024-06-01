@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -8,9 +9,10 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-
 public abstract class RoutingTests
 {
+    #region Route to FunctionInstance
+    
     public abstract Task MessageIsRoutedToParamlessInstance();
     protected async Task MessageIsRoutedToParamlessInstance(Task<IFunctionStore> storeTask)
     {
@@ -132,7 +134,60 @@ public abstract class RoutingTests
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
     }
+    
+    #endregion
+
+    #region Route using Correlation
+
+    public abstract Task MessageIsRoutedToParamlessInstanceUsingCorrelationId();
+    protected async Task MessageIsRoutedToParamlessInstanceUsingCorrelationId(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store, 
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var correlationId = $"SomeCorrelationId_{Guid.NewGuid().ToString()}";
+
+        var correlationIdRegisteredFlag = new SyncedFlag();
+        var syncedFlag = new SyncedFlag();
+        var syncedValue = new Synced<string>();
+        
+        var registration = functionsRegistry.RegisterParamless(
+            functionTypeId,
+            inner: async workflow =>
+            {
+                await workflow.RegisterCorrelation(correlationId);
+                correlationIdRegisteredFlag.Raise();
+                
+                var someMessage = await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
+                syncedValue.Value = someMessage.Value;
+                syncedFlag.Raise();
+            },
+            new Settings(routes: new RoutingInformation[]
+            {
+                new RoutingInformation<SomeCorrelatedMessage>(
+                    someMsg => Route.Using(someMsg.Correlation)
+                )
+            })
+        );
+
+        await registration.Schedule(functionInstanceId);
+        await correlationIdRegisteredFlag.WaitForRaised();
+        
+        await functionsRegistry.DeliverMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
+        
+        await syncedFlag.WaitForRaised();
+        syncedValue.Value.ShouldBe("SomeValue!");
+    }
+
+    #endregion
 
     public record SomeMessage(string RouteTo, string Value);
-    public record SomeOtherMessage;
+    public record SomeCorrelatedMessage(string Correlation, string Value);
 }

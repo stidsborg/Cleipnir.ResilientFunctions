@@ -482,11 +482,23 @@ public class FunctionsRegistry : IDisposable
         foreach (var (_, (routeResolver, messageWriters)) in resolvers)
         {
             var routingInfo = routeResolver(message);
-            if (routingInfo.FlowInstanceId is null)
-                throw new NotImplementedException("Routing using correlation id is not supported yet");
+            if (routingInfo.CorrelationId is not null)
+            {
+                var functionIds = await _functionStore
+                    .CorrelationStore
+                    .GetCorrelations(routingInfo.CorrelationId);
 
-            var messageWriter = messageWriters.For(routingInfo.FlowInstanceId!);
-            await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);
+                foreach (var (_, instanceId) in functionIds)
+                {
+                    var messageWriter = messageWriters.For(instanceId);
+                    await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);
+                }
+            }
+            else
+            {
+                var messageWriter = messageWriters.For(routingInfo.FlowInstanceId!);
+                await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);   
+            }
         }
     }
     

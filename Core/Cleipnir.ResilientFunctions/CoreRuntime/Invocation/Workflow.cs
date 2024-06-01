@@ -15,8 +15,9 @@ public class Workflow
     public Effect Effect { get; }
     public States States { get; }
     public Utilities Utilities { get; }
+    public Correlations Correlations { get; }
     
-    public Workflow(FunctionId functionId, Messages messages, Effect effect, States states, Utilities utilities, Func<FunctionId, MessageWriter> messageWriterFunc)
+    public Workflow(FunctionId functionId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, Func<FunctionId, MessageWriter> messageWriterFunc)
     {
         _messageWriterFunc = messageWriterFunc;
         FunctionId = functionId;
@@ -24,6 +25,7 @@ public class Workflow
         Messages = messages;
         Effect = effect;
         States = states;
+        Correlations = correlations;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages, out States states)
@@ -37,6 +39,11 @@ public class Workflow
     {
         var messageWriter = _messageWriterFunc(receiver);
         await messageWriter.AppendMessage(message, idempotencyKey);
+    }
+
+    public async Task RegisterCorrelation(string correlation)
+    {
+        await Correlations.Register(correlation);
     }
 
     public Task Delay(string effectId, TimeSpan @for) => Delay(effectId, until: DateTime.UtcNow + @for);

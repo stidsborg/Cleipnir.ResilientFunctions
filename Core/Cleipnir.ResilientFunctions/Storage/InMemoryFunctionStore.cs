@@ -25,7 +25,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public IStatesStore StatesStore => _statesStore;
     private readonly InMemoryTimeoutStore _timeoutStore = new();
     public ITimeoutStore TimeoutStore => _timeoutStore;
-    public ICorrelationStore CorrelationStore => new InMemoryCorrelationStore();
+    private readonly InMemoryCorrelationStore _correlationStore = new();
+    public ICorrelationStore CorrelationStore => _correlationStore;
     public Utilities Utilities { get; }
     
     public Task Initialize() => Task.CompletedTask;

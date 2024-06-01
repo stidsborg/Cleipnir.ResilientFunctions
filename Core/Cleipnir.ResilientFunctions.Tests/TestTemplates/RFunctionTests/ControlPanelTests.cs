@@ -1488,4 +1488,38 @@ public abstract class ControlPanelTests
         timeouts.All.Count.ShouldBe(1);
         timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
     }
+    
+    public abstract Task CorrelationsCanBeChanged();
+    protected async Task CorrelationsCanBeChanged(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var registration = functionsRegistry.RegisterParamless(
+            functionTypeId,
+            async workflow =>
+            {
+                await workflow.Correlations.Register("SomeCorrelation");
+                
+            }
+        );
+
+        await registration.Invoke(functionInstanceId.Value);
+
+        var controlPanel = await registration.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+       
+        controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeTrue();
+        await controlPanel.Correlations.Remove("SomeCorrelation");
+        await controlPanel.Correlations.Register("SomeNewCorrelation");
+
+        controlPanel = await registration.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+        controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalse();
+        controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrue();
+    }
 }

@@ -36,6 +36,7 @@ public class ControlPanelFactory
             await _invocationHelper.GetExistingStates(functionId, functionState.DefaultState),
             await _invocationHelper.GetExistingMessages(functionId),
             await _invocationHelper.GetExistingTimeouts(functionId),
+            await _invocationHelper.CreateCorrelations(functionId, sync: true),
             functionState.PreviouslyThrownException
         );
     }
@@ -75,6 +76,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             await _invocationHelper.GetExistingStates(functionId, functionState.DefaultState),
             await _invocationHelper.GetExistingMessages(functionId),
             await _invocationHelper.GetExistingTimeouts(functionId),
+            await _invocationHelper.CreateCorrelations(functionId, sync: true),
             functionState.PreviouslyThrownException
         );
     }
@@ -114,6 +116,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             await _invocationHelper.GetExistingStates(functionId, f.DefaultState),
             await _invocationHelper.GetExistingMessages(functionId),
             await _invocationHelper.GetExistingTimeouts(functionId),
+            await _invocationHelper.CreateCorrelations(functionId, sync: true),
             f.PreviouslyThrownException
         );
     }
