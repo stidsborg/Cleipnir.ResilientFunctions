@@ -161,4 +161,8 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ExistingTimeoutCanBeUpdatedForFunc()
         => ExistingTimeoutCanBeUpdatedForFunc(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
+    public override Task CorrelationsCanBeChanged()
+        => CorrelationsCanBeChanged(FunctionStoreFactory.Create());
 }

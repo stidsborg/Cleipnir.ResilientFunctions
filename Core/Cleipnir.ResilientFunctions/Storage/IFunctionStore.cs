@@ -12,6 +12,7 @@ public interface IFunctionStore
     public IEffectsStore EffectsStore { get; }
     public IStatesStore StatesStore { get; }
     public ITimeoutStore TimeoutStore { get; }
+    public ICorrelationStore CorrelationStore { get; }
     public Utilities Utilities { get; }
     public Task Initialize();
     

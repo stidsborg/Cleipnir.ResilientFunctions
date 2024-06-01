@@ -383,6 +383,20 @@ internal class InvocationHelper<TParam, TReturn>
         var existingStoredStates = await statesStore.GetStates(functionId);
         return new States(functionId, defaultState, existingStoredStates, _functionStore, statesStore, serializer);
     }
+    
+    public async Task<Correlations> CreateCorrelations(FunctionId functionId, bool sync)
+    {
+        var correlationStore = _functionStore.CorrelationStore;
+        if (!sync)
+            return new Correlations(
+                functionId, 
+                existingCorrelations: [],
+                correlationStore
+            );
+
+        var existingCorrelations = await correlationStore.GetCorrelations(functionId);
+        return new Correlations(functionId, existingCorrelations, correlationStore);
+    }
 
     public async Task<ExistingStates> GetExistingStates(FunctionId functionId, string? defaultState)
         => new(

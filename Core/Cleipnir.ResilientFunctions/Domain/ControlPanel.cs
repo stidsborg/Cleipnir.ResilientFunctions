@@ -14,12 +14,12 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         FunctionId functionId, 
         Status status, int epoch, long leaseExpiration,  
         DateTime? postponedUntil, ExistingEffects effects, 
-        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, 
+        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, functionId, status, epoch, 
         leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, 
-        effects, states, messages, timeouts, previouslyThrownException
+        effects, states, messages, timeouts, correlations, previouslyThrownException
     ) { }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
@@ -33,12 +33,12 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         FunctionId functionId, 
         Status status, int epoch, long leaseExpiration, TParam innerParam, 
         DateTime? postponedUntil, ExistingEffects effects, 
-        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, 
+        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, functionId, status, epoch, 
         leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, 
-        effects, states, messages, timeouts, previouslyThrownException
+        effects, states, messages, timeouts, correlations, previouslyThrownException
     ) { }
     
     public TParam Param
@@ -59,11 +59,11 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long leaseExpiration, TParam innerParam, 
         TReturn? innerResult, 
         DateTime? postponedUntil, ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
-        ExistingTimeouts timeouts, PreviouslyThrownException? previouslyThrownException
+        ExistingTimeouts timeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, functionId, status, epoch, leaseExpiration, 
         innerParam, innerResult, postponedUntil, effects, states, messages, 
-        timeouts, previouslyThrownException
+        timeouts, correlations, previouslyThrownException
     ) { }
 
     public Task Succeed(TReturn result) => InnerSucceed(result);
@@ -96,6 +96,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         ExistingStates states,
         ExistingMessages messages,
         ExistingTimeouts timeouts,
+        Correlations correlations,
         PreviouslyThrownException? previouslyThrownException)
     {
         _invoker = invoker;
@@ -112,6 +113,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         States = states;
         Messages = messages;
         Timeouts = timeouts;
+        Correlations = correlations;
         PreviouslyThrownException = previouslyThrownException;
     }
 
@@ -124,6 +126,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public ExistingMessages Messages { get; private set; }
     public ExistingEffects Effects { get; private set; } 
     public ExistingStates States { get; private set; }
+    public Correlations Correlations { get; private set; }
 
     public ExistingTimeouts Timeouts { get; private set; }
 
@@ -246,7 +249,8 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Messages = await _invocationHelper.GetExistingMessages(FunctionId);
         Effects = await _invocationHelper.GetExistingEffects(FunctionId);
         States = await _invocationHelper.GetExistingStates(FunctionId, sf.DefaultState);
-        Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId); 
+        Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId);
+        Correlations = await _invocationHelper.CreateCorrelations(FunctionId, sync: true);
 
         _innerParamChanged = false;
     }
