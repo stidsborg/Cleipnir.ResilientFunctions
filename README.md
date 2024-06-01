@@ -10,7 +10,7 @@
   <br>
 </p>
 
-# Cleipnir's Resilient Functions
+# Cleipnir Resilient Functions
 **Providing a simple way to ensure your code gets run - until you say it is done!**
 
 Resilient Functions is a simple and intuitive .NET framework for managing the execution of functions which must complete in their entirety despite: failures, restarts, deployments, versioning etc. 
