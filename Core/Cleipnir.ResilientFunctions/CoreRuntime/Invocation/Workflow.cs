@@ -35,7 +35,7 @@ public class Workflow
         states = States;
     }
 
-    public async Task PublishMessage<T>(FunctionId receiver, T message, string? idempotencyKey) where T : notnull
+    public async Task SendMessage<T>(FunctionId receiver, T message, string? idempotencyKey) where T : notnull
     {
         var messageWriter = _messageWriterFunc(receiver);
         await messageWriter.AppendMessage(message, idempotencyKey);

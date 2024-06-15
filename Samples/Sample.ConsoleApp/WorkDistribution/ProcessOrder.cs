@@ -17,7 +17,7 @@ public static class ProcessOrder
         var trackingNumber = await ShipOrder(orderId);
         await CaptureFunds(orderId);
 
-        await workflow.PublishMessage(
+        await workflow.SendMessage(
             sendResultTo,
             new FunctionCompletion<string>(trackingNumber, workflow.FunctionId),
             idempotencyKey: workflow.FunctionId.ToString()

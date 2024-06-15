@@ -54,9 +54,9 @@ public class MySqlMessageStore : IMessageStore
     }
 
     private string? _appendMessageSql;
-    public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+    public async Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
-        for (var i = 0; i < 10; i++) //retry if deadlock is occurs
+        for (var i = 0; i < 10; i++) //retry if deadlock occurs
             try
             {
                 await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
@@ -111,8 +111,8 @@ public class MySqlMessageStore : IMessageStore
 
                 await Task.Delay(Random.Shared.Next(10, 250));
             }
-        
-        throw new ConcurrentModificationException(functionId);
+
+        return null;
     }
 
     private string? _replaceMessageSql;

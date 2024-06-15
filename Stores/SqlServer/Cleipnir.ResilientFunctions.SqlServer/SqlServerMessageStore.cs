@@ -60,7 +60,7 @@ public class SqlServerMessageStore : IMessageStore
     }
 
     private string? _appendMessageSql;
-    public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+    public async Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         
@@ -202,7 +202,7 @@ public class SqlServerMessageStore : IMessageStore
     }
 
     private string? _getSuspensionStatusSql;
-    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId, SqlConnection connection)
+    private async Task<FunctionStatus?> GetSuspensionStatus(FunctionId functionId, SqlConnection connection)
     {
         _getSuspensionStatusSql ??= @$"    
             SELECT Epoch, Status
@@ -219,7 +219,7 @@ public class SqlServerMessageStore : IMessageStore
             var status = (Status) reader.GetInt32(1);
             return new FunctionStatus(status, epoch);
         }
-        
-        throw new ConcurrentModificationException(functionId);
+
+        return null;
     }
 }

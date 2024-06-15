@@ -27,7 +27,7 @@ public class WorkDistributionTest
         var childRegistration = functionsRegistry.RegisterAction(
             "Child",
             async Task (string param, Workflow workflow) =>
-                await workflow.PublishMessage(parentFunctionId, param, idempotencyKey: workflow.FunctionId.ToString())
+                await workflow.SendMessage(parentFunctionId, param, idempotencyKey: workflow.FunctionId.ToString())
         );
         var parentRegistration = functionsRegistry.RegisterAction(
             parentFunctionId.TypeId,

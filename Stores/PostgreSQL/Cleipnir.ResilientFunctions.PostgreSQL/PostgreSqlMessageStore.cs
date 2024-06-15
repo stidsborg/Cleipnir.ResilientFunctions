@@ -65,7 +65,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
     private string? _appendMessageSql;
     private string? _getFunctionStatusInAppendMessageSql;
-    public async Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+    public async Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
@@ -135,8 +135,8 @@ public class PostgreSqlMessageStore : IMessageStore
             //read status separately
             return await GetSuspensionStatus(functionId);
         } //ignore entry already exist error
-        
-        throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
+
+        return null;
     }
     
     private string? _replaceMessageSql;

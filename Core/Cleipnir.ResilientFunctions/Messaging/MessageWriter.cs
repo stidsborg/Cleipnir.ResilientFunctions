@@ -24,27 +24,31 @@ public class MessageWriter
         _scheduleReInvocation = scheduleReInvocation;
     }
 
-    public async Task AppendMessage<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
+    public async Task<Finding> AppendMessage<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
     {
         var (eventJson, eventType) = _serializer.SerializeMessage(@event);
-        var (status, epoch) = await _messageStore.AppendMessage(
+        
+        var functionStatus = await _messageStore.AppendMessage(
             _functionId,
             new StoredMessage(eventJson, eventType, idempotencyKey)
         );
-
+        if (functionStatus == null)
+            return Finding.NotFound;
+        
+        var (status, epoch) = functionStatus;
         if (status == Status.Failed || status == Status.Succeeded)
-            return;
+            return Finding.Found;
         
         if (status == Status.Executing)
         {
             var success = await _functionStore.IncrementInterruptCount(_functionId);
             if (success)
-                return; //executing function will notice interrupt increment and reschedule itself on suspension
+                return Finding.Found; //executing function will notice interrupt increment and reschedule itself on suspension
             
-            //otherwise update status and epoch so we can reschedule if new status is postponed or suspended
+            //otherwise update status and epoch, so we can reschedule if new status is postponed or suspended
             var statusAndEpoch = await _functionStore.GetFunctionStatus(_functionId);
             if (statusAndEpoch == null)
-                return;
+                return Finding.Found;
 
             status = statusAndEpoch.Status;
             epoch = statusAndEpoch.Epoch;
@@ -56,7 +60,7 @@ public class MessageWriter
                 await _scheduleReInvocation(_functionId.InstanceId.Value, expectedEpoch: epoch);
             }
             catch (UnexpectedFunctionState) { }
+
+        return Finding.Found;
     }
-    
-    public Task Truncate() => _messageStore.Truncate(_functionId);
 }

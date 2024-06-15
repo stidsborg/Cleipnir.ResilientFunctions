@@ -20,4 +20,8 @@ public class RoutingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
     [TestMethod]
     public override Task MessageIsRoutedToParamlessInstanceUsingCorrelationId()
         => MessageIsRoutedToParamlessInstanceUsingCorrelationId(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ParamlessInstanceIsStartedByMessage()
+        => ParamlessInstanceIsStartedByMessage(FunctionStoreFactory.Create());
 }

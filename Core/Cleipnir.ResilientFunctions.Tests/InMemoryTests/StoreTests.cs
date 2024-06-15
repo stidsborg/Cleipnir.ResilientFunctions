@@ -101,6 +101,10 @@ public class StoreTests : TestTemplates.StoreTests
         => ExecutingFunctionCanBeSuspendedSuccessfully(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task FunctionStatusForNonExistingFunctionIsNull()
+        => FunctionStatusForNonExistingFunctionIsNull(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStoreFactory.Create());
 

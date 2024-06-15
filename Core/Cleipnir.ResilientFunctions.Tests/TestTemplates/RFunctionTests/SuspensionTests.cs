@@ -312,7 +312,7 @@ public abstract class SuspensionTests
             $"ChildFunction{Guid.NewGuid()}",
             inner: async Task (string param, Workflow workflow) =>
             {
-                await workflow.PublishMessage(parentFunctionId, param.ToUpper(), workflow.FunctionId.ToString());
+                await workflow.SendMessage(parentFunctionId, param.ToUpper(), workflow.FunctionId.ToString());
             }
         );
 
@@ -369,7 +369,7 @@ public abstract class SuspensionTests
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: (string param, Workflow workflow) =>
-                workflow.PublishMessage(
+                workflow.SendMessage(
                     parentFunctionId,
                     message: "",
                     idempotencyKey: null
@@ -413,7 +413,7 @@ public abstract class SuspensionTests
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: (string param, Workflow workflow) =>
-                workflow.PublishMessage(
+                workflow.SendMessage(
                     parentFunctionId,
                     message: param,
                     idempotencyKey: $"ChildFunction{Guid.NewGuid()}"

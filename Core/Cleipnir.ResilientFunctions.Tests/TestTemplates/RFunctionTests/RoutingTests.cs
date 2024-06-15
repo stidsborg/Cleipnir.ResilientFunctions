@@ -188,6 +188,48 @@ public abstract class RoutingTests
 
     #endregion
 
+    #region Paramless is started by message
+
+    public abstract Task ParamlessInstanceIsStartedByMessage();
+    protected async Task ParamlessInstanceIsStartedByMessage(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store, 
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var syncedFlag = new SyncedFlag();
+        var syncedValue = new Synced<string>();
+        
+        var registration = functionsRegistry.RegisterParamless(
+            functionTypeId,
+            inner: async (Workflow workflow) =>
+            {
+                var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
+                syncedValue.Value = someMessage.Value;
+                syncedFlag.Raise();
+            },
+            new Settings(routes: new RoutingInformation[]
+            {
+                new RoutingInformation<SomeMessage>(
+                    someMsg => Route.To(someMsg.RouteTo)
+                )
+            })
+        );
+
+        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: functionInstanceId.Value, Value: "SomeValue!"));
+        
+        await syncedFlag.WaitForRaised(5_000);
+        syncedValue.Value.ShouldBe("SomeValue!");
+    }
+
+    #endregion
+
     public record SomeMessage(string RouteTo, string Value);
     public record SomeCorrelatedMessage(string Correlation, string Value);
 }

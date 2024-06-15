@@ -137,7 +137,7 @@ public abstract class MessagingTests
 
         var child = functionsRegistry.RegisterAction(
             childFunctionId.TypeId,
-            inner: Task (string _, Workflow workflow) => workflow.PublishMessage(parentFunctionId, "hello world", idempotencyKey: null)
+            inner: Task (string _, Workflow workflow) => workflow.SendMessage(parentFunctionId, "hello world", idempotencyKey: null)
         );
 
         var parent = functionsRegistry.RegisterFunc(

@@ -67,7 +67,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 LeaseExpiration = leaseExpiration,
                 Timestamp = timestamp
             };
-            _messages[functionId] = new List<StoredMessage>();
+            if (!_messages.ContainsKey(functionId)) //messages can already have been added - i.e. paramless started by received message
+                _messages[functionId] = new List<StoredMessage>();
 
             return true.ToTask();
         }
@@ -396,7 +397,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public virtual Task<FunctionStatus> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+    public virtual Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
     {
         lock (_sync)
         {
@@ -405,8 +406,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             var messages = _messages[functionId];
             messages.Add(storedMessage);
+
+            if (!_states.ContainsKey(functionId))
+                return Task.FromResult(default(FunctionStatus));
             
-            return Task.FromResult(
+            return Task.FromResult((FunctionStatus?)
                 new FunctionStatus(_states[functionId].Status, Epoch: _states[functionId].Epoch)
             );
         }

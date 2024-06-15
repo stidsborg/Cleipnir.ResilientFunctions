@@ -90,6 +90,10 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task ExecutingFunctionCanBeSuspendedSuccessfully()
         => ExecutingFunctionCanBeSuspendedSuccessfully(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task FunctionStatusForNonExistingFunctionIsNull()
+        => FunctionStatusForNonExistingFunctionIsNull(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()

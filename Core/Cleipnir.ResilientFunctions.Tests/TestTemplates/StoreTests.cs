@@ -695,7 +695,21 @@ public abstract class StoreTests
             functionId,
             new StoredMessage("hello world".ToJson(), MessageType: typeof(string).SimpleQualifiedName())
         );
+        functionStatus.ShouldNotBeNull();
         functionStatus.Status.ShouldBe(Status.Suspended);
+    }
+    
+    public abstract Task FunctionStatusForNonExistingFunctionIsNull();
+    public async Task FunctionStatusForNonExistingFunctionIsNull(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        
+        var functionStatus = await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage("hello world".ToJson(), MessageType: typeof(string).SimpleQualifiedName())
+        );
+        functionStatus.ShouldBeNull();
     }
     
     public abstract Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch();

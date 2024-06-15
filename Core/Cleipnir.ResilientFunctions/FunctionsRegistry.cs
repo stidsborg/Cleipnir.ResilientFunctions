@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -479,7 +478,7 @@ public class FunctionsRegistry : IDisposable
             
         }
 
-        foreach (var (_, (routeResolver, messageWriters)) in resolvers)
+        foreach (var (functionTypeId, (routeResolver, messageWriters)) in resolvers)
         {
             var routingInfo = routeResolver(message);
             if (routingInfo.CorrelationId is not null)
@@ -488,18 +487,37 @@ public class FunctionsRegistry : IDisposable
                     .CorrelationStore
                     .GetCorrelations(routingInfo.CorrelationId);
 
-                foreach (var (_, instanceId) in functionIds)
+                foreach (var (typeId, instanceId) in functionIds)
                 {
                     var messageWriter = messageWriters.For(instanceId);
-                    await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);
+                    var finding = await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);
+                    if (finding == Finding.NotFound)
+                        await ScheduleIfParamless(typeId, instanceId);
                 }
             }
             else
             {
                 var messageWriter = messageWriters.For(routingInfo.FlowInstanceId!);
-                await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);   
+                var finding = await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);   
+                
+                if (finding == Finding.NotFound)
+                    await ScheduleIfParamless(functionTypeId, routingInfo.FlowInstanceId!);
             }
         }
+    }
+
+    private async Task ScheduleIfParamless(FunctionTypeId functionTypeId, FunctionInstanceId functionInstanceId)
+    {
+        ParamlessRegistration paramlessRegistration;
+        lock (_sync)
+        {
+            if (_functions[functionTypeId] is ParamlessRegistration registration)
+                paramlessRegistration = registration;
+            else
+                return;
+        }
+
+        await paramlessRegistration.Schedule(functionInstanceId);
     }
     
     public void Dispose() => _ = ShutdownGracefully();
