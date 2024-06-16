@@ -1522,4 +1522,56 @@ public abstract class ControlPanelTests
         controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalse();
         controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrue();
     }
+    
+    public abstract Task DeleteRemovesFunctionFromAllStores();
+    protected async Task DeleteRemovesFunctionFromAllStores(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        
+        var registration = functionsRegistry.RegisterParamless(
+            functionTypeId,
+            inner: () => Task.CompletedTask
+        );
+
+        await registration.Invoke(functionInstanceId.Value);
+
+        var controlPanel = await registration.ControlPanel(functionInstanceId.Value);
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.Correlations.Register("SomeCorrelation");
+        await controlPanel.Effects.SetSucceeded("SomeEffect");
+        await controlPanel.States.Set("SomeStateId", new TestState());
+        await controlPanel.Messages.Append("Some Message");
+        await controlPanel.Timeouts.Upsert("SomeTimeout", expiresAt: DateTime.UtcNow.Add(TimeSpan.FromDays(1)));
+        
+        await controlPanel.Delete();
+
+        await store.GetFunction(functionId).ShouldBeNullAsync();
+        
+        await store.MessageStore.GetMessages(functionId, skip: 0)
+            .SelectAsync(msgs => msgs.Count == 0)
+            .ShouldBeTrueAsync();
+
+        await store.TimeoutStore.GetTimeouts(functionId)
+            .SelectAsync(ts => ts.Any())
+            .ShouldBeFalseAsync();
+
+        await store.StatesStore.GetStates(functionId)
+            .SelectAsync(s => s.Any())
+            .ShouldBeFalseAsync();
+
+        await store.CorrelationStore.GetCorrelations(functionId)
+            .SelectAsync(c => c.Any())
+            .ShouldBeFalseAsync();
+
+        await store.EffectsStore
+            .GetEffectResults(functionId)
+            .SelectAsync(e => e.Any())
+            .ShouldBeFalseAsync();
+    }
 }

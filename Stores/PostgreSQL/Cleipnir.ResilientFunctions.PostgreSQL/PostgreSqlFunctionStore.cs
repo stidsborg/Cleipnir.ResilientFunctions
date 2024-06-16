@@ -675,5 +675,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _effectsStore.Remove(functionId);
         await _statesStore.Remove(functionId);
         await _timeoutStore.Remove(functionId);
+        await _correlationStore.RemoveCorrelations(functionId);
     }
 }

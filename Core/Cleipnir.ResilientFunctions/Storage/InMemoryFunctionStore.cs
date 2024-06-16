@@ -374,6 +374,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             _effectsStore.Remove(functionId);
             _statesStore.Remove(functionId);
             _timeoutStore.Remove(functionId);
+            _correlationStore.RemoveCorrelations(functionId);
         }
 
         return Task.CompletedTask;

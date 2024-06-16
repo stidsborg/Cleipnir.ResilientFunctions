@@ -165,4 +165,8 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task CorrelationsCanBeChanged()
         => CorrelationsCanBeChanged(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeleteRemovesFunctionFromAllStores()
+        => DeleteRemovesFunctionFromAllStores(FunctionStoreFactory.Create());
 }
