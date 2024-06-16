@@ -19,7 +19,7 @@
             The framework also supports failing invocations for manually handling and facilitates data migrations.
             It requires a minimal amount of setup to get started and seamlessly scales with multiple running instances.</Description>
         <RepositoryUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</RepositoryUrl>
-        <PackageTags>saga, resilient functions, resiliency, micro service, fault-tolerant, distributed systems, cloud independent</PackageTags>
+        <PackageTags>saga, process-manager, durable execution, resilient functions, resiliency, micro service, fault-tolerant, distributed systems, cloud independent</PackageTags>
     </PropertyGroup>
     
     <ItemGroup>
