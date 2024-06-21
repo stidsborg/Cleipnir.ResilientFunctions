@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -522,6 +523,34 @@ public abstract class WatchdogCompoundTests
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});
         }
+    }
+    
+    [TestMethod]
+    public abstract Task RetentionWatchdogDeletesEligibleSucceededFunction();
+    public async Task RetentionWatchdogDeletesEligibleSucceededFunction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, _) = functionId;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                leaseLength: TimeSpan.FromMilliseconds(100),
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
+                retentionPeriod: TimeSpan.FromMilliseconds(100)
+            )
+        );
+        var registration = functionsRegistry.RegisterAction(
+            functionTypeId,
+            inner: (string p, Workflow workflow) => { }
+        );
+
+        await registration.Invoke(functionId.InstanceId.Value, "SomeParam");
+
+        await BusyWait.UntilAsync(() => store.GetFunction(functionId) is not null);
     }
     
     private record Param(string Id, int Value);

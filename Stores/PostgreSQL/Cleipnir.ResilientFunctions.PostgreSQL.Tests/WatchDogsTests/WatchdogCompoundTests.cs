@@ -21,4 +21,8 @@ public class WatchdogCompoundTests : Cleipnir.ResilientFunctions.Tests.TestTempl
     [TestMethod]
     public override Task ActionWithStateCompoundTest()
         => ActionWithStateCompoundTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task RetentionWatchdogDeletesEligibleSucceededFunction()
+        => RetentionWatchdogDeletesEligibleSucceededFunction(FunctionStoreFactory.Create());
 }

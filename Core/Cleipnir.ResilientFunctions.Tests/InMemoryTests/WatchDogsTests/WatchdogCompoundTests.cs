@@ -1,6 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.WatchDogsTests;
@@ -23,4 +21,8 @@ public class WatchdogCompoundTests : Cleipnir.ResilientFunctions.Tests.TestTempl
     [TestMethod]
     public override Task ActionWithStateCompoundTest()
         => ActionWithStateCompoundTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RetentionWatchdogDeletesEligibleSucceededFunction()
+        => RetentionWatchdogDeletesEligibleSucceededFunction(FunctionStoreFactory.Create());
 }

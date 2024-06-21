@@ -44,6 +44,7 @@ internal static class WatchDogsFactory
             settings.Serializer,
             scheduleReInvocation: (id, epoch) => reInvoke(id, epoch)
         );
+        
         var timeoutWatchdog = new TimeoutWatchdog(
             functionTypeId,
             messagesWriters,
@@ -54,8 +55,19 @@ internal static class WatchDogsFactory
             shutdownCoordinator
         );
 
+        var retentionWatchdog = new RetentionWatchdog(
+            functionTypeId,
+            functionStore,
+            settings.WatchdogCheckFrequency,
+            settings.DelayStartup,
+            settings.RetentionPeriod,
+            settings.UnhandledExceptionHandler,
+            shutdownCoordinator
+        );
+
         Task.Run(crashedWatchdog.Start);
         Task.Run(postponedWatchdog.Start);
         Task.Run(timeoutWatchdog.Start);
+        Task.Run(retentionWatchdog.Start);
     }
 }

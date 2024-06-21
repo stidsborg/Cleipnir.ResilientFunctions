@@ -9,6 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class Settings
 {
     internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
+    internal TimeSpan? RetentionPeriod { get; }
     internal TimeSpan? LeaseLength { get; }
     internal TimeSpan? WatchdogCheckFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
@@ -19,6 +20,7 @@ public class Settings
 
     public Settings(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
+        TimeSpan? retentionPeriod = null,
         TimeSpan? leaseLength = null, 
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
@@ -28,6 +30,7 @@ public class Settings
         IEnumerable<RoutingInformation>? routes = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
+        RetentionPeriod = retentionPeriod;
         LeaseLength = leaseLength;
         WatchdogCheckFrequency = watchdogCheckFrequency;
         DelayStartup = delayStartup;
@@ -40,6 +43,7 @@ public class Settings
 
 public record SettingsWithDefaults(
     UnhandledExceptionHandler UnhandledExceptionHandler,
+    TimeSpan RetentionPeriod,
     TimeSpan LeaseLength,
     TimeSpan WatchdogCheckFrequency,
     TimeSpan MessagesPullFrequency,
@@ -56,6 +60,7 @@ public record SettingsWithDefaults(
             child.UnhandledExceptionHandler == null
                 ? UnhandledExceptionHandler
                 : new UnhandledExceptionHandler(child.UnhandledExceptionHandler),
+            child.RetentionPeriod ?? RetentionPeriod,
             child.LeaseLength ?? LeaseLength,
             child.WatchdogCheckFrequency ?? WatchdogCheckFrequency,
             child.MessagesPullFrequency ?? MessagesPullFrequency,
@@ -69,6 +74,7 @@ public record SettingsWithDefaults(
     public static SettingsWithDefaults Default { get; }
         = new(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
+            RetentionPeriod: TimeSpan.MaxValue,
             LeaseLength: TimeSpan.FromSeconds(10),
             WatchdogCheckFrequency: TimeSpan.FromSeconds(1),
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
