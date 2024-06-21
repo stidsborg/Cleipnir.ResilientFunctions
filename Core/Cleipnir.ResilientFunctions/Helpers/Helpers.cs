@@ -55,5 +55,16 @@ public static class Helpers
         return arr;
     }
 
+    public static IEnumerable<T> WithRandomOffset<T>(this IReadOnlyList<T> elms)
+    {
+        var offset = Random.Shared.Next(0, elms.Count);
+        var i = offset;
+        do
+        {
+            yield return elms[i];
+            i = (i + 1) % elms.Count;
+        } while (i != offset);
+    }
+    
     internal static string MinifyJson(string json) => Regex.Replace(json, "(\"(?:[^\"\\\\]|\\\\.)*\")|\\s+", "$1");
 }
