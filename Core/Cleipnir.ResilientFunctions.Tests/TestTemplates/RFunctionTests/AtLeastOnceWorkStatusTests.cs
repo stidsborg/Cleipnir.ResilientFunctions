@@ -16,7 +16,7 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
@@ -52,7 +52,7 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;

@@ -335,7 +335,7 @@ internal class InvocationHelper<TParam, TReturn>
             functionId,
             _functionStore.TimeoutStore,
             messageWriter,
-            _settings.TimeoutEventsCheckFrequency
+            _settings.WatchdogCheckFrequency
         );
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,

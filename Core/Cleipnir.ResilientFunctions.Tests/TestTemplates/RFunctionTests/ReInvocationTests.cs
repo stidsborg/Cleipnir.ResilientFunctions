@@ -26,7 +26,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
         var syncedParameter = new Synced<string>();
@@ -71,7 +71,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -128,7 +128,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -176,7 +176,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -225,7 +225,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -269,7 +269,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
         
@@ -325,7 +325,7 @@ public abstract class ReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 

@@ -40,7 +40,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.Zero,
-                    postponedCheckFrequency: TimeSpan.Zero
+                    watchdogCheckFrequency: TimeSpan.Zero
                 )
             );
             var rFunc = functionsRegistry
@@ -63,7 +63,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = functionsRegistry.RegisterFunc(
@@ -110,7 +110,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(0),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(0)
                 )
             );
             var nonCompletingFunctionsRegistry = functionsRegistry
@@ -132,7 +132,7 @@ public abstract class FailedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.FromMilliseconds(100),
-                        postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                        watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                     )
                 );
             var rAction = functionsRegistry.RegisterAction(functionTypeId,
@@ -171,7 +171,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(0),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(0)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(0)
                 )
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
@@ -190,7 +190,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = functionsRegistry
@@ -223,7 +223,7 @@ public abstract class FailedTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(2),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(2)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(2)
             )
         );
         var rFunc = functionsRegistry
@@ -322,7 +322,7 @@ public abstract class FailedTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(100),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
             )
         );
         var funcRegistration = functionsRegistry

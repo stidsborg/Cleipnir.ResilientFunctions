@@ -10,8 +10,7 @@ public class Settings
 {
     internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? LeaseLength { get; }
-    internal TimeSpan? PostponedCheckFrequency { get; }
-    internal TimeSpan? TimeoutEventsCheckFrequency { get; }
+    internal TimeSpan? WatchdogCheckFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? MessagesPullFrequency { get; }
@@ -21,8 +20,7 @@ public class Settings
     public Settings(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? leaseLength = null, 
-        TimeSpan? postponedCheckFrequency = null,
-        TimeSpan? timeoutEventsCheckFrequency = null,
+        TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
@@ -31,8 +29,7 @@ public class Settings
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         LeaseLength = leaseLength;
-        PostponedCheckFrequency = postponedCheckFrequency;
-        TimeoutEventsCheckFrequency = timeoutEventsCheckFrequency;
+        WatchdogCheckFrequency = watchdogCheckFrequency;
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
@@ -44,8 +41,7 @@ public class Settings
 public record SettingsWithDefaults(
     UnhandledExceptionHandler UnhandledExceptionHandler,
     TimeSpan LeaseLength,
-    TimeSpan PostponedCheckFrequency,
-    TimeSpan TimeoutEventsCheckFrequency,
+    TimeSpan WatchdogCheckFrequency,
     TimeSpan MessagesPullFrequency,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
@@ -61,8 +57,7 @@ public record SettingsWithDefaults(
                 ? UnhandledExceptionHandler
                 : new UnhandledExceptionHandler(child.UnhandledExceptionHandler),
             child.LeaseLength ?? LeaseLength,
-            child.PostponedCheckFrequency ?? PostponedCheckFrequency,
-            child.TimeoutEventsCheckFrequency ?? TimeoutEventsCheckFrequency,
+            child.WatchdogCheckFrequency ?? WatchdogCheckFrequency,
             child.MessagesPullFrequency ?? MessagesPullFrequency,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
@@ -75,8 +70,7 @@ public record SettingsWithDefaults(
         = new(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
             LeaseLength: TimeSpan.FromSeconds(10),
-            PostponedCheckFrequency: TimeSpan.FromSeconds(1),
-            TimeoutEventsCheckFrequency: TimeSpan.FromSeconds(1),
+            WatchdogCheckFrequency: TimeSpan.FromSeconds(1),
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 100,

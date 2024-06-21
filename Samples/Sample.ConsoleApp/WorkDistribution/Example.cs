@@ -47,7 +47,7 @@ public static class Example
         await store.Initialize();
         var functions = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine, postponedCheckFrequency: TimeSpan.FromSeconds(60), leaseLength: TimeSpan.FromSeconds(5))
+            new Settings(unhandledExceptionHandler: Console.WriteLine, watchdogCheckFrequency: TimeSpan.FromSeconds(60), leaseLength: TimeSpan.FromSeconds(5))
         );
         
         var processOrder = functions.RegisterAction<ProcessOrderRequest>(

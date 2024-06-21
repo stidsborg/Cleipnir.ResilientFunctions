@@ -25,8 +25,7 @@ public abstract class TimeoutTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero,
-                timeoutEventsCheckFrequency: TimeSpan.FromMilliseconds(1)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(1)
             )
         );
         var rFunc = functionsRegistry.RegisterAction(

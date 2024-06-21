@@ -22,7 +22,7 @@ public class RFunctionsShutdownTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(10),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -64,7 +64,7 @@ public class RFunctionsShutdownTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(10),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -107,7 +107,7 @@ public class RFunctionsShutdownTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(10),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -165,7 +165,7 @@ public class RFunctionsShutdownTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(10),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 
@@ -204,7 +204,7 @@ public class RFunctionsShutdownTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(10),
-                postponedCheckFrequency: TimeSpan.FromMilliseconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
             )
         );
 

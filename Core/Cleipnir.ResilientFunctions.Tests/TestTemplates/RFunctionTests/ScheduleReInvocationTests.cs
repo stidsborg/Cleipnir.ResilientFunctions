@@ -24,7 +24,7 @@ public abstract class ScheduleReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
         var syncedParameter = new Synced<string>();
@@ -76,7 +76,7 @@ public abstract class ScheduleReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -133,7 +133,7 @@ public abstract class ScheduleReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 
@@ -181,7 +181,7 @@ public abstract class ScheduleReInvocationTests
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.Zero,
-                postponedCheckFrequency: TimeSpan.Zero
+                watchdogCheckFrequency: TimeSpan.Zero
             )
         );
 

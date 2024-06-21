@@ -49,7 +49,7 @@ public static class PostponedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                postponedCheckFrequency: TimeSpan.FromSeconds(1)
+                watchdogCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         functionsRegistry1.RegisterFunc(
@@ -61,7 +61,7 @@ public static class PostponedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                postponedCheckFrequency: TimeSpan.FromSeconds(1)
+                watchdogCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         functionsRegistry2.RegisterFunc(

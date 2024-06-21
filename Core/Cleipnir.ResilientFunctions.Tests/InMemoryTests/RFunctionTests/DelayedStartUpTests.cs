@@ -91,7 +91,7 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new FunctionsRegistry(store, new Settings(
-            postponedCheckFrequency: TimeSpan.FromMilliseconds(10),
+            watchdogCheckFrequency: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
@@ -128,7 +128,7 @@ public class DelayedStartUpTests
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(postponedCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.TypeId,
             void(string param) => { }

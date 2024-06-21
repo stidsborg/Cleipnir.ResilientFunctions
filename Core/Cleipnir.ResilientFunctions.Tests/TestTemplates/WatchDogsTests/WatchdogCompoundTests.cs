@@ -32,7 +32,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = functionsRegistry.RegisterFunc(
@@ -62,7 +62,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterFunc<Param, string>(
@@ -87,7 +87,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterFunc(
@@ -110,7 +110,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterFunc(
@@ -148,7 +148,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = functionsRegistry.RegisterFunc(
@@ -181,7 +181,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterFunc<Param, string>(  //explicit generic parameters to satisfy Rider-ide
@@ -209,7 +209,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterFunc(
@@ -235,7 +235,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterFunc(
@@ -282,7 +282,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rAction = functionsRegistry
@@ -312,7 +312,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry
@@ -340,7 +340,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterAction(
@@ -365,7 +365,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry
@@ -401,7 +401,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             var rFunc = functionsRegistry.RegisterAction(
@@ -433,7 +433,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry
@@ -464,7 +464,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterAction(
@@ -494,7 +494,7 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
-                    postponedCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
             _ = functionsRegistry.RegisterAction(

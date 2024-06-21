@@ -28,7 +28,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        postponedCheckFrequency: TimeSpan.Zero
+                        watchdogCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterFunc(
@@ -84,7 +84,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        postponedCheckFrequency: TimeSpan.Zero
+                        watchdogCheckFrequency: TimeSpan.Zero
                     )
                 );
             var nonCompletingFunctionsRegistry = functionsRegistry    
@@ -152,7 +152,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        postponedCheckFrequency: TimeSpan.Zero
+                        watchdogCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterAction(
@@ -209,7 +209,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        postponedCheckFrequency: TimeSpan.Zero
+                        watchdogCheckFrequency: TimeSpan.Zero
                     )
                 )
                 .RegisterAction(

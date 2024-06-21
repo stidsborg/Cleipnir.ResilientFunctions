@@ -32,7 +32,7 @@ internal static class WatchDogsFactory
             functionStore,
             reInvoke,
             asyncSemaphore,
-            settings.PostponedCheckFrequency,
+            settings.WatchdogCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
@@ -48,7 +48,7 @@ internal static class WatchDogsFactory
             functionTypeId,
             messagesWriters,
             functionStore.TimeoutStore,
-            settings.TimeoutEventsCheckFrequency,
+            settings.WatchdogCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
