@@ -526,10 +526,14 @@ public abstract class StoreTests
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         
-        await store.DeleteFunction(functionId);
+        var success = await store.DeleteFunction(functionId);
+        success.ShouldBeTrue();
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldBeNull();
+
+        success = await store.DeleteFunction(functionId);
+        success.ShouldBeFalse();
     }
 
     public abstract Task FailFunctionSucceedsWhenEpochIsAsExpected();

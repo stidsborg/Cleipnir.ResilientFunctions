@@ -682,9 +682,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         return null;
     }
+    
+    public async Task<bool> DeleteFunction(FunctionId functionId)
+    {
+        await _messageStore.Truncate(functionId);
+        await _effectsStore.Remove(functionId);
+        await _statesStore.Remove(functionId);
+        await _timeoutStore.Remove(functionId);
+        await _correlationStore.RemoveCorrelations(functionId);
+
+        return await DeleteStoredFunction(functionId);
+    }
 
     private string? _deleteFunctionSql;
-    public async Task DeleteFunction(FunctionId functionId)
+    private async Task<bool> DeleteStoredFunction(FunctionId functionId)
     {
         await using var conn = await CreateConnection();
         _deleteFunctionSql ??= @$"
@@ -701,12 +712,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             }
         };
        
-        await command.ExecuteNonQueryAsync();
-        
-        await _messageStore.Truncate(functionId);
-        await _effectsStore.Remove(functionId);
-        await _statesStore.Remove(functionId);
-        await _timeoutStore.Remove(functionId);
-        await _correlationStore.RemoveCorrelations(functionId);
+        return await command.ExecuteNonQueryAsync() == 1;
     }
 }

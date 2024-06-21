@@ -662,9 +662,20 @@ public class SqlServerFunctionStore : IFunctionStore
 
         return default;
     }
+    
+    public async Task<bool> DeleteFunction(FunctionId functionId)
+    {
+        await _messageStore.Truncate(functionId);
+        await _effectsStore.Remove(functionId);
+        await _statesStore.Remove(functionId);
+        await _timeoutStore.Remove(functionId);
+        await _correlationStore.RemoveCorrelations(functionId);
+
+        return await DeleteStoredFunction(functionId);
+    }
 
     private string? _deleteFunctionSql;
-    public async Task DeleteFunction(FunctionId functionId)
+    private async Task<bool> DeleteStoredFunction(FunctionId functionId)
     {
         await using var conn = await _connFunc();
         _deleteFunctionSql ??= @$"
@@ -676,12 +687,6 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
         command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
         
-        await command.ExecuteNonQueryAsync();
-        
-        await _messageStore.Truncate(functionId);
-        await _effectsStore.Remove(functionId);
-        await _statesStore.Remove(functionId);
-        await _timeoutStore.Remove(functionId);
-        await _correlationStore.RemoveCorrelations(functionId);
+        return await command.ExecuteNonQueryAsync() == 1;
     }
 }
