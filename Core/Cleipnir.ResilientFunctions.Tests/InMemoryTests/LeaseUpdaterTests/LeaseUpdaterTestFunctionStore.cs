@@ -48,6 +48,9 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
         => _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);
 
+    public Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)
+        => _inner.GetSucceededFunctions(functionTypeId, completedBefore);
+
     public Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 
         string? storedParameter, string? storedResult, 

@@ -1158,4 +1158,41 @@ public abstract class StoreTests
         sf.ShouldNotBeNull();
         sf.DefaultState.ShouldBe("some default state");
     }
+    
+    public abstract Task SucceededFunctionsCanBeFetchedSuccessfully();
+    protected async Task SucceededFunctionsCanBeFetchedSuccessfully(Task<IFunctionStore> storeTask)
+    {
+        var functionId1 = TestFunctionId.Create();
+        var functionId2 = TestFunctionId.Create().WithTypeId(functionId1.TypeId);
+        var functionId3 = TestFunctionId.Create();
+        var store = await storeTask;
+
+        async Task CreateAndSucceedFunction(FunctionId functionId, long timestamp)
+        {
+            await store.CreateFunction(
+                functionId,
+                param: Test.SimpleStoredParameter,
+                leaseExpiration: DateTime.UtcNow.Ticks,
+                postponeUntil: null,
+                timestamp: timestamp
+            ).ShouldBeTrueAsync();
+
+            await store.SucceedFunction(
+                functionId,
+                result: null,
+                defaultState: null,
+                timestamp: timestamp,
+                expectedEpoch: 0,
+                new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            ).ShouldBeTrueAsync();
+        }
+
+        await CreateAndSucceedFunction(functionId1, timestamp: 1);
+        await CreateAndSucceedFunction(functionId2, timestamp: 3);
+        await CreateAndSucceedFunction(functionId3, timestamp: 0);
+
+        var succeededFunctions = await store.GetSucceededFunctions(functionId1.TypeId, completedBefore: 2);
+        succeededFunctions.Count.ShouldBe(1);
+        succeededFunctions.Single().ShouldBe(functionId1.InstanceId);
+    }
 }

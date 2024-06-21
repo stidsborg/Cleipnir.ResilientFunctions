@@ -86,7 +86,10 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE INDEX {_tablePrefix}_idx_Postponed
                 ON {_tablePrefix} (FunctionTypeId, PostponedUntil, FunctionInstanceId)
                 INCLUDE (Epoch)
-                WHERE Status = {(int)Status.Postponed};";
+                WHERE Status = {(int)Status.Postponed};
+            CREATE INDEX {_tablePrefix}_idx_Succeeded
+                ON {_tablePrefix} (FunctionTypeId, FunctionInstanceId)
+                WHERE Status = {(int)Status.Succeeded};";
 
         await using var command = new SqlCommand(_initializeSql, conn);
         try
@@ -297,6 +300,37 @@ public class SqlServerFunctionStore : IFunctionStore
         }
 
         return rows;
+    }
+
+    private string? _getSucceededFunctionsSql;
+    public async Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)
+    {
+        await using var conn = await _connFunc();
+        _getSucceededFunctionsSql ??= @$"
+            SELECT FunctionInstanceId
+            FROM {_tablePrefix} 
+            WHERE FunctionTypeId = @FunctionTypeId 
+              AND Status = {(int) Status.Succeeded} 
+              AND Timestamp <= @CompletedBefore";
+
+        await using var command = new SqlCommand(_getSucceededFunctionsSql, conn);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
+        command.Parameters.AddWithValue("@CompletedBefore", completedBefore);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var functionInstanceIds = new List<FunctionInstanceId>(); 
+        while (reader.HasRows)
+        {
+            while (reader.Read())
+            {
+                var functionInstanceId = reader.GetString(0);
+                functionInstanceIds.Add(functionInstanceId);    
+            }
+
+            reader.NextResult();
+        }
+
+        return functionInstanceIds;
     }
 
     private string? _setFunctionStateSql;

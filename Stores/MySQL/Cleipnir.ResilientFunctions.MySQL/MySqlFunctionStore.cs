@@ -269,6 +269,35 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    private string? _getSucceededFunctionsSql;
+    public async Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)
+    {
+        
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _getSucceededFunctionsSql ??= @$"
+            SELECT function_instance_id
+            FROM {_tablePrefix}
+            WHERE function_type_id = ? AND status = {(int) Status.Succeeded} AND timestamp <= ?";
+        await using var command = new MySqlCommand(_getSucceededFunctionsSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionTypeId.Value},
+                new() {Value = completedBefore}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var functions = new List<FunctionInstanceId>();
+        while (await reader.ReadAsync())
+        {
+            var functionInstanceId = reader.GetString(0);
+            functions.Add(functionInstanceId);
+        }
+        
+        return functions;
+    }
+
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         FunctionId functionId, Status status, 

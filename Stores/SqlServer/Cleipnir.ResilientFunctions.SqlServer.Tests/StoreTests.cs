@@ -159,4 +159,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task DefaultStateCanSetOnSucceedAndFetchedAfterwards()
         => DefaultStateCanSetOnSucceedAndFetchedAfterwards(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task SucceededFunctionsCanBeFetchedSuccessfully()
+        => SucceededFunctionsCanBeFetchedSuccessfully(FunctionStoreFactory.Create());
 }

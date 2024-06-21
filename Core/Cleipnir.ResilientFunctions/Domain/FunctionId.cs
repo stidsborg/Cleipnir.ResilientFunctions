@@ -53,6 +53,9 @@ public class FunctionId
     } 
         
     public static bool operator !=(FunctionId? id1, FunctionId? id2) => !(id1 == id2);
+
+    public FunctionId WithInstanceId(FunctionInstanceId instanceId) => new(TypeId, instanceId);
+    public FunctionId WithTypeId(FunctionTypeId typeId) => new(typeId, InstanceId);
 }
 
 public static class FunctionIdExtensions 

@@ -167,4 +167,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task DefaultStateCanSetOnSucceedAndFetchedAfterwards()
         => DefaultStateCanSetOnSucceedAndFetchedAfterwards(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SucceededFunctionsCanBeFetchedSuccessfully()
+        => SucceededFunctionsCanBeFetchedSuccessfully(FunctionStoreFactory.Create());
 }

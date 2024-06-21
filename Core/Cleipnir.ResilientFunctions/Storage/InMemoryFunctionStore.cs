@@ -141,7 +141,19 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .AsEnumerable()
                 .ToTask();
     }
-    
+
+    public Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)
+    {
+        lock (_sync)
+            return _states
+                .Values
+                .Where(s => s.FunctionId.TypeId == functionTypeId && s.Timestamp < completedBefore)
+                .Select(s => s.FunctionId.InstanceId)
+                .ToList()
+                .CastTo<IReadOnlyList<FunctionInstanceId>>()
+                .ToTask();
+    }
+
     public virtual Task<bool> SetFunctionState(
         FunctionId functionId,
         Status status,

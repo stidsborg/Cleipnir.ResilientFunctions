@@ -88,6 +88,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ON {_tablePrefix}(function_type_id, postponed_until, function_instance_id)
             INCLUDE (epoch)
             WHERE status = {(int) Status.Postponed};
+
+            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_succeeded
+            ON {_tablePrefix}(function_type_id, function_instance_id)
+            WHERE status = {(int) Status.Succeeded};
             ";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
@@ -281,6 +285,34 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
 
         return functions;
+    }
+
+    private string? _getSucceededFunctionsSql;
+    public async Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)
+    {
+        await using var conn = await CreateConnection();
+        _getSucceededFunctionsSql ??= @$"
+            SELECT function_instance_id
+            FROM {_tablePrefix}
+            WHERE function_type_id = $1 AND status = {(int) Status.Succeeded} AND timestamp <= $2";
+        await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = functionTypeId.Value},
+                new() {Value = completedBefore}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var functionInstanceIds = new List<FunctionInstanceId>();
+        while (await reader.ReadAsync())
+        {
+            var functionInstanceId = reader.GetString(0);
+            functionInstanceIds.Add(functionInstanceId);
+        }
+
+        return functionInstanceIds;
     }
 
     private string? _setFunctionStateSql;
