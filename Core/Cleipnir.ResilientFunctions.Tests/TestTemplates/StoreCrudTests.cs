@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -143,6 +142,7 @@ public abstract class StoreCrudTests
     public async Task ExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
+        var functionId = TestFunctionId.Create();
         await store.CreateFunction(
             FunctionId,
             Param,
@@ -151,9 +151,26 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.DeleteFunction(FunctionId);
+        await store.StatesStore.UpsertState(functionId, new StoredState("SomeStateId", "SomeStateJson"));
+        await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
+        await store.EffectsStore.SetEffectResult(
+            functionId,
+            new StoredEffect("SomeEffectId", WorkStatus.Completed, Result: null, StoredException: null)
+        );
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson", "SomeType"));
+        await store.TimeoutStore.UpsertTimeout(
+            new StoredTimeout(functionId, "SomeTimeoutId", Expiry: DateTime.UtcNow.AddDays(1).Ticks),
+            overwrite: false
+        );
+        
+        await store.DeleteFunction(functionId);
 
-        await store.GetFunction(FunctionId).ShouldBeNullAsync();
+        await store.GetFunction(functionId).ShouldBeNullAsync();
+        await store.StatesStore.GetStates(functionId).ShouldBeEmptyAsync();
+        await store.CorrelationStore.GetCorrelations(functionId).ShouldBeEmptyAsync();
+        await store.EffectsStore.GetEffectResults(functionId).ShouldBeEmptyAsync();
+        await store.MessageStore.GetMessages(functionId, skip: 0).ShouldBeEmptyAsync();
+        await store.TimeoutStore.GetTimeouts(functionId).ShouldBeEmptyAsync();
     }
     
     public abstract Task NonExistingFunctionCanBeDeleted();

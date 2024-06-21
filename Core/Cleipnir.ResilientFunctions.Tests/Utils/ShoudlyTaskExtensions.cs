@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
@@ -27,4 +28,9 @@ public static class ShoudlyTaskExtensions
     
     public static async Task ShouldBeAsync<T>(this Task<T> task, T expected) 
         => (await task).ShouldBe(expected);
+
+    public static async Task ShouldBeEmptyAsync<T>(this Task<IEnumerable<T>> task)
+        => (await task).ShouldBeEmpty();
+    public static async Task ShouldBeEmptyAsync<T>(this Task<IReadOnlyList<T>> task)
+        => (await task).ShouldBeEmpty();
 }
