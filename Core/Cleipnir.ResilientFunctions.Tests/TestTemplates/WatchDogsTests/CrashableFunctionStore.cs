@@ -53,7 +53,12 @@ public class CrashableFunctionStore : IFunctionStore
             postponeUntil,
             timestamp
         );
-    
+
+    public Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.BulkScheduleFunctions(functionsWithParam);
+
     public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<StoredFunction?>(new TimeoutException())

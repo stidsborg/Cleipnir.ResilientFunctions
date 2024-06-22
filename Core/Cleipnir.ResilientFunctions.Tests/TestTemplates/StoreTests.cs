@@ -1199,4 +1199,30 @@ public abstract class StoreTests
         succeededFunctions.Count.ShouldBe(1);
         succeededFunctions.Single().ShouldBe(functionId1.InstanceId);
     }
+    
+    public abstract Task BulkScheduleInsertsAllFunctionsSuccessfully();
+    protected async Task BulkScheduleInsertsAllFunctionsSuccessfully(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        
+        var typeId = TestFunctionId.Create().TypeId;
+        var functionIds = Enumerable
+            .Range(0, 101)
+            .Select(_ => TestFunctionId.Create().WithTypeId(typeId))
+            .ToList();
+        
+        await store.BulkScheduleFunctions(
+            functionIds.Select(functionId => new FunctionIdWithParam(functionId, Param: ""))
+        );
+
+        var eligibleFunctions = await store
+            .GetPostponedFunctions(typeId, DateTime.UtcNow.Ticks)
+            .ToListAsync();
+        
+        eligibleFunctions.Count.ShouldBe(functionIds.Count);
+        foreach (var (_, instanceId) in functionIds)
+        {
+            eligibleFunctions.Any(f => f.InstanceId == instanceId).ShouldBeTrue();
+        }
+    }
 }

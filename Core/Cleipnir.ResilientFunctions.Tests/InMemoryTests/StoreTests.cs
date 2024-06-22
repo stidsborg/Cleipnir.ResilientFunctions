@@ -171,4 +171,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task SucceededFunctionsCanBeFetchedSuccessfully()
         => SucceededFunctionsCanBeFetchedSuccessfully(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task BulkScheduleInsertsAllFunctionsSuccessfully()
+        => BulkScheduleInsertsAllFunctionsSuccessfully(FunctionStoreFactory.Create());
 }

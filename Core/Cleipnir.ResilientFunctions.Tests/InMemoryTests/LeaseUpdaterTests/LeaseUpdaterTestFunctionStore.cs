@@ -32,7 +32,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         long? postponeUntil,
         long timestamp
     ) => _inner.CreateFunction(functionId, param, leaseExpiration, postponeUntil, timestamp);
-    
+
+    public Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+        => _inner.BulkScheduleFunctions(functionsWithParam);
+
     public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);
     

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -22,6 +23,10 @@ public interface IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
+    );
+
+    Task BulkScheduleFunctions(
+        IEnumerable<FunctionIdWithParam> functionsWithParam
     );
     
     Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration);

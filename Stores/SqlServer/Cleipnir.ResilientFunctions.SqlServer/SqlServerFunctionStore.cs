@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -176,6 +177,59 @@ public class SqlServerFunctionStore : IFunctionStore
         }
 
         return true;
+    }
+
+    private string? _bulkScheduleFunctionsSql;
+    public async Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    {
+        _bulkScheduleFunctionsSql ??= @$"
+            MERGE INTO {_tablePrefix}
+            USING (VALUES @VALUES) 
+            AS source (
+                FunctionTypeId, 
+                FunctionInstanceId, 
+                ParamJson, 
+                Status,
+                Epoch, 
+                LeaseExpiration,
+                PostponedUntil,
+                Timestamp
+            )
+            ON {_tablePrefix}.FunctionTypeId = source.FunctionTypeId AND {_tablePrefix}.FunctionInstanceId = source.FunctionInstanceId         
+            WHEN NOT MATCHED THEN
+              INSERT (FunctionTypeId, FunctionInstanceId, ParamJson, Status, Epoch, LeaseExpiration, PostponedUntil, Timestamp)
+              VALUES (source.FunctionTypeId, source.FunctionInstanceId, source.ParamJson, source.Status, source.Epoch, source.LeaseExpiration, source.PostponedUntil, source.Timestamp);";
+
+        var valueSql = $"(@FunctionTypeId, @FunctionInstanceId, @ParamJson, {(int)Status.Postponed}, 0, 0, 0, 0)";
+        var chunk = functionsWithParam
+            .Select(
+                fp =>
+                {
+                    var id = Guid.NewGuid().ToString("N");
+                    var sql = valueSql
+                        .Replace("@FunctionTypeId", $"@FunctionTypeId{id}")
+                        .Replace("@FunctionInstanceId", $"@FunctionInstanceId{id}")
+                        .Replace("@ParamJson", $"@ParamJson{id}");
+
+                    return new { Id = id, Sql = sql, FunctionId = fp.FunctionId, Param = fp.Param };
+                }).Chunk(100);
+
+        await using var conn = await _connFunc();
+        foreach (var idAndSqls in chunk)
+        {
+            var valuesSql = string.Join($",{Environment.NewLine}", idAndSqls.Select(a => a.Sql));
+            var sql = _bulkScheduleFunctionsSql.Replace("@VALUES", valuesSql);
+            
+            await using var command = new SqlCommand(sql, conn);
+            foreach (var idAndSql in idAndSqls)
+            {
+                command.Parameters.AddWithValue($"@FunctionTypeId{idAndSql.Id}", idAndSql.FunctionId.TypeId.Value);
+                command.Parameters.AddWithValue($"@FunctionInstanceId{idAndSql.Id}", idAndSql.FunctionId.InstanceId.Value);
+                command.Parameters.AddWithValue($"@ParamJson{idAndSql.Id}", idAndSql.Param == null ? DBNull.Value : idAndSql.Param);
+            }
+            
+            await command.ExecuteNonQueryAsync();
+        }
     }
 
     private string? _restartExecutionSql;

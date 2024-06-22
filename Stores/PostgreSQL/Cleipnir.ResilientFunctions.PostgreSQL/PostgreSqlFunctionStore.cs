@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -159,6 +160,39 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    private string? _bulkScheduleFunctionsSql;
+    public async Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    {
+        _bulkScheduleFunctionsSql ??= @$"
+            INSERT INTO {_tablePrefix}
+                (function_type_id, function_instance_id, status, param_json, lease_expiration, postponed_until, timestamp)
+            VALUES
+                ($1, $2, {(int) Status.Postponed}, $3, 0, 0, 0)
+            ON CONFLICT DO NOTHING;";
+
+        await using var conn = await CreateConnection();
+        var chunks = functionsWithParam.Chunk(100);
+        foreach (var chunk in chunks)
+        {
+            await using var batch = new NpgsqlBatch(conn);
+            foreach (var idWithParam in chunk)
+            {
+                var batchCommand = new NpgsqlBatchCommand(_bulkScheduleFunctionsSql)
+                {
+                    Parameters =
+                    {
+                        new() { Value = idWithParam.FunctionId.TypeId.Value },
+                        new() { Value = idWithParam.FunctionId.InstanceId.Value },
+                        new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param }
+                    }
+                };
+                batch.BatchCommands.Add(batchCommand);
+            }
+
+            await batch.ExecuteNonQueryAsync();
+        }
     }
 
     private string? _restartExecutionSql;

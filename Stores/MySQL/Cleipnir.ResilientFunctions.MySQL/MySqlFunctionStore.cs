@@ -1,6 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.Data;
+using System.Text;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
@@ -138,6 +141,34 @@ public class MySqlFunctionStore : IFunctionStore
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    public async Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    {
+        var insertSql = @$"
+            INSERT IGNORE INTO {_tablePrefix}
+              (function_type_id, function_instance_id, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
+            VALUES                      
+                    ";
+        
+        var now = DateTime.UtcNow.Ticks;
+     
+        var rows = new List<string>();
+        foreach (var ((type, instance), param) in functionsWithParam)
+        {
+            var row = $"('{type.Value.EscapeString()}', '{instance.Value.EscapeString()}', {(param == null ? "NULL" : $"'{param.EscapeString()}'")}, {(int) Status.Postponed}, 0, 0, 0, {now})";
+            rows.Add(row);
+        }
+        var rowsSql = string.Join(", " + Environment.NewLine, rows);
+        var strBuilder = new StringBuilder(rowsSql.Length + 2);
+        strBuilder.Append(insertSql);
+        strBuilder.Append(rowsSql);
+        strBuilder.Append(";");
+        var sql = strBuilder.ToString();
+
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var cmd = new MySqlCommand(sql, conn);
+        cmd.ExecuteNonQuery();
     }
 
     private string? _restartExecutionSql;

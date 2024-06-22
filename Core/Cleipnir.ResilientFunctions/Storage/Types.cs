@@ -24,3 +24,5 @@ public record StatusAndEpoch(Status Status, int Epoch);
 
 public record StoredEffect(EffectId EffectId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
 public record StoredState(StateId StateId, string StateJson);
+
+public record FunctionIdWithParam(FunctionId FunctionId, string? Param);

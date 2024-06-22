@@ -73,7 +73,33 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return true.ToTask();
         }
     }
-    
+
+    public Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    {
+        lock (_sync)
+        {
+            foreach (var (functionId, param) in functionsWithParam)
+            {
+                if (!_states.ContainsKey(functionId))
+                    _states[functionId] = new InnerState
+                    {
+                        FunctionId = functionId,
+                        DefaultState = null,
+                        Epoch = 0,
+                        Exception = null,
+                        InterruptCount = 0,
+                        LeaseExpiration = 0,
+                        Param = param,
+                        PostponeUntil = 0,
+                        Result = null,
+                        Status = Status.Postponed
+                    };
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
     public virtual Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)

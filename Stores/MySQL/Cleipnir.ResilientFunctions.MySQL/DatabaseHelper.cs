@@ -32,4 +32,6 @@ public static class DatabaseHelper
         await conn.OpenAsync();
         return conn;
     }
+
+    public static string EscapeString(this string value) => MySqlHelper.EscapeString(value);
 }
