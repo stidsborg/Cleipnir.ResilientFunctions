@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ResilientFunctions.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -21,5 +22,11 @@ public class HelpersTests
             .Range(0, count: 10)
             .All(i => set.Contains(i))
             .ShouldBeTrue();
+    }
+    
+    [TestMethod]
+    public void RandomOffsetCanBeAppliedToEmptyList()
+    {
+        new List<int>().WithRandomOffset().Any().ShouldBeFalse();
     }
 }

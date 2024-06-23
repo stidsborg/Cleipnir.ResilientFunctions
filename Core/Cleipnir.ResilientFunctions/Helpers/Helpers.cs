@@ -57,6 +57,9 @@ public static class Helpers
 
     public static IEnumerable<T> WithRandomOffset<T>(this IReadOnlyList<T> elms)
     {
+        if (elms.Count == 0)
+            yield break;
+        
         var offset = Random.Shared.Next(0, elms.Count);
         var i = offset;
         do
