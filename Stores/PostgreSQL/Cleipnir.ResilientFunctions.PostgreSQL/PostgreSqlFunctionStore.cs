@@ -292,7 +292,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getPostponedFunctionsSql;
-    public async Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public async Task<IReadOnlyList<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         await using var conn = await CreateConnection();
         _getPostponedFunctionsSql ??= @$"

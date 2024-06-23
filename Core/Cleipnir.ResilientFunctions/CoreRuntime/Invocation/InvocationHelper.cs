@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -15,13 +16,15 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
-    private readonly bool _isNullParamAllowed;
+    private readonly bool _isParamlessFunction;
+    private readonly FunctionTypeId _functionTypeId;
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(bool isNullParamAllowed, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
+    public InvocationHelper(FunctionTypeId functionTypeId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
     {
-        _isNullParamAllowed = isNullParamAllowed;
+        _functionTypeId = functionTypeId;
+        _isParamlessFunction = isParamlessFunction;
         _settings = settings;
 
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
@@ -34,10 +37,10 @@ internal class InvocationHelper<TParam, TReturn>
         TParam param, 
         DateTime? scheduleAt)
     {
-        if (!_isNullParamAllowed)
+        if (!_isParamlessFunction)
             ArgumentNullException.ThrowIfNull(param);
         
-        var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
+        var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
         try
         {
             var storedParameter = SerializeParameter(param);
@@ -206,21 +209,37 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    public async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch) 
+    public async Task<RestartedFunction?> RestartFunction(FunctionId functionId, int expectedEpoch)
     {
-        var runningFunction = _shutdownCoordinator.RegisterRunningRFunc();
+        var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
+
         try
         {
             var sf = await _functionStore.RestartExecution(
                 functionId,
                 expectedEpoch,
-                leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks 
+                leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks
             );
-            if (sf == null)
-                throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch: '{expectedEpoch}'");
 
-            expectedEpoch = sf.Epoch;
-
+            return sf != null
+                ? new RestartedFunction(sf, runningFunction)
+                : null;
+        }
+        catch
+        {
+            runningFunction.Dispose();
+            throw;
+        }
+    }
+    
+    
+    public async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, RestartedFunction restartedFunction)
+    {
+        var (sf, runningFunction) = restartedFunction;
+        var expectedEpoch = sf.Epoch;
+        
+        try
+        {
             var param = sf.Parameter == null 
                 ? default 
                 : Serializer.DeserializeParameter<TParam>(sf.Parameter);                
@@ -230,7 +249,7 @@ internal class InvocationHelper<TParam, TReturn>
         catch (DeserializationException e)
         {
             runningFunction.Dispose();
-            var sf = await _functionStore.GetFunction(functionId);
+            sf = await _functionStore.GetFunction(functionId);
             if (sf == null)
                 throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' was not found");
             
@@ -325,6 +344,19 @@ internal class InvocationHelper<TParam, TReturn>
             PreviouslyThrownException: sf.Exception == null 
                 ? null 
                 : serializer.DeserializeException(sf.Exception)
+        );
+    }
+
+    public async Task BulkSchedule(IEnumerable<BulkWork<TParam>> work)
+    {
+        var serializer = _settings.Serializer;
+        await _functionStore.BulkScheduleFunctions(
+            work.Select(bw =>
+                new FunctionIdWithParam(
+                    new FunctionId(_functionTypeId, bw.InstanceId),
+                    _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
+                )
+            )
         );
     }
 

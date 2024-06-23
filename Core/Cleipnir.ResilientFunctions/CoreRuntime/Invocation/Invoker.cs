@@ -143,6 +143,31 @@ public class Invoker<TParam, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
         => await _invocationHelper.WaitForFunctionResult(functionId, allowPostponedAndSuspended: false);
 
+    internal async Task ScheduleReInvoke(FunctionInstanceId instanceId, RestartedFunction rf, Action onCompletion)
+    {
+        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, rf);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                Result<TReturn> result;
+                try
+                {
+                    // *** USER FUNCTION INVOCATION *** 
+                    result = await inner(param, workflow);
+                }
+                catch (Exception exception) { await PersistFailure(functionId, exception, param, workflow, epoch); throw; }
+                finally { disposables.Dispose(); }
+                
+                await PersistResultAndEnsureSuccess(functionId, result, param, workflow, epoch, allowPostponedOrSuspended: true);
+            }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            finally{ onCompletion(); }
+        });
+    }
+    
     private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
     {
         var disposables = new List<IDisposable>(capacity: 3);
@@ -192,11 +217,20 @@ public class Invoker<TParam, TReturn>
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch)
     {
+        var restartedFunction = await _invocationHelper.RestartFunction(functionId, expectedEpoch);
+        if (restartedFunction == null)
+            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch '{expectedEpoch}' on re-invocation");
+
+        return await PrepareForReInvocation(functionId, restartedFunction);
+    }
+
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, RestartedFunction restartedFunction)
+    {
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
             var (param, epoch, defaultState, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, expectedEpoch);
+                await _invocationHelper.PrepareForReInvocation(functionId, restartedFunction);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
             var isWorkflowRunningDisposable = new PropertyDisposable();

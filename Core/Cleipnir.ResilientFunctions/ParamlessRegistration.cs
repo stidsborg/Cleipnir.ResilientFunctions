@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -12,7 +13,9 @@ public class ParamlessRegistration
     
     public Func<FunctionInstanceId, Task> Invoke { get; }
     public Func<FunctionInstanceId, Task> Schedule { get; }
-    public Func<FunctionInstanceId, DateTime, Task> ScheduleAt { get; }   
+    public Func<FunctionInstanceId, DateTime, Task> ScheduleAt { get; }
+    public Func<IEnumerable<FunctionInstanceId>, Task> BulkSchedule { get; }
+    
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
     
@@ -21,6 +24,7 @@ public class ParamlessRegistration
         Func<FunctionInstanceId, Task> invoke,
         Func<FunctionInstanceId, Task> schedule,
         Func<FunctionInstanceId, DateTime, Task> scheduleAt,
+        Func<IEnumerable<FunctionInstanceId>, Task> bulkSchedule,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
@@ -30,6 +34,7 @@ public class ParamlessRegistration
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;
+        BulkSchedule = bulkSchedule;
         _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
         _stateFetcher = stateFetcher;

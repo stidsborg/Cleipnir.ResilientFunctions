@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -9,6 +10,7 @@ public static class ActionRegistration
 {
     public delegate Task Invoke<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
     public delegate Task Schedule<in TParam>(string functionInstanceId, TParam param) where TParam : notnull;
+    public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances) where TParam : notnull;
 
     public delegate Task ScheduleAt<in TParam>(
         string functionInstanceId,
@@ -24,7 +26,9 @@ public class ActionRegistration<TParam> where TParam : notnull
     
     public ActionRegistration.Invoke<TParam> Invoke { get; }
     public ActionRegistration.Schedule<TParam> Schedule { get; }
-    public ActionRegistration.ScheduleAt<TParam> ScheduleAt { get; }   
+    public ActionRegistration.ScheduleAt<TParam> ScheduleAt { get; }
+    public ActionRegistration.BulkSchedule<TParam> BulkSchedule { get; }
+    
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
     
@@ -33,6 +37,7 @@ public class ActionRegistration<TParam> where TParam : notnull
         ActionRegistration.Invoke<TParam> invoke,
         ActionRegistration.Schedule<TParam> schedule,
         ActionRegistration.ScheduleAt<TParam> scheduleAt,
+        ActionRegistration.BulkSchedule<TParam> bulkSchedule,
         ControlPanelFactory<TParam> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
@@ -42,6 +47,7 @@ public class ActionRegistration<TParam> where TParam : notnull
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;
+        BulkSchedule = bulkSchedule;
         _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
         _stateFetcher = stateFetcher;

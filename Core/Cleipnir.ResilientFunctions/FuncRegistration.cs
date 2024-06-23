@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -22,6 +23,8 @@ public static class FuncRegistration
         TParam param,
         DateTime delayUntil
     ) where TParam : notnull;
+    
+    public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances) where TParam : notnull;
 }
 
 public class FuncRegistration<TParam, TReturn> where TParam : notnull
@@ -31,6 +34,8 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
     public FuncRegistration.Invoke<TParam, TReturn> Invoke { get; }
     public FuncRegistration.Schedule<TParam> Schedule { get; }
     public FuncRegistration.ScheduleAt<TParam> ScheduleAt { get; }
+    public FuncRegistration.BulkSchedule<TParam> BulkSchedule { get; } 
+    
     private readonly ControlPanelFactory<TParam,TReturn> _controlPanelFactory;
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
@@ -40,6 +45,7 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         FuncRegistration.Invoke<TParam, TReturn> invoke,
         FuncRegistration.Schedule<TParam> schedule,
         FuncRegistration.ScheduleAt<TParam> scheduleAt,
+        FuncRegistration.BulkSchedule<TParam> bulkSchedule,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
@@ -49,6 +55,7 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         Invoke = invoke;
         Schedule = schedule;
         ScheduleAt = scheduleAt;
+        BulkSchedule = bulkSchedule;
 
         _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;

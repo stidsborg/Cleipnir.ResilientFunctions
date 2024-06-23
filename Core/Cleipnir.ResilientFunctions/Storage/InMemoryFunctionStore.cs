@@ -148,7 +148,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .ToTask();
     }
 
-    public virtual Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public virtual Task<IReadOnlyList<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         lock (_sync)
             return _states
@@ -164,7 +164,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     )
                 )
                 .ToList()
-                .AsEnumerable()
+                .CastTo<IReadOnlyList<StoredPostponedFunction>>()
                 .ToTask();
     }
 

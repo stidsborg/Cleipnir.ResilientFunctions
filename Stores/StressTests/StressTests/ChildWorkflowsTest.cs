@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
 namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
-public class WorkDistributionTest
+public class ChildWorkflowsTest
 {
     public static async Task<TestResult> Perform(IEngine helper)
     {
@@ -33,21 +33,21 @@ public class WorkDistributionTest
             parentFunctionId.TypeId,
             async Task (string param, Workflow workflow) =>
             {
-                var children = new List<Task>(testSize);
-                for (var i = 0; i < testSize; i++)
-                    children.Add(childRegistration.Schedule(i.ToString(), i.ToString()));
-
-                await Task.WhenAll(children);
-
+                await childRegistration.BulkSchedule(
+                    Enumerable
+                        .Range(0, testSize)
+                        .Select(i => new BulkWork<string>(i.ToString(), i.ToString()))
+                );
+                
                 await workflow.Messages.Take(testSize).Completion();
             }
         );
         
-        Console.WriteLine("WORKDISTRIBUTION_TEST: Starting parent-invocation");
+        Console.WriteLine("CHILD_WORKFLOWS_TEST: Starting parent-invocation");
         await parentRegistration.Schedule(parentFunctionId.InstanceId.Value, "SomeParam");
         
         var executionAverageSpeed = await 
-            WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "WORKDISTRIBUTION_TEST: ");
+            WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CHILD_WORKFLOWS_TEST: ");
 
         return new TestResult(InsertionAverageSpeed: 0, executionAverageSpeed);
     }

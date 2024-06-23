@@ -21,13 +21,22 @@ internal class ShutdownCoordinator
         );
     }
 
-    public IDisposable RegisterRunningRFunc()
+    public IDisposable RegisterRunningFunction()
+    {
+        var disposable = TryRegisterRunningFunction();
+        if (disposable == null)
+            throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
+
+        return disposable;
+    }
+    
+    public IDisposable? TryRegisterRunningFunction()
     {
         Interlocked.Increment(ref _candidates);
         if (_shutDownInitiated && Interlocked.Read(ref _confirmed) == 0)
         {
             Interlocked.Decrement(ref _candidates);
-            throw new ObjectDisposedException($"{nameof(FunctionsRegistry)} has been disposed");
+            return null;
         }
 
         Interlocked.Increment(ref _confirmed);

@@ -290,7 +290,13 @@ public class FunctionsRegistry : IDisposable
                 return (FuncRegistration<TParam, TReturn>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, TReturn>(isNullParamAllowed: false, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, TReturn>(
+                functionTypeId,
+                isParamlessFunction: false,
+                settingsWithDefaults,
+                _functionStore,
+                _shutdownCoordinator
+            );
             var rFuncInvoker = new Invoker<TParam, TReturn>(
                 functionTypeId, 
                 inner,
@@ -304,6 +310,8 @@ public class FunctionsRegistry : IDisposable
                 functionTypeId,
                 _functionStore,
                 rFuncInvoker.ReInvoke,
+                invocationHelper.RestartFunction,
+                rFuncInvoker.ScheduleReInvoke,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
@@ -318,6 +326,7 @@ public class FunctionsRegistry : IDisposable
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleAt,
+                invocationHelper.BulkSchedule,
                 controlPanels,
                 new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
@@ -346,7 +355,13 @@ public class FunctionsRegistry : IDisposable
                 return (ParamlessRegistration)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<Unit, Unit>(isNullParamAllowed: true, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<Unit, Unit>(
+                functionTypeId,
+                isParamlessFunction: true,
+                settingsWithDefaults,
+                _functionStore,
+                _shutdownCoordinator
+            );
             var invoker = new Invoker<Unit, Unit>(
                 functionTypeId, 
                 inner, 
@@ -360,6 +375,8 @@ public class FunctionsRegistry : IDisposable
                 functionTypeId,
                 _functionStore,
                 invoker.ReInvoke,
+                invocationHelper.RestartFunction,
+                invoker.ScheduleReInvoke,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
@@ -374,6 +391,7 @@ public class FunctionsRegistry : IDisposable
                 invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
                 schedule: id => invoker.ScheduleInvoke(id.Value, param: Unit.Instance),
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
+                bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id, Unit.Instance))),
                 controlPanels,
                 new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
@@ -402,7 +420,13 @@ public class FunctionsRegistry : IDisposable
                 return (ActionRegistration<TParam>)_functions[functionTypeId];
             
             var settingsWithDefaults = _settings.Merge(settings);
-            var invocationHelper = new InvocationHelper<TParam, Unit>(isNullParamAllowed: false, settingsWithDefaults, _functionStore, _shutdownCoordinator);
+            var invocationHelper = new InvocationHelper<TParam, Unit>(
+                functionTypeId,
+                isParamlessFunction: false,
+                settingsWithDefaults,
+                _functionStore,
+                _shutdownCoordinator
+            );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 functionTypeId, 
                 inner, 
@@ -416,6 +440,8 @@ public class FunctionsRegistry : IDisposable
                 functionTypeId,
                 _functionStore,
                 rActionInvoker.ReInvoke,
+                invocationHelper.RestartFunction,
+                rActionInvoker.ScheduleReInvoke,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
@@ -430,6 +456,7 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,
+                invocationHelper.BulkSchedule,
                 controlPanels,
                 new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)

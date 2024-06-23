@@ -74,9 +74,9 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IEnumerable<StoredExecutingFunction>>(new TimeoutException())
             : _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
 
-    public Task<IEnumerable<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public Task<IReadOnlyList<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
         => _crashed
-            ? Task.FromException<IEnumerable<StoredPostponedFunction>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredPostponedFunction>>(new TimeoutException())
             : _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);
 
     public Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)

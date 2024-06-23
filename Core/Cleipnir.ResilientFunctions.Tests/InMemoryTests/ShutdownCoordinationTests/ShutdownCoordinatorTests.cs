@@ -14,7 +14,7 @@ public class ShutdownCoordinatorTests
     public async Task ShutdownTaskIsOnlyCompletedWhenRunningFunctionsReachesZero()
     {
         var shutdownCoordinator = new ShutdownCoordinator();
-        var runningFuncDisposable = shutdownCoordinator.RegisterRunningRFunc();
+        var runningFuncDisposable = shutdownCoordinator.RegisterRunningFunction();
 
         var shutdownCompleted = shutdownCoordinator.PerformShutdown();
 
@@ -40,17 +40,19 @@ public class ShutdownCoordinatorTests
         var shutdownCoordinator = new ShutdownCoordinator();
         _ = shutdownCoordinator.PerformShutdown();
         
-        Should.Throw<ObjectDisposedException>(shutdownCoordinator.RegisterRunningRFunc);
+        shutdownCoordinator.TryRegisterRunningFunction().ShouldBeNull();
+        
+        Should.Throw<ObjectDisposedException>(shutdownCoordinator.RegisterRunningFunction);
     }
     
     [TestMethod]
     public void RegisteringRunningRFuncOnDisposedShutdownCoordinatorWithPositiveConfirmedIsAllowed()
     {
         var shutdownCoordinator = new ShutdownCoordinator();
-        shutdownCoordinator.RegisterRunningRFunc();
+        shutdownCoordinator.RegisterRunningFunction();
         var shutdownTask = shutdownCoordinator.PerformShutdown();
 
-        shutdownCoordinator.RegisterRunningRFunc();
+        shutdownCoordinator.RegisterRunningFunction();
         shutdownTask.IsCompleted.ShouldBeFalse();
     }
 }

@@ -12,6 +12,8 @@ internal static class WatchDogsFactory
         FunctionTypeId functionTypeId, 
         IFunctionStore functionStore,
         ReInvoke reInvoke, 
+        RestartFunction restartFunction,
+        ScheduleReInvokeFromWatchdog scheduleReInvoke,
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
@@ -30,8 +32,9 @@ internal static class WatchDogsFactory
         var postponedWatchdog = new PostponedWatchdog(
             functionTypeId,
             functionStore,
-            reInvoke,
-            asyncSemaphore,
+            scheduleReInvoke,
+            restartFunction,
+            settings.MaxParallelRetryInvocations,
             settings.WatchdogCheckFrequency,
             settings.DelayStartup,
             settings.UnhandledExceptionHandler,

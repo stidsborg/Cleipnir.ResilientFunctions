@@ -1215,9 +1215,8 @@ public abstract class StoreTests
             functionIds.Select(functionId => new FunctionIdWithParam(functionId, Param: ""))
         );
 
-        var eligibleFunctions = await store
-            .GetPostponedFunctions(typeId, DateTime.UtcNow.Ticks)
-            .ToListAsync();
+        var eligibleFunctions = 
+            await store.GetPostponedFunctions(typeId, DateTime.UtcNow.Ticks);
         
         eligibleFunctions.Count.ShouldBe(functionIds.Count);
         foreach (var (_, instanceId) in functionIds)

@@ -64,13 +64,16 @@ namespace Cleipnir.ResilientFunctions.StressTests
                 Console.WriteLine(nameof(PostponedTest).ToUpper());
                 engineTestResults[nameof(PostponedTest)] = await PostponedTest.Perform(engine);
                 Console.WriteLine();
-                Console.WriteLine(nameof(WorkDistributionTest).ToUpper());
-                engineTestResults[nameof(WorkDistributionTest)] = await WorkDistributionTest.Perform(engine);
+                Console.WriteLine(nameof(ChildWorkflowsTest).ToUpper());
+                engineTestResults[nameof(ChildWorkflowsTest)] = await ChildWorkflowsTest.Perform(engine);
                 Console.WriteLine(nameof(SuspensionTest).ToUpper());
                 engineTestResults[nameof(SuspensionTest)] = await SuspensionTest.Perform(engine);
                 Console.WriteLine();
                 Console.WriteLine(nameof(DirectInvocationTest).ToUpper());
                 engineTestResults[nameof(DirectInvocationTest)] = await DirectInvocationTest.Perform(engine);
+                Console.WriteLine();
+                Console.WriteLine(nameof(BulkInsertionTest).ToUpper());
+                engineTestResults[nameof(BulkInsertionTest)] = await BulkInsertionTest.Perform(engine);
             }
 
             Console.WriteLine();

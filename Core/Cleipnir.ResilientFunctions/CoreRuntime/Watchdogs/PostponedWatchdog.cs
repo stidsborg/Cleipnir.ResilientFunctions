@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -14,21 +13,22 @@ internal class PostponedWatchdog
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly ReInvoke _reInvoke;
-    private readonly AsyncSemaphore _maxParallelismSemaphore;
-    private readonly TimeSpan _postponedCheckFrequency;
+    private readonly ScheduleReInvokeFromWatchdog _scheduleReInvoke;
+    private readonly RestartFunction _restartFunction;
+    private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly FunctionTypeId _functionTypeId;
-    
-    private readonly HashSet<FunctionInstanceId> _toBeExecuted = new();
+
+    private int _maxParallelismLeft;
     private readonly object _sync = new();
 
     public PostponedWatchdog(
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
-        ReInvoke reInvoke,
-        AsyncSemaphore maxParallelismSemaphore,
-        TimeSpan postponedCheckFrequency,
+        ScheduleReInvokeFromWatchdog scheduleReInvoke,
+        RestartFunction restartFunction,
+        int maxParallelism,
+        TimeSpan checkFrequency,
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
@@ -37,15 +37,16 @@ internal class PostponedWatchdog
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
-        _reInvoke = reInvoke;
-        _maxParallelismSemaphore = maxParallelismSemaphore;
-        _postponedCheckFrequency = postponedCheckFrequency;
+        _maxParallelismLeft = maxParallelism;
+        _scheduleReInvoke = scheduleReInvoke;
+        _restartFunction = restartFunction;
+        _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
     }
 
     public async Task Start()
     {
-        if (_postponedCheckFrequency == TimeSpan.Zero) return;
+        if (_checkFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         
         Start:
@@ -55,13 +56,47 @@ internal class PostponedWatchdog
             {
                 var now = DateTime.UtcNow;
 
-                var expiresSoon = await _functionStore
-                    .GetPostponedFunctions(_functionTypeId, now.Add(_postponedCheckFrequency).Ticks);
+                var eligible = 
+                    (await _functionStore.GetPostponedFunctions(_functionTypeId, now.Ticks)).WithRandomOffset();
 
-                foreach (var expireSoon in expiresSoon)
-                    _ = SleepAndThenReInvoke(expireSoon, now);
+                foreach (var spf in eligible)
+                {
+                    lock (_sync)
+                        if (_maxParallelismLeft == 0) break;
+                        else _maxParallelismLeft--;
+                    
+                    var runningFunction = _shutdownCoordinator.TryRegisterRunningFunction();
+                    if (runningFunction == null)
+                        return;
+
+                    var functionId = new FunctionId(_functionTypeId, spf.InstanceId);
+                    var restartedFunction = await _restartFunction(functionId, spf.Epoch);
+                    if (restartedFunction == null)
+                    {
+                        runningFunction.Dispose();
+                        break;
+                    }
+
+                    await _scheduleReInvoke(
+                        spf.InstanceId,
+                        restartedFunction,
+                        onCompletion: () =>
+                        {
+                            lock (_sync)
+                                _maxParallelismLeft++;
+                            
+                            runningFunction.Dispose();
+                        }
+                    );
+                }
                 
-                await Task.Delay(_postponedCheckFrequency);
+                var timeElapsed = DateTime.UtcNow - now;
+                var delay = TimeSpanHelper.Max(
+                    TimeSpan.Zero,
+                    _checkFrequency - timeElapsed
+                );
+
+                await Task.Delay(delay);
             }
         }
         catch (Exception innerException)
@@ -76,50 +111,6 @@ internal class PostponedWatchdog
             
             await Task.Delay(5_000);
             goto Start;
-        }
-    }
-
-    private async Task SleepAndThenReInvoke(StoredPostponedFunction spf, DateTime now)
-    {
-        lock (_sync)
-            if (!_toBeExecuted.Add(spf.InstanceId))
-                return;
-
-        var functionId = new FunctionId(_functionTypeId, spf.InstanceId);
-
-        var postponedUntil = new DateTime(spf.PostponedUntil, DateTimeKind.Utc);
-        var delay = TimeSpanHelper.Max(postponedUntil - now, TimeSpan.Zero);
-        await Task.Delay(delay);
-
-        if (_shutdownCoordinator.ShutdownInitiated) return;
-
-        using var @lock = await _maxParallelismSemaphore.Take();
-        try
-        {
-            while (DateTime.UtcNow < postponedUntil) //clock resolution means that we might wake up early 
-                await Task.Yield();
-
-            using var _ = _shutdownCoordinator.RegisterRunningRFunc();
-            await _reInvoke(spf.InstanceId.Value, expectedEpoch: spf.Epoch);
-        }
-        catch (ObjectDisposedException) { } //ignore when functionsRegistry has been disposed
-        catch (UnexpectedFunctionState) { } //ignore when the functions state has changed since fetching it
-        catch (FunctionInvocationPostponedException) { }
-        catch (FunctionInvocationSuspendedException) { }
-        catch (Exception innerException)
-        {
-            _unhandledExceptionHandler.Invoke(
-                new FrameworkException(
-                    _functionTypeId,
-                    $"{nameof(PostponedWatchdog)} failed while executing: '{functionId}'",
-                    innerException
-                )
-            );
-        }
-        finally
-        {
-            lock (_sync)
-                _toBeExecuted.Remove(spf.InstanceId);
         }
     }
 }
