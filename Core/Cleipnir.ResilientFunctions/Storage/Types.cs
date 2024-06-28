@@ -16,8 +16,7 @@ public record StoredFunction(
     long InterruptCount
 );
 
-public record StoredExecutingFunction(FunctionInstanceId InstanceId, int Epoch, long LeaseExpiration);
-public record StoredPostponedFunction(FunctionInstanceId InstanceId, int Epoch, long PostponedUntil);
+public record InstanceIdAndEpoch(FunctionInstanceId InstanceId, int Epoch);
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);

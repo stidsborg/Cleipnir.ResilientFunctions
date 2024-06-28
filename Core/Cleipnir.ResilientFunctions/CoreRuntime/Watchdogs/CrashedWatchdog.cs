@@ -77,7 +77,7 @@ internal class CrashedWatchdog
         }
     }
 
-    private async Task ReInvokeCrashedFunction(StoredExecutingFunction sef)
+    private async Task ReInvokeCrashedFunction(InstanceIdAndEpoch sef)
     {
         lock (_sync)
             if (!_toBeExecuted.Add(sef.InstanceId))
@@ -85,7 +85,7 @@ internal class CrashedWatchdog
 
         using var @lock = await _maxParallelismSemaphore.Take();
         
-        if (_shutdownCoordinator.ShutdownInitiated || sef.LeaseExpiration > DateTime.UtcNow.Ticks) return;
+        if (_shutdownCoordinator.ShutdownInitiated) return;
         try
         {
             await _reInvoke(sef.InstanceId.Value, expectedEpoch: sef.Epoch);

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Shouldly;
 
@@ -33,4 +34,9 @@ public static class ShoudlyTaskExtensions
         => (await task).ShouldBeEmpty();
     public static async Task ShouldBeEmptyAsync<T>(this Task<IReadOnlyList<T>> task)
         => (await task).ShouldBeEmpty();
+
+    public static async Task ShouldBeNonEmptyAsync<T>(this Task<IEnumerable<T>> task)
+        => (await task).Any().ShouldBeTrue("Enumerable was empty");
+    public static async Task ShouldBeNonEmptyAsync<T>(this Task<IReadOnlyList<T>> task)
+        => (await task).Any().ShouldBeTrue("Enumerable was empty");
 }

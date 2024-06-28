@@ -38,13 +38,12 @@ public abstract class StoreTests
             store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
         );
         
-        var nonCompletes = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).ToListAsync();
+        var nonCompletes = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
         nonCompleted.InstanceId.ShouldBe(functionId.InstanceId);
         nonCompleted.Epoch.ShouldBe(0);
-        nonCompleted.LeaseExpiration.ShouldBe(leaseExpiration);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -102,7 +101,6 @@ public abstract class StoreTests
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
-        var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
             functionId,
@@ -116,22 +114,10 @@ public abstract class StoreTests
             .RenewLease(functionId, expectedEpoch: 0, leaseExpiration: 1)
             .ShouldBeTrueAsync();
 
-        await BusyWait.Until(() =>
-            store
-                .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks)
-                .SelectAsync(efs => efs.Any())
-        );
-
-        await BusyWait.Until(async () =>
-        {
-            var nonCompletedFunctions = await store
-                .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks)
-                .ToListAsync();
-            if (!nonCompletedFunctions.Any()) return false;
-            
-            var nonCompletedFunction = nonCompletedFunctions.Single();
-            return nonCompletedFunction is { Epoch: 0, LeaseExpiration: 1 };
-        });
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Epoch.ShouldBe(0);
+        sf.LeaseExpiration.ShouldBe(1);
     }
 
     public abstract Task LeaseIsNotUpdatedWhenNotAsExpected();
@@ -157,18 +143,15 @@ public abstract class StoreTests
             leaseExpiration: 1
         ).ShouldBeFalseAsync();
 
-        await BusyWait.Until(() =>
-            store
-                .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks)
-                .SelectAsync(efs => efs.Any())
-        );
+        await store
+            .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: leaseExpiration + 1)
+            .ShouldBeNonEmptyAsync();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
         
-        var nonCompletedFunctions = 
-            await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
-        
-        var nonCompletedFunction = nonCompletedFunctions.Single();
-        nonCompletedFunction.Epoch.ShouldBe(0);
-        nonCompletedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
+        sf.Epoch.ShouldBe(0);
+        sf.LeaseExpiration.ShouldBe(leaseExpiration);
     }
         
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
@@ -421,12 +404,12 @@ public abstract class StoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-
-        await BusyWait.Until(() => store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).Any());
         
-        var storedFunctions = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).ToListAsync();
+        var storedFunctions = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
         storedFunctions.Count.ShouldBe(1);
-        var sf = storedFunctions[0];
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
         sf.LeaseExpiration.ShouldBe(leaseExpiration);
     }
     
@@ -452,14 +435,12 @@ public abstract class StoreTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-
-        await BusyWait.Until(() => store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1).Any());
         
-        var storedFunctions = await store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1).ToListAsync();
+        var storedFunctions = await store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1);
         storedFunctions.Count.ShouldBe(1);
-        var sf = storedFunctions[0];
-        sf.InstanceId.ShouldBe(function1Id.InstanceId);
-        sf.LeaseExpiration.ShouldBe(0);
+        var (functionInstanceId, epoch) = storedFunctions[0];
+        functionInstanceId.ShouldBe(function1Id.InstanceId);
+        epoch.ShouldBe(0);
     }
     
     public abstract Task IncrementEpochSucceedsWhenEpochIsAsExpected();

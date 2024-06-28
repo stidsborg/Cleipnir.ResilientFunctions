@@ -134,7 +134,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public virtual Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public virtual Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         lock (_sync)
             return _states
@@ -142,13 +142,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Executing)
                 .Where(s => s.LeaseExpiration < leaseExpiresBefore)
-                .Select(s => new StoredExecutingFunction(s.FunctionId.InstanceId, s.Epoch, s.LeaseExpiration))
+                .Select(s => new InstanceIdAndEpoch(s.FunctionId.InstanceId, s.Epoch))
                 .ToList()
-                .AsEnumerable()
+                .CastTo<IReadOnlyList<InstanceIdAndEpoch>>()
                 .ToTask();
     }
 
-    public virtual Task<IReadOnlyList<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public virtual Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         lock (_sync)
             return _states
@@ -156,15 +156,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .Where(s => s.FunctionId.TypeId == functionTypeId)
                 .Where(s => s.Status == Status.Postponed)
                 .Where(s => s.PostponeUntil <= isEligibleBefore)
-                .Select(s =>
-                    new StoredPostponedFunction(
-                        s.FunctionId.InstanceId,
-                        s.Epoch,
-                        s.PostponeUntil!.Value
-                    )
-                )
+                .Select(s => new InstanceIdAndEpoch(s.FunctionId.InstanceId, s.Epoch))
                 .ToList()
-                .CastTo<IReadOnlyList<StoredPostponedFunction>>()
+                .CastTo<IReadOnlyList<InstanceIdAndEpoch>>()
                 .ToTask();
     }
 

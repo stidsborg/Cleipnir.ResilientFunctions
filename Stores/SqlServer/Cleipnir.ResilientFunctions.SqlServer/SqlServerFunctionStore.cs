@@ -293,11 +293,11 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         await using var conn = await _connFunc();
         _getCrashedFunctionsSql ??= @$"
-            SELECT FunctionInstanceId, Epoch, LeaseExpiration
+            SELECT FunctionInstanceId, Epoch
             FROM {_tablePrefix} WITH (NOLOCK)
             WHERE FunctionTypeId = @FunctionTypeId AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}";
 
@@ -306,15 +306,14 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiresBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var rows = new List<StoredExecutingFunction>(); 
+        var rows = new List<InstanceIdAndEpoch>(); 
         while (reader.HasRows)
         {
             while (reader.Read())
             {
                 var functionInstanceId = reader.GetString(0);
                 var epoch = reader.GetInt32(1);
-                var expiration = reader.GetInt64(2);
-                rows.Add(new StoredExecutingFunction(functionInstanceId, epoch, expiration));    
+                rows.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));    
             }
 
             reader.NextResult();
@@ -324,11 +323,11 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getPostponedFunctionsSql;
-    public async Task<IReadOnlyList<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         await using var conn = await _connFunc();
         _getPostponedFunctionsSql ??= @$"
-            SELECT FunctionInstanceId, Epoch, PostponedUntil
+            SELECT FunctionInstanceId, Epoch
             FROM {_tablePrefix} 
             WHERE FunctionTypeId = @FunctionTypeId 
               AND Status = {(int) Status.Postponed} 
@@ -339,15 +338,14 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@PostponedUntil", isEligibleBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var rows = new List<StoredPostponedFunction>(); 
+        var rows = new List<InstanceIdAndEpoch>(); 
         while (reader.HasRows)
         {
             while (reader.Read())
             {
                 var functionInstanceId = reader.GetString(0);
                 var epoch = reader.GetInt32(1);
-                var postponedUntil = reader.GetInt64(2);
-                rows.Add(new StoredPostponedFunction(functionInstanceId, epoch, postponedUntil));    
+                rows.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));    
             }
 
             reader.NextResult();

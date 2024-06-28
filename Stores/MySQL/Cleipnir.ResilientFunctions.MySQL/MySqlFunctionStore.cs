@@ -240,11 +240,11 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IEnumerable<StoredExecutingFunction>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getCrashedFunctionsSql ??= @$"
-            SELECT function_instance_id, epoch, lease_expiration 
+            SELECT function_instance_id, epoch 
             FROM {_tablePrefix}
             WHERE function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(_getCrashedFunctionsSql, conn)
@@ -258,24 +258,23 @@ public class MySqlFunctionStore : IFunctionStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<StoredExecutingFunction>();
+        var functions = new List<InstanceIdAndEpoch>();
         while (await reader.ReadAsync())
         {
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            var expiration = reader.GetInt64(2);
-            functions.Add(new StoredExecutingFunction(functionInstanceId, epoch, expiration));
+            functions.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));
         }
         
         return functions;
     }
 
     private string? _getPostponedFunctionsSql;
-    public async Task<IReadOnlyList<StoredPostponedFunction>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getPostponedFunctionsSql ??= @$"
-            SELECT function_instance_id, epoch, postponed_until
+            SELECT function_instance_id, epoch
             FROM {_tablePrefix}
             WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
         await using var command = new MySqlCommand(_getPostponedFunctionsSql, conn)
@@ -288,13 +287,12 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<StoredPostponedFunction>();
+        var functions = new List<InstanceIdAndEpoch>();
         while (await reader.ReadAsync())
         {
             var functionInstanceId = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            var postponedUntil = reader.GetInt64(2);
-            functions.Add(new StoredPostponedFunction(functionInstanceId, epoch, postponedUntil));
+            functions.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));
         }
         
         return functions;
