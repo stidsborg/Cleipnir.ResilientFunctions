@@ -18,28 +18,20 @@ internal static class WatchDogsFactory
         ShutdownCoordinator shutdownCoordinator)
     {
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
-        var crashedWatchdog = new CrashedWatchdog(
+        var restarterFactory = new RestarterFactory(
             functionTypeId,
             functionStore,
-            reInvoke,
-            asyncSemaphore,
-            settings.LeaseLength,
-            settings.DelayStartup,
+            shutdownCoordinator,
             settings.UnhandledExceptionHandler,
-            shutdownCoordinator
-        );
-
-        var postponedWatchdog = new PostponedWatchdog(
-            functionTypeId,
-            functionStore,
-            scheduleReInvoke,
-            restartFunction,
-            settings.MaxParallelRetryInvocations,
             settings.WatchdogCheckFrequency,
             settings.DelayStartup,
-            settings.UnhandledExceptionHandler,
-            shutdownCoordinator
+            asyncSemaphore,
+            restartFunction,
+            scheduleReInvoke
         );
+        
+        var crashedWatchdog = new CrashedWatchdog(settings.LeaseLength, restarterFactory);
+        var postponedWatchdog = new PostponedWatchdog(restarterFactory);
 
         var messagesWriters = new MessageWriters(
             functionTypeId,

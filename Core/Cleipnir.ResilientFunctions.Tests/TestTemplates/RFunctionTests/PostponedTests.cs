@@ -19,9 +19,9 @@ public abstract class PostponedTests
     {
         var store = await storeTask;
         var functionTypeId = nameof(PostponedFuncIsCompletedByWatchDog).ToFunctionTypeId();
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
+            var unhandledExceptionHandler = new UnhandledExceptionCatcher();
             var crashableStore = new CrashableFunctionStore(store);
             using var functionsRegistry = new FunctionsRegistry
                 (
@@ -44,6 +44,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         }
         {
+            var unhandledExceptionHandler = new UnhandledExceptionCatcher();
             using var functionsRegistry = new FunctionsRegistry(
                 store,
                 new Settings(

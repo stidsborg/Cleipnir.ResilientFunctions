@@ -13,7 +13,8 @@ public static class TaskLinq
     public static Task<List<T>> ToListAsync<T>(this Task<IEnumerable<T>> task)
         => task.ContinueWith(t => t.Result.ToList());
     
-    public static Task<bool> Any<T>(this Task<IEnumerable<T>> task) => task.ContinueWith(t => t.Result.Any());
+    public static Task<bool> AnyAsync<T>(this Task<IEnumerable<T>> task) => task.ContinueWith(t => t.Result.Any());
+    public static Task<bool> AnyAsync<T>(this Task<IReadOnlyList<T>> task) => task.ContinueWith(t => t.Result.Any());
 
     public static async Task<T> WithTimeout<T>(this Task<T> task, int thresholdMs)
     {
