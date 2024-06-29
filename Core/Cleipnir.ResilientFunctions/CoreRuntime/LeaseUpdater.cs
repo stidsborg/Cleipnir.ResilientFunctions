@@ -48,7 +48,7 @@ internal class LeaseUpdater : IDisposable
 
     private async Task Start()
     {
-        if (_leaseLength == TimeSpan.Zero)
+        if (_leaseLength == TimeSpan.Zero || _leaseLength == TimeSpan.MaxValue)
             _disposed = true;
         
         while (!_disposed)

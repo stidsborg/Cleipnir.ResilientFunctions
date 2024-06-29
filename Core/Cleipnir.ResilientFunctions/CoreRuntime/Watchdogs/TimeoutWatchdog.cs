@@ -43,7 +43,6 @@ internal class TimeoutWatchdog
 
     public async Task Start()
     {
-        if (_checkFrequency == TimeSpan.Zero) return;
         await Task.Delay(_delayStartUp);
         var stopWatch = new Stopwatch();
         

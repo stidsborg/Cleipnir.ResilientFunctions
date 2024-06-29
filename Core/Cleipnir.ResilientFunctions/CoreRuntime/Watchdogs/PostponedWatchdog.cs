@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
@@ -13,8 +12,5 @@ internal class PostponedWatchdog
         );
 
 
-    public async Task Start()
-    {
-        await _restarter.Start(nameof(PostponedWatchdog));
-    }
+    public Task Start() => _restarter.Start(nameof(PostponedWatchdog));
 }

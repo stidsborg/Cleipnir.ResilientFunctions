@@ -37,7 +37,7 @@ internal class RetentionWatchdog
     
     public async Task Start()
     {
-        if (_checkFrequency == TimeSpan.Zero || _retentionPeriod == TimeSpan.MaxValue) return;
+        if (_retentionPeriod == TimeSpan.MaxValue) return;
         await Task.Delay(_delayStartUp);
 
         Start:

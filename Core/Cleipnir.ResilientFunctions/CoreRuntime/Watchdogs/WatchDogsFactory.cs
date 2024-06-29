@@ -34,7 +34,7 @@ internal static class WatchDogsFactory
             scheduleReInvoke
         );
         
-        var crashedWatchdog = new CrashedWatchdog(settings.LeaseLength, restarterFactory);
+        var crashedWatchdog = new CrashedWatchdog(restarterFactory);
         var postponedWatchdog = new PostponedWatchdog(restarterFactory);
 
         var messagesWriters = new MessageWriters(
