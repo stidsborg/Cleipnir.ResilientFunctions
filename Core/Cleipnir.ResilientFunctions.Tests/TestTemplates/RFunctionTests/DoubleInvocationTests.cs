@@ -30,7 +30,7 @@ public abstract class DoubleInvocationTests
                 watchdogCheckFrequency: TimeSpan.Zero
             )
         );
-        var rFunc = functionsRegistry .RegisterFunc(
+        var rFunc = functionsRegistry.RegisterFunc(
             functionTypeId,
             (string input) => syncTask.Task.ContinueWith(_ => input)
         );
