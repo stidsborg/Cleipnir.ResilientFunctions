@@ -7,6 +7,9 @@ namespace Cleipnir.ResilientFunctions.Helpers;
 
 public static class BusyWait
 {
+    private static readonly TimeSpan DefaultMaxWait = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan DefaultCheckFrequency = TimeSpan.FromMicroseconds(5);
+    
     public static void Until(
         Func<bool> predicate, 
         bool throwOnThresholdExceeded = true, 
@@ -14,8 +17,8 @@ public static class BusyWait
         TimeSpan? checkInterval = null
     )
     {
-        checkInterval ??= TimeSpan.FromMilliseconds(1);
-        maxWait ??= TimeSpan.FromSeconds(5);
+        checkInterval ??= DefaultCheckFrequency;
+        maxWait ??= DefaultMaxWait;
         
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -46,8 +49,8 @@ public static class BusyWait
         TimeSpan? checkInterval = null
     )
     {
-        checkInterval ??= TimeSpan.FromMilliseconds(1);
-        maxWait ??= TimeSpan.FromSeconds(5);
+        checkInterval ??= DefaultCheckFrequency;
+        maxWait ??= DefaultMaxWait;
         
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -71,8 +74,8 @@ public static class BusyWait
         TimeSpan? checkInterval = null
     )
     {
-        checkInterval ??= TimeSpan.FromMilliseconds(1);
-        maxWait ??= TimeSpan.FromSeconds(5);
+        checkInterval ??= DefaultCheckFrequency;
+        maxWait ??= DefaultMaxWait;
         
         var stopWatch = new Stopwatch();
         stopWatch.Start();
