@@ -45,8 +45,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
-        => _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
+    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedAndEligiblePostponedFunctions(FunctionTypeId functionTypeId, long nowTimestamp)
+        => _inner.GetCrashedAndEligiblePostponedFunctions(functionTypeId, nowTimestamp);
 
     public Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
         => _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);

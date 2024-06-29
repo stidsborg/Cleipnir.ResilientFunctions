@@ -261,19 +261,22 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedAndEligiblePostponedFunctions(FunctionTypeId functionTypeId, long nowTimestamp)
     {
         await using var conn = await CreateConnection();
         _getCrashedFunctionsSql ??= @$"
             SELECT function_instance_id, epoch 
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND lease_expiration < $2 AND status = {(int) Status.Executing}";
+            WHERE (function_type_id = $1 AND lease_expiration < $2 AND status = {(int) Status.Executing}) OR
+                  (function_type_id = $3 AND status = {(int) Status.Postponed} AND postponed_until <= $4)";
         await using var command = new NpgsqlCommand(_getCrashedFunctionsSql, conn)
         {
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new () {Value = leaseExpiresBefore }
+                new () {Value = nowTimestamp },
+                new() {Value = functionTypeId.Value},
+                new () {Value = nowTimestamp }
             }
         };
 

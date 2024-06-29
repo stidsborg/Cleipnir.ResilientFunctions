@@ -12,15 +12,12 @@ internal class CrashedWatchdog
     {
         _leaseLength = leaseLength;
         _restarter = restarterFactory.Create(
-            (functionTypeId, store, t) => store.GetCrashedFunctions(functionTypeId, leaseExpiresBefore: t)
+            (functionTypeId, store, t) => store.GetCrashedAndEligiblePostponedFunctions(functionTypeId, nowTimestamp: t)
         );
     }
 
     public async Task Start()
     {
-        if (_leaseLength == TimeSpan.Zero)
-            return;
-
         await _restarter.Start(nameof(CrashedWatchdog));
     }
 }

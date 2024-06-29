@@ -61,7 +61,7 @@ internal static class WatchDogsFactory
         );
 
         Task.Run(crashedWatchdog.Start);
-        Task.Run(postponedWatchdog.Start);
+        //Task.Run(postponedWatchdog.Start);
         Task.Run(timeoutWatchdog.Start);
         Task.Run(retentionWatchdog.Start);
     }

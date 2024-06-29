@@ -32,7 +32,7 @@ public interface IFunctionStore
     
     Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration);
 
-    Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore);
+    Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedAndEligiblePostponedFunctions(FunctionTypeId functionTypeId, long nowTimestamp);
     Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore);
     Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore);
     

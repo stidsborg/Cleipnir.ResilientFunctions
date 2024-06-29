@@ -293,17 +293,19 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedAndEligiblePostponedFunctions(FunctionTypeId functionTypeId, long nowTimestamp)
     {
         await using var conn = await _connFunc();
         _getCrashedFunctionsSql ??= @$"
             SELECT FunctionInstanceId, Epoch
             FROM {_tablePrefix} WITH (NOLOCK)
-            WHERE FunctionTypeId = @FunctionTypeId AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}";
+            WHERE (FunctionTypeId = @FunctionTypeId AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}) OR
+                  (FunctionTypeId = @FunctionTypeId AND PostponedUntil <= @PostponedUntil AND Status = {(int) Status.Postponed})";
 
         await using var command = new SqlCommand(_getCrashedFunctionsSql, conn);
         command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId.Value);
-        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiresBefore);
+        command.Parameters.AddWithValue("@LeaseExpiration", nowTimestamp);
+        command.Parameters.AddWithValue("@PostponedUntil", nowTimestamp);
 
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<InstanceIdAndEpoch>(); 

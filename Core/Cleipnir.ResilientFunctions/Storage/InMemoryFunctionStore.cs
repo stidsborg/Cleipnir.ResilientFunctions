@@ -134,15 +134,25 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public virtual Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public virtual Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedAndEligiblePostponedFunctions(FunctionTypeId functionTypeId, long nowTimestamp)
     {
         lock (_sync)
-            return _states
-                .Values
-                .Where(s => s.FunctionId.TypeId == functionTypeId)
-                .Where(s => s.Status == Status.Executing)
-                .Where(s => s.LeaseExpiration < leaseExpiresBefore)
-                .Select(s => new InstanceIdAndEpoch(s.FunctionId.InstanceId, s.Epoch))
+            return Enumerable
+                .Empty<InstanceIdAndEpoch>()
+                .Concat(_states //crashed
+                    .Values
+                    .Where(s => s.FunctionId.TypeId == functionTypeId)
+                    .Where(s => s.Status == Status.Executing)
+                    .Where(s => s.LeaseExpiration < nowTimestamp)
+                    .Select(s => new InstanceIdAndEpoch(s.FunctionId.InstanceId, s.Epoch))
+                )
+                .Concat(_states //postponed
+                    .Values
+                    .Where(s => s.FunctionId.TypeId == functionTypeId)
+                    .Where(s => s.Status == Status.Postponed)
+                    .Where(s => s.PostponeUntil <= nowTimestamp)
+                    .Select(s => new InstanceIdAndEpoch(s.FunctionId.InstanceId, s.Epoch))
+                )
                 .ToList()
                 .CastTo<IReadOnlyList<InstanceIdAndEpoch>>()
                 .ToTask();

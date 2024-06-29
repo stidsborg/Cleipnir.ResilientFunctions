@@ -240,19 +240,23 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedAndEligiblePostponedFunctions(FunctionTypeId functionTypeId, long nowTimestamp)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getCrashedFunctionsSql ??= @$"
             SELECT function_instance_id, epoch 
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
+            WHERE (function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}) OR
+                  (function_type_id = ? AND postponed_until <= ? AND status = {(int) Status.Postponed})
+            ";
         await using var command = new MySqlCommand(_getCrashedFunctionsSql, conn)
         {
             Parameters =
             {
                 new() {Value = functionTypeId.Value},
-                new() { Value = leaseExpiresBefore }
+                new() { Value = nowTimestamp },
+                new() {Value = functionTypeId.Value },
+                new() {Value = nowTimestamp }
             }
         };
 

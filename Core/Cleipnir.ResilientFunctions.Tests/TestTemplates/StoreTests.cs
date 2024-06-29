@@ -35,10 +35,10 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => 
-            store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
+            store.GetCrashedAndEligiblePostponedFunctions(functionId.TypeId, nowTimestamp: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
         );
         
-        var nonCompletes = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
+        var nonCompletes = await store.GetCrashedAndEligiblePostponedFunctions(functionId.TypeId, nowTimestamp: DateTime.UtcNow.Ticks);
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
@@ -144,7 +144,7 @@ public abstract class StoreTests
         ).ShouldBeFalseAsync();
 
         await store
-            .GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: leaseExpiration + 1)
+            .GetCrashedAndEligiblePostponedFunctions(functionId.TypeId, nowTimestamp: leaseExpiration + 1)
             .ShouldBeNonEmptyAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -405,7 +405,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         );
         
-        var storedFunctions = await store.GetCrashedFunctions(functionId.TypeId, leaseExpiresBefore: DateTime.UtcNow.Ticks);
+        var storedFunctions = await store.GetCrashedAndEligiblePostponedFunctions(functionId.TypeId, nowTimestamp: DateTime.UtcNow.Ticks);
         storedFunctions.Count.ShouldBe(1);
 
         var sf = await store.GetFunction(functionId);
@@ -436,7 +436,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         );
         
-        var storedFunctions = await store.GetCrashedFunctions(function1Id.TypeId, leaseExpiresBefore: 1);
+        var storedFunctions = await store.GetCrashedAndEligiblePostponedFunctions(function1Id.TypeId, nowTimestamp: 1);
         storedFunctions.Count.ShouldBe(1);
         var (functionInstanceId, epoch) = storedFunctions[0];
         functionInstanceId.ShouldBe(function1Id.InstanceId);
