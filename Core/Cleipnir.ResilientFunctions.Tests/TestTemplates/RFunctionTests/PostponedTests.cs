@@ -818,8 +818,7 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(250)
             )
         );
         var tomorrow = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
