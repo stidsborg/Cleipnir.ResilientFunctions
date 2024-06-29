@@ -703,8 +703,14 @@ public abstract class ControlPanelTests
         var functionId = TestFunctionId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
-        
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
+
+        using var functionsRegistry = new FunctionsRegistry(
+            store, new Settings(
+                unhandledExceptionCatcher.Catch,
+                leaseLength: TimeSpan.FromMilliseconds(250),
+                watchdogCheckFrequency: TimeSpan.MaxValue
+            )
+        );
         var flag = new SyncedFlag();
         var rAction = functionsRegistry.RegisterAction(
             functionTypeId,
