@@ -57,8 +57,8 @@ internal class TimeoutWatchdog
 
                 stopWatch.Restart();
                 await HandleUpcomingTimeouts(upcomingTimeouts);
-                
-                var delay = TimeSpanHelper.Max(_checkFrequency - stopWatch.Elapsed, TimeSpan.Zero);
+
+                var delay = (_checkFrequency - stopWatch.Elapsed).RoundUpToZero(); ;
                 await Task.Delay(delay);
             }
         }
@@ -82,7 +82,7 @@ internal class TimeoutWatchdog
         foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.OrderBy(t => t.Expiry))
         {
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
-            var delay = TimeSpanHelper.Max(expiresAt - DateTime.UtcNow, TimeSpan.Zero);
+            var delay = (expiresAt - DateTime.UtcNow).RoundUpToZero();
             await Task.Delay(delay);
             await _messageWriters.For(functionId.InstanceId).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);

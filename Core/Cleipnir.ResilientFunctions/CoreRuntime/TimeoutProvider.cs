@@ -61,7 +61,7 @@ public class TimeoutProvider : ITimeoutProvider
         lock (_sync)
             _localTimeouts.Add(timeoutId);
         
-        await Task.Delay(TimeSpanHelper.Max(expiresIn, TimeSpan.Zero));
+        await Task.Delay(expiresIn.RoundUpToZero());
         
         lock (_sync)
             if (!_localTimeouts.Contains(timeoutId)) return;

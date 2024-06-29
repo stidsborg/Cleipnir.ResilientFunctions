@@ -97,10 +97,7 @@ internal class Restarter
                 }
                 
                 var timeElapsed = DateTime.UtcNow - now;
-                var delay = TimeSpanHelper.Max(
-                    TimeSpan.Zero,
-                    _checkFrequency - timeElapsed
-                );
+                var delay = (_checkFrequency - timeElapsed).RoundUpToZero();
                 
                 await Task.Delay(delay);
             }
