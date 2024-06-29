@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -17,6 +18,9 @@ internal static class WatchDogsFactory
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
+        if (settings.WatchdogCheckFrequency == TimeSpan.Zero || settings.WatchdogCheckFrequency == TimeSpan.MaxValue)
+            return;
+        
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
         var restarterFactory = new RestarterFactory(
             functionTypeId,
