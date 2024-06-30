@@ -27,7 +27,7 @@ public abstract class DoubleInvocationTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                watchdogCheckFrequency: TimeSpan.Zero
+                enableWatchdogs: false
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
@@ -64,7 +64,7 @@ public abstract class DoubleInvocationTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                watchdogCheckFrequency: TimeSpan.Zero
+                enableWatchdogs: false
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
@@ -96,7 +96,7 @@ public abstract class DoubleInvocationTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                watchdogCheckFrequency: TimeSpan.Zero
+                enableWatchdogs: false
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
@@ -128,7 +128,7 @@ public abstract class DoubleInvocationTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                watchdogCheckFrequency: TimeSpan.Zero
+                enableWatchdogs: false
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(

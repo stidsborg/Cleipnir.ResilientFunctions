@@ -11,6 +11,7 @@ public class Settings
     internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? RetentionPeriod { get; }
     internal TimeSpan? LeaseLength { get; }
+    internal bool? EnableWatchdogs { get; }
     internal TimeSpan? WatchdogCheckFrequency { get; }
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
@@ -22,6 +23,7 @@ public class Settings
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? retentionPeriod = null,
         TimeSpan? leaseLength = null, 
+        bool? enableWatchdogs = null,
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
         TimeSpan? delayStartup = null, 
@@ -32,6 +34,7 @@ public class Settings
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
         LeaseLength = leaseLength;
+        EnableWatchdogs = enableWatchdogs;
         WatchdogCheckFrequency = watchdogCheckFrequency;
         DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
@@ -45,6 +48,7 @@ public record SettingsWithDefaults(
     UnhandledExceptionHandler UnhandledExceptionHandler,
     TimeSpan RetentionPeriod,
     TimeSpan LeaseLength,
+    bool EnableWatchdogs,
     TimeSpan WatchdogCheckFrequency,
     TimeSpan MessagesPullFrequency,
     TimeSpan DelayStartup,
@@ -62,6 +66,7 @@ public record SettingsWithDefaults(
                 : new UnhandledExceptionHandler(child.UnhandledExceptionHandler),
             child.RetentionPeriod ?? RetentionPeriod,
             child.LeaseLength ?? LeaseLength,
+            child.EnableWatchdogs ?? EnableWatchdogs,
             child.WatchdogCheckFrequency ?? WatchdogCheckFrequency,
             child.MessagesPullFrequency ?? MessagesPullFrequency,
             child.DelayStartup ?? DelayStartup,
@@ -76,6 +81,7 @@ public record SettingsWithDefaults(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
             RetentionPeriod: TimeSpan.MaxValue,
             LeaseLength: TimeSpan.FromSeconds(10),
+            EnableWatchdogs: true,
             WatchdogCheckFrequency: TimeSpan.FromSeconds(1),
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
             DelayStartup: TimeSpan.FromSeconds(0),

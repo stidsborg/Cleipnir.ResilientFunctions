@@ -28,7 +28,7 @@ public abstract class PostponedTests
                     crashableStore,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        watchdogCheckFrequency: TimeSpan.Zero
+                        enableWatchdogs: false
                     )
                 );
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
@@ -78,7 +78,7 @@ public abstract class PostponedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        watchdogCheckFrequency: TimeSpan.Zero
+                        enableWatchdogs: false
                     )
                 );
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
@@ -140,7 +140,7 @@ public abstract class PostponedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.Zero,
-                    watchdogCheckFrequency: TimeSpan.Zero
+                    enableWatchdogs: false
                 )
             );
             var rAction = functionsRegistry.RegisterAction(
@@ -187,7 +187,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.Zero
+                    enableWatchdogs: false
                 )
             );
             var rAction = functionsRegistry.RegisterAction(

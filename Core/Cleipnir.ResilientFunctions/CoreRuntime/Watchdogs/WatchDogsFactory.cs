@@ -18,11 +18,14 @@ internal static class WatchDogsFactory
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
-        if (settings.WatchdogCheckFrequency == TimeSpan.Zero || settings.WatchdogCheckFrequency == TimeSpan.MaxValue)
+        if (!settings.EnableWatchdogs)
             return;
+
+        if (settings.WatchdogCheckFrequency == TimeSpan.Zero || settings.WatchdogCheckFrequency == TimeSpan.MaxValue)
+            throw new InvalidOperationException(nameof(Settings.WatchdogCheckFrequency) + " is invalid");
         
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
-        var restarterFactory = new ReInvokerFactory(
+        var reInvokerFactory = new ReInvokerFactory(
             functionTypeId,
             functionStore,
             shutdownCoordinator,
@@ -34,8 +37,8 @@ internal static class WatchDogsFactory
             scheduleReInvoke
         );
         
-        var crashedWatchdog = new CrashedWatchdog(restarterFactory);
-        var postponedWatchdog = new PostponedWatchdog(restarterFactory);
+        var crashedWatchdog = new CrashedWatchdog(reInvokerFactory);
+        var postponedWatchdog = new PostponedWatchdog(reInvokerFactory);
 
         var messagesWriters = new MessageWriters(
             functionTypeId,

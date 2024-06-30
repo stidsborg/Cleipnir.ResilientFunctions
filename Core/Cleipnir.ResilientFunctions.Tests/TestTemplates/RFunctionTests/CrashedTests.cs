@@ -27,8 +27,8 @@ public abstract class CrashedTests
                     store, 
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        leaseLength: TimeSpan.Zero, 
-                        watchdogCheckFrequency: TimeSpan.Zero
+                        enableWatchdogs: false,
+                        leaseLength: TimeSpan.Zero
                     )
                 )
                 .RegisterFunc(
@@ -43,7 +43,7 @@ public abstract class CrashedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(1_000)
+                    leaseLength: TimeSpan.FromSeconds(1)
                 )
             );
 
@@ -56,8 +56,7 @@ public abstract class CrashedTests
             await BusyWait.Until(
                 async () => await store
                     .GetFunction(functionId)
-                    .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded,
-                maxWait: TimeSpan.FromSeconds(10)
+                    .Map(f => f?.Status == Status.Succeeded)
             );
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
@@ -84,7 +83,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        watchdogCheckFrequency: TimeSpan.Zero
+                        enableWatchdogs: false
                     )
                 );
             var nonCompletingFunctionsRegistry = functionsRegistry    
@@ -152,7 +151,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        watchdogCheckFrequency: TimeSpan.Zero
+                        enableWatchdogs: false
                     )
                 )
                 .RegisterAction(
@@ -209,7 +208,7 @@ public abstract class CrashedTests
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         leaseLength: TimeSpan.Zero, 
-                        watchdogCheckFrequency: TimeSpan.Zero
+                        enableWatchdogs: false
                     )
                 )
                 .RegisterAction(

@@ -708,7 +708,7 @@ public abstract class ControlPanelTests
             store, new Settings(
                 unhandledExceptionCatcher.Catch,
                 leaseLength: TimeSpan.FromMilliseconds(250),
-                watchdogCheckFrequency: TimeSpan.MaxValue
+                enableWatchdogs: false
             )
         );
         var flag = new SyncedFlag();

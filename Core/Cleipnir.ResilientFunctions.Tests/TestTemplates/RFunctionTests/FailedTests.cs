@@ -40,7 +40,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.Zero,
-                    watchdogCheckFrequency: TimeSpan.Zero
+                    enableWatchdogs: false
                 )
             );
             var rFunc = functionsRegistry
@@ -110,7 +110,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(0),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(0)
+                    enableWatchdogs: false
                 )
             );
             var nonCompletingFunctionsRegistry = functionsRegistry
@@ -171,7 +171,7 @@ public abstract class FailedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(0),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(0)
+                    enableWatchdogs: false
                 )
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
