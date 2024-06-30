@@ -262,7 +262,7 @@ public abstract class FailedTests
         {
             using var functionsRegistry = new FunctionsRegistry(
                 store,
-                new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.Zero)
+                new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.Zero, enableWatchdogs: false)
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
