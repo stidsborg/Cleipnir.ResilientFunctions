@@ -60,7 +60,7 @@ internal static class WatchDogsFactory
         var retentionWatchdog = new RetentionWatchdog(
             functionTypeId,
             functionStore,
-            settings.WatchdogCheckFrequency,
+            settings.RetentionCleanUpFrequency,
             settings.DelayStartup,
             settings.RetentionPeriod,
             settings.UnhandledExceptionHandler,

@@ -12,7 +12,7 @@ internal class RetentionWatchdog
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly TimeSpan _checkFrequency;
+    private readonly TimeSpan _cleanUpFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly TimeSpan _retentionPeriod;
     private readonly FunctionTypeId _functionTypeId;
@@ -20,7 +20,7 @@ internal class RetentionWatchdog
     public RetentionWatchdog(
         FunctionTypeId functionTypeId,
         IFunctionStore functionStore,
-        TimeSpan checkFrequency,
+        TimeSpan cleanUpFrequency,
         TimeSpan delayStartUp,
         TimeSpan retentionPeriod,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -30,7 +30,7 @@ internal class RetentionWatchdog
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
-        _checkFrequency = checkFrequency;
+        _cleanUpFrequency = cleanUpFrequency;
         _delayStartUp = delayStartUp;
         _retentionPeriod = retentionPeriod;
     }
@@ -58,7 +58,7 @@ internal class RetentionWatchdog
                 }
                 
                 var timeElapsed = DateTime.UtcNow - now;
-                var delay = (_checkFrequency - timeElapsed).RoundUpToZero();
+                var delay = (_cleanUpFrequency - timeElapsed).RoundUpToZero();
 
                 await Task.Delay(delay);
             }

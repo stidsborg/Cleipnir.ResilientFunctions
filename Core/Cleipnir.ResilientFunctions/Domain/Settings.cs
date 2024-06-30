@@ -10,6 +10,7 @@ public class Settings
 {
     internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? RetentionPeriod { get; }
+    internal TimeSpan? RetentionCleanUpFrequency { get; }
     internal TimeSpan? LeaseLength { get; }
     internal bool? EnableWatchdogs { get; }
     internal TimeSpan? WatchdogCheckFrequency { get; }
@@ -23,6 +24,7 @@ public class Settings
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? retentionPeriod = null,
         TimeSpan? leaseLength = null, 
+        TimeSpan? retentionCleanUpFrequency = null,
         bool? enableWatchdogs = null,
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
@@ -33,6 +35,7 @@ public class Settings
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
+        RetentionCleanUpFrequency = retentionCleanUpFrequency;
         LeaseLength = leaseLength;
         EnableWatchdogs = enableWatchdogs;
         WatchdogCheckFrequency = watchdogCheckFrequency;
@@ -47,6 +50,7 @@ public class Settings
 public record SettingsWithDefaults(
     UnhandledExceptionHandler UnhandledExceptionHandler,
     TimeSpan RetentionPeriod,
+    TimeSpan RetentionCleanUpFrequency,
     TimeSpan LeaseLength,
     bool EnableWatchdogs,
     TimeSpan WatchdogCheckFrequency,
@@ -65,6 +69,7 @@ public record SettingsWithDefaults(
                 ? UnhandledExceptionHandler
                 : new UnhandledExceptionHandler(child.UnhandledExceptionHandler),
             child.RetentionPeriod ?? RetentionPeriod,
+            child.RetentionCleanUpFrequency ?? RetentionCleanUpFrequency,
             child.LeaseLength ?? LeaseLength,
             child.EnableWatchdogs ?? EnableWatchdogs,
             child.WatchdogCheckFrequency ?? WatchdogCheckFrequency,
@@ -80,6 +85,7 @@ public record SettingsWithDefaults(
         = new(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
             RetentionPeriod: TimeSpan.MaxValue,
+            RetentionCleanUpFrequency: TimeSpan.FromHours(1), 
             LeaseLength: TimeSpan.FromSeconds(10),
             EnableWatchdogs: true,
             WatchdogCheckFrequency: TimeSpan.FromSeconds(1),

@@ -45,6 +45,6 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
         );
 
     [TestMethod]
-    public override Task InvocationModeShouldBeDirectInSunshineScenario()
-        => InvocationModeShouldBeDirectInSunshineScenario(FunctionStoreFactory.Create());
+    public override Task FunctionIsRemovedAfterRetentionPeriod()
+        => FunctionIsRemovedAfterRetentionPeriod(FunctionStoreFactory.Create());
 }

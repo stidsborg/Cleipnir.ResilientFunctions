@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Castle.Components.DictionaryAdapter.Xml;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -282,24 +284,48 @@ public abstract class SunshineTests
         result.ShouldBeNull();
     }
     
-    public abstract Task InvocationModeShouldBeDirectInSunshineScenario();
-    protected async Task InvocationModeShouldBeDirectInSunshineScenario(Task<IFunctionStore> storeTask)
+    public abstract Task FunctionIsRemovedAfterRetentionPeriod();
+    protected async Task FunctionIsRemovedAfterRetentionPeriod(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        FunctionTypeId functionTypeId = "SomeFunctionType";
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var syncedInvocationMode = new Synced<InvocationMode>();
-        var rFunc = functionsRegistry.RegisterAction(
-            functionTypeId,
-            (string _) => syncedInvocationMode.Value = InvocationMode.Direct
-        ).Invoke;
-
-        await rFunc("hello world", "hello world");
+        var functionId = TestFunctionId.Create();
+        {
+            using var functionsRegistry = new FunctionsRegistry(
+                store,
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    enableWatchdogs: false
+                )
+            );
         
-        syncedInvocationMode.Value.ShouldBe(InvocationMode.Direct);
-    }
+            var rFunc = functionsRegistry.RegisterAction(
+                functionId.TypeId,
+                inner: (string _) => {}
+            ).Invoke;
 
+            await rFunc("hello world", "hello world");
+        }
+
+        {
+            using var functionsRegistry = new FunctionsRegistry(
+                store,
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    enableWatchdogs: true,
+                    retentionPeriod: TimeSpan.Zero
+                )
+            );    
+            
+            functionsRegistry.RegisterAction(
+                functionId.TypeId,
+                inner: (string _) => {}
+            );
+            
+            await BusyWait.Until(async () => await store.GetFunction(functionId) is null);
+        }
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
     private class State : Domain.WorkflowState {}
 }

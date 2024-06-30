@@ -42,8 +42,7 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
     public override Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully()
         => SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(FunctionStoreFactory.Create());
 
-
     [TestMethod]
-    public override Task InvocationModeShouldBeDirectInSunshineScenario()
-        => InvocationModeShouldBeDirectInSunshineScenario(FunctionStoreFactory.Create());
+    public override Task FunctionIsRemovedAfterRetentionPeriod()
+        => FunctionIsRemovedAfterRetentionPeriod(FunctionStoreFactory.Create());
 }
