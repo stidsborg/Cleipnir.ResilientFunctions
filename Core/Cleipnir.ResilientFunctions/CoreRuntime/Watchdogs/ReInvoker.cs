@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -61,7 +63,11 @@ internal class ReInvoker
             {
                 var now = DateTime.UtcNow;
 
-                var eligibleFunctions = await _getEligibleFunctions(_functionTypeId, _functionStore, DateTime.UtcNow.Ticks);
+                var eligibleFunctions = await _getEligibleFunctions(_functionTypeId, _functionStore, now.Ticks);
+                #if DEBUG
+                    eligibleFunctions = await ReAssertCrashedFunctions(eligibleFunctions, now);
+                #endif
+                
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
                 {
                     if (!_asyncSemaphore.TryTake(out var takenLock))
@@ -113,5 +119,20 @@ internal class ReInvoker
             await Task.Delay(5_000);
             goto Start;
         }
+    }
+
+    private async Task<IReadOnlyList<InstanceIdAndEpoch>> ReAssertCrashedFunctions(IReadOnlyList<InstanceIdAndEpoch> eligibleFunctions, DateTime now)
+    {
+        //race-condition fix between re-invoker and lease-updater. Task.Delays are not respected when debugging.
+        //fix is to allow lease updater to update lease before crashed watchdog asserts that the functions in question has crashed
+        
+        if (eligibleFunctions.Count == 0 || !Debugger.IsAttached)
+            return eligibleFunctions;
+        
+        await Task.Delay(500);
+        var eligibleFunctionsRepeated = 
+            (await _getEligibleFunctions(_functionTypeId, _functionStore, now.Ticks)).ToHashSet();
+        
+        return eligibleFunctions.Where(ie => eligibleFunctionsRepeated.Contains(ie)).ToList();
     }
 }
