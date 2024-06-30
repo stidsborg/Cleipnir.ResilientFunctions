@@ -743,7 +743,7 @@ public abstract class PostponedTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 leaseLength: TimeSpan.Zero,
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                watchdogCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
         var rFunc = functionsRegistry
