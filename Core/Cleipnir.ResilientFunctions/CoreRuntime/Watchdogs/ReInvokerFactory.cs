@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class RestarterFactory
+internal class ReInvokerFactory
 {
     private readonly FunctionTypeId _functionTypeId;
     private readonly IFunctionStore _functionStore;
@@ -20,7 +20,7 @@ internal class RestarterFactory
     private readonly RestartFunction _restartFunction;
     private readonly ScheduleReInvokeFromWatchdog _scheduleReInvoke;
 
-    public RestarterFactory(
+    public ReInvokerFactory(
         FunctionTypeId functionTypeId, 
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
@@ -40,8 +40,8 @@ internal class RestarterFactory
         _scheduleReInvoke = scheduleReInvoke;
     }
 
-    public Restarter Create(Restarter.GetEligibleFunctions getEligibleFunctions)
-        => new Restarter(
+    public ReInvoker Create(ReInvoker.GetEligibleFunctions getEligibleFunctions)
+        => new ReInvoker(
             _functionTypeId,
             _functionStore,
             _shutdownCoordinator,

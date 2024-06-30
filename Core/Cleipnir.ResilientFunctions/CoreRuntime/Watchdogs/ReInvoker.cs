@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -10,7 +9,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class Restarter
+internal class ReInvoker
 {
     public delegate Task<IReadOnlyList<InstanceIdAndEpoch>> GetEligibleFunctions(FunctionTypeId functionTypeId, IFunctionStore functionStore, long t);
     
@@ -29,7 +28,7 @@ internal class Restarter
     private readonly ScheduleReInvokeFromWatchdog _scheduleReInvoke;
     private readonly GetEligibleFunctions _getEligibleFunctions;
 
-    public Restarter(
+    public ReInvoker(
         FunctionTypeId functionTypeId, 
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
@@ -50,8 +49,7 @@ internal class Restarter
         _scheduleReInvoke = scheduleReInvoke;
         _getEligibleFunctions = getEligibleFunctions;
     }
-
-
+    
     public async Task Start(string watchdogName)
     {
         await Task.Delay(_delayStartUp);

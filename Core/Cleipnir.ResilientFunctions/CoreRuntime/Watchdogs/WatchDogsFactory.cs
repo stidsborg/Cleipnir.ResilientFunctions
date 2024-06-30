@@ -22,7 +22,7 @@ internal static class WatchDogsFactory
             return;
         
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
-        var restarterFactory = new RestarterFactory(
+        var restarterFactory = new ReInvokerFactory(
             functionTypeId,
             functionStore,
             shutdownCoordinator,
