@@ -23,8 +23,8 @@ public class Settings
     public Settings(
         Action<RFunctionException>? unhandledExceptionHandler = null, 
         TimeSpan? retentionPeriod = null,
-        TimeSpan? leaseLength = null, 
         TimeSpan? retentionCleanUpFrequency = null,
+        TimeSpan? leaseLength = null,
         bool? enableWatchdogs = null,
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
