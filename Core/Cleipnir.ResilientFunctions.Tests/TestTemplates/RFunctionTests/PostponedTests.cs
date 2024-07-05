@@ -693,7 +693,6 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 watchdogCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );
