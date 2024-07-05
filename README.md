@@ -68,16 +68,18 @@ Finally, register and invoke a function using the framework:
 var actionRegistration = functionsRegistry.RegisterAction(
   functionTypeId: "OrderProcessor",
   async (Order order, Workflow workflow) => 
-  {  
-    await _paymentProviderClient.Reserve(order.CustomerId, state.TransactionId, order.TotalPrice);
+  { 
+    var effect = workflow.Effect;  
+    var transactionId = effect.Capture("TransactionId", Guid.NewGuid);    
+    await _paymentProviderClient.Reserve(order.CustomerId, transactionId, order.TotalPrice);
 
-    await workflow.Effect.Capture(
+    await effect.Capture(
       "ShipProducts",
       work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds),
       ResiliencyLevel.AtMostOnce
     );
 
-    await _paymentProviderClient.Capture(state.TransactionId);
+    await _paymentProviderClient.Capture(transactionId);
     await _emailClient.SendOrderConfirmation(order.CustomerId, order.ProductIds);
   }
 );
