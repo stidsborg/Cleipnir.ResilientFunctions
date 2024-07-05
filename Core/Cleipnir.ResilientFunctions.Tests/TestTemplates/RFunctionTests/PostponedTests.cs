@@ -156,7 +156,6 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.Zero,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -247,7 +246,7 @@ public abstract class PostponedTests
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.Zero,
-                    watchdogCheckFrequency: TimeSpan.FromSeconds(10)
+                    enableWatchdogs: false
                 )
             );
             var rFunc = functionsRegistry
@@ -265,7 +264,6 @@ public abstract class PostponedTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.Zero,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
