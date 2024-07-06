@@ -483,7 +483,7 @@ public class FunctionsRegistry : IDisposable
         return (MessageWriter) registration.MessageWriters.For(functionId.InstanceId);
     }
 
-    public async Task DeliverMessage<TMessage>(TMessage message) where TMessage : notnull
+    public async Task DeliverMessage(object message, Type messageType)
     {
         Dictionary<FunctionTypeId, Tuple<RouteResolver, MessageWriters>> resolvers;
         
@@ -493,7 +493,7 @@ public class FunctionsRegistry : IDisposable
                 .SelectMany(kv =>
                     kv.Value.Select(ri => new { FunctionTypeId = kv.Key, RouteInfo = ri })
                 )
-                .Where(a => a.RouteInfo.MessageType == typeof(TMessage))
+                .Where(a => a.RouteInfo.MessageType == messageType)
                 .ToDictionary(
                     a => a.FunctionTypeId, 
                     a => 
@@ -532,6 +532,9 @@ public class FunctionsRegistry : IDisposable
             }
         }
     }
+
+    public async Task DeliverMessage<TMessage>(TMessage message) where TMessage : notnull
+        => await DeliverMessage(message, typeof(TMessage)); 
 
     private async Task ScheduleIfParamless(FunctionTypeId functionTypeId, FunctionInstanceId functionInstanceId)
     {
