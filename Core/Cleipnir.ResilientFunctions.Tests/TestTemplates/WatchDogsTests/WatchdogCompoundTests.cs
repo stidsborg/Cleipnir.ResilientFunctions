@@ -401,7 +401,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.Zero,
+                    leaseLength: TimeSpan.FromMilliseconds(500),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
                 )
             );
