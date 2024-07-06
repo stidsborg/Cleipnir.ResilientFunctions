@@ -16,7 +16,7 @@ public static class ApproveLoan
             .OfType<CreditCheckOutcome>()
             .Take(3)
             .TakeUntilTimeout("TimeoutId", expiresAt: loanApplication.Created.AddMinutes(15))
-            .SuspendUntilCompletion();
+            .Completion();
 
         if (outcomes.Count < 2)
             await MessageBroker.Send(new LoanApplicationRejected(loanApplication));

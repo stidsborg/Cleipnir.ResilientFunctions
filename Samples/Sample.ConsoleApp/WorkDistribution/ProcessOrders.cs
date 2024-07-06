@@ -37,7 +37,7 @@ public static class ProcessOrders
         await messages
             .OfType<FunctionCompletion<string>>()
             .Take(orderIds.Count)
-            .SuspendUntilCompletion();
+            .Completion();
 
         await effect.Capture(
             "Log_ProcessingFinished",

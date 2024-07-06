@@ -382,7 +382,7 @@ public abstract class SuspensionTests
                 await child.Schedule("SomeChildInstance#1", "hallo world");
                 await child.Schedule("SomeChildInstance#2", "hallo world");
                 
-                await workflow.Messages.Take(2).SuspendUntilCompletion();
+                await workflow.Messages.Take(2).Completion(maxWait: TimeSpan.Zero);
             }
         );
 
@@ -432,7 +432,7 @@ public abstract class SuspensionTests
                 var messages = await workflow.Messages
                     .Take(numberOfChildren)
                     .Select(m => m.ToString()!)
-                    .SuspendUntilCompletion();
+                    .Completion(maxWait: TimeSpan.Zero);
 
                 return messages;
             }

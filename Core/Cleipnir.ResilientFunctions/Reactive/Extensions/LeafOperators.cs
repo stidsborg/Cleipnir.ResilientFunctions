@@ -53,15 +53,8 @@ public static class LeafOperators
         throw new SuspendInvocationException(interruptCount);
     }
     
-    #region Completion
-
-    public static Task<List<T>> SuspendUntilCompletion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.ToList(maxWait ?? TimeSpan.Zero);
-    
     public static Task<List<T>> Completion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.ToList();
-    
-    #endregion
+        => s.ToList(maxWait);
     
     internal static List<T> Existing<T>(this IReactiveChain<T> s, out bool streamCompleted)
     {
