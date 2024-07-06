@@ -30,7 +30,7 @@ public static class EngagementReminderSaga
                     )
                 )
                 .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
-                .SuspendUntilFirstOrDefault();
+                .FirstOrDefault();
             
             if (either == null) //timeout
                 continue;
