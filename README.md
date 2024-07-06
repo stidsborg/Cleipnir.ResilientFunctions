@@ -191,7 +191,7 @@ public static class EmailSenderSaga
     }
   }
 
-  public class State : WorkflowState
+  public class State : FlowState
   {
     public int AtRecipient { get; set; }
   }
