@@ -401,8 +401,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    leaseLength: TimeSpan.Zero,
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
                 )
             );
             var rFunc = functionsRegistry.RegisterAction(
@@ -433,8 +433,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    leaseLength: TimeSpan.Zero,
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
                 )
             );
             _ = functionsRegistry
@@ -464,8 +464,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    leaseLength: TimeSpan.Zero,
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
                 )
             );
             _ = functionsRegistry.RegisterAction(
