@@ -494,8 +494,8 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    leaseLength: TimeSpan.Zero,
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
                 )
             );
             _ = functionsRegistry.RegisterAction(
