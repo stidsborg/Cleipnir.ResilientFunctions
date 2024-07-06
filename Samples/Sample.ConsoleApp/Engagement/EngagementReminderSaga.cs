@@ -47,7 +47,7 @@ public static class EngagementReminderSaga
             //wait for timeout before sending next engagement reminder
             await messages
                 .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
-                .SuspendUntilFirst();
+                .Completion();
         }
 
         throw new Exception("Max number of retries exceeded");

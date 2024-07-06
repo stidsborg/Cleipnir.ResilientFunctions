@@ -68,7 +68,7 @@ public class LeafOperatorsTests
 
         source.SignalNext(1, new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
-        var nextOrSuspend = source.OfType<int>().SuspendUntilFirst();
+        var nextOrSuspend = source.OfType<int>().First(TimeSpan.Zero);
         
         nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
         nextOrSuspend.Result.ShouldBe(1);
@@ -82,7 +82,7 @@ public class LeafOperatorsTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        var nextOrSuspend = source.SuspendUntilFirst(maxWait: TimeSpan.FromSeconds(1));
+        var nextOrSuspend = source.First(maxWait: TimeSpan.FromSeconds(1));
         source.SignalNext(1, new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
 
@@ -100,7 +100,7 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        var nextOrSuspend = source.SuspendUntilFirst(maxWait: TimeSpan.FromMilliseconds(100));
+        var nextOrSuspend = source.First(maxWait: TimeSpan.FromMilliseconds(100));
         
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
     }
@@ -111,7 +111,7 @@ public class LeafOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
 
         await Should.ThrowAsync<SuspendInvocationException>(
-            () => source.OfType<int>().SuspendUntilFirst()
+            () => source.OfType<int>().First(maxWait: TimeSpan.Zero)
         );
     }
     
@@ -127,7 +127,7 @@ public class LeafOperatorsTests
         var nextOrSuspend = source
             .OfType<string>()
             .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilFirst();
+            .First(maxWait: TimeSpan.Zero);
         
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
     }

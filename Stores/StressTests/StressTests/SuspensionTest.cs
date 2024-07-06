@@ -26,7 +26,7 @@ public class SuspensionTest
         var actionRegistration = functionsRegistry.RegisterAction(
             "SuspensionTest",
             async Task (string param, Workflow workflow) =>
-                await workflow.Messages.SuspendUntilFirst()
+                await workflow.Messages.First(TimeSpan.Zero)
         );
         
         Console.WriteLine("SUSPENSION_TEST: Initializing");

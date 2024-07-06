@@ -84,9 +84,6 @@ public static class LeafOperators
     }
 
     #region First
-    public static Task<T> SuspendUntilFirst<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.SuspendUntilFirstOrNone(maxWait: maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
     public static Task<Option<T>> SuspendUntilFirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => SuspendUntilFirsts(s, count: 1, maxWait)
             .SelectAsync(emits => emits.Any()
