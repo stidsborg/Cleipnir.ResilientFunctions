@@ -153,10 +153,11 @@ public class Effect
             throw;
         }
 
-        await _effectsStore.SetEffectResult(
-            _functionId,
-            new StoredEffect(id, WorkStatus.Completed, Result: null, StoredException: null)
-        );
+        var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: null, StoredException: null);
+        await _effectsStore.SetEffectResult(_functionId,effectResult);
+
+        lock (_sync)
+            _effectResults[id] = effectResult;
     }
     
     public async Task<T> Capture<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
@@ -207,11 +208,12 @@ public class Effect
             throw;
         }
 
-        await _effectsStore.SetEffectResult(
-            _functionId,
-            new StoredEffect(id, WorkStatus.Completed, Result: _serializer.SerializeEffectResult(result), StoredException: null)
-        );
+        var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: _serializer.SerializeEffectResult(result), StoredException: null);
+        await _effectsStore.SetEffectResult(_functionId,effectResult);
 
+        lock (_sync)
+            _effectResults[id] = effectResult;
+        
         return result;
     }
 
