@@ -27,7 +27,7 @@ public class Saga
                 .OfType<SupportTicketTaken>()
                 .Where(t => int.Parse(t.RequestId) == i)
                 .TakeUntilTimeout($"TimeoutId{i}", expiresIn: TimeSpan.FromMinutes(15))
-                .SuspendUntilFirstOrNone();
+                .FirstOrNone(TimeSpan.Zero);
 
             if (supportTicketTakenOption.HasValue)
                 return;

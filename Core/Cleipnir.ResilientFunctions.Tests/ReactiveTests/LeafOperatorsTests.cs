@@ -144,7 +144,7 @@ public class LeafOperatorsTests
         var nextOrSuspend = await source
             .OfType<string>()
             .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilFirstOrNone();
+            .FirstOrNone(TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeFalse();
     }
@@ -163,7 +163,7 @@ public class LeafOperatorsTests
         var nextOrSuspend = await source
             .OfType<string>()
             .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilFirstOrNone();
+            .FirstOrNone(TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeTrue();
         nextOrSuspend.Value.ShouldBe("hallo");

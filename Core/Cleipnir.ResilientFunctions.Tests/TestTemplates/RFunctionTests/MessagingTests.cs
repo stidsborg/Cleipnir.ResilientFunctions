@@ -94,7 +94,7 @@ public abstract class MessagingTests
                 var timeoutOption = await messages
                     .OfType<string>()
                     .TakeUntilTimeout("timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250))
-                    .SuspendUntilFirstOrNone();
+                    .FirstOrNone(TimeSpan.Zero);
                 
                 var timeoutEvent = messages
                     .OfType<TimeoutEvent>()
