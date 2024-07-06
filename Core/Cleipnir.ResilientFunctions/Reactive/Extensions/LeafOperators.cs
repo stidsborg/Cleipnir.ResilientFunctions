@@ -84,29 +84,28 @@ public static class LeafOperators
     }
 
     #region First
-    public static Task<List<T>> SuspendUntilFirsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
-        => s.Take(count).ToList(maxWait: maxWait ?? TimeSpan.Zero);
-    
     public static Task<T> First<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => FirstOrNone(s, maxWait)
             .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    public static Task<T?> FirstOrDefault<T>(this IReactiveChain<T> s)
-        => FirstOrNone(s)
+    
+    public static Task<T?> FirstOrDefault<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
+        => FirstOrNone(s, maxWait)
             .SelectAsync(o => o.HasValue ? o.Value : default);
     public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => Firsts(s, count: 1, maxWait)
             .SelectAsync(
                 l => l.Any() ? new Option<T>(l.First()) : Option<T>.NoValue
             );
+    
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().First(maxWait);
+    public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
+        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone(maxWait);
+    public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
+        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresIn).FirstOrNone(maxWait);
 
-    public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt)
-        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
-    public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, TimeSpan expiresIn)
-        => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresIn).FirstOrNone();
-
-    public static Task<T> FirstOf<T>(this IReactiveChain<object> s) => s.FirstOfType<T>();
+    public static Task<T> FirstOf<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null) 
+        => s.FirstOfType<T>(maxWait);
     
     public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
         => s.Take(count).ToList(maxWait);
