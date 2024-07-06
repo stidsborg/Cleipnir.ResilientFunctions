@@ -360,7 +360,7 @@ public class LeafOperatorsTests
         
         var nextOrSuspend = await source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilLastOrNone();
+            .LastOrNone(maxWait: TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeFalse();
     }
@@ -380,7 +380,7 @@ public class LeafOperatorsTests
             .OfType<string>()
             .Take(2)
             .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilLastOrNone();
+            .LastOrNone(TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeTrue();
         nextOrSuspend.Value.ShouldBe("world");

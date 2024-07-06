@@ -129,10 +129,6 @@ public static class LeafOperators
     
     #region Last
     
-    public static Task<Option<T>> SuspendUntilLastOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.SuspendUntilCompletion(maxWait)
-            .SelectAsync(l => l.Any() ? new Option<T>(l.Last()) : Option<T>.NoValue);
-
     public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null) 
         => s.ToList(maxWait).SelectAsync(l => l.TakeLast(count).ToList());
     
