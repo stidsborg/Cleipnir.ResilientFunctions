@@ -93,24 +93,22 @@ public static class LeafOperators
                 ? new Option<T>(emits.Single())
                 : Option<T>.NoValue
             );
-    public static Task<T> SuspendUntilFirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
-        => s.OfType<T>().SuspendUntilFirst(maxWait);
     public static Task<List<T>> SuspendUntilFirsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
         => s.Take(count).ToList(maxWait: maxWait ?? TimeSpan.Zero);
     
-    public static Task<T> First<T>(this IReactiveChain<T> s)
-        => FirstOrNone(s)
+    public static Task<T> First<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
+        => FirstOrNone(s, maxWait)
             .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
     public static Task<T?> FirstOrDefault<T>(this IReactiveChain<T> s)
         => FirstOrNone(s)
             .SelectAsync(o => o.HasValue ? o.Value : default);
-    public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s)
-        => Firsts(s, count: 1)
+    public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
+        => Firsts(s, count: 1, maxWait)
             .SelectAsync(
                 l => l.Any() ? new Option<T>(l.First()) : Option<T>.NoValue
             );
-    public static Task<T> FirstOfType<T>(this IReactiveChain<object> s)
-        => s.OfType<T>().First();
+    public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
+        => s.OfType<T>().First(maxWait);
 
     public static Task<Option<T>> FirstOfType<T>(this IReactiveChain<object> s, string timeoutId, DateTime expiresAt)
         => s.OfType<T>().TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
@@ -119,8 +117,8 @@ public static class LeafOperators
 
     public static Task<T> FirstOf<T>(this IReactiveChain<object> s) => s.FirstOfType<T>();
     
-    public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count)
-        => s.Take(count).ToList();
+    public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
+        => s.Take(count).ToList(maxWait);
     
     #endregion
     

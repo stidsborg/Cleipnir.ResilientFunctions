@@ -225,7 +225,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
-                var next = await messages.SuspendUntilFirstOfType<string>();
+                var next = await messages.FirstOfType<string>(TimeSpan.Zero);
                 return next;
             }
         );
@@ -271,7 +271,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
-                var next = await messages.SuspendUntilFirstOfType<string>();
+                var next = await messages.FirstOfType<string>(TimeSpan.Zero);
                 return next;
             }
         );

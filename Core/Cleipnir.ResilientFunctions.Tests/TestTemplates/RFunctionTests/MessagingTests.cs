@@ -62,7 +62,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
-                return await messages.SuspendUntilFirstOfType<string>();
+                return await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
             }
         );
 
@@ -148,7 +148,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 await child.Schedule(childFunctionId.InstanceId.Value, param: "stuff");
-                return await workflow.Messages.SuspendUntilFirstOfType<string>();
+                return await workflow.Messages.FirstOfType<string>(TimeSpan.Zero);
             }
         );
         
