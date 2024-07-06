@@ -17,6 +17,7 @@ public class Settings
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? MessagesPullFrequency { get; }
+    public bool? SuspendUntilCompletionDefault { get; }
     internal ISerializer? Serializer { get; }
     internal IEnumerable<RoutingInformation>? Routes { get; }
 
@@ -28,6 +29,7 @@ public class Settings
         bool? enableWatchdogs = null,
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
+        bool? suspendUntilCompletionDefault = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null,
@@ -43,6 +45,7 @@ public class Settings
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
         MessagesPullFrequency = messagesPullFrequency;
+        SuspendUntilCompletionDefault = suspendUntilCompletionDefault;
         Routes = routes;
     }
 }
@@ -55,6 +58,7 @@ public record SettingsWithDefaults(
     bool EnableWatchdogs,
     TimeSpan WatchdogCheckFrequency,
     TimeSpan MessagesPullFrequency,
+    bool SuspendUntilCompletionDefault,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
@@ -74,6 +78,7 @@ public record SettingsWithDefaults(
             child.EnableWatchdogs ?? EnableWatchdogs,
             child.WatchdogCheckFrequency ?? WatchdogCheckFrequency,
             child.MessagesPullFrequency ?? MessagesPullFrequency,
+            child.SuspendUntilCompletionDefault ?? SuspendUntilCompletionDefault,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
             child.Serializer ?? Serializer,
@@ -90,6 +95,7 @@ public record SettingsWithDefaults(
             EnableWatchdogs: true,
             WatchdogCheckFrequency: TimeSpan.FromSeconds(1),
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
+            SuspendUntilCompletionDefault: true,
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 100,
             Serializer: DefaultSerializer.Instance,

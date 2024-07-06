@@ -35,8 +35,9 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         private readonly ISubscription _subscription;
         private bool _completed;
 
-        public TimeSpan DefaultMessageSyncDelay { get; }
-        
+        public TimeSpan DefaultMessageSyncDelay => _subscription.DefaultMessageSyncDelay;
+        public bool DefaultSuspendUntilCompletion => _subscription.DefaultSuspendUntilCompletion;
+
         public Subscription(
             IReactiveChain<T> inner,
             int bufferSize,
@@ -51,7 +52,6 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             _signalError = signalError;
             
             _subscription = inner.Subscribe(OnNext, OnCompletion, OnError, addToSubscriptionGroup);
-            DefaultMessageSyncDelay = _subscription.DefaultMessageSyncDelay;
         }
 
         public bool IsWorkflowRunning => _subscription.IsWorkflowRunning;

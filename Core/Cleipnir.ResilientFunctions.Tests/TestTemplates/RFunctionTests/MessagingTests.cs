@@ -22,7 +22,10 @@ public abstract class MessagingTests
         var store = await functionStore;
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(unhandledExceptionHandler.Catch, suspendUntilCompletionDefault: false)
+        );
 
         var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),

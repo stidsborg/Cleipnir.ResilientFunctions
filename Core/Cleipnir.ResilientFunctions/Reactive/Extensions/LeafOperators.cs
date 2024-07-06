@@ -13,13 +13,13 @@ namespace Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 public static class LeafOperators
 {
-    #region ToList
-
-    public static async Task<List<T>> SuspendUntilToList<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
+    public static async Task<List<T>> ToList<T>(this IReactiveChain<T> s, bool? suspendUntilCompletion = null, TimeSpan? maxWait = null)
     {
-        if (maxWait < TimeSpan.Zero && maxWait != Timeout.InfiniteTimeSpan)
+        if (maxWait == Timeout.InfiniteTimeSpan)
+            return await s.ToList(suspendUntilCompletion: false, maxWait: null);
+        if (maxWait < TimeSpan.Zero)
             throw new ArgumentException("Timeout must be non-negative", nameof(maxWait));
-
+        
         var emits = new List<T>();
         var tcs = new TaskCompletionSource<List<T>>();
         var subscription = s.Subscribe(
@@ -28,72 +28,45 @@ public static class LeafOperators
             onError: e => tcs.TrySetException(e)
         );
         await subscription.Initialize();
-
+        
         var interruptCount = subscription.PushMessages();
-        
-        //short-circuits
-        if (tcs.Task.IsCompleted)
-            return await tcs.Task;
-        if (maxWait == null || maxWait.Value == TimeSpan.Zero)
-            throw new SuspendInvocationException(interruptCount);
-        
-        //do slow-path
-        var now = DateTime.UtcNow;
-        var maxWaitUntil = now.Add(maxWait.Value);
-        
-        while (!tcs.Task.IsCompleted && now < maxWaitUntil && subscription.IsWorkflowRunning)
-        {
-            await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
-            interruptCount = subscription.PushMessages();    
-            
-            if (tcs.Task.IsCompleted)
-                return await tcs.Task;
-            
-            await Task.Delay(subscription.DefaultMessageSyncDelay);
-            now = DateTime.UtcNow;
-        }
-        
-        throw new SuspendInvocationException(interruptCount);
-    }
-
-    public static async Task<List<T>> ToList<T>(this IReactiveChain<T> s)
-    {
-        var emits = new List<T>();
-        var tcs = new TaskCompletionSource<List<T>>();
-        
-        var subscription = s.Subscribe(
-            onNext: next => emits.Add(next),
-            onCompletion: () => tcs.TrySetResult(emits),
-            onError: e => tcs.TrySetException(e)
-        );
-        await subscription.Initialize();
-
-        subscription.PushMessages();
 
         //short-circuit
         if (tcs.Task.IsCompleted)
             return await tcs.Task;
 
-        //slow-path
-        _ = Task.Run(async () =>
-        {
-            while (!tcs.Task.IsCompleted && subscription.IsWorkflowRunning)
-            {
-                await Task.Delay(subscription.DefaultMessageSyncDelay);
-                await subscription.SyncStore(subscription.DefaultMessageSyncDelay);
-                subscription.PushMessages();
-            }
-        });
+        var suspend = suspendUntilCompletion ?? subscription.DefaultSuspendUntilCompletion;
+        if (suspend && (maxWait == null || maxWait == TimeSpan.Zero))
+            throw new SuspendInvocationException(interruptCount);
         
+        var maxWaitUntil = maxWait.HasValue
+            ? DateTime.UtcNow.Add(maxWait.Value)
+            : default(DateTime?);
+        
+        while (!tcs.Task.IsCompleted && subscription.IsWorkflowRunning)
+        {
+            await Task.Delay(subscription.DefaultMessageSyncDelay);
+            await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
+            interruptCount = subscription.PushMessages();
+                
+            if (maxWaitUntil.HasValue && DateTime.UtcNow > maxWaitUntil.Value)
+                break;
+        }
+        
+        if (tcs.Task.IsCompleted)
+            return await tcs.Task;
+        if (suspend)
+            throw new SuspendInvocationException(interruptCount);
+        if (maxWait is not null)
+            throw new TimeoutException();
+
         return await tcs.Task;
     }
-    
-    #endregion
     
     #region Completion
     
     public static Task<List<T>> SuspendUntilCompletion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.SuspendUntilToList(maxWait);
+        => s.ToList(suspendUntilCompletion: true, maxWait);
 
     public static Task<List<T>> Completion<T>(this IReactiveChain<T> s)
         => s.ToList();
@@ -136,7 +109,7 @@ public static class LeafOperators
     public static Task<T> SuspendUntilFirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().SuspendUntilFirst(maxWait);
     public static Task<List<T>> SuspendUntilFirsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
-        => s.Take(count).SuspendUntilToList(maxWait);
+        => s.Take(count).ToList(suspendUntilCompletion: true, maxWait);
     
     public static Task<T> First<T>(this IReactiveChain<T> s)
         => FirstOrNone(s)

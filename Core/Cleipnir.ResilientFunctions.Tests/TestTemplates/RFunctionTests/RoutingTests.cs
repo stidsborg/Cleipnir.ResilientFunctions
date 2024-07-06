@@ -205,7 +205,7 @@ public abstract class RoutingTests
 
         var syncedFlag = new SyncedFlag();
         var syncedValue = new Synced<string>();
-        
+
         var registration = functionsRegistry.RegisterParamless(
             functionTypeId,
             inner: async (Workflow workflow) =>
@@ -214,12 +214,16 @@ public abstract class RoutingTests
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
             },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeMessage>(
-                    someMsg => Route.To(someMsg.RouteTo)
-                )
-            })
+            new Settings(
+                suspendUntilCompletionDefault: false,
+                routes: new RoutingInformation[]
+                {
+                    new RoutingInformation<SomeMessage>(
+                        someMsg => Route.To(someMsg.RouteTo)
+                    )
+
+                }
+            )
         );
 
         await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: functionInstanceId.Value, Value: "SomeValue!"));

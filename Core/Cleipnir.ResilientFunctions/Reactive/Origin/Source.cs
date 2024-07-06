@@ -15,6 +15,7 @@ public class Source : IReactiveChain<object>
     private readonly ITimeoutProvider _timeoutProvider;
     private readonly SyncStore _syncStore;
     private readonly TimeSpan _defaultDelay;
+    private readonly bool _defaultSuspendUntilCompletion;
     private readonly Func<bool> _isWorkflowRunning;
     private readonly EmittedEvents _emittedEvents = new();
 
@@ -40,17 +41,22 @@ public class Source : IReactiveChain<object>
         _isWorkflowRunning = () => true;
     }
 
-    public Source(ITimeoutProvider timeoutProvider, SyncStore syncStore, TimeSpan defaultDelay, Func<bool> isWorkflowRunning)
+    public Source(ITimeoutProvider timeoutProvider, SyncStore syncStore, TimeSpan defaultDelay, bool defaultSuspendUntilCompletion, Func<bool> isWorkflowRunning)
     {
         _timeoutProvider = timeoutProvider;
         _syncStore = syncStore;
         _defaultDelay = defaultDelay;
+        _defaultSuspendUntilCompletion = defaultSuspendUntilCompletion;
         _isWorkflowRunning = isWorkflowRunning;
     }
 
     public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
     {
-        addToSubscriptionGroup ??= new SubscriptionGroup(source: this, _emittedEvents, _syncStore, _isWorkflowRunning, _timeoutProvider, _defaultDelay);
+        addToSubscriptionGroup ??= new SubscriptionGroup(
+            source: this,
+            _emittedEvents, _syncStore, _isWorkflowRunning, _timeoutProvider,
+            _defaultDelay, _defaultSuspendUntilCompletion
+        );
         addToSubscriptionGroup.Add(onNext, onCompletion, onError);
 
         return addToSubscriptionGroup;

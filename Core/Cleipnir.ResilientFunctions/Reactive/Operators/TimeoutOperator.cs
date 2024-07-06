@@ -53,9 +53,10 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         private readonly ISubscription _innerSubscription;
         private readonly ISubscription _timeoutSubscription;
         private bool _completed;
-        
-        public TimeSpan DefaultMessageSyncDelay { get; }
 
+        public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
+        public bool DefaultSuspendUntilCompletion => _innerSubscription.DefaultSuspendUntilCompletion;
+        
         public Subscription(
             IReactiveChain<T> inner,
             string timeoutId, DateTime expiresAt, bool overwriteExisting, bool signalErrorOnTimeout,
@@ -82,8 +83,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
                     onError: _ => { },
                     _innerSubscription.Group
                 );
-
-            DefaultMessageSyncDelay = _innerSubscription.DefaultMessageSyncDelay;
         }
 
         public async Task RegisterTimeoutIfNotInExistingEvents()

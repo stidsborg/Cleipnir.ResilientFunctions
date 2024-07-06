@@ -13,6 +13,7 @@ public interface ISubscription
     ITimeoutProvider TimeoutProvider { get; }
  
     TimeSpan DefaultMessageSyncDelay { get; }
+    bool DefaultSuspendUntilCompletion { get; }
 
     Task Initialize();
     Task SyncStore(TimeSpan maxSinceLastSynced);

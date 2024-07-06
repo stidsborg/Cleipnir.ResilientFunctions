@@ -372,6 +372,7 @@ internal class InvocationHelper<TParam, TReturn>
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             _settings.MessagesPullFrequency,
+            _settings.SuspendUntilCompletionDefault,
             isWorkflowRunning,
             _functionStore,
             _settings.Serializer,

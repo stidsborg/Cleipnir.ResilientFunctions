@@ -24,7 +24,8 @@ public abstract class TimeoutTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(250)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(250),
+                suspendUntilCompletionDefault: false
             )
         );
         var rFunc = functionsRegistry.RegisterAction(
