@@ -128,30 +128,22 @@ public static class LeafOperators
     #endregion
     
     #region Last
-
-    public static Task<T> SuspendUntilLast<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.SuspendUntilLastOrNone(maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    public static Task<T?> SuspendUntilLastOrDefault<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.SuspendUntilLastOrNone(maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : default);
+    
     public static Task<Option<T>> SuspendUntilLastOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => s.SuspendUntilCompletion(maxWait)
             .SelectAsync(l => l.Any() ? new Option<T>(l.Last()) : Option<T>.NoValue);
-    public static Task<List<T>> SuspendUntilLasts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
-        => s.SuspendUntilCompletion(maxWait).SelectAsync(l => l.TakeLast(count).ToList());
 
-    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s, int count) 
-        => s.ToList().SelectAsync(l => l.TakeLast(count).ToList());
+    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null) 
+        => s.ToList(maxWait).SelectAsync(l => l.TakeLast(count).ToList());
     
-    public static Task<T> Last<T>(this IReactiveChain<T> s)
-        => LastOrNone(s)
+    public static Task<T> Last<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
+        => LastOrNone(s, maxWait)
             .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
     public static Task<T?> LastOrDefault<T>(this IReactiveChain<T> s)
         => LastOrNone(s)
             .SelectAsync(o => o.HasValue ? o.Value : default);
-    public static Task<Option<T>> LastOrNone<T>(this IReactiveChain<T> s)
-        => Lasts(s, count: 1)
+    public static Task<Option<T>> LastOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
+        => Lasts(s, count: 1, maxWait)
             .SelectAsync(l =>
                 l.Any()
                     ? new Option<T>(l.First())

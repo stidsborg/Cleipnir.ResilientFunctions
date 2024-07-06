@@ -230,7 +230,7 @@ public class LeafOperatorsTests
 
         source.SignalNext(1, new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
-        var lastOrSuspend = source.OfType<int>().Take(2).SuspendUntilLast();
+        var lastOrSuspend = source.OfType<int>().Take(2).Last();
         
         lastOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
         lastOrSuspend.Result.ShouldBe(2);
@@ -244,7 +244,7 @@ public class LeafOperatorsTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        var nextOrSuspend = source.SuspendUntilLast(maxWait: TimeSpan.FromSeconds(1));
+        var nextOrSuspend = source.Last(maxWait: TimeSpan.FromSeconds(1));
         source.SignalNext(1, new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
 
@@ -264,7 +264,7 @@ public class LeafOperatorsTests
     {
         var source = new Source(NoOpTimeoutProvider.Instance);
         
-        var nextOrSuspend = source.SuspendUntilLast(maxWait: TimeSpan.FromMilliseconds(100));
+        var nextOrSuspend = source.Last(maxWait: TimeSpan.FromMilliseconds(100));
         
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
     }
@@ -280,7 +280,7 @@ public class LeafOperatorsTests
             .Take(1)
             .OfType<int>()
             .TakeUntilTimeout("timeoutEventId", expiresAt: DateTime.UtcNow)
-            .SuspendUntilLast();
+            .Last(maxWait: TimeSpan.Zero);
         
         await Should.ThrowAsync<NoResultException>(nextOrSuspend);
     }
@@ -296,7 +296,7 @@ public class LeafOperatorsTests
         
         var nextOrSuspend = source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .SuspendUntilLast();
+            .Last(maxWait: TimeSpan.Zero);
         
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
     }
@@ -392,7 +392,7 @@ public class LeafOperatorsTests
         var source = new Source(NoOpTimeoutProvider.Instance);
 
         await Should.ThrowAsync<SuspendInvocationException>(
-            () => source.OfType<int>().SuspendUntilLast()
+            () => source.OfType<int>().Last(TimeSpan.Zero)
         );
     }
     
