@@ -55,7 +55,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         private bool _completed;
 
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
-        public bool DefaultSuspendUntilCompletion => _innerSubscription.DefaultSuspendUntilCompletion;
+        public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
         
         public Subscription(
             IReactiveChain<T> inner,

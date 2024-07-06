@@ -25,7 +25,7 @@ public abstract class TimeoutTests
             new Settings(
                 unhandledExceptionHandler.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(250),
-                suspendUntilCompletionDefault: false
+                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
             )
         );
         var rFunc = functionsRegistry.RegisterAction(

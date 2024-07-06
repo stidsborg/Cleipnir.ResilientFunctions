@@ -51,7 +51,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
-        public bool DefaultSuspendUntilCompletion => _innerSubscription.DefaultSuspendUntilCompletion;
+        public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
 
         public Subscription(
             IReactiveChain<TIn> inner,

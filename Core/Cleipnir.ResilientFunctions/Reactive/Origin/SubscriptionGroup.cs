@@ -21,7 +21,7 @@ internal class SubscriptionGroup : ISubscriptionGroup
     public IReactiveChain<object> Source { get; }
     public ITimeoutProvider TimeoutProvider { get; }
     public TimeSpan DefaultMessageSyncDelay { get; }
-    public bool DefaultSuspendUntilCompletion { get; }
+    public TimeSpan DefaultMessageMaxWait { get; }
 
     public SubscriptionGroup(
         IReactiveChain<object> source,
@@ -30,7 +30,7 @@ internal class SubscriptionGroup : ISubscriptionGroup
         Func<bool> isWorkflowRunning,
         ITimeoutProvider timeoutProvider,
         TimeSpan defaultDelay,
-        bool defaultShouldSuspendUntilCompletion)
+        TimeSpan defaultMessageMaxWait)
     {
         Source = source;
         _emittedEvents = emittedEvents;
@@ -38,7 +38,7 @@ internal class SubscriptionGroup : ISubscriptionGroup
         _isWorkflowRunning = isWorkflowRunning;
         TimeoutProvider = timeoutProvider;
         DefaultMessageSyncDelay = defaultDelay;
-        DefaultSuspendUntilCompletion = defaultShouldSuspendUntilCompletion;
+        DefaultMessageMaxWait = defaultMessageMaxWait;
     }
 
     public Task Initialize() => Task.CompletedTask;

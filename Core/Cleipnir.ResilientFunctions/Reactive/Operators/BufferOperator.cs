@@ -36,7 +36,7 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         private bool _completed;
 
         public TimeSpan DefaultMessageSyncDelay => _subscription.DefaultMessageSyncDelay;
-        public bool DefaultSuspendUntilCompletion => _subscription.DefaultSuspendUntilCompletion;
+        public TimeSpan DefaultMessageMaxWait => _subscription.DefaultMessageMaxWait;
 
         public Subscription(
             IReactiveChain<T> inner,

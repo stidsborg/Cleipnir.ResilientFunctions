@@ -24,7 +24,7 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler.Catch, suspendUntilCompletionDefault: false)
+            new Settings(unhandledExceptionHandler.Catch, messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
         );
 
         var rAction = functionsRegistry.RegisterFunc(

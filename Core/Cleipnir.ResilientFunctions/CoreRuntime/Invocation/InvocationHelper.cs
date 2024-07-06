@@ -371,8 +371,8 @@ internal class InvocationHelper<TParam, TReturn>
         );
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
-            _settings.MessagesPullFrequency,
-            _settings.SuspendUntilCompletionDefault,
+            defaultDelay: _settings.MessagesPullFrequency,
+            _settings.MessagesDefaultMaxWaitForCompletion,
             isWorkflowRunning,
             _functionStore,
             _settings.Serializer,

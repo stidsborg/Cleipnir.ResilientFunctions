@@ -215,7 +215,7 @@ public abstract class RoutingTests
                 syncedFlag.Raise();
             },
             new Settings(
-                suspendUntilCompletionDefault: false,
+                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue,
                 routes: new RoutingInformation[]
                 {
                     new RoutingInformation<SomeMessage>(

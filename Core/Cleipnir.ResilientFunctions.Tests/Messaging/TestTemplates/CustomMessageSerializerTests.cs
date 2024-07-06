@@ -31,7 +31,7 @@ public abstract class CustomMessageSerializerTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromSeconds(1),
-            defaultSuspendUntilCompletion: true,
+            defaultMaxWait: TimeSpan.Zero,
             isWorkflowRunning: () => true,
             functionStore,
             eventSerializer,

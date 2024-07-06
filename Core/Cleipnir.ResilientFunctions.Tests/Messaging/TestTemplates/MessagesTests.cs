@@ -33,7 +33,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
@@ -68,7 +68,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
@@ -106,7 +106,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
@@ -149,7 +149,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
@@ -191,7 +191,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
@@ -229,7 +229,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
@@ -279,7 +279,7 @@ public abstract class MessagesTests
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
-            defaultSuspendUntilCompletion: false,
+            defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
             functionStore,
             new ExceptionThrowingEventSerializer(typeof(int)),

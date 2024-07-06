@@ -35,7 +35,7 @@ public class MessagesPullerAndEmitter
     public MessagesPullerAndEmitter(
         FunctionId functionId,
         TimeSpan defaultDelay,
-        bool defaultSuspendUntilCompletion,
+        TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
         IFunctionStore functionStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
     {
@@ -49,7 +49,7 @@ public class MessagesPullerAndEmitter
             timeoutProvider,
             syncStore: PullEvents,
             defaultDelay,
-            defaultSuspendUntilCompletion,
+            defaultMaxWait,
             isWorkflowRunning
         );
     }

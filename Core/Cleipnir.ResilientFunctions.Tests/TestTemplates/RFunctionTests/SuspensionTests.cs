@@ -328,7 +328,7 @@ public abstract class SuspensionTests
                     .Messages
                     .OfType<string>()
                     .Take(words.Length)
-                    .ToList(suspendUntilCompletion: true);
+                    .ToList(maxWait: TimeSpan.Zero);
 
                 var wordsList = replies
                     .Select(word =>
