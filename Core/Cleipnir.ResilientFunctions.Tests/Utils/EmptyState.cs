@@ -2,4 +2,4 @@
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
-public class EmptyState : WorkflowState { }
+public class EmptyState : FlowState { }

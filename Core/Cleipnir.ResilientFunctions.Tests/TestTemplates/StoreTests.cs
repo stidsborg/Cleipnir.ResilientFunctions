@@ -485,7 +485,7 @@ public abstract class StoreTests
         sf.Epoch.ShouldBe(0);
     }
     
-    private class WorkflowState : Domain.WorkflowState
+    private class FlowState : Domain.FlowState
     {
         public string State { get; set; } = "";
     }

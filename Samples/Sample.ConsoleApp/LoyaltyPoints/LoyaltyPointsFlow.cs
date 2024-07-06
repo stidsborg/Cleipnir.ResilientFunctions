@@ -29,7 +29,7 @@ public class LoyaltyPointsFlow
     
     private record LoyaltyPoints(DateTime Date, int Points);
 
-    public class State : WorkflowState
+    public class State : FlowState
     {
         public int LoyaltyPoints { get; set; }
         public DateTime LatestDate { get; set; }

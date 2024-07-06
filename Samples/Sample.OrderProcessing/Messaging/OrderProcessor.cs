@@ -34,7 +34,7 @@ public class OrderProcessor
     }
 
 
-    public class State : WorkflowState
+    public class State : FlowState
     {
         public Guid TransactionId { get; set; } = Guid.NewGuid();
     }

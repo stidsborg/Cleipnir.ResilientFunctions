@@ -133,9 +133,9 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public string SerializeState<TState>(TState state) where TState : WorkflowState, new()
+    public string SerializeState<TState>(TState state) where TState : FlowState, new()
         => _inner.SerializeState(state);
-    public TState DeserializeState<TState>(string json) where TState : WorkflowState, new()
+    public TState DeserializeState<TState>(string json) where TState : FlowState, new()
     {
         try
         {

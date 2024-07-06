@@ -15,7 +15,7 @@ public abstract class StoreCrudTests
     private string Param => TestParam.ToJson();
     private record TestParameters(string Name, int Age);
 
-    private class TestWorkflowState : WorkflowState
+    private class TestFlowState : FlowState
     {
         public string? Note { get; set; }
     }

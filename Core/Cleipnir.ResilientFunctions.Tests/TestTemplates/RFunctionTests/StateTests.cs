@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class StateTests
 {
-    private class State : WorkflowState
+    private class State : FlowState
     {
         public string Value { get; set; } = "";
     }

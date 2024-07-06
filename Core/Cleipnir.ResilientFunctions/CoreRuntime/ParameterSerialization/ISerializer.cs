@@ -16,6 +16,6 @@ public interface ISerializer
     object DeserializeMessage(string json, string type);
     string SerializeEffectResult<TResult>(TResult result);
     TResult DeserializeEffectResult<TResult>(string json);
-    string SerializeState<TState>(TState state) where TState : WorkflowState, new();
-    TState DeserializeState<TState>(string json) where TState : WorkflowState, new();
+    string SerializeState<TState>(TState state) where TState : FlowState, new();
+    TState DeserializeState<TState>(string json) where TState : FlowState, new();
 }

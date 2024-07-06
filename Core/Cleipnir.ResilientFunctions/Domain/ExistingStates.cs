@@ -15,7 +15,7 @@ public class ExistingStates
     private readonly ISerializer _serializer;
     
     private string? _defaultStateJson;
-    private WorkflowState? _defaultState;
+    private FlowState? _defaultState;
 
     public ExistingStates(FunctionId functionId, string? defaultState, IEnumerable<StoredState> storedStates, IFunctionStore functionStore, ISerializer serializer)
     {
@@ -32,7 +32,7 @@ public class ExistingStates
     public bool HasState(string stateId) => _storedStates.ContainsKey(stateId);
     public bool HasDefaultState() => _defaultStateJson != null;
 
-    public TState Get<TState>() where TState : WorkflowState, new()
+    public TState Get<TState>() where TState : FlowState, new()
     {
         if (_defaultState != null)
             return (TState) _defaultState;
@@ -45,7 +45,7 @@ public class ExistingStates
         return state;
     }
     
-    public TState Get<TState>(string stateId) where TState : WorkflowState, new()
+    public TState Get<TState>(string stateId) where TState : FlowState, new()
     {
         if (!_storedStates.TryGetValue(stateId, out var storedState))
             throw new KeyNotFoundException($"State '{stateId}' was not found");
@@ -67,13 +67,13 @@ public class ExistingStates
         _storedStates.Remove(stateId);
     }
 
-    public async Task Set<TState>(TState state) where TState : WorkflowState, new()
+    public async Task Set<TState>(TState state) where TState : FlowState, new()
     {
         _defaultState = state;
         await _functionStore.SetDefaultState(_functionId, _serializer.SerializeState(state));
     }
     
-    public async Task Set<TState>(string stateId, TState state) where TState : WorkflowState, new()
+    public async Task Set<TState>(string stateId, TState state) where TState : FlowState, new()
     {
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(stateId, json);

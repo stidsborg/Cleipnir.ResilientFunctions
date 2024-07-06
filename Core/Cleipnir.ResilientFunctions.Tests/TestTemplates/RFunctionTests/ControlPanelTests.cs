@@ -421,7 +421,7 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
-    private class TestState : WorkflowState
+    private class TestState : FlowState
     {
         public string? Value { get; set; }
     }
@@ -1317,7 +1317,7 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    private class State : WorkflowState
+    private class State : FlowState
     {
         public string Value { get; set; } = "";
     }

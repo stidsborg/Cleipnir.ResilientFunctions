@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public abstract class WorkflowState
+public abstract class FlowState
 {
     private Func<Task>? OnSave { get; set; }
     
@@ -14,7 +14,7 @@ public abstract class WorkflowState
         ArgumentNullException.ThrowIfNull(onSave);
         
         if (_initialized)
-            throw new InvalidOperationException("State has already been initialized");
+            throw new InvalidOperationException("FlowState has already been initialized");
         
         _initialized = true;
         OnSave = onSave;
@@ -23,7 +23,7 @@ public abstract class WorkflowState
     public virtual async Task Save()
     {
         if (!_initialized)
-            throw new InvalidOperationException("State must be initialized before save");
+            throw new InvalidOperationException("FlowState must be initialized before save");
         
         await OnSave!.Invoke();  
     } 

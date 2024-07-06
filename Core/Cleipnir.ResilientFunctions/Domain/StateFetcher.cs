@@ -18,7 +18,7 @@ public class StateFetcher
         _serializer = serializer;
     }
 
-    public async Task<TState?> FetchState<TState>(FunctionId functionId) where TState : WorkflowState, new() 
+    public async Task<TState?> FetchState<TState>(FunctionId functionId) where TState : FlowState, new() 
     {
         var sf = await _functionStore.GetFunction(functionId);
         if (sf == null || sf.DefaultState == null)
@@ -32,7 +32,7 @@ public class StateFetcher
         return state;
     }
     
-    public async Task<TState?> FetchState<TState>(FunctionId functionId, StateId stateId) where TState : WorkflowState, new() 
+    public async Task<TState?> FetchState<TState>(FunctionId functionId, StateId stateId) where TState : FlowState, new() 
     {
         stateId ??= new StateId("");
         var storedStates = await _statesStore.GetStates(functionId);

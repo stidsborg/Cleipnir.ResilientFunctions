@@ -52,7 +52,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
         }
 
-        private class WorkflowState : Domain.WorkflowState
+        private class FlowState : Domain.FlowState
         {
             public string Scrap { get; set; } = "";
         }

@@ -14,10 +14,10 @@ public class States
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly Dictionary<StateId, StoredState> _existingStoredStates;
-    private readonly Dictionary<StateId, WorkflowState> _existingStates;
+    private readonly Dictionary<StateId, FlowState> _existingStates;
 
     private string? _defaultStateJson;
-    private WorkflowState? _defaultState;
+    private FlowState? _defaultState;
     private Func<string>? _defaultStateSerializer = null;
     
     private readonly object _sync = new();
@@ -40,7 +40,7 @@ public class States
         _existingStates = new();
     }
 
-    public T CreateOrGet<T>() where T : WorkflowState, new()
+    public T CreateOrGet<T>() where T : FlowState, new()
     {
         lock (_sync)
             if (_defaultState != null)
@@ -67,7 +67,7 @@ public class States
                 : _defaultStateSerializer();
     }
 
-    public T CreateOrGet<T>(string id) where T : WorkflowState, new()
+    public T CreateOrGet<T>(string id) where T : FlowState, new()
     {
         if (string.IsNullOrEmpty(id))
             throw new ArgumentException("Id must not be empty string or null", nameof(id));
@@ -75,7 +75,7 @@ public class States
         return InnerGetOrCreate<T>(id);
     }
 
-    private T InnerGetOrCreate<T>(string id) where T : WorkflowState, new()
+    private T InnerGetOrCreate<T>(string id) where T : FlowState, new()
     {
         lock (_sync)
             if (_existingStates.TryGetValue(id, out var state))
@@ -111,7 +111,7 @@ public class States
         await _statesStore.RemoveState(_functionId, id);
     }
 
-    private async Task SaveState<T>(string id, T state) where T : WorkflowState, new()
+    private async Task SaveState<T>(string id, T state) where T : FlowState, new()
     {
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(new StateId(id), json);

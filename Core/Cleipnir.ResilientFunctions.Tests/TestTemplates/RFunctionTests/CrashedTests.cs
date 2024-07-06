@@ -258,7 +258,7 @@ public abstract class CrashedTests
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
     }
     
-    private class State : WorkflowState
+    private class State : FlowState
     {
         public int Value { get; set; }
     }

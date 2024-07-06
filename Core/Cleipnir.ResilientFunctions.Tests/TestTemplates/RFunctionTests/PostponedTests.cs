@@ -675,7 +675,7 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
     
-    private class State : Domain.WorkflowState
+    private class State : Domain.FlowState
     {
         public int Value { get; set; }
     }

@@ -343,5 +343,5 @@ public abstract class FailedTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
 
-    private class WorkflowState : Domain.WorkflowState { }
+    private class FlowState : Domain.FlowState { }
 }

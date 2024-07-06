@@ -87,10 +87,10 @@ public class RFuncRegistrationTests
         public TResult DeserializeEffectResult<TResult>(string json)
             => Default.DeserializeEffectResult<TResult>(json);
 
-        public string SerializeState<TState>(TState state) where TState : WorkflowState, new()
+        public string SerializeState<TState>(TState state) where TState : FlowState, new()
             => Default.SerializeState(state);
         
-        public TState DeserializeState<TState>(string json) where TState : WorkflowState, new()
+        public TState DeserializeState<TState>(string json) where TState : FlowState, new()
             => Default.DeserializeState<TState>(json);
     }
 }

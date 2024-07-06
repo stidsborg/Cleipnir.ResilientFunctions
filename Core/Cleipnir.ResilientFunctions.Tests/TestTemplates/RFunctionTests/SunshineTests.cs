@@ -327,5 +327,5 @@ public abstract class SunshineTests
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
-    private class State : Domain.WorkflowState {}
+    private class State : Domain.FlowState {}
 }

@@ -24,7 +24,7 @@ public class SerializationTests
     public record Parent;
     public record Child(string Value) : Parent;
 
-    public class WorkflowState : Domain.WorkflowState
+    public class FlowState : Domain.FlowState
     {
         public string Value { get; set; } = "";
     }

@@ -128,7 +128,7 @@ public abstract class WatchdogCompoundTests
         }
     }
 
-    private class ListState : Domain.WorkflowState
+    private class ListState : Domain.FlowState
     {
         public List<int> Scraps { get; set; } = new();
     }

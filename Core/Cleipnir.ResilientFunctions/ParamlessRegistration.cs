@@ -44,7 +44,7 @@ public class ParamlessRegistration
         => _controlPanelFactory.Create(functionInstanceId);
 
     public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null)
-        where TState : WorkflowState, new()
+        where TState : FlowState, new()
     {
         var functionId = new FunctionId(TypeId, instanceId);
         return stateId is null 

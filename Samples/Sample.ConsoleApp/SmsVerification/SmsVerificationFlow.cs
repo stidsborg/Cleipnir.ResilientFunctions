@@ -60,7 +60,7 @@ public class SmsVerificationFlow
         throw new NotImplementedException();
     }
 
-    public class FlowState : WorkflowState
+    public class FlowState : Cleipnir.ResilientFunctions.Domain.FlowState
     {
         public MostRecentAttempt Status { get; set; }
     }

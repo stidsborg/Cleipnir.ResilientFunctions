@@ -51,7 +51,7 @@ public class SubscriptionSaga
 
     public record SubscriptionChange(string SubscriptionId, bool StartSubscription);
 
-    public class State : WorkflowState
+    public class State : FlowState
     {
         public string LockId { get; set; } = Guid.NewGuid().ToString();
     }
