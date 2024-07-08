@@ -55,4 +55,7 @@ public class Workflow
 
         throw new PostponeInvocationException(expiry);
     }
+
+    public void Postpone(TimeSpan @for) => throw new PostponeInvocationException(@for);
+    public void Postpone(DateTime until) => throw new PostponeInvocationException(until);
 }
