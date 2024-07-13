@@ -14,29 +14,25 @@ public class TimeoutOperator<T> : IReactiveChain<T>
     private readonly string _timeoutId;
     private readonly DateTime _expiresAt;
     private readonly bool _overwriteExisting;
-    private readonly bool _signalErrorOnTimeout;
 
-    public TimeoutOperator(IReactiveChain<T> inner, string timeoutId, DateTime expiresAt, bool overwriteExisting, bool signalErrorOnTimeout)
+    public TimeoutOperator(IReactiveChain<T> inner, string timeoutId, DateTime expiresAt, bool overwriteExisting)
     {
         _inner = inner;
         _timeoutId = timeoutId;
         _expiresAt = expiresAt;
         _overwriteExisting = overwriteExisting;
-        _signalErrorOnTimeout = signalErrorOnTimeout;
     }
 
-    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
+    public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError)
     {
         return new Subscription(
             _inner, 
             _timeoutId,
             _expiresAt,
             _overwriteExisting,
-            _signalErrorOnTimeout,
             onNext, 
             onCompletion, 
-            onError, 
-            addToSubscriptionGroup
+            onError
         );
     }
 
@@ -51,7 +47,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         private readonly Action<Exception> _signalError;
         
         private readonly ISubscription _innerSubscription;
-        private readonly ISubscription _timeoutSubscription;
         private bool _completed;
 
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
@@ -59,9 +54,8 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         
         public Subscription(
             IReactiveChain<T> inner,
-            string timeoutId, DateTime expiresAt, bool overwriteExisting, bool signalErrorOnTimeout,
-            Action<T> signalNext, Action signalCompletion, Action<Exception> signalError,
-            ISubscriptionGroup? subscriptionGroupId)
+            string timeoutId, DateTime expiresAt, bool overwriteExisting,
+            Action<T> signalNext, Action signalCompletion, Action<Exception> signalError)
         {
             _timeoutId = timeoutId;
             _expiresAt = expiresAt;
@@ -70,19 +64,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             _signalCompletion = signalCompletion;
             _signalError = signalError;
             
-            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError, subscriptionGroupId);
-
-            _timeoutSubscription = _innerSubscription
-                .Source
-                .OfType<TimeoutEvent>()
-                .Where(t => t.TimeoutId == timeoutId)
-                .Take(1)
-                .Subscribe(
-                    onNext: _ => { },
-                    onCompletion: () => { if (signalErrorOnTimeout) OnError(new TimeoutException($"Timeout '{timeoutId}' expired")); else OnCompletion(); },
-                    onError: _ => { },
-                    _innerSubscription.Group
-                );
+            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError);
         }
 
         public async Task RegisterTimeoutIfNotInExistingEvents()
@@ -109,7 +91,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         }
 
         public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
-        public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
         
@@ -126,8 +107,8 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         private void OnNext(T next)
         {
             if (next is TimeoutEvent t && t.TimeoutId == _timeoutId)
-                return;
-
+                OnCompletion();
+            
             if (_completed) return;
             
             _signalNext(next);

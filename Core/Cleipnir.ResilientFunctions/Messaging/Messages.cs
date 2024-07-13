@@ -32,6 +32,6 @@ public class Messages : IReactiveChain<object>
 
     public Task Sync() => _messagePullerAndEmitter.PullEvents(maxSinceLastSynced: TimeSpan.Zero);
 
-    public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null) 
-        => _messagePullerAndEmitter.Source.Subscribe(onNext, onCompletion, onError, addToSubscriptionGroup);
+    public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError) 
+        => _messagePullerAndEmitter.Source.Subscribe(onNext, onCompletion, onError);
 }

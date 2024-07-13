@@ -30,8 +30,8 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         _handleCompletion = handleCompletion;
     }
 
-    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
-        => new Subscription(_inner, _operatorFactory, _handleCompletion, onNext, onCompletion, onError, addToSubscriptionGroup);
+    public ISubscription Subscribe(Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
+        => new Subscription(_inner, _operatorFactory, _handleCompletion, onNext, onCompletion, onError);
 
     private class Subscription : ISubscription
     {
@@ -48,7 +48,6 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         private OnCompletion<TOut>? HandleCompletion { get; }
 
         public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
-        public ISubscriptionGroup Group => _innerSubscription.Group;
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
@@ -57,8 +56,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             IReactiveChain<TIn> inner,
             Func<Operator<TIn, TOut>> operatorFactory,
             OnCompletion<TOut>? handleCompletion,
-            Action<TOut> onNext, Action onCompletion, Action<Exception> onError,
-            ISubscriptionGroup? addToSubscriptionGroup)
+            Action<TOut> onNext, Action onCompletion, Action<Exception> onError)
         {
             HandleCompletion = handleCompletion;
             _signalNext = onNext;
@@ -67,7 +65,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
 
             Operator = operatorFactory();
             
-            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError, addToSubscriptionGroup);
+            _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError);
         }
 
         public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;

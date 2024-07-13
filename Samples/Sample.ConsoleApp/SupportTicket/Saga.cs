@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.SupportTicket;
@@ -24,9 +23,9 @@ public class Saga
             });
             
             var supportTicketTakenOption = await messages
+                .TakeUntilTimeout($"TimeoutId{i}", expiresIn: TimeSpan.FromMinutes(15))
                 .OfType<SupportTicketTaken>()
                 .Where(t => int.Parse(t.RequestId) == i)
-                .TakeUntilTimeout($"TimeoutId{i}", expiresIn: TimeSpan.FromMinutes(15))
                 .FirstOrNone(TimeSpan.Zero);
 
             if (supportTicketTakenOption.HasValue)

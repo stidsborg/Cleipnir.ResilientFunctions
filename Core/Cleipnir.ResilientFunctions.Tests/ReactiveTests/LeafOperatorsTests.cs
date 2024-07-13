@@ -125,8 +125,8 @@ public class LeafOperatorsTests
         source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt), new InterruptCount(1));
         
         var nextOrSuspend = source
-            .OfType<string>()
             .TakeUntilTimeout(timeoutEventId, expiresAt)
+            .OfType<string>()
             .First(maxWait: TimeSpan.Zero);
         
         await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
@@ -142,8 +142,8 @@ public class LeafOperatorsTests
         source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt), new InterruptCount(1));
         
         var nextOrSuspend = await source
-            .OfType<string>()
             .TakeUntilTimeout(timeoutEventId, expiresAt)
+            .OfType<string>()
             .FirstOrNone(TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeFalse();
@@ -161,8 +161,8 @@ public class LeafOperatorsTests
         source.SignalNext("world", new InterruptCount(3));
         
         var nextOrSuspend = await source
-            .OfType<string>()
             .TakeUntilTimeout(timeoutEventId, expiresAt)
+            .OfType<string>()
             .FirstOrNone(TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeTrue();
@@ -277,9 +277,9 @@ public class LeafOperatorsTests
         source.SignalNext("hello", new InterruptCount(1));
         
         var nextOrSuspend = source
+            .TakeUntilTimeout("timeoutEventId", expiresAt: DateTime.UtcNow)
             .Take(1)
             .OfType<int>()
-            .TakeUntilTimeout("timeoutEventId", expiresAt: DateTime.UtcNow)
             .Last(maxWait: TimeSpan.Zero);
         
         await Should.ThrowAsync<NoResultException>(nextOrSuspend);
@@ -377,9 +377,9 @@ public class LeafOperatorsTests
         source.SignalNext("world", new InterruptCount(3));
         
         var nextOrSuspend = await source
+            .TakeUntilTimeout(timeoutEventId, expiresAt)
             .OfType<string>()
             .Take(2)
-            .TakeUntilTimeout(timeoutEventId, expiresAt)
             .LastOrNone(TimeSpan.Zero);
         
         nextOrSuspend.HasValue.ShouldBeTrue();

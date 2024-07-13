@@ -33,7 +33,7 @@ public class Source : IReactiveChain<object>
         }
     }
     
-    public Source(ITimeoutProvider timeoutProvider)
+    public Source(ITimeoutProvider timeoutProvider) 
     {
         _timeoutProvider = timeoutProvider;
         _defaultDelay = TimeSpan.FromMilliseconds(10);
@@ -52,16 +52,16 @@ public class Source : IReactiveChain<object>
         _defaultMaxWait = defaultMaxWait;
     }
 
-    public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null)
+    public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError)
     {
-        addToSubscriptionGroup ??= new SubscriptionGroup(
+        var subscription = new SourceSubscription(
+            onNext, onCompletion, onError,
             source: this,
             _emittedEvents, _syncStore, _isWorkflowRunning, _timeoutProvider,
             _defaultDelay, _defaultMaxWait
         );
-        addToSubscriptionGroup.Add(onNext, onCompletion, onError);
 
-        return addToSubscriptionGroup;
+        return subscription;
     }
     
     public void SignalNext(object toEmit, InterruptCount interruptCount)

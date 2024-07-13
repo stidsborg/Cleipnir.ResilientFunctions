@@ -23,8 +23,8 @@ public static class Saga
         );
         
         var events = await messages
-            .Take(3)
             .TakeUntilTimeout("TimeoutId", expiresIn: TimeSpan.FromMinutes(1))
+            .Take(3)
             .Completion();
         
         if (events.Count != 3)

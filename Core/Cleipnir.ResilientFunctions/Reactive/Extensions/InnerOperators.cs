@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Operators;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
@@ -100,15 +101,10 @@ public static class InnerOperators
             });
     }
 
-    public static IReactiveChain<T> TakeUntilTimeout<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan expiresIn, bool overwrite = false)
-        => s.TakeUntilTimeout(timeoutEventId, expiresAt: DateTime.UtcNow.Add(expiresIn), overwrite);
-    public static IReactiveChain<T> TakeUntilTimeout<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime expiresAt, bool overwrite = false)
-        => new TimeoutOperator<T>(s, timeoutEventId, expiresAt, overwrite, signalErrorOnTimeout: false);
-
-    public static IReactiveChain<T> FailOnTimeout<T>(this IReactiveChain<T> s, string timeoutEventId, TimeSpan expiresIn, bool overwrite = false)
-        => FailOnTimeout(s, timeoutEventId, expiresAt: DateTime.UtcNow.Add(expiresIn), overwrite);
-    public static IReactiveChain<T> FailOnTimeout<T>(this IReactiveChain<T> s, string timeoutEventId, DateTime expiresAt, bool overwrite = false)
-        => new TimeoutOperator<T>(s, timeoutEventId, expiresAt, overwrite, signalErrorOnTimeout: true);
+    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, TimeSpan expiresIn, bool overwrite = false)
+        => new TimeoutOperator<object>(s.Source, timeoutEventId, DateTime.UtcNow.Add(expiresIn), overwrite);
+    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, DateTime expiresAt, bool overwrite = false)
+        => new TimeoutOperator<object>(s.Source, timeoutEventId, expiresAt, overwrite);
 
     public static IReactiveChain<T> Skip<T>(this IReactiveChain<T> s, int toSkip)
     {

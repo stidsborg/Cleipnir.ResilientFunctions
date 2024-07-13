@@ -7,12 +7,7 @@ namespace Cleipnir.ResilientFunctions.Reactive;
 
 public interface IReactiveChain<out T>
 {
-    ISubscription Subscribe(
-        Action<T> onNext, 
-        Action onCompletion, 
-        Action<Exception> onError, 
-        ISubscriptionGroup? addToSubscriptionGroup = null
-    );
+    ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError);
 
     IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         => new StreamAsyncEnumerator<T>(reactiveChain: this, cancellationToken);

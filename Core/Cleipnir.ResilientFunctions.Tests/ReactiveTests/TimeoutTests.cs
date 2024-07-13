@@ -69,38 +69,6 @@ public class TimeoutTests
     }
     
     [TestMethod]
-    public async Task StreamEmitsErrorAfterFiredTimeoutEvent()
-    {
-        var timeoutId = "TimeoutId";
-        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
-        
-        var timeoutProviderStub = new TimeoutProviderStub();
-        var source = new Source(timeoutProviderStub);
-
-        var task = source.FailOnTimeout(timeoutId, expiresAt).First();
-        
-        await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
-        var (id, expiry) = timeoutProviderStub.Registrations.Single();
-        id.ShouldBe(timeoutId);
-        expiry.ShouldBe(expiresAt);
-        
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
-
-        await BusyWait.UntilAsync(() => task.IsCompleted);
-        task.IsCompleted.ShouldBeTrue();
-        task.Status.ShouldBe(TaskStatus.Faulted);
-
-        try
-        {
-            await task;
-        }
-        catch (TimeoutException timeoutException)
-        {
-            timeoutException.Message.Contains(timeoutId).ShouldBeTrue();
-        }
-    }
-    
-    [TestMethod]
     public async Task StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
     {
         var timeoutId = "TimeoutId";
@@ -138,30 +106,6 @@ public class TimeoutTests
         option.Value.ShouldBe("Hello");
     }
     
-    [TestMethod]
-    public async Task StreamCompletesSuccessfullyWhenEventIsEmittedBeforeTimeoutCausesFailure()
-    {
-        var timeoutId = "TimeoutId";
-        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
-        
-        var timeoutProviderStub = new TimeoutProviderStub();
-        var source = new Source(timeoutProviderStub);
-
-        var task = source.FailOnTimeout(timeoutId, expiresAt).First();
-        
-        await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
-        var (id, expiry) = timeoutProviderStub.Registrations.Single();
-        id.ShouldBe(timeoutId);
-        expiry.ShouldBe(expiresAt);
-        
-        source.SignalNext("Hello", new InterruptCount(1));
-
-        await BusyWait.UntilAsync(() => task.IsCompleted);
-        task.IsCompletedSuccessfully.ShouldBeTrue();
-        var result = await task;
-        result.ShouldBe("Hello");
-    }
-
     private class TimeoutProviderStub : ITimeoutProvider
     {
         public List<Tuple<string, DateTime>> Registrations

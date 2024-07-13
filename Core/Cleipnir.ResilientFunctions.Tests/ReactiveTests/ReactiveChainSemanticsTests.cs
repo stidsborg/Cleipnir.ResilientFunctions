@@ -1,11 +1,8 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
-using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -14,62 +11,6 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 [TestClass]
 public class ReactiveChainSemanticsTests
 {
-    [TestMethod]
-    public async Task EventsAreEmittedBreathFirstWhenStreamsAreInSameSubscriptionGroup()
-    {
-        var subscription2OnNextFlag = new SyncedFlag();
-        var completeSubscription2OnNextFlag = new SyncedFlag();
-        var source = new Source(NoOpTimeoutProvider.Instance);
-        source.SignalNext("hello", new InterruptCount(1));
-        source.SignalNext("world", new InterruptCount(2));
-
-        var completed1 = false;
-        var failed1 = false;
-        var latest1 = "";
-        var subscription1 = source.OfType<string>().Subscribe(
-            onNext: s => latest1 = s,
-            onCompletion: () => completed1 = true,
-            onError: _ => failed1 = true
-        );
-            
-        var completed2 = false;
-        var failed2 = false;
-        var latest2 = "";
-        var subscription2 = source.OfType<string>().Subscribe(
-            onNext: s =>
-            {
-                latest2 = s;
-                subscription2OnNextFlag.Raise();
-                completeSubscription2OnNextFlag.WaitForRaised().Wait();
-            },
-            onCompletion: () => completed1 = true,
-            onError: _ => failed1 = true,
-            addToSubscriptionGroup: subscription1.Group
-        );
-            
-        var deliverExistingTask = Task.Run(() =>
-        {
-            subscription1.SyncStore(TimeSpan.Zero);
-            subscription1.PushMessages();
-        });
-        await subscription2OnNextFlag.WaitForRaised();
-            
-        latest1.ShouldBe("hello");
-        latest2.ShouldBe("hello");
-        completed1.ShouldBeFalse();
-        completed2.ShouldBeFalse();
-
-        deliverExistingTask.IsCompleted.ShouldBeFalse();
-        completeSubscription2OnNextFlag.Raise();
-        await deliverExistingTask;
-        
-        latest1.ShouldBe("world");
-        latest2.ShouldBe("world");
-            
-        failed1.ShouldBeFalse();
-        failed2.ShouldBeFalse();
-    }
-        
     [TestMethod]
     public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
     {

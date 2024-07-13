@@ -92,8 +92,8 @@ public abstract class MessagingTests
                 var messages = workflow.Messages;
 
                 var timeoutOption = await messages
-                    .OfType<string>()
                     .TakeUntilTimeout("timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250))
+                    .OfType<string>()
                     .FirstOrNone(TimeSpan.Zero);
                 
                 var timeoutEvent = messages

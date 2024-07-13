@@ -1,38 +1,42 @@
 ﻿using System;
-using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
 
-internal class SubscriptionGroup : ISubscriptionGroup
+internal class SourceSubscription : ISubscription
 {
-    private ImmutableArray<Subscription> _subscriptions = ImmutableArray<Subscription>.Empty;
+    private readonly Action<object> _onNext;
+    private readonly Action _onCompletion;
+    private readonly Action<Exception> _onError;
+    
     private readonly EmittedEvents _emittedEvents;
     private int _skip;
-    
-    private bool _started;
 
     private readonly SyncStore _syncStore;
     private readonly Func<bool> _isWorkflowRunning;
     public bool IsWorkflowRunning => _isWorkflowRunning();
-    public ISubscriptionGroup Group => this;
     public IReactiveChain<object> Source { get; }
     public ITimeoutProvider TimeoutProvider { get; }
     public TimeSpan DefaultMessageSyncDelay { get; }
     public TimeSpan DefaultMessageMaxWait { get; }
 
-    public SubscriptionGroup(
+    public SourceSubscription(
+        Action<object> onNext, Action onCompletion, Action<Exception> onError,
         IReactiveChain<object> source,
         EmittedEvents emittedEvents,
         SyncStore syncStore, 
         Func<bool> isWorkflowRunning,
         ITimeoutProvider timeoutProvider,
         TimeSpan defaultDelay,
-        TimeSpan defaultMessageMaxWait)
+        TimeSpan defaultMessageMaxWait
+    )
     {
         Source = source;
+        _onNext = onNext;
+        _onCompletion = onCompletion;
+        _onError = onError;
         _emittedEvents = emittedEvents;
         _syncStore = syncStore;
         _isWorkflowRunning = isWorkflowRunning;
@@ -47,36 +51,18 @@ internal class SubscriptionGroup : ISubscriptionGroup
 
     public InterruptCount PushMessages()
     {
-        _started = true;
-
         var interruptCount = _emittedEvents.InterruptCount;
         var toEmits = _emittedEvents.GetEvents(_skip);
         _skip += toEmits.Length;
-
-        //breath-first publishing of events
+        
         foreach (var toEmit in toEmits) 
-        foreach (var subscription in _subscriptions)
-        {
             if (toEmit.Completion)
-                subscription.SignalCompletion();
+                _onCompletion();
             else if (toEmit.EmittedException != null)
-                subscription.SignalException(toEmit.EmittedException!);
+                _onError(toEmit.EmittedException!);
             else
-                subscription.SignalNext(toEmit.Event!);
-        }
+                _onNext(toEmit.Event!);
 
         return interruptCount;
     }
-    
-    public void Add(Action<object> onNext, Action onCompletion, Action<Exception> onError)
-    {
-        if (_started)
-            throw new InvalidOperationException("Cannot add subscription to subscription group that has already emitted events");
-        
-        var subscription = new Subscription(onNext, onError, onCompletion);
-        _subscriptions = _subscriptions.Add(subscription);
-        
-    }
-    
-    private record Subscription(Action<object> SignalNext, Action<Exception> SignalException, Action SignalCompletion);
 }

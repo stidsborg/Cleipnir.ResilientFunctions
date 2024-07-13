@@ -22,6 +22,7 @@ public static class EngagementReminderSaga
         {
             //wait for candidate reply or timeout
             var either = await messages
+                .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
                 .OfTypes<EngagementAccepted, EngagementRejected>()
                 .Where(either =>
                     either.Match(
@@ -29,7 +30,6 @@ public static class EngagementReminderSaga
                         second: r => r.Iteration == i
                     )
                 )
-                .TakeUntilTimeout($"Timeout{i}", nextReminderTime)
                 .FirstOrDefault();
             
             if (either == null) //timeout

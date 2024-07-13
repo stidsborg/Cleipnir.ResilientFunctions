@@ -13,9 +13,9 @@ public static class ApproveLoan
         await MessageBroker.Send(new PerformCreditCheck(loanApplication.Id, loanApplication.CustomerId, loanApplication.Amount));
 
         var outcomes = await messages
+            .TakeUntilTimeout("TimeoutId", expiresAt: loanApplication.Created.AddMinutes(15))
             .OfType<CreditCheckOutcome>()
             .Take(3)
-            .TakeUntilTimeout("TimeoutId", expiresAt: loanApplication.Created.AddMinutes(15))
             .Completion();
 
         if (outcomes.Count < 2)

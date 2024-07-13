@@ -20,8 +20,8 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             throw new ArgumentException("Buffer size must be a non-negative number", nameof(bufferSize));
     }
 
-    public ISubscription Subscribe(Action<List<T>> onNext, Action onCompletion, Action<Exception> onError, ISubscriptionGroup? addToSubscriptionGroup = null) 
-        => new Subscription(_innerReactiveChain, _bufferSize, onNext, onCompletion, onError, addToSubscriptionGroup);
+    public ISubscription Subscribe(Action<List<T>> onNext, Action onCompletion, Action<Exception> onError) 
+        => new Subscription(_innerReactiveChain, _bufferSize, onNext, onCompletion, onError);
 
     private class Subscription : ISubscription
     {
@@ -41,8 +41,7 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         public Subscription(
             IReactiveChain<T> inner,
             int bufferSize,
-            Action<List<T>> signalNext, Action signalCompletion, Action<Exception> signalError,
-            ISubscriptionGroup? addToSubscriptionGroup)
+            Action<List<T>> signalNext, Action signalCompletion, Action<Exception> signalError)
         {
             _bufferSize = bufferSize;
             _currentBuffer = new List<T>(_bufferSize);
@@ -51,11 +50,10 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
             _signalCompletion = signalCompletion;
             _signalError = signalError;
             
-            _subscription = inner.Subscribe(OnNext, OnCompletion, OnError, addToSubscriptionGroup);
+            _subscription = inner.Subscribe(OnNext, OnCompletion, OnError);
         }
 
         public bool IsWorkflowRunning => _subscription.IsWorkflowRunning;
-        public ISubscriptionGroup Group => _subscription.Group;
         public IReactiveChain<object> Source => _subscription.Source;
         public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;
         public Task Initialize() => _subscription.Initialize();
