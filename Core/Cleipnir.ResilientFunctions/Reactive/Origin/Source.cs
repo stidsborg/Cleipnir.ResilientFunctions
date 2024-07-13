@@ -17,6 +17,7 @@ public class Source : IReactiveChain<object>
     private readonly TimeSpan _defaultDelay;
     private readonly TimeSpan _defaultMaxWait;
     private readonly Func<bool> _isWorkflowRunning;
+    private readonly Func<bool> _initialSyncPerformed;
     private readonly EmittedEvents _emittedEvents = new();
 
     public IEnumerable<object> Existing
@@ -40,15 +41,24 @@ public class Source : IReactiveChain<object>
         _defaultMaxWait = TimeSpan.MaxValue;
         _syncStore = _ => new InterruptCount(0).ToTask();
         _isWorkflowRunning = () => true;
+        _initialSyncPerformed = () => true;
     }
 
-    public Source(ITimeoutProvider timeoutProvider, SyncStore syncStore, TimeSpan defaultDelay, TimeSpan defaultMaxWait, Func<bool> isWorkflowRunning)
+    public Source(
+        ITimeoutProvider timeoutProvider, 
+        SyncStore syncStore, 
+        TimeSpan defaultDelay, 
+        TimeSpan defaultMaxWait, 
+        Func<bool> isWorkflowRunning,
+        Func<bool> initialSyncPerformed
+    )
     {
         _timeoutProvider = timeoutProvider;
         _syncStore = syncStore;
         _defaultDelay = defaultDelay;
         
         _isWorkflowRunning = isWorkflowRunning;
+        _initialSyncPerformed = initialSyncPerformed;
         _defaultMaxWait = defaultMaxWait;
     }
 
@@ -57,7 +67,7 @@ public class Source : IReactiveChain<object>
         var subscription = new SourceSubscription(
             onNext, onCompletion, onError,
             source: this,
-            _emittedEvents, _syncStore, _isWorkflowRunning, _timeoutProvider,
+            _emittedEvents, _syncStore, _initialSyncPerformed, _isWorkflowRunning, _timeoutProvider,
             _defaultDelay, _defaultMaxWait
         );
 

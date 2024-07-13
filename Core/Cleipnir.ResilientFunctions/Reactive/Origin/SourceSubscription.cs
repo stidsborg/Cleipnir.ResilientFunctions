@@ -15,6 +15,7 @@ internal class SourceSubscription : ISubscription
     private int _skip;
 
     private readonly SyncStore _syncStore;
+    private readonly Func<bool> _initialSyncPerformed;
     private readonly Func<bool> _isWorkflowRunning;
     public bool IsWorkflowRunning => _isWorkflowRunning();
     public IReactiveChain<object> Source { get; }
@@ -27,6 +28,7 @@ internal class SourceSubscription : ISubscription
         IReactiveChain<object> source,
         EmittedEvents emittedEvents,
         SyncStore syncStore, 
+        Func<bool> initialSyncPerformed,
         Func<bool> isWorkflowRunning,
         ITimeoutProvider timeoutProvider,
         TimeSpan defaultDelay,
@@ -39,13 +41,18 @@ internal class SourceSubscription : ISubscription
         _onError = onError;
         _emittedEvents = emittedEvents;
         _syncStore = syncStore;
+        _initialSyncPerformed = initialSyncPerformed;
         _isWorkflowRunning = isWorkflowRunning;
         TimeoutProvider = timeoutProvider;
         DefaultMessageSyncDelay = defaultDelay;
         DefaultMessageMaxWait = defaultMessageMaxWait;
     }
 
-    public Task Initialize() => Task.CompletedTask;
+    public async Task Initialize()
+    {
+        if (!_initialSyncPerformed())
+            await _syncStore(maxSinceLastSynced: TimeSpan.Zero);
+    }
 
     public Task SyncStore(TimeSpan maxSinceLastSynced) => _syncStore(maxSinceLastSynced);
 

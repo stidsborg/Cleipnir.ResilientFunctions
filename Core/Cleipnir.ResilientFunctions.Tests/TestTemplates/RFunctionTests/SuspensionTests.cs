@@ -298,6 +298,41 @@ public abstract class SuspensionTests
         unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
     }
     
+    public abstract Task ParamlessFunctionWithPrefilledMessageCompletes();
+    protected async Task ParamlessFunctionWithPrefilledMessageCompletes(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFunctionId.Create();
+        var (functionTypeId, functionInstanceId) = functionId;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var syncedValue = new Synced<string>();
+        
+        var registration = functionsRegistry.RegisterParamless(
+            functionTypeId,
+            inner: async Task (workflow) =>
+            {
+                var msg = await workflow.Messages.FirstOfType<string>();
+                syncedValue.Value = msg;
+            }
+        );
+
+        await registration.MessageWriters.For(functionInstanceId.Value).AppendMessage("Hello!");
+        await registration.Schedule(functionInstanceId);
+
+        var controlPanel = await registration.ControlPanel(functionInstanceId);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.WaitForCompletion();
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     public abstract Task StartedChildFuncInvocationPublishesResultSuccessfully();
     protected async Task StartedChildFuncInvocationPublishesResultSuccessfully(Task<IFunctionStore> storeTask)
     {

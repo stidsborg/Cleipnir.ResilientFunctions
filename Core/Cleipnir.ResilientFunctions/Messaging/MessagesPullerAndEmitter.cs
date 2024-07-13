@@ -32,6 +32,15 @@ public class MessagesPullerAndEmitter
     private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
     private readonly object _sync = new();
 
+    private bool InitialSyncPerformed
+    {
+        get
+        {
+            lock (_sync)
+                return _lastSynced != default;
+        }
+    }
+
     public MessagesPullerAndEmitter(
         FunctionId functionId,
         TimeSpan defaultDelay,
@@ -50,15 +59,19 @@ public class MessagesPullerAndEmitter
             syncStore: PullEvents,
             defaultDelay,
             defaultMaxWait,
-            isWorkflowRunning
+            isWorkflowRunning,
+            initialSyncPerformed: () => InitialSyncPerformed
         );
     }
 
     public async Task<InterruptCount> PullEvents(TimeSpan maxSinceLastSynced)
     {
         lock (_sync)
-            if (maxSinceLastSynced > TimeSpan.Zero && DateTime.UtcNow - maxSinceLastSynced < _lastSynced)
-                return new InterruptCount(_interruptCount);
+            if (
+                _lastSynced != default && 
+                maxSinceLastSynced > TimeSpan.Zero && 
+                DateTime.UtcNow - maxSinceLastSynced < _lastSynced
+            ) return new InterruptCount(_interruptCount);
 
         using var @lock = await _semaphore.Take();
         if (_thrownException != null)

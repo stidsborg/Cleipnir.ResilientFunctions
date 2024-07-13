@@ -45,6 +45,10 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         );
 
     [TestMethod]
+    public override Task ParamlessFunctionWithPrefilledMessageCompletes()
+        => ParamlessFunctionWithPrefilledMessageCompletes(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task StartedChildFuncInvocationPublishesResultSuccessfully()
         => StartedChildFuncInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
 

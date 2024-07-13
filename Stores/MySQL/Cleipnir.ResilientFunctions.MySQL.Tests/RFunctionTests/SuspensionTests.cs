@@ -32,7 +32,11 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog()
         => SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task ParamlessFunctionWithPrefilledMessageCompletes()
+        => ParamlessFunctionWithPrefilledMessageCompletes(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task StartedChildFuncInvocationPublishesResultSuccessfully()
         => StartedChildFuncInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
