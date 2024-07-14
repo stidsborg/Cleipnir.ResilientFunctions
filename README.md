@@ -6,7 +6,7 @@
 <p align="center">
   <img src="./Docs/cleipnir.png" alt="logo" />
   <br>
-  <em>Simply making fault tolerant code simple</em>
+  Simply making fault-tolerant code simple
   <br>
 </p>
 
