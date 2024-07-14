@@ -11,14 +11,14 @@ public class DelimiterTests
     public void FunctionInstanceIdMustNotContainUnitDelimiter()
     {
         var invalidId = "Test" + Delimiters.UnitSeparator;
-        Assert.ThrowsException<ArgumentException>(() => new FunctionInstanceId(invalidId));
+        Assert.ThrowsException<ArgumentException>(() => new FlowInstance(invalidId));
     }
     
     [TestMethod]
     public void FunctionTypeIdMustNotContainUnitDelimiter()
     {
         var invalidId = "Test" + Delimiters.UnitSeparator;
-        Assert.ThrowsException<ArgumentException>(() => new FunctionTypeId(invalidId));
+        Assert.ThrowsException<ArgumentException>(() => new FlowType(invalidId));
     } 
     
     [TestMethod]

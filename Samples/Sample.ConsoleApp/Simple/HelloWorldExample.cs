@@ -14,7 +14,7 @@ public static class HelloWorldExample
         var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
         var rFunc = functions.RegisterFunc(
-            functionTypeId: "HelloWorld",
+            flowType: "HelloWorld",
             inner: (string param) => param.ToUpper()
         ).Invoke;
 

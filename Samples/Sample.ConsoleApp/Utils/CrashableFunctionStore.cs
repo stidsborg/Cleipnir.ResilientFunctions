@@ -28,7 +28,7 @@ public class CrashableFunctionStore : IFunctionStore
     public Task Initialize() => Task.CompletedTask;
 
     public Task<bool> CreateFunction(
-        FunctionId functionId,
+        FlowId flowId,
         string? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -36,7 +36,7 @@ public class CrashableFunctionStore : IFunctionStore
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
-            functionId,
+            flowId,
             param,
             leaseExpiration,
             postponeUntil,
@@ -48,47 +48,47 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam);
 
-    public Task<StoredFunction?> RestartExecution(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<StoredFunction?>(new TimeoutException())
-            : _inner.RestartExecution(functionId, expectedEpoch, leaseExpiration);
+            : _inner.RestartExecution(flowId, expectedEpoch, leaseExpiration);
     
-    public Task<bool> RenewLease(FunctionId functionId, int expectedEpoch, long leaseExpiration)
+    public Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.RenewLease(functionId, expectedEpoch, leaseExpiration);
+            : _inner.RenewLease(flowId, expectedEpoch, leaseExpiration);
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FunctionTypeId functionTypeId, long leaseExpiresBefore)
+    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
         => _crashed
             ? Task.FromException<IReadOnlyList<InstanceIdAndEpoch>>(new TimeoutException())
-            : _inner.GetCrashedFunctions(functionTypeId, leaseExpiresBefore);
+            : _inner.GetCrashedFunctions(flowType, leaseExpiresBefore);
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FunctionTypeId functionTypeId, long isEligibleBefore)
+    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
         => _crashed
             ? Task.FromException<IReadOnlyList<InstanceIdAndEpoch>>(new TimeoutException())
-            : _inner.GetPostponedFunctions(functionTypeId, isEligibleBefore);
+            : _inner.GetPostponedFunctions(flowType, isEligibleBefore);
 
-    public Task<IReadOnlyList<FunctionInstanceId>> GetSucceededFunctions(FunctionTypeId functionTypeId, long completedBefore)
+    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<FunctionInstanceId>>(new TimeoutException())
-            : _inner.GetSucceededFunctions(functionTypeId, completedBefore);
+            ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
+            : _inner.GetSucceededFunctions(flowType, completedBefore);
 
     public Task<bool> SetFunctionState(
-        FunctionId functionId, Status status, string? storedParameter,
+        FlowId flowId, Status status, string? storedParameter,
         string? storedResult, StoredException? storedException, 
         long? postponeUntil, 
         int expectedEpoch
     ) => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetFunctionState(
-                functionId, status, 
+                flowId, status, 
                 storedParameter, storedResult, 
                 storedException, postponeUntil, 
                 expectedEpoch
             );
 
     public Task<bool> SucceedFunction(
-        FunctionId functionId,
+        FlowId flowId,
         string? result,
         string? defaultState,
         long timestamp,
@@ -96,10 +96,10 @@ public class CrashableFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SucceedFunction(functionId, result, defaultState, timestamp, expectedEpoch, complimentaryState);
+        : _inner.SucceedFunction(flowId, result, defaultState, timestamp, expectedEpoch, complimentaryState);
 
     public Task<bool> PostponeFunction(
-        FunctionId functionId, 
+        FlowId flowId, 
         long postponeUntil, 
         string? defaultState, 
         long timestamp,
@@ -107,10 +107,10 @@ public class CrashableFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.PostponeFunction(functionId, postponeUntil, defaultState, timestamp, expectedEpoch, complimentaryState); 
+        : _inner.PostponeFunction(flowId, postponeUntil, defaultState, timestamp, expectedEpoch, complimentaryState); 
 
     public Task<bool> FailFunction(
-        FunctionId functionId, 
+        FlowId flowId, 
         StoredException storedException, 
         string? defaultState, 
         long timestamp,
@@ -118,10 +118,10 @@ public class CrashableFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(functionId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState); 
+        : _inner.FailFunction(flowId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState); 
 
     public Task<bool> SuspendFunction(
-        FunctionId functionId, 
+        FlowId flowId, 
         long expectedInterruptCount, 
         string? defaultState, 
         long timestamp,
@@ -129,40 +129,40 @@ public class CrashableFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SuspendFunction(functionId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
+        : _inner.SuspendFunction(flowId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
 
-    public Task SetDefaultState(FunctionId functionId, string? stateJson)
+    public Task SetDefaultState(FlowId flowId, string? stateJson)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.SetDefaultState(functionId, stateJson);
+            : _inner.SetDefaultState(flowId, stateJson);
 
-    public Task<bool> SetParameters(FunctionId functionId, string? storedParameter, string? storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(FlowId flowId, string? storedParameter, string? storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SetParameters(functionId, storedParameter, storedResult, expectedEpoch);
+            : _inner.SetParameters(flowId, storedParameter, storedResult, expectedEpoch);
     
-    public Task<bool> IncrementInterruptCount(FunctionId functionId)
+    public Task<bool> IncrementInterruptCount(FlowId flowId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.IncrementInterruptCount(functionId);
+            : _inner.IncrementInterruptCount(flowId);
 
-    public Task<long?> GetInterruptCount(FunctionId functionId)
+    public Task<long?> GetInterruptCount(FlowId flowId)
         => _crashed
             ? Task.FromException<long?>(new TimeoutException())
-            : _inner.GetInterruptCount(functionId);
+            : _inner.GetInterruptCount(flowId);
 
-    public Task<StatusAndEpoch?> GetFunctionStatus(FunctionId functionId)
+    public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
         => _crashed
             ? Task.FromException<StatusAndEpoch?>(new TimeoutException())
-            : _inner.GetFunctionStatus(functionId);
+            : _inner.GetFunctionStatus(flowId);
 
-    public Task<StoredFunction?> GetFunction(FunctionId functionId)
+    public Task<StoredFunction?> GetFunction(FlowId flowId)
         => _crashed
             ? Task.FromException<StoredFunction?>(new TimeoutException())
-            : _inner.GetFunction(functionId);
+            : _inner.GetFunction(flowId);
 
-    public Task<bool> DeleteFunction(FunctionId functionId)
+    public Task<bool> DeleteFunction(FlowId flowId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.DeleteFunction(functionId);
+            : _inner.DeleteFunction(flowId);
 }

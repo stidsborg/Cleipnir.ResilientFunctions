@@ -4,18 +4,18 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public sealed class ConcurrentModificationException : RFunctionException
 {
-    public FunctionId FunctionId { get; }
+    public FlowId FlowId { get; }
 
-    public ConcurrentModificationException(FunctionId functionId)
+    public ConcurrentModificationException(FlowId flowId)
         : base(
-            functionId.TypeId,
-            $"Unable to persist state for '{functionId}' due to concurrent modification"
-        ) => FunctionId = functionId;
+            flowId.Type,
+            $"Unable to persist state for '{flowId}' due to concurrent modification"
+        ) => FlowId = flowId;
     
-    public ConcurrentModificationException(FunctionId functionId, Exception innerException)
+    public ConcurrentModificationException(FlowId flowId, Exception innerException)
         : base(
-            functionId.TypeId,
-            $"Unable to persist state for '{functionId}' due to concurrent modification",
+            flowId.Type,
+            $"Unable to persist state for '{flowId}' due to concurrent modification",
             innerException
-        ) => FunctionId = functionId;
+        ) => FlowId = flowId;
 }

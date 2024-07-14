@@ -9,27 +9,27 @@ namespace Cleipnir.ResilientFunctions;
 public class ParamlessRegistration
 {
     private readonly ControlPanelFactory _controlPanelFactory;
-    public FunctionTypeId TypeId { get; }
+    public FlowType Type { get; }
     
-    public Func<FunctionInstanceId, Task> Invoke { get; }
-    public Func<FunctionInstanceId, Task> Schedule { get; }
-    public Func<FunctionInstanceId, DateTime, Task> ScheduleAt { get; }
-    public Func<IEnumerable<FunctionInstanceId>, Task> BulkSchedule { get; }
+    public Func<FlowInstance, Task> Invoke { get; }
+    public Func<FlowInstance, Task> Schedule { get; }
+    public Func<FlowInstance, DateTime, Task> ScheduleAt { get; }
+    public Func<IEnumerable<FlowInstance>, Task> BulkSchedule { get; }
     
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
     
     public ParamlessRegistration(
-        FunctionTypeId functionTypeId,
-        Func<FunctionInstanceId, Task> invoke,
-        Func<FunctionInstanceId, Task> schedule,
-        Func<FunctionInstanceId, DateTime, Task> scheduleAt,
-        Func<IEnumerable<FunctionInstanceId>, Task> bulkSchedule,
+        FlowType flowType,
+        Func<FlowInstance, Task> invoke,
+        Func<FlowInstance, Task> schedule,
+        Func<FlowInstance, DateTime, Task> scheduleAt,
+        Func<IEnumerable<FlowInstance>, Task> bulkSchedule,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
     {
-        TypeId = functionTypeId;
+        Type = flowType;
         
         Invoke = invoke;
         Schedule = schedule;
@@ -40,13 +40,13 @@ public class ParamlessRegistration
         _stateFetcher = stateFetcher;
     }
 
-    public Task<ControlPanel?> ControlPanel(FunctionInstanceId functionInstanceId)
-        => _controlPanelFactory.Create(functionInstanceId);
+    public Task<ControlPanel?> ControlPanel(FlowInstance flowInstance)
+        => _controlPanelFactory.Create(flowInstance);
 
-    public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null)
+    public Task<TState?> GetState<TState>(FlowInstance instance, StateId? stateId = null)
         where TState : FlowState, new()
     {
-        var functionId = new FunctionId(TypeId, instanceId);
+        var functionId = new FlowId(Type, instance);
         return stateId is null 
             ? _stateFetcher.FetchState<TState>(functionId) 
             : _stateFetcher.FetchState<TState>(functionId, stateId);

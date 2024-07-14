@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 [TestClass]
 public class RActionRegistrationTests
 {
-    private readonly FunctionTypeId _functionTypeId = new FunctionTypeId("FunctionTypeId");
+    private readonly FlowType _flowType = new FlowType("FunctionTypeId");
     private const string FunctionInstanceId = "FunctionInstanceId";
     
     [TestMethod]
@@ -18,7 +18,7 @@ public class RActionRegistrationTests
     {
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
-            .RegisterAction<string>(_functionTypeId, InnerAction)
+            .RegisterAction<string>(_flowType, InnerAction)
             .Invoke;
 
         await rAction(FunctionInstanceId, "hello world");

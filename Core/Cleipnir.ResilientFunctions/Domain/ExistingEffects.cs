@@ -8,14 +8,14 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ExistingEffects
 {
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly Dictionary<EffectId, StoredEffect> _storedEffects;
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
 
-    public ExistingEffects(FunctionId functionId, Dictionary<EffectId, StoredEffect> storedEffects, IEffectsStore effectsStore, ISerializer serializer)
+    public ExistingEffects(FlowId flowId, Dictionary<EffectId, StoredEffect> storedEffects, IEffectsStore effectsStore, ISerializer serializer)
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _storedEffects = storedEffects;
         _effectsStore = effectsStore;
         _serializer = serializer;
@@ -39,13 +39,13 @@ public class ExistingEffects
     
     public async Task Remove(string effectId)
     {
-        await _effectsStore.DeleteEffectResult(_functionId, effectId);
+        await _effectsStore.DeleteEffectResult(_flowId, effectId);
         _storedEffects.Remove(effectId);
     }
 
     private async Task Set(StoredEffect storedEffect) 
     {
-        await _effectsStore.SetEffectResult(_functionId, storedEffect);
+        await _effectsStore.SetEffectResult(_flowId, storedEffect);
         _storedEffects[storedEffect.EffectId] = storedEffect;
     }
 

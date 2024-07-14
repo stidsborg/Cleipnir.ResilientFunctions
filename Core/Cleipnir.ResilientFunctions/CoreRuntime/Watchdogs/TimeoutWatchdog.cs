@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class TimeoutWatchdog
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly ITimeoutStore _timeoutStore;
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
@@ -23,7 +23,7 @@ internal class TimeoutWatchdog
     private readonly MessageWriters _messageWriters;
 
     public TimeoutWatchdog(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         MessageWriters messageWriters,
         ITimeoutStore timeoutStore,
         TimeSpan checkFrequency, 
@@ -31,7 +31,7 @@ internal class TimeoutWatchdog
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _messageWriters = messageWriters;
         _timeoutStore = timeoutStore;
 
@@ -52,7 +52,7 @@ internal class TimeoutWatchdog
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
                 var nextTimeoutSlot = DateTime.UtcNow.Add(_checkFrequency).Ticks;
-                var upcomingTimeouts = await _timeoutStore.GetTimeouts(_functionTypeId.Value, nextTimeoutSlot);
+                var upcomingTimeouts = await _timeoutStore.GetTimeouts(_flowType.Value, nextTimeoutSlot);
 
                 stopWatch.Restart();
                 await HandleUpcomingTimeouts(upcomingTimeouts);
@@ -65,8 +65,8 @@ internal class TimeoutWatchdog
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    _functionTypeId,
-                    $"{nameof(TimeoutWatchdog)} failed while executing: '{_functionTypeId}' - retrying in 5 seconds",
+                    _flowType,
+                    $"{nameof(TimeoutWatchdog)} failed while executing: '{_flowType}' - retrying in 5 seconds",
                     innerException
                 )
             );
@@ -83,7 +83,7 @@ internal class TimeoutWatchdog
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
             var delay = (expiresAt - DateTime.UtcNow).RoundUpToZero();
             await Task.Delay(delay);
-            await _messageWriters.For(functionId.InstanceId).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await _messageWriters.For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }

@@ -29,7 +29,7 @@ public static class FuncRegistration
 
 public class FuncRegistration<TParam, TReturn> where TParam : notnull
 {
-    public FunctionTypeId TypeId { get; }
+    public FlowType Type { get; }
     
     public FuncRegistration.Invoke<TParam, TReturn> Invoke { get; }
     public FuncRegistration.Schedule<TParam> Schedule { get; }
@@ -41,7 +41,7 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
     public MessageWriters MessageWriters { get; }
 
     public FuncRegistration(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         FuncRegistration.Invoke<TParam, TReturn> invoke,
         FuncRegistration.Schedule<TParam> schedule,
         FuncRegistration.ScheduleAt<TParam> scheduleAt,
@@ -50,7 +50,7 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         MessageWriters messageWriters, 
         StateFetcher stateFetcher)
     {
-        TypeId = functionTypeId;
+        Type = flowType;
         
         Invoke = invoke;
         Schedule = schedule;
@@ -62,13 +62,13 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         _stateFetcher = stateFetcher;
     }
 
-    public Task<ControlPanel<TParam, TReturn>?> ControlPanel(FunctionInstanceId functionInstanceId)
-        => _controlPanelFactory.Create(functionInstanceId);
+    public Task<ControlPanel<TParam, TReturn>?> ControlPanel(FlowInstance flowInstance)
+        => _controlPanelFactory.Create(flowInstance);
 
-    public Task<TState?> GetState<TState>(FunctionInstanceId instanceId, StateId? stateId = null) 
+    public Task<TState?> GetState<TState>(FlowInstance instance, StateId? stateId = null) 
         where TState : FlowState, new()
     {
-        var functionId = new FunctionId(TypeId, instanceId);
+        var functionId = new FlowId(Type, instance);
         return stateId is null 
             ? _stateFetcher.FetchState<TState>(functionId) 
             : _stateFetcher.FetchState<TState>(functionId, stateId);

@@ -2,11 +2,11 @@
 
 public sealed class FunctionInvocationSuspendedException : RFunctionException
 {
-    public FunctionId FunctionId { get; }
+    public FlowId FlowId { get; }
 
-    public FunctionInvocationSuspendedException(FunctionId functionId)
+    public FunctionInvocationSuspendedException(FlowId flowId)
         : base(
-            functionId.TypeId,
-            $"Function '{functionId}' invocation has been suspended"
-        ) => FunctionId = functionId;
+            flowId.Type,
+            $"Function '{flowId}' invocation has been suspended"
+        ) => FlowId = flowId;
 }

@@ -17,13 +17,13 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
     private readonly bool _isParamlessFunction;
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FunctionTypeId functionTypeId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
+    public InvocationHelper(FlowType flowType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
         _settings = settings;
 
@@ -33,7 +33,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
-        FunctionId functionId, 
+        FlowId flowId, 
         TParam param, 
         DateTime? scheduleAt)
     {
@@ -47,7 +47,7 @@ internal class InvocationHelper<TParam, TReturn>
 
             var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(
-                functionId,
+                flowId,
                 storedParameter,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
@@ -64,13 +64,13 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult(FunctionId functionId, bool allowPostponedAndSuspended) 
+    public async Task<TReturn> WaitForFunctionResult(FlowId flowId, bool allowPostponedAndSuspended) 
     {
         while (true)
         {
-            var storedFunction = await _functionStore.GetFunction(functionId);
+            var storedFunction = await _functionStore.GetFunction(flowId);
             if (storedFunction == null)
-                throw new FrameworkException(functionId.TypeId, $"Function {functionId} does not exist");
+                throw new FrameworkException(flowId.Type, $"Function {flowId} does not exist");
 
             switch (storedFunction.Status)
             {
@@ -84,29 +84,29 @@ internal class InvocationHelper<TParam, TReturn>
                             : _settings.Serializer.DeserializeResult<TReturn>(storedFunction.Result);
                 case Status.Failed:
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
-                    throw new PreviousFunctionInvocationException(functionId, error);
+                    throw new PreviousFunctionInvocationException(flowId, error);
                 case Status.Postponed:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new FunctionInvocationPostponedException(
-                        functionId,
+                        flowId,
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 case Status.Suspended:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue; }
-                    throw new FunctionInvocationSuspendedException(functionId);
+                    throw new FunctionInvocationSuspendedException(flowId);
                 default:
                     throw new ArgumentOutOfRangeException(); 
             }
         }
     }
     
-    public async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, string? defaultState, int expectedEpoch)
+    public async Task PersistFailure(FlowId flowId, Exception exception, TParam param, string? defaultState, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
         var storedException = serializer.SerializeException(exception);
 
         var success = await _functionStore.FailFunction(
-            functionId,
+            flowId,
             storedException,
             defaultState,
             timestamp: DateTime.UtcNow.Ticks,
@@ -117,11 +117,11 @@ internal class InvocationHelper<TParam, TReturn>
             )
         );
         if (!success) 
-            throw new ConcurrentModificationException(functionId);
+            throw new ConcurrentModificationException(flowId);
     }
 
     public async Task<PersistResultOutcome> PersistResult(
-        FunctionId functionId,
+        FlowId flowId,
         Result<TReturn> result,
         TParam param,
         string? defaultState,
@@ -135,7 +135,7 @@ internal class InvocationHelper<TParam, TReturn>
         {
             case Outcome.Succeed:
                 return await _functionStore.SucceedFunction(
-                    functionId,
+                    flowId,
                     result: SerializeResult(result.SucceedWithValue),
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
@@ -144,7 +144,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
                 return await _functionStore.PostponeFunction(
-                    functionId,
+                    flowId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
@@ -153,7 +153,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
-                    functionId,
+                    flowId,
                     storedException: Serializer.SerializeException(result.Fail!),
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
@@ -162,7 +162,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
                 var success = await _functionStore.SuspendFunction(
-                    functionId,
+                    flowId,
                     result.Suspend!.InterruptCount,
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
@@ -171,7 +171,7 @@ internal class InvocationHelper<TParam, TReturn>
                 );
                 if (success) return PersistResultOutcome.Success;
                 success = await _functionStore.PostponeFunction(
-                    functionId,
+                    flowId,
                     postponeUntil: DateTime.UtcNow.Add(_settings.LeaseLength).Ticks,
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
@@ -186,7 +186,7 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    public static void EnsureSuccess(FunctionId functionId, Result<TReturn> result, bool allowPostponedOrSuspended)
+    public static void EnsureSuccess(FlowId flowId, Result<TReturn> result, bool allowPostponedOrSuspended)
     {
         switch (result.Outcome)
         {
@@ -196,27 +196,27 @@ internal class InvocationHelper<TParam, TReturn>
                 if (allowPostponedOrSuspended)
                     return;
                 else
-                    throw new FunctionInvocationPostponedException(functionId, result.Postpone!.DateTime);
+                    throw new FunctionInvocationPostponedException(flowId, result.Postpone!.DateTime);
             case Outcome.Fail:
                 throw result.Fail!;
             case Outcome.Suspend:
                 if (allowPostponedOrSuspended)
                     return;
                 else
-                    throw new FunctionInvocationSuspendedException(functionId);
+                    throw new FunctionInvocationSuspendedException(flowId);
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
 
-    public async Task<RestartedFunction?> RestartFunction(FunctionId functionId, int expectedEpoch)
+    public async Task<RestartedFunction?> RestartFunction(FlowId flowId, int expectedEpoch)
     {
         var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
 
         try
         {
             var sf = await _functionStore.RestartExecution(
-                functionId,
+                flowId,
                 expectedEpoch,
                 leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks
             );
@@ -233,7 +233,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     
-    public async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, RestartedFunction restartedFunction)
+    public async Task<PreparedReInvocation> PrepareForReInvocation(FlowId flowId, RestartedFunction restartedFunction)
     {
         var (sf, runningFunction) = restartedFunction;
         var expectedEpoch = sf.Epoch;
@@ -249,12 +249,12 @@ internal class InvocationHelper<TParam, TReturn>
         catch (DeserializationException e)
         {
             runningFunction.Dispose();
-            sf = await _functionStore.GetFunction(functionId);
+            sf = await _functionStore.GetFunction(flowId);
             if (sf == null)
-                throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' was not found");
+                throw new UnexpectedFunctionState(flowId, $"Function '{flowId}' was not found");
             
             await _functionStore.FailFunction(
-                functionId,
+                flowId,
                 storedException: Serializer.SerializeException(e),
                 sf.DefaultState,
                 timestamp: DateTime.UtcNow.Ticks,
@@ -275,11 +275,11 @@ internal class InvocationHelper<TParam, TReturn>
 
     internal record PreparedReInvocation(TParam? Param, int Epoch, string? DefaultState, IDisposable RunningFunction);
 
-    public IDisposable StartLeaseUpdater(FunctionId functionId, int epoch = 0) 
-        => LeaseUpdater.CreateAndStart(functionId, epoch, _functionStore, _settings);
+    public IDisposable StartLeaseUpdater(FlowId flowId, int epoch = 0) 
+        => LeaseUpdater.CreateAndStart(flowId, epoch, _functionStore, _settings);
     
     public async Task<bool> SetFunctionState(
-        FunctionId functionId,
+        FlowId flowId,
         Status status,
         TParam param,
         TReturn? result,
@@ -290,7 +290,7 @@ internal class InvocationHelper<TParam, TReturn>
     {
         var serializer = _settings.Serializer;
         return await _functionStore.SetFunctionState(
-            functionId,
+            flowId,
             status,
             param: SerializeParameter(param),
             result: SerializeResult(result),
@@ -301,34 +301,34 @@ internal class InvocationHelper<TParam, TReturn>
     }
 
     public async Task<bool> SaveControlPanelChanges(
-        FunctionId functionId, 
+        FlowId flowId, 
         TParam param, 
         TReturn? @return,
         int expectedEpoch)
     {
         return await _functionStore.SetParameters(
-            functionId,
+            flowId,
             param: SerializeParameter(param),
             result: SerializeResult(@return),
             expectedEpoch
         );
     }
 
-    public async Task Delete(FunctionId functionId)
+    public async Task Delete(FlowId flowId)
     {
-        await _functionStore.DeleteFunction(functionId);
+        await _functionStore.DeleteFunction(flowId);
     }
     
-    public async Task<FunctionState<TParam, TReturn>?> GetFunction(FunctionId functionId)
+    public async Task<FunctionState<TParam, TReturn>?> GetFunction(FlowId flowId)
     {
         var serializer = _settings.Serializer;
         
-        var sf = await _functionStore.GetFunction(functionId);
+        var sf = await _functionStore.GetFunction(flowId);
         if (sf == null) 
             return null;
 
         return new FunctionState<TParam, TReturn>(
-            functionId,
+            flowId,
             sf.Status,
             sf.Epoch,
             sf.LeaseExpiration,
@@ -353,24 +353,24 @@ internal class InvocationHelper<TParam, TReturn>
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
                 new FunctionIdWithParam(
-                    new FunctionId(_functionTypeId, bw.InstanceId),
+                    new FlowId(_flowType, bw.Instance),
                     _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
                 )
             )
         );
     }
 
-    public async Task<Messages> CreateMessages(FunctionId functionId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, bool sync)
+    public async Task<Messages> CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, bool sync)
     {
-        var messageWriter = new MessageWriter(functionId, _functionStore, Serializer, scheduleReInvocation);
+        var messageWriter = new MessageWriter(flowId, _functionStore, Serializer, scheduleReInvocation);
         var timeoutProvider = new TimeoutProvider(
-            functionId,
+            flowId,
             _functionStore.TimeoutStore,
             messageWriter,
             _settings.WatchdogCheckFrequency
         );
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            flowId,
             defaultDelay: _settings.MessagesPullFrequency,
             _settings.MessagesDefaultMaxWaitForCompletion,
             isWorkflowRunning,
@@ -389,23 +389,23 @@ internal class InvocationHelper<TParam, TReturn>
         return messages;
     }
 
-    public async Task<Effect> CreateEffect(FunctionId functionId, bool sync)
+    public async Task<Effect> CreateEffect(FlowId flowId, bool sync)
     {
         var effectsStore = _functionStore.EffectsStore;
         var existingActivities = sync 
-            ? await effectsStore.GetEffectResults(functionId)
+            ? await effectsStore.GetEffectResults(flowId)
             : Enumerable.Empty<StoredEffect>();
         
-        return new Effect(functionId, existingActivities, effectsStore, _settings.Serializer);
+        return new Effect(flowId, existingActivities, effectsStore, _settings.Serializer);
     }
 
-    public async Task<States> CreateStates(FunctionId functionId, string? defaultState, bool sync)
+    public async Task<States> CreateStates(FlowId flowId, string? defaultState, bool sync)
     {
         var statesStore = _functionStore.StatesStore;
         var serializer = _settings.Serializer;
         if (!sync)
             return new States(
-                functionId,
+                flowId,
                 defaultState,
                 existingStates: Enumerable.Empty<StoredState>(),
                 _functionStore,
@@ -413,48 +413,48 @@ internal class InvocationHelper<TParam, TReturn>
                 serializer
             );
 
-        var existingStoredStates = await statesStore.GetStates(functionId);
-        return new States(functionId, defaultState, existingStoredStates, _functionStore, statesStore, serializer);
+        var existingStoredStates = await statesStore.GetStates(flowId);
+        return new States(flowId, defaultState, existingStoredStates, _functionStore, statesStore, serializer);
     }
     
-    public async Task<Correlations> CreateCorrelations(FunctionId functionId, bool sync)
+    public async Task<Correlations> CreateCorrelations(FlowId flowId, bool sync)
     {
         var correlationStore = _functionStore.CorrelationStore;
         if (!sync)
             return new Correlations(
-                functionId, 
+                flowId, 
                 existingCorrelations: [],
                 correlationStore
             );
 
-        var existingCorrelations = await correlationStore.GetCorrelations(functionId);
-        return new Correlations(functionId, existingCorrelations, correlationStore);
+        var existingCorrelations = await correlationStore.GetCorrelations(flowId);
+        return new Correlations(flowId, existingCorrelations, correlationStore);
     }
 
-    public async Task<ExistingStates> GetExistingStates(FunctionId functionId, string? defaultState)
+    public async Task<ExistingStates> GetExistingStates(FlowId flowId, string? defaultState)
         => new(
-            functionId,
+            flowId,
             defaultState,
-            await _functionStore.StatesStore.GetStates(functionId),
+            await _functionStore.StatesStore.GetStates(flowId),
             _functionStore,
             _settings.Serializer
         );
     
-    public async Task<ExistingEffects> GetExistingEffects(FunctionId functionId)
+    public async Task<ExistingEffects> GetExistingEffects(FlowId flowId)
     {
         var effectsStore = _functionStore.EffectsStore;
-        var existingEffects = await effectsStore.GetEffectResults(functionId);
+        var existingEffects = await effectsStore.GetEffectResults(flowId);
         return new ExistingEffects(
-            functionId,
+            flowId,
             existingEffects.ToDictionary(sa => sa.EffectId, sa => sa),
             effectsStore,
             _settings.Serializer
         );
     }
 
-    public async Task<ExistingMessages> GetExistingMessages(FunctionId functionId)
+    public async Task<ExistingMessages> GetExistingMessages(FlowId flowId)
     {
-        var storedMessages = await _functionStore.MessageStore.GetMessages(functionId, skip: 0);
+        var storedMessages = await _functionStore.MessageStore.GetMessages(flowId, skip: 0);
         var messages = storedMessages
             .Select(se => new MessageAndIdempotencyKey(
                     _settings.Serializer.DeserializeMessage(se.MessageJson, se.MessageType),
@@ -462,14 +462,14 @@ internal class InvocationHelper<TParam, TReturn>
                 )
             ).ToList();
         
-        return new ExistingMessages(functionId, messages, _functionStore.MessageStore, _settings.Serializer);
+        return new ExistingMessages(flowId, messages, _functionStore.MessageStore, _settings.Serializer);
     }
 
-    public async Task<ExistingTimeouts> GetExistingTimeouts(FunctionId functionId)
+    public async Task<ExistingTimeouts> GetExistingTimeouts(FlowId flowId)
         => new ExistingTimeouts(
-            functionId,
+            flowId,
             _functionStore.TimeoutStore,
-            await _functionStore.TimeoutStore.GetTimeouts(functionId)
+            await _functionStore.TimeoutStore.GetTimeouts(flowId)
         );
 
     private string? SerializeParameter(TParam param)

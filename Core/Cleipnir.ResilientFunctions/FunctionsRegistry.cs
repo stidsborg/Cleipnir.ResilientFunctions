@@ -15,14 +15,14 @@ namespace Cleipnir.ResilientFunctions;
 
 public class FunctionsRegistry : IDisposable
 {
-    private readonly Dictionary<FunctionTypeId, object> _functions = new();
+    private readonly Dictionary<FlowType, object> _functions = new();
 
     private readonly IFunctionStore _functionStore;
     public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
 
-    private readonly Dictionary<FunctionTypeId, List<RoutingInformation>> _routes = new();
+    private readonly Dictionary<FlowType, List<RoutingInformation>> _routes = new();
     
     private volatile bool _disposed;
     private readonly object _sync = new();
@@ -37,81 +37,81 @@ public class FunctionsRegistry : IDisposable
     // ** !! FUNC !! ** //
     // ** SYNC ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterFunc(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             settings
         );
     
     // ** SYNC W. WORKFLOW ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, TReturn> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterFunc(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             settings
         );
     
     // ** ASYNC ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
         settings
     );
     
     // ** ASYNC W. WORKFLOW * //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Task<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
         settings
     );
 
     // ** SYNC W. RESULT ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull => RegisterFunc(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
         settings
     );
     
     // ** SYNC W. RESULT AND WORKFLOW ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Result<TReturn>> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterFunc(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             settings
         );
    
     // ** ASYNC W. RESULT ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterFunc(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
             settings
         );
@@ -119,164 +119,164 @@ public class FunctionsRegistry : IDisposable
     // ** !! ACTION !! ** //
     // ** SYNC ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Action<TParam> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
 
     // ** SYNC W. WORKFLOW ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Action<TParam, Workflow> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
     
     // ** ASYNC ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Task> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
 
     // ** ASYNC W. WORKFLOW * //
     public ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Task> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
     
     // ** SYNC W. RESULT ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Result> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
     
     // ** SYNC W. RESULT AND WORKFLOW ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Result> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
-            functionTypeId,
+            flowType,
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
     
         // ** ASYNC W. RESULT ** //
         public ActionRegistration<TParam> RegisterAction<TParam>(
-            FunctionTypeId functionTypeId,
+            FlowType flowType,
             Func<TParam, Task<Result>> inner,
             Settings? settings = null
         ) where TParam : notnull
             => RegisterAction(
-                functionTypeId,
+                flowType,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
                 settings
             );
         
         // ** ASYNC W. RESULT AND WORKFLOW ** //   
         public ActionRegistration<TParam> RegisterAction<TParam>(
-            FunctionTypeId functionTypeId,
+            FlowType flowType,
             Func<TParam, Workflow, Task<Result>> inner,
             Settings? settings = null
         ) where TParam : notnull
             => RegisterAction(
-                functionTypeId,
+                flowType,
                 InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
                 settings
             );
         
     // ** PARAMLESS ** //   
     public ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Task<Result>> inner,
         Settings? settings = null
     ) => RegisterParamless(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
         
     public ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Workflow, Task<Result>> inner,
         Settings? settings = null
     ) => RegisterParamless(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
         
     public ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Task<Result<Unit>>> inner,
         Settings? settings = null
     ) => RegisterParamless(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
         
     public ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) => RegisterParamless(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
 
     public ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Task> inner,
         Settings? settings = null
     ) => RegisterParamless(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
         
     public ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Workflow, Task> inner,
         Settings? settings = null
     ) => RegisterParamless(
-        functionTypeId,
+        flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
     
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         Settings? settings = null
     ) where TParam : notnull
@@ -286,19 +286,19 @@ public class FunctionsRegistry : IDisposable
 
         lock (_sync)
         {
-            if (_functions.ContainsKey(functionTypeId))
-                return (FuncRegistration<TParam, TReturn>)_functions[functionTypeId];
+            if (_functions.ContainsKey(flowType))
+                return (FuncRegistration<TParam, TReturn>)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, TReturn>(
-                functionTypeId,
+                flowType,
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator
             );
             var rFuncInvoker = new Invoker<TParam, TReturn>(
-                functionTypeId, 
+                flowType, 
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
@@ -307,7 +307,7 @@ public class FunctionsRegistry : IDisposable
             );
 
             WatchDogsFactory.CreateAndStart(
-                functionTypeId,
+                flowType,
                 _functionStore,
                 rFuncInvoker.ReInvoke,
                 invocationHelper.RestartFunction,
@@ -317,31 +317,31 @@ public class FunctionsRegistry : IDisposable
             );
 
             var controlPanels = new ControlPanelFactory<TParam, TReturn>(
-                functionTypeId,
+                flowType,
                 rFuncInvoker,
                 invocationHelper
             );
             var registration = new FuncRegistration<TParam, TReturn>(
-                functionTypeId,
+                flowType,
                 rFuncInvoker.Invoke,
                 rFuncInvoker.ScheduleInvoke,
                 rFuncInvoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
                 controlPanels,
-                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke),
+                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
-            _functions[functionTypeId] = registration;
+            _functions[flowType] = registration;
 
             if (settingsWithDefaults.Routes.Any())
-                _routes[functionTypeId] = settingsWithDefaults.Routes.ToList();
+                _routes[flowType] = settingsWithDefaults.Routes.ToList();
             
             return registration;
         }
     }
     
     private ParamlessRegistration RegisterParamless(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<Unit, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) 
@@ -351,19 +351,19 @@ public class FunctionsRegistry : IDisposable
         
         lock (_sync)
         {
-            if (_functions.ContainsKey(functionTypeId))
-                return (ParamlessRegistration)_functions[functionTypeId];
+            if (_functions.ContainsKey(flowType))
+                return (ParamlessRegistration)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<Unit, Unit>(
-                functionTypeId,
+                flowType,
                 isParamlessFunction: true,
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator
             );
             var invoker = new Invoker<Unit, Unit>(
-                functionTypeId, 
+                flowType, 
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
@@ -372,7 +372,7 @@ public class FunctionsRegistry : IDisposable
             );
             
             WatchDogsFactory.CreateAndStart(
-                functionTypeId,
+                flowType,
                 _functionStore,
                 invoker.ReInvoke,
                 invocationHelper.RestartFunction,
@@ -382,31 +382,31 @@ public class FunctionsRegistry : IDisposable
             );
 
             var controlPanels = new ControlPanelFactory(
-                functionTypeId,
+                flowType,
                 invoker,
                 invocationHelper
             );
             var registration = new ParamlessRegistration(
-                functionTypeId,
+                flowType,
                 invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
                 schedule: id => invoker.ScheduleInvoke(id.Value, param: Unit.Instance),
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
                 bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id, Unit.Instance))),
                 controlPanels,
-                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleReInvoke),
+                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
-            _functions[functionTypeId] = registration;
+            _functions[flowType] = registration;
             
             if (settingsWithDefaults.Routes.Any())
-                _routes[functionTypeId] = settingsWithDefaults.Routes.ToList();
+                _routes[flowType] = settingsWithDefaults.Routes.ToList();
             
             return registration;
         }
     }
     
     private ActionRegistration<TParam> RegisterAction<TParam>(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) where TParam : notnull
@@ -416,19 +416,19 @@ public class FunctionsRegistry : IDisposable
         
         lock (_sync)
         {
-            if (_functions.ContainsKey(functionTypeId))
-                return (ActionRegistration<TParam>)_functions[functionTypeId];
+            if (_functions.ContainsKey(flowType))
+                return (ActionRegistration<TParam>)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, Unit>(
-                functionTypeId,
+                flowType,
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
-                functionTypeId, 
+                flowType, 
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
@@ -437,7 +437,7 @@ public class FunctionsRegistry : IDisposable
             );
             
             WatchDogsFactory.CreateAndStart(
-                functionTypeId,
+                flowType,
                 _functionStore,
                 rActionInvoker.ReInvoke,
                 invocationHelper.RestartFunction,
@@ -447,45 +447,45 @@ public class FunctionsRegistry : IDisposable
             );
 
             var controlPanels = new ControlPanelFactory<TParam>(
-                functionTypeId,
+                flowType,
                 rActionInvoker,
                 invocationHelper
             );
             var registration = new ActionRegistration<TParam>(
-                functionTypeId,
+                flowType,
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
                 controlPanels,
-                new MessageWriters(functionTypeId, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke),
+                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
-            _functions[functionTypeId] = registration;
+            _functions[flowType] = registration;
             
             if (settingsWithDefaults.Routes.Any())
-                _routes[functionTypeId] = settingsWithDefaults.Routes.ToList();
+                _routes[flowType] = settingsWithDefaults.Routes.ToList();
             
             return registration;
         }
     }
 
-    public MessageWriter GetMessageWriter(FunctionId functionId)
+    public MessageWriter GetMessageWriter(FlowId flowId)
     {
         dynamic? registration = null;
         lock (_sync)
-            if (_functions.ContainsKey(functionId.TypeId))
-                registration = _functions[functionId.TypeId];
+            if (_functions.ContainsKey(flowId.Type))
+                registration = _functions[flowId.Type];
 
         if (registration == null)
-            throw new ArgumentException($"Cannot create {nameof(MessageWriter)} for unregistered function type '{functionId.TypeId}'");
+            throw new ArgumentException($"Cannot create {nameof(MessageWriter)} for unregistered function type '{flowId.Type}'");
         
-        return (MessageWriter) registration.MessageWriters.For(functionId.InstanceId);
+        return (MessageWriter) registration.MessageWriters.For(flowId.Instance);
     }
 
     public async Task DeliverMessage(object message, Type messageType)
     {
-        Dictionary<FunctionTypeId, Tuple<RouteResolver, MessageWriters>> resolvers;
+        Dictionary<FlowType, Tuple<RouteResolver, MessageWriters>> resolvers;
         
         lock (_sync)
         {
@@ -536,18 +536,18 @@ public class FunctionsRegistry : IDisposable
     public async Task DeliverMessage<TMessage>(TMessage message) where TMessage : notnull
         => await DeliverMessage(message, typeof(TMessage)); 
 
-    private async Task ScheduleIfParamless(FunctionTypeId functionTypeId, FunctionInstanceId functionInstanceId)
+    private async Task ScheduleIfParamless(FlowType flowType, FlowInstance flowInstance)
     {
         ParamlessRegistration paramlessRegistration;
         lock (_sync)
         {
-            if (_functions[functionTypeId] is ParamlessRegistration registration)
+            if (_functions[flowType] is ParamlessRegistration registration)
                 paramlessRegistration = registration;
             else
                 return;
         }
 
-        await paramlessRegistration.Schedule(functionInstanceId);
+        await paramlessRegistration.Schedule(flowInstance);
     }
     
     public void Dispose() => _ = ShutdownGracefully();

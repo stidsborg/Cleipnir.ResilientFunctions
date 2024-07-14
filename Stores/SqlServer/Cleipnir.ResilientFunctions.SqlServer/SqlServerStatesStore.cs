@@ -46,9 +46,9 @@ public class SqlServerStatesStore : IStatesStore
     }
 
     private string? _upsertStateSql;
-    public async Task UpsertState(FunctionId functionId, StoredState storedState)
+    public async Task UpsertState(FlowId flowId, StoredState storedState)
     {
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (functionTypeId, functionInstanceId) = flowId;
         await using var conn = await _connFunc();
         _upsertStateSql ??= $@"
             MERGE INTO {_tablePrefix}_States
@@ -70,7 +70,7 @@ public class SqlServerStatesStore : IStatesStore
     }
 
     private string? _getStates;
-    public async Task<IEnumerable<StoredState>> GetStates(FunctionId functionId)
+    public async Task<IEnumerable<StoredState>> GetStates(FlowId flowId)
     {
         await using var conn = await _connFunc();
         _getStates ??= @$"
@@ -78,7 +78,7 @@ public class SqlServerStatesStore : IStatesStore
             FROM {_tablePrefix}_States
             WHERE Id LIKE @IdPrefix";
 
-        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value);
+        var idPrefix = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value);
         await using var command = new SqlCommand(_getStates, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix + "%");
 
@@ -98,14 +98,14 @@ public class SqlServerStatesStore : IStatesStore
     }
 
     private string? _removeStateSql;
-    public async Task RemoveState(FunctionId functionId, StateId stateId)
+    public async Task RemoveState(FlowId flowId, StateId stateId)
     {
         await using var conn = await _connFunc();
         _removeStateSql ??= @$"
             DELETE FROM {_tablePrefix}_States
             WHERE Id = @Id";
 
-        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, stateId.Value);
+        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, stateId.Value);
         await using var command = new SqlCommand(_removeStateSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         
@@ -113,12 +113,12 @@ public class SqlServerStatesStore : IStatesStore
     }
     
     private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
+    public async Task Remove(FlowId flowId)
     {
         await using var conn = await _connFunc();
         _removeSql ??= $"DELETE FROM {_tablePrefix}_States WHERE Id LIKE @Id";
 
-        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
+        var idPrefix = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%";
         await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@Id", idPrefix);
         

@@ -7,26 +7,26 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class MessageWriters
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
 
     public MessageWriters(
-        FunctionTypeId functionTypeId, 
+        FlowType flowType, 
         IFunctionStore functionStore, 
         ISerializer serializer, 
         ScheduleReInvocation scheduleReInvocation)
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _functionStore = functionStore;
         _serializer = serializer;
         _scheduleReInvocation = scheduleReInvocation;
     }
 
-    public MessageWriter For(FunctionInstanceId instanceId)
+    public MessageWriter For(FlowInstance instance)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var functionId = new FlowId(_flowType, instance);
         return new MessageWriter(functionId, _functionStore, _serializer, _scheduleReInvocation);
     }
 }

@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal static class WatchDogsFactory
 {
     public static void CreateAndStart(
-        FunctionTypeId functionTypeId, 
+        FlowType flowType, 
         IFunctionStore functionStore,
         ReInvoke reInvoke, 
         RestartFunction restartFunction,
@@ -26,7 +26,7 @@ internal static class WatchDogsFactory
         
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
         var reInvokerFactory = new ReInvokerFactory(
-            functionTypeId,
+            flowType,
             functionStore,
             shutdownCoordinator,
             settings.UnhandledExceptionHandler,
@@ -41,14 +41,14 @@ internal static class WatchDogsFactory
         var postponedWatchdog = new PostponedWatchdog(reInvokerFactory);
 
         var messagesWriters = new MessageWriters(
-            functionTypeId,
+            flowType,
             functionStore,
             settings.Serializer,
             scheduleReInvocation: (id, epoch) => reInvoke(id, epoch)
         );
         
         var timeoutWatchdog = new TimeoutWatchdog(
-            functionTypeId,
+            flowType,
             messagesWriters,
             functionStore.TimeoutStore,
             settings.WatchdogCheckFrequency,
@@ -58,7 +58,7 @@ internal static class WatchDogsFactory
         );
 
         var retentionWatchdog = new RetentionWatchdog(
-            functionTypeId,
+            flowType,
             functionStore,
             settings.RetentionCleanUpFrequency,
             settings.DelayStartup,

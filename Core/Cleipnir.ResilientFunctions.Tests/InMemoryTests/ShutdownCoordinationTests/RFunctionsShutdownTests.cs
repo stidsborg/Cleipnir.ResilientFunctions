@@ -15,7 +15,7 @@ public class RFunctionsShutdownTests
     [TestMethod]
     public async Task RFunctionsShutdownTaskOnlyCompletesAfterInvokedRFuncCompletes()
     {
-        var functionTypeId = "functionTypeId".ToFunctionTypeId();
+        var functionTypeId = "functionTypeId".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             new InMemoryFunctionStore(),
@@ -57,7 +57,7 @@ public class RFunctionsShutdownTests
     [TestMethod]
     public async Task RFunctionsShutdownTaskThrowsExceptionWhenWaitThresholdIsExceeded()
     {
-        var functionTypeId = "functionTypeId".ToFunctionTypeId();
+        var functionTypeId = "functionTypeId".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             new InMemoryFunctionStore(),
@@ -91,7 +91,7 @@ public class RFunctionsShutdownTests
     public async Task RFunctionsShutdownTaskOnlyCompletesAfterCrashedWatchDogsRFunctionHasCompleted()
     {
         var store = new InMemoryFunctionStore();
-        var functionId = new FunctionId("someFunctionType", "someFunctionInstanceId");
+        var functionId = new FlowId("someFunctionType", "someFunctionInstanceId");
 
         await store.CreateFunction(
             functionId,
@@ -115,7 +115,7 @@ public class RFunctionsShutdownTests
         var completeRFuncFlag = new SyncedFlag();
 
         functionsRegistry.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             async (string _) =>
             {
                 insideRFuncFlag.Raise();
@@ -138,7 +138,7 @@ public class RFunctionsShutdownTests
     public async Task RFunctionsShutdownTaskOnlyCompletesAfterPostponedWatchDogsRFunctionHasCompleted()
     {
         var store = new InMemoryFunctionStore();
-        var functionId = new FunctionId("someFunctionType", "someFunctionInstanceId");
+        var functionId = new FlowId("someFunctionType", "someFunctionInstanceId");
 
         var storedParameter = "".ToJson();
         
@@ -173,7 +173,7 @@ public class RFunctionsShutdownTests
         var completeRFuncFlag = new SyncedFlag();
 
         functionsRegistry.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             async (string _) =>
             {
                 insideRFuncFlag.Raise();
@@ -196,7 +196,7 @@ public class RFunctionsShutdownTests
     [TestMethod]
     public async Task RFunctionsShutdownTaskCompletesWhenInvokedRFuncIsPostponed()
     {
-        var functionTypeId = "functionTypeId".ToFunctionTypeId();
+        var functionTypeId = "functionTypeId".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
         using var functionsRegistry = new FunctionsRegistry(
@@ -231,7 +231,7 @@ public class RFunctionsShutdownTests
         
         counter.Current.ShouldBe(1);
 
-        var sf = await store.GetFunction(new FunctionId(functionTypeId, "instanceId"));
+        var sf = await store.GetFunction(new FlowId(functionTypeId, "instanceId"));
         sf!.Status.ShouldBe(Status.Postponed);
             
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

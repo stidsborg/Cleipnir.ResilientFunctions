@@ -17,7 +17,7 @@ public abstract class CrashedTests
     protected async Task NonCompletedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -72,7 +72,7 @@ public abstract class CrashedTests
     protected async Task NonCompletedFuncWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -140,7 +140,7 @@ public abstract class CrashedTests
     protected async Task NonCompletedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -197,7 +197,7 @@ public abstract class CrashedTests
     protected async Task NonCompletedActionWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();

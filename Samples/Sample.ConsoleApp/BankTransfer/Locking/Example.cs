@@ -14,7 +14,7 @@ public static class Example
 
         var actionRegistration = functionsRegistry
             .RegisterAction<Transfer>(
-                functionTypeId: nameof(TransferFunds),
+                flowType: nameof(TransferFunds),
                 TransferFunds.Perform
             );
 

@@ -79,8 +79,8 @@ public class SqlServerTimeoutStore : ITimeoutStore
                     (@FunctionTypeId, @FunctionInstanceId, @TimeoutId, @Expiry);
             END";
         await using var command = new SqlCommand(_upsertTimeoutSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", functionId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.Instance.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         command.Parameters.AddWithValue("@Expiry", expiry);
         command.Parameters.AddWithValue("@Overwrite", overwrite ? 1 : 2);
@@ -88,7 +88,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
+    public async Task RemoveTimeout(FlowId flowId, string timeoutId)
     {
         await using var conn = await CreateConnection();
 
@@ -99,14 +99,14 @@ public class SqlServerTimeoutStore : ITimeoutStore
                 FunctionInstanceId = @FunctionInstanceId AND 
                 TimeoutId = @TimeoutId";
         await using var command = new SqlCommand(_removeTimeoutSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         await command.ExecuteNonQueryAsync();
     }
 
     private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
+    public async Task Remove(FlowId flowId)
     {
         await using var conn = await CreateConnection();
 
@@ -115,8 +115,8 @@ public class SqlServerTimeoutStore : ITimeoutStore
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(_removeSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
         await command.ExecuteNonQueryAsync();
     }
 
@@ -140,7 +140,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
             var functionInstanceId = reader.GetString(0);
             var timeoutId = reader.GetString(1);
             var expires = reader.GetInt64(2);
-            var functionId = new FunctionId(functionTypeId, functionInstanceId);
+            var functionId = new FlowId(functionTypeId, functionInstanceId);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -148,9 +148,9 @@ public class SqlServerTimeoutStore : ITimeoutStore
     }
 
     private string? _getTimeoutsSql;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
         _getTimeoutsSql ??= @$"    
             SELECT TimeoutId, Expires
@@ -167,7 +167,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(flowId, timeoutId, expires));
         }
 
         return storedTimeouts;

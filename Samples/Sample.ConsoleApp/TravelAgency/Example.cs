@@ -21,7 +21,7 @@ public class Example
         );
 
         var registration = functions.RegisterAction<BookingRequest>(
-            functionTypeId: "TravelAgency",
+            flowType: "TravelAgency",
             inner: Saga.BookTravel
         );
 

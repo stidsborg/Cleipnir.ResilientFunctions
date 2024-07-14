@@ -10,15 +10,15 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ExistingMessages : IEnumerable<object>
 {
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly List<MessageAndIdempotencyKey> _receivedMessages;
     private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
     public IReadOnlyList<MessageAndIdempotencyKey> MessagesWithIdempotencyKeys => _receivedMessages.ToList();
     
-    public ExistingMessages(FunctionId functionId, List<MessageAndIdempotencyKey> receivedMessages, IMessageStore messageStore, ISerializer serializer)
+    public ExistingMessages(FlowId flowId, List<MessageAndIdempotencyKey> receivedMessages, IMessageStore messageStore, ISerializer serializer)
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _receivedMessages = receivedMessages;
         _messageStore = messageStore;
         _serializer = serializer;
@@ -28,7 +28,7 @@ public class ExistingMessages : IEnumerable<object>
 
     public async Task Clear()
     {
-        await _messageStore.Truncate(_functionId);
+        await _messageStore.Truncate(_flowId);
         _receivedMessages.Clear();  
     }
 
@@ -36,7 +36,7 @@ public class ExistingMessages : IEnumerable<object>
     {
         var (json, type) = _serializer.SerializeMessage(message);
         await _messageStore.AppendMessage(
-            _functionId, new StoredMessage(json, type, idempotencyKey)
+            _flowId, new StoredMessage(json, type, idempotencyKey)
         );
         
         _receivedMessages.Add(new MessageAndIdempotencyKey(message, idempotencyKey));  
@@ -48,7 +48,7 @@ public class ExistingMessages : IEnumerable<object>
             throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_receivedMessages.Count}'", nameof(position));
         
         var (json, type) = _serializer.SerializeMessage(message);
-        await _messageStore.ReplaceMessage(_functionId, position, new StoredMessage(json, type, idempotencyKey));
+        await _messageStore.ReplaceMessage(_flowId, position, new StoredMessage(json, type, idempotencyKey));
         
         _receivedMessages.Add(new MessageAndIdempotencyKey(message, idempotencyKey));  
     }

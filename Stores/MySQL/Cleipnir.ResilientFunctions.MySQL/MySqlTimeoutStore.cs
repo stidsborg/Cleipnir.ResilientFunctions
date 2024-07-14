@@ -64,8 +64,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = functionId.Type.Value},
+                new() {Value = functionId.Instance.Value},
                 new() {Value = timeoutId},
                 new() {Value = expiry},
                 new() {Value = expiry}
@@ -76,7 +76,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
+    public async Task RemoveTimeout(FlowId flowId, string timeoutId)
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
@@ -90,8 +90,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value},
                 new() {Value = timeoutId},
             }
         };
@@ -100,7 +100,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
+    public async Task Remove(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
@@ -111,8 +111,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value},
             }
         };
 
@@ -144,7 +144,7 @@ public class MySqlTimeoutStore : ITimeoutStore
             var functionInstanceId = reader.GetString(0);
             var timeoutId = reader.GetString(1);
             var expires = reader.GetInt64(2);
-            var functionId = new FunctionId(functionTypeId, functionInstanceId);
+            var functionId = new FlowId(functionTypeId, functionInstanceId);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -152,9 +152,9 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
     
     private string? _getFunctionTimeoutsSql;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getFunctionTimeoutsSql ??= @$"    
             SELECT timeout_id, expires
@@ -176,7 +176,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(flowId, timeoutId, expires));
         }
 
         return storedTimeouts;

@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
         public abstract Task SunshineScenario();
         public async Task SunshineScenario(IFunctionStore store)
         {
-            var functionTypeId = nameof(SunshineScenario).ToFunctionTypeId();
+            var functionTypeId = nameof(SunshineScenario).ToFlowType();
             async Task<string> ToUpper(string s, Workflow workflow)
             {
                 var toReturn = s.ToUpper();
@@ -36,7 +36,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             var result = await rFunc("hello", "hello");
             result.ShouldBe("HELLO");
 
-            var functionId = new FunctionId(functionTypeId, "hello".ToFunctionInstanceId());
+            var functionId = new FlowId(functionTypeId, "hello".ToFlowInstance());
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();

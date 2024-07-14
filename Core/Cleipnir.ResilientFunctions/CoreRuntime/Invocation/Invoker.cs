@@ -11,24 +11,24 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class Invoker<TParam, TReturn> 
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly Func<TParam, Workflow, Task<Result<TReturn>>> _inner;
     
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Utilities _utilities;
-    private readonly Func<FunctionId, MessageWriter> _messageWriterFunc;
+    private readonly Func<FlowId, MessageWriter> _messageWriterFunc;
 
     internal Invoker(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
         Utilities utilities,
-        Func<FunctionId, MessageWriter> messageWriterFunc
+        Func<FlowId, MessageWriter> messageWriterFunc
     )
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -38,7 +38,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
     {
-        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
+        var functionId = new FlowId(_flowType, functionInstanceId);
         (var created, var workflow, var disposables) = await PrepareForInvocation(functionId, param);
         if (!created) return await WaitForFunctionResult(functionId);
 
@@ -57,7 +57,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task ScheduleInvoke(string functionInstanceId, TParam param)
     {
-        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
+        var functionId = new FlowId(_flowType, functionInstanceId);
         (var created, var workflow, var disposables) = await PrepareForInvocation(functionId, param);
         if (!created) return;
 
@@ -76,7 +76,7 @@ public class Invoker<TParam, TReturn>
 
                 await PersistResultAndEnsureSuccess(functionId, result, param, workflow, allowPostponedOrSuspended: true);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
         });
     }
     
@@ -88,7 +88,7 @@ public class Invoker<TParam, TReturn>
             return;
         }
 
-        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var functionId = new FlowId(_flowType, instanceId);
         var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
             functionId,
             param,
@@ -100,7 +100,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var functionId = new FlowId(_flowType, instanceId);
         var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
 
         Result<TReturn> result;
@@ -118,7 +118,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var functionId = new FlowId(_flowType, instanceId);
         var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
 
         _ = Task.Run(async () =>
@@ -136,16 +136,16 @@ public class Invoker<TParam, TReturn>
                 
                 await PersistResultAndEnsureSuccess(functionId, result, param, workflow, epoch, allowPostponedOrSuspended: true);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
         });
     }
     
-    private async Task<TReturn> WaitForFunctionResult(FunctionId functionId)
-        => await _invocationHelper.WaitForFunctionResult(functionId, allowPostponedAndSuspended: false);
+    private async Task<TReturn> WaitForFunctionResult(FlowId flowId)
+        => await _invocationHelper.WaitForFunctionResult(flowId, allowPostponedAndSuspended: false);
 
-    internal async Task ScheduleReInvoke(FunctionInstanceId instanceId, RestartedFunction rf, Action onCompletion)
+    internal async Task ScheduleReInvoke(FlowInstance instance, RestartedFunction rf, Action onCompletion)
     {
-        var functionId = new FunctionId(_functionTypeId, instanceId);
+        var functionId = new FlowId(_flowType, instance);
         var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, rf);
 
         _ = Task.Run(async () =>
@@ -163,12 +163,12 @@ public class Invoker<TParam, TReturn>
                 
                 await PersistResultAndEnsureSuccess(functionId, result, param, workflow, epoch, allowPostponedOrSuspended: true);
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_functionTypeId, exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
             finally{ onCompletion(); }
         });
     }
     
-    private async Task<PreparedInvocation> PrepareForInvocation(FunctionId functionId, TParam param)
+    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, TParam param)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -176,26 +176,26 @@ public class Invoker<TParam, TReturn>
         {
             var (persisted, runningFunction) =
                 await _invocationHelper.PersistFunctionInStore(
-                    functionId,
+                    flowId,
                     param,
                     scheduleAt: null
                 );
             disposables.Add(runningFunction);
-            disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch: 0));
+            disposables.Add(_invocationHelper.StartLeaseUpdater(flowId, epoch: 0));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
             var messages = await _invocationHelper.CreateMessages(
-                functionId, 
+                flowId, 
                 ScheduleReInvoke, 
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: false
             );
             
-            var effect = await _invocationHelper.CreateEffect(functionId, sync: false);
-            var states = await _invocationHelper.CreateStates(functionId, defaultState: null, sync: false);
-            var correlations = await _invocationHelper.CreateCorrelations(functionId, sync: false);
-            var workflow = new Workflow(functionId, messages, effect, states, _utilities, correlations, _messageWriterFunc);
+            var effect = await _invocationHelper.CreateEffect(flowId, sync: false);
+            var states = await _invocationHelper.CreateStates(flowId, defaultState: null, sync: false);
+            var correlations = await _invocationHelper.CreateCorrelations(flowId, sync: false);
+            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations, _messageWriterFunc);
 
             return new PreparedInvocation(
                 persisted,
@@ -215,37 +215,37 @@ public class Invoker<TParam, TReturn>
     }
     private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables);
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, int expectedEpoch)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FlowId flowId, int expectedEpoch)
     {
-        var restartedFunction = await _invocationHelper.RestartFunction(functionId, expectedEpoch);
+        var restartedFunction = await _invocationHelper.RestartFunction(flowId, expectedEpoch);
         if (restartedFunction == null)
-            throw new UnexpectedFunctionState(functionId, $"Function '{functionId}' did not have expected epoch '{expectedEpoch}' on re-invocation");
+            throw new UnexpectedFunctionState(flowId, $"Function '{flowId}' did not have expected epoch '{expectedEpoch}' on re-invocation");
 
-        return await PrepareForReInvocation(functionId, restartedFunction);
+        return await PrepareForReInvocation(flowId, restartedFunction);
     }
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(FunctionId functionId, RestartedFunction restartedFunction)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(FlowId flowId, RestartedFunction restartedFunction)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
             var (param, epoch, defaultState, runningFunction) = 
-                await _invocationHelper.PrepareForReInvocation(functionId, restartedFunction);
+                await _invocationHelper.PrepareForReInvocation(flowId, restartedFunction);
             disposables.Add(runningFunction);
-            disposables.Add(_invocationHelper.StartLeaseUpdater(functionId, epoch));
+            disposables.Add(_invocationHelper.StartLeaseUpdater(flowId, epoch));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
             var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(
-                functionId, 
+                flowId, 
                 ScheduleReInvoke,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: true));
-            var effectsTask = Task.Run(() => _invocationHelper.CreateEffect(functionId, sync: true));
-            var statesTask = Task.Run(() => _invocationHelper.CreateStates(functionId, defaultState, sync: true));
-            var correlationsTask = Task.Run(() => _invocationHelper.CreateCorrelations(functionId, sync: true));
+            var effectsTask = Task.Run(() => _invocationHelper.CreateEffect(flowId, sync: true));
+            var statesTask = Task.Run(() => _invocationHelper.CreateStates(flowId, defaultState, sync: true));
+            var correlationsTask = Task.Run(() => _invocationHelper.CreateCorrelations(flowId, sync: true));
             var workflow = new Workflow(
-                functionId,
+                flowId,
                 await messagesTask,
                 await effectsTask,
                 await statesTask,
@@ -277,33 +277,33 @@ public class Invoker<TParam, TReturn>
         IDisposable Disposables
     );
 
-    private async Task PersistFailure(FunctionId functionId, Exception exception, TParam param, Workflow workflow, int expectedEpoch = 0)
-        => await _invocationHelper.PersistFailure(functionId, exception, param, workflow.States.SerializeDefaultState(), expectedEpoch);
+    private async Task PersistFailure(FlowId flowId, Exception exception, TParam param, Workflow workflow, int expectedEpoch = 0)
+        => await _invocationHelper.PersistFailure(flowId, exception, param, workflow.States.SerializeDefaultState(), expectedEpoch);
 
-    private async Task PersistResultAndEnsureSuccess(FunctionId functionId, Result<TReturn> result, TParam param, Workflow workflow, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
+    private async Task PersistResultAndEnsureSuccess(FlowId flowId, Result<TReturn> result, TParam param, Workflow workflow, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
         if (result.Succeed && result.SucceedWithValue is Task)
         {
             var serializationException = new SerializationException("Unable to serialize result of Task-type");
-            await _invocationHelper.PersistFailure(functionId, serializationException, param, workflow.States.SerializeDefaultState(), expectedEpoch);
+            await _invocationHelper.PersistFailure(flowId, serializationException, param, workflow.States.SerializeDefaultState(), expectedEpoch);
             throw serializationException;
         }
             
-        var outcome = await _invocationHelper.PersistResult(functionId, result, param, workflow.States.SerializeDefaultState(), expectedEpoch);
+        var outcome = await _invocationHelper.PersistResult(flowId, result, param, workflow.States.SerializeDefaultState(), expectedEpoch);
         switch (outcome)
         {
             case PersistResultOutcome.Failed:
-                throw new ConcurrentModificationException(functionId);
+                throw new ConcurrentModificationException(flowId);
             case PersistResultOutcome.Success:
-                InvocationHelper<TParam, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+                InvocationHelper<TParam, TReturn>.EnsureSuccess(flowId, result, allowPostponedOrSuspended);
                 break;
             case PersistResultOutcome.Reschedule:
             {
                 try
                 {
-                    await ScheduleReInvoke(functionId.InstanceId.Value, expectedEpoch);
+                    await ScheduleReInvoke(flowId.Instance.Value, expectedEpoch);
                 } catch (UnexpectedFunctionState) {} //allow this exception - the invocation has been surpassed by other execution
-                InvocationHelper<TParam, TReturn>.EnsureSuccess(functionId, result, allowPostponedOrSuspended);
+                InvocationHelper<TParam, TReturn>.EnsureSuccess(flowId, result, allowPostponedOrSuspended);
                 break;
             }
             default:

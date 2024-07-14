@@ -21,7 +21,7 @@ public abstract class StateTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -60,7 +60,7 @@ public abstract class StateTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 

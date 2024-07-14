@@ -19,7 +19,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
@@ -43,7 +43,7 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(functionId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
-        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -57,7 +57,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
@@ -80,7 +80,7 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(functionId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
-        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -94,7 +94,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
@@ -123,7 +123,7 @@ public abstract class EffectTests
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
-        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -139,7 +139,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
@@ -168,7 +168,7 @@ public abstract class EffectTests
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
-        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ReInvoke();
         
@@ -184,7 +184,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
@@ -214,7 +214,7 @@ public abstract class EffectTests
         storedEffect.StoredException.ShouldNotBeNull();
         storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
 
-        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await Should.ThrowAsync<EffectException>(() => controlPanel.ReInvoke());
         
@@ -231,7 +231,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
@@ -257,7 +257,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = functionsRegistry.RegisterFunc(
             functionTypeId,
@@ -283,7 +283,7 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
 
         await store.CreateFunction(
@@ -302,7 +302,7 @@ public abstract class EffectTests
                 await effect.Clear("SomeEffect");
             });
 
-        var controlPanel = await registration.ControlPanel(functionId.InstanceId);
+        var controlPanel = await registration.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Effects.SetSucceeded("SomeEffect");
@@ -316,7 +316,7 @@ public abstract class EffectTests
     public async Task EffectsCrudTest(Task<IFunctionStore> storeTask)
     {  
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var effect = new Effect(
             functionId,
             existingEffects: Array.Empty<StoredEffect>(),

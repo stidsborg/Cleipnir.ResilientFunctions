@@ -17,7 +17,7 @@ public abstract class SunshineTests
     public async Task SunshineScenarioFunc(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(SunshineScenarioFunc).ToFunctionTypeId();
+        var functionTypeId = nameof(SunshineScenarioFunc).ToFlowType();
         async Task<string> ToUpper(string s)
         {
             await Task.Delay(10);
@@ -38,9 +38,9 @@ public abstract class SunshineTests
         result.ShouldBe("HELLO");
             
         var storedFunction = await store.GetFunction(
-            new FunctionId(
+            new FlowId(
                 functionTypeId, 
-                "hello".ToFunctionInstanceId()
+                "hello".ToFlowInstance()
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -56,7 +56,7 @@ public abstract class SunshineTests
     public async Task SunshineScenarioParamless(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = TestFunctionId.Create().TypeId;
+        var functionTypeId = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
@@ -74,7 +74,7 @@ public abstract class SunshineTests
         await registration("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
             
-        var storedFunction = await store.GetFunction(new FunctionId(functionTypeId, functionInstanceId: "SomeInstanceId"));
+        var storedFunction = await store.GetFunction(new FlowId(functionTypeId, flowInstance: "SomeInstanceId"));
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldBeNull();
@@ -87,7 +87,7 @@ public abstract class SunshineTests
     public async Task SunshineScenarioParamlessWithResultReturnType(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = TestFunctionId.Create().TypeId;
+        var functionTypeId = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
@@ -105,7 +105,7 @@ public abstract class SunshineTests
         await registration("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
             
-        var storedFunction = await store.GetFunction(new FunctionId(functionTypeId, functionInstanceId: "SomeInstanceId"));
+        var storedFunction = await store.GetFunction(new FlowId(functionTypeId, flowInstance: "SomeInstanceId"));
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldBeNull();
@@ -118,7 +118,7 @@ public abstract class SunshineTests
     public async Task SunshineScenarioFuncWithState(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(SunshineScenarioFuncWithState).ToFunctionTypeId();
+        var functionTypeId = nameof(SunshineScenarioFuncWithState).ToFlowType();
         async Task<string> ToUpper(string s, State state)
         {
             await state.Save();
@@ -139,9 +139,9 @@ public abstract class SunshineTests
         result.ShouldBe("HELLO");
             
         var storedFunction = await store.GetFunction(
-            new FunctionId(
+            new FlowId(
                 functionTypeId, 
-                "hello".ToFunctionInstanceId()
+                "hello".ToFlowInstance()
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -157,7 +157,7 @@ public abstract class SunshineTests
     public async Task SunshineScenarioAction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(SunshineScenarioAction).ToFunctionTypeId();
+        var functionTypeId = nameof(SunshineScenarioAction).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
@@ -171,9 +171,9 @@ public abstract class SunshineTests
         await rAction("hello", "hello");
         
         var storedFunction = await store.GetFunction(
-            new FunctionId(
+            new FlowId(
                 functionTypeId, 
-                "hello".ToFunctionInstanceId()
+                "hello".ToFlowInstance()
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -185,7 +185,7 @@ public abstract class SunshineTests
     public async Task SunshineScenarioActionWithState(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(SunshineScenarioActionWithState).ToFunctionTypeId();
+        var functionTypeId = nameof(SunshineScenarioActionWithState).ToFlowType();
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
@@ -199,9 +199,9 @@ public abstract class SunshineTests
         await rFunc("hello", "hello");
 
         var storedFunction = await store.GetFunction(
-            new FunctionId(
+            new FlowId(
                 functionTypeId, 
-                "hello".ToFunctionInstanceId()
+                "hello".ToFlowInstance()
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -214,11 +214,11 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        FunctionTypeId functionTypeId = "SomeFunctionType";
+        FlowType flowType = "SomeFunctionType";
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string s) => default(string).ToTask()
         ).Invoke;
 
@@ -231,7 +231,7 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -263,11 +263,11 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        FunctionTypeId functionTypeId = "SomeFunctionType";
+        FlowType flowType = "SomeFunctionType";
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string _, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<ListState<string>>("State");
@@ -289,7 +289,7 @@ public abstract class SunshineTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         {
             using var functionsRegistry = new FunctionsRegistry(
                 store,
@@ -300,7 +300,7 @@ public abstract class SunshineTests
             );
         
             var rFunc = functionsRegistry.RegisterAction(
-                functionId.TypeId,
+                functionId.Type,
                 inner: (string _) => {}
             ).Invoke;
 
@@ -318,7 +318,7 @@ public abstract class SunshineTests
             );    
             
             functionsRegistry.RegisterAction(
-                functionId.TypeId,
+                functionId.Type,
                 inner: (string _) => {}
             );
             

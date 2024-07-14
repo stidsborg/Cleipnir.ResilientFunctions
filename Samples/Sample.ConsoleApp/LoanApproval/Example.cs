@@ -54,7 +54,7 @@ public static class Example
 
         var registration = functions
             .RegisterAction<LoanApplication>(
-                functionTypeId: "LoanApproval",
+                flowType: "LoanApproval",
                 ApproveLoan.Execute
             );
         var rFunc = registration.Invoke;

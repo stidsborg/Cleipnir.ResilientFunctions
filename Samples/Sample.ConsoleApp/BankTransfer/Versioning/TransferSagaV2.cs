@@ -14,7 +14,7 @@ public sealed class TransferSagaV2
         var saga = new Inner(new BankCentralClient());
         _actionRegistration = functionsRegistry
             .RegisterAction<Transfer>(
-                functionTypeId: nameof(TransferSagaV2),
+                flowType: nameof(TransferSagaV2),
                 (transfer, workflow) => saga.Perform(transfer, workflow)
             );
     }

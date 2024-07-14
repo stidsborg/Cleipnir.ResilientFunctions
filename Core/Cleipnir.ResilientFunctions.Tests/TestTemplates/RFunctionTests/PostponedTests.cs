@@ -18,7 +18,7 @@ public abstract class PostponedTests
     protected async Task PostponedFuncIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(PostponedFuncIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionTypeId = nameof(PostponedFuncIsCompletedByWatchDog).ToFlowType();
         const string param = "test";
         {
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -58,7 +58,7 @@ public abstract class PostponedTests
                     (string s) => s.ToUpper().ToTask()
                 ).Invoke;
 
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            var functionId = new FlowId(functionTypeId, param.ToFlowInstance());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
             await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -69,7 +69,7 @@ public abstract class PostponedTests
     protected async Task PostponedFuncWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(PostponedFuncWithStateIsCompletedByWatchDog).ToFunctionTypeId();
+        var functionTypeId = nameof(PostponedFuncWithStateIsCompletedByWatchDog).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
@@ -111,7 +111,7 @@ public abstract class PostponedTests
                     }
                 ).Invoke;
 
-            var functionId = new FunctionId(functionTypeId, param.ToFunctionInstanceId());
+            var functionId = new FlowId(functionTypeId, param.ToFlowInstance());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
@@ -129,7 +129,7 @@ public abstract class PostponedTests
     protected async Task PostponedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
@@ -176,7 +176,7 @@ public abstract class PostponedTests
     protected async Task PostponedActionWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
@@ -236,7 +236,7 @@ public abstract class PostponedTests
     protected async Task PostponedActionIsCompletedByWatchDogAfterCrash(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var crashableStore = new CrashableFunctionStore(store);
@@ -250,10 +250,10 @@ public abstract class PostponedTests
                 )
             );
             var rFunc = functionsRegistry
-                .RegisterAction(functionId.TypeId, (string _) => Postpone.For(1_000))
+                .RegisterAction(functionId.Type, (string _) => Postpone.For(1_000))
                 .Invoke;
 
-            var instanceId = functionId.InstanceId.ToString();
+            var instanceId = functionId.Instance.ToString();
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => _ = rFunc(instanceId, "param"));
             crashableStore.Crash();
         }
@@ -267,7 +267,7 @@ public abstract class PostponedTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            functionsRegistry.RegisterAction(functionId.TypeId, (string _) => { });
+            functionsRegistry.RegisterAction(functionId.Type, (string _) => { });
             
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         
@@ -296,7 +296,7 @@ public abstract class PostponedTests
                 () => rAction.Invoke("invoke", "hello")
             );
             var (status, postponedUntil) = await store
-                .GetFunction(new FunctionId(functionTypeId, "invoke"))
+                .GetFunction(new FlowId(functionTypeId, "invoke"))
                 .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
 
             status.ShouldBe(Status.Postponed);
@@ -306,7 +306,7 @@ public abstract class PostponedTests
         }
         //schedule
         {
-            var functionId = new FunctionId(functionTypeId, "schedule");
+            var functionId = new FlowId(functionTypeId, "schedule");
             await rAction.Schedule("schedule", "hello");
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
@@ -320,7 +320,7 @@ public abstract class PostponedTests
         }
         //re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            var functionId = new FlowId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(),
@@ -330,7 +330,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.ControlPanel(functionId.InstanceId.Value).Result!.ReInvoke()
+                () => rAction.ControlPanel(functionId.Instance.Value).Result!.ReInvoke()
             );
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -341,7 +341,7 @@ public abstract class PostponedTests
         }
         //schedule re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            var functionId = new FlowId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(),
@@ -350,7 +350,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            await rAction.ControlPanel(functionId.InstanceId).Result!.ScheduleReInvoke();
+            await rAction.ControlPanel(functionId.Instance).Result!.ScheduleReInvoke();
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -379,9 +379,9 @@ public abstract class PostponedTests
 
         //invoke
         {
-            var functionId = new FunctionId(functionTypeId, "invoke");
+            var functionId = new FlowId(functionTypeId, "invoke");
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.Invoke(functionId.InstanceId.Value, "hello")
+                () => rAction.Invoke(functionId.Instance.Value, "hello")
             );
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
             status.ShouldBe(Status.Postponed);
@@ -391,7 +391,7 @@ public abstract class PostponedTests
         }
         //schedule
         {
-            var functionId = new FunctionId(functionTypeId, "schedule");
+            var functionId = new FlowId(functionTypeId, "schedule");
             await rAction.Schedule("schedule", "hello");
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
@@ -405,7 +405,7 @@ public abstract class PostponedTests
         }
         //re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            var functionId = new FlowId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(), 
@@ -415,7 +415,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
             
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rAction.ControlPanel(functionId.InstanceId).Result!.ReInvoke()
+                () => rAction.ControlPanel(functionId.Instance).Result!.ReInvoke()
             );
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -426,7 +426,7 @@ public abstract class PostponedTests
         }
         //schedule re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            var functionId = new FlowId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(),
@@ -435,7 +435,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            await rAction.ControlPanel(functionId.InstanceId).Result!.ScheduleReInvoke();
+            await rAction.ControlPanel(functionId.Instance).Result!.ScheduleReInvoke();
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -453,7 +453,7 @@ public abstract class PostponedTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        var functionTypeId = TestFunctionId.Create().TypeId;
+        var functionTypeId = TestFlowId.Create().Type;
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
@@ -469,7 +469,7 @@ public abstract class PostponedTests
                 () => rFunc.Invoke("invoke", "hello")
             );
             var (status, postponedUntil) = await store
-                .GetFunction(new FunctionId(functionTypeId, "invoke"))
+                .GetFunction(new FlowId(functionTypeId, "invoke"))
                 .Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
 
             status.ShouldBe(Status.Postponed);
@@ -479,7 +479,7 @@ public abstract class PostponedTests
         }
         //schedule
         {
-            var functionId = new FunctionId(functionTypeId, "schedule");
+            var functionId = new FlowId(functionTypeId, "schedule");
 
             await rFunc.Schedule("schedule", "hello");
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
@@ -494,7 +494,7 @@ public abstract class PostponedTests
         }
         //re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            var functionId = new FlowId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(),
@@ -502,7 +502,7 @@ public abstract class PostponedTests
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
-            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -513,7 +513,7 @@ public abstract class PostponedTests
         }
         //schedule re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            var functionId = new FlowId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(),
@@ -522,7 +522,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             await controlPanel.ScheduleReInvoke();
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
@@ -541,7 +541,7 @@ public abstract class PostponedTests
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
-        var functionTypeId = TestFunctionId.Create().TypeId;
+        var functionTypeId = TestFlowId.Create().Type;
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
@@ -553,9 +553,9 @@ public abstract class PostponedTests
 
         //invoke
         {
-            var functionId = new FunctionId(functionTypeId, "invoke");
+            var functionId = new FlowId(functionTypeId, "invoke");
             Should.Throw<FunctionInvocationPostponedException>(
-                () => rFunc.Invoke(functionId.InstanceId.Value, "hello")
+                () => rFunc.Invoke(functionId.Instance.Value, "hello")
             );
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
             status.ShouldBe(Status.Postponed);
@@ -565,7 +565,7 @@ public abstract class PostponedTests
         }
         //schedule
         {
-            var functionId = new FunctionId(functionTypeId, "schedule");
+            var functionId = new FlowId(functionTypeId, "schedule");
 
             await rFunc.Schedule("schedule", "hello");
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
@@ -580,7 +580,7 @@ public abstract class PostponedTests
         }
         //re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "re-invoke");
+            var functionId = new FlowId(functionTypeId, "re-invoke");
             await store.CreateFunction(
                 functionId,
                 "hello".ToJson(),
@@ -589,7 +589,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.ReInvoke());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -600,7 +600,7 @@ public abstract class PostponedTests
         }
         //schedule re-invoke
         {
-            var functionId = new FunctionId(functionTypeId, "schedule_re-invoke");
+            var functionId = new FlowId(functionTypeId, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
                 param: "hello".ToJson(),
@@ -609,7 +609,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
 
-            var controlPanel = await rFunc.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             await controlPanel.ScheduleReInvoke();
 
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Postponed));
@@ -627,7 +627,7 @@ public abstract class PostponedTests
     public abstract Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp();
     protected async Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, _) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -684,7 +684,7 @@ public abstract class PostponedTests
     protected async Task ScheduleAtActionIsCompletedAfterDelay(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
@@ -698,14 +698,14 @@ public abstract class PostponedTests
         );
         var rAction = functionsRegistry
             .RegisterAction(
-                functionId.TypeId,
+                functionId.Type,
                 (string _) =>
                 {
                     flag.Raise();
                 });
 
         await rAction.ScheduleAt(
-            functionId.InstanceId.ToString(),
+            functionId.Instance.ToString(),
             "param",
             delayUntil: DateTime.UtcNow.AddSeconds(1)
         );
@@ -713,7 +713,7 @@ public abstract class PostponedTests
         var sf = await store.GetFunction(functionId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Postponed);
 
-        var controlPanel = await rAction.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await BusyWait.Until(async () =>
             {
@@ -730,7 +730,7 @@ public abstract class PostponedTests
     protected async Task ScheduleAtFuncIsCompletedAfterDelay(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
@@ -745,7 +745,7 @@ public abstract class PostponedTests
         );
         var rFunc = functionsRegistry
             .RegisterFunc(
-                functionId.TypeId,
+                functionId.Type,
                 (string _) =>
                 {
                     flag.Raise();
@@ -753,7 +753,7 @@ public abstract class PostponedTests
                 });
 
         await rFunc.ScheduleAt(
-            functionId.InstanceId.ToString(),
+            functionId.Instance.ToString(),
             "param",
             delayUntil: DateTime.UtcNow.AddSeconds(1)
         );
@@ -761,7 +761,7 @@ public abstract class PostponedTests
         var sf = await store.GetFunction(functionId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Postponed);
 
-        var controlPanel = await rFunc.ControlPanel(functionId.InstanceId);
+        var controlPanel = await rFunc.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         await BusyWait.Until(async () =>
         {
@@ -777,7 +777,7 @@ public abstract class PostponedTests
     protected async Task WorkflowDelayInvocationDelaysFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry
@@ -790,12 +790,12 @@ public abstract class PostponedTests
         );
         var rFunc = functionsRegistry
             .RegisterAction(
-                functionId.TypeId,
+                functionId.Type,
                 (string _, Workflow workflow) => workflow.Delay("Delay", TimeSpan.FromDays(1))
             );
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(
-            () => rFunc.Invoke(functionId.InstanceId.Value, "test")
+            () => rFunc.Invoke(functionId.Instance.Value, "test")
         );
     }
     
@@ -803,7 +803,7 @@ public abstract class PostponedTests
     protected async Task WorkflowDelayWithDateTimeInvocationDelaysFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry
@@ -817,15 +817,15 @@ public abstract class PostponedTests
         var tomorrow = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
         var registration = functionsRegistry
             .RegisterAction(
-                functionId.TypeId,
+                functionId.Type,
                 (string _, Workflow workflow) => workflow.Delay("Delay", tomorrow)
             );
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(
-            () => registration.Invoke(functionId.InstanceId.Value, "test")
+            () => registration.Invoke(functionId.Instance.Value, "test")
         );
 
-        var controlPanel = await registration.ControlPanel(functionId.InstanceId);
+        var controlPanel = await registration.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
 
         var delay = controlPanel.Effects.GetValue<DateTime>("Delay");

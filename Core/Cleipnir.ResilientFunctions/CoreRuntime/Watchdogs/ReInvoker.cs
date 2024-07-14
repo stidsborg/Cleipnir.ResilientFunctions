@@ -13,9 +13,9 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class ReInvoker
 {
-    public delegate Task<IReadOnlyList<InstanceIdAndEpoch>> GetEligibleFunctions(FunctionTypeId functionTypeId, IFunctionStore functionStore, long t);
+    public delegate Task<IReadOnlyList<InstanceIdAndEpoch>> GetEligibleFunctions(FlowType flowType, IFunctionStore functionStore, long t);
     
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
 
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -31,7 +31,7 @@ internal class ReInvoker
     private readonly GetEligibleFunctions _getEligibleFunctions;
 
     public ReInvoker(
-        FunctionTypeId functionTypeId, 
+        FlowType flowType, 
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp, 
@@ -40,7 +40,7 @@ internal class ReInvoker
         GetEligibleFunctions getEligibleFunctions
     )
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _functionStore = functionStore;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -63,7 +63,7 @@ internal class ReInvoker
             {
                 var now = DateTime.UtcNow;
 
-                var eligibleFunctions = await _getEligibleFunctions(_functionTypeId, _functionStore, now.Ticks);
+                var eligibleFunctions = await _getEligibleFunctions(_flowType, _functionStore, now.Ticks);
                 #if DEBUG
                     eligibleFunctions = await ReAssertCrashedFunctions(eligibleFunctions, now);
                 #endif
@@ -80,7 +80,7 @@ internal class ReInvoker
                         return;
                     }
                     
-                    var functionId = new FunctionId(_functionTypeId, sef.InstanceId);
+                    var functionId = new FlowId(_flowType, sef.Instance);
                     var restartedFunction = await _restartFunction(functionId, sef.Epoch);
                     if (restartedFunction == null)
                     {
@@ -90,7 +90,7 @@ internal class ReInvoker
                     }
 
                     await _scheduleReInvoke(
-                        sef.InstanceId,
+                        sef.Instance,
                         restartedFunction,
                         onCompletion: () =>
                         {
@@ -110,8 +110,8 @@ internal class ReInvoker
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    _functionTypeId,
-                    $"{watchdogName} for '{_functionTypeId}' failed - retrying in 5 seconds",
+                    _flowType,
+                    $"{watchdogName} for '{_flowType}' failed - retrying in 5 seconds",
                     innerException: thrownException
                 )
             );
@@ -131,7 +131,7 @@ internal class ReInvoker
         
         await Task.Delay(500);
         var eligibleFunctionsRepeated = 
-            (await _getEligibleFunctions(_functionTypeId, _functionStore, now.Ticks)).ToHashSet();
+            (await _getEligibleFunctions(_flowType, _functionStore, now.Ticks)).ToHashSet();
         
         return eligibleFunctions.Where(ie => eligibleFunctionsRepeated.Contains(ie)).ToList();
     }

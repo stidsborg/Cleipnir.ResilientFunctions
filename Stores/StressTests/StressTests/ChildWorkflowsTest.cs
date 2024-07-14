@@ -23,14 +23,14 @@ public class ChildWorkflowsTest
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
-        var parentFunctionId = new FunctionId("Parent", "Parent");
+        var parentFunctionId = new FlowId("Parent", "Parent");
         var childRegistration = functionsRegistry.RegisterAction(
             "Child",
             async Task (string param, Workflow workflow) =>
-                await workflow.SendMessage(parentFunctionId, param, idempotencyKey: workflow.FunctionId.ToString())
+                await workflow.SendMessage(parentFunctionId, param, idempotencyKey: workflow.FlowId.ToString())
         );
         var parentRegistration = functionsRegistry.RegisterAction(
-            parentFunctionId.TypeId,
+            parentFunctionId.Type,
             async Task (string param, Workflow workflow) =>
             {
                 await childRegistration.BulkSchedule(
@@ -44,7 +44,7 @@ public class ChildWorkflowsTest
         );
         
         Console.WriteLine("CHILD_WORKFLOWS_TEST: Starting parent-invocation");
-        await parentRegistration.Schedule(parentFunctionId.InstanceId.Value, "SomeParam");
+        await parentRegistration.Schedule(parentFunctionId.Instance.Value, "SomeParam");
         
         var executionAverageSpeed = await 
             WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "CHILD_WORKFLOWS_TEST: ");

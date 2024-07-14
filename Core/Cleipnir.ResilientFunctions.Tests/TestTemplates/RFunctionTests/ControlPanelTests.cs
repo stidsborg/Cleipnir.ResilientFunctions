@@ -22,7 +22,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
@@ -81,7 +81,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -141,7 +141,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -178,7 +178,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -215,7 +215,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -250,7 +250,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -285,7 +285,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -318,7 +318,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -351,7 +351,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -387,7 +387,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
@@ -432,7 +432,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterFunc(
@@ -464,7 +464,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
@@ -506,7 +506,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterFunc(
@@ -540,7 +540,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
@@ -569,7 +569,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc(
@@ -598,7 +598,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
@@ -634,7 +634,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
@@ -664,7 +664,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
         
@@ -700,7 +700,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var before = DateTime.UtcNow;
 
@@ -741,7 +741,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -765,7 +765,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -789,7 +789,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -818,7 +818,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -881,7 +881,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -923,7 +923,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -960,7 +960,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1004,7 +1004,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1041,7 +1041,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1085,7 +1085,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1124,7 +1124,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1153,7 +1153,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var runEffect = false;
@@ -1184,7 +1184,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -1211,7 +1211,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -1255,7 +1255,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -1286,7 +1286,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var syncedCounter = new SyncedCounter();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -1328,7 +1328,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1388,7 +1388,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1419,7 +1419,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -1458,7 +1458,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
@@ -1501,7 +1501,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
@@ -1535,7 +1535,7 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         

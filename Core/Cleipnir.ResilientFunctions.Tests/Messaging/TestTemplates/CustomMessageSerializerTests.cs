@@ -16,7 +16,7 @@ public abstract class CustomMessageSerializerTests
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
     protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 

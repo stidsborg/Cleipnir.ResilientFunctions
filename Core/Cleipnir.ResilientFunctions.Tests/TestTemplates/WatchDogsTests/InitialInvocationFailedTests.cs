@@ -15,7 +15,7 @@ public abstract class InitialInvocationFailedTests
     protected async Task CreatedActionIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
             param: "hello world".ToJson(),
@@ -27,7 +27,7 @@ public abstract class InitialInvocationFailedTests
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             void(string param) => flag.Raise()
         );
 
@@ -42,7 +42,7 @@ public abstract class InitialInvocationFailedTests
     protected async Task CreatedActionWithStateIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
             param: "hello world".ToJson(),
@@ -54,7 +54,7 @@ public abstract class InitialInvocationFailedTests
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterAction<string>(
-            functionId.TypeId,
+            functionId.Type,
             void(string param) => flag.Raise()
         );
 
@@ -69,7 +69,7 @@ public abstract class InitialInvocationFailedTests
     public async Task CreatedFuncIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
             param: "hello world".ToJson(),
@@ -81,7 +81,7 @@ public abstract class InitialInvocationFailedTests
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterFunc(
-            functionId.TypeId,
+            functionId.Type,
             string (string param) =>
             {
                 flag.Raise();
@@ -102,7 +102,7 @@ public abstract class InitialInvocationFailedTests
     protected async Task CreatedFuncWithStateIsCompletedByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
             param: "hello world".ToJson(),
@@ -114,7 +114,7 @@ public abstract class InitialInvocationFailedTests
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterFunc(
-            functionId.TypeId,
+            functionId.Type,
             string (string param) =>
             {
                 flag.Raise();

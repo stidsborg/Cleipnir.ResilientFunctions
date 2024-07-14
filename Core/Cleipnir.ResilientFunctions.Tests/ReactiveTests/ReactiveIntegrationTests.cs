@@ -22,7 +22,7 @@ public class ReactiveIntegrationTests
     {
         var store = new InMemoryFunctionStore();
         var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var rAction = functionsRegistry.RegisterAction<string>(
             functionTypeId,

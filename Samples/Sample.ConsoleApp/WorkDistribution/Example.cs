@@ -67,7 +67,7 @@ public static class Example
         await processOrders.Schedule("2024-01-27", orderIds);
 
         await BusyWait.Until(async () =>
-                (await store.GetFunctionStatus(new FunctionId(processOrders.TypeId, "2024-01-27")))!.Status
+                (await store.GetFunctionStatus(new FlowId(processOrders.Type, "2024-01-27")))!.Status
                 ==
                 Status.Succeeded,
             maxWait: TimeSpan.FromSeconds(60)

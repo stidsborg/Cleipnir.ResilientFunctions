@@ -4,16 +4,16 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public sealed class FunctionInvocationPostponedException : RFunctionException
 {
-    public FunctionId FunctionId { get; }
+    public FlowId FlowId { get; }
     public DateTime PostponedUntil { get; }
 
-    public FunctionInvocationPostponedException(FunctionId functionId, DateTime postponedUntil)
+    public FunctionInvocationPostponedException(FlowId flowId, DateTime postponedUntil)
         : base(
-            functionId.TypeId,
-            $"Function '{functionId}' has been postponed until: '{postponedUntil:O}'"
+            flowId.Type,
+            $"Function '{flowId}' has been postponed until: '{postponedUntil:O}'"
         )
     {
-        FunctionId = functionId;
+        FlowId = flowId;
         PostponedUntil = postponedUntil;
     } 
 }

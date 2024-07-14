@@ -43,9 +43,9 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
     }
 
     private string? _setCorrelationSql;
-    public async Task SetCorrelation(FunctionId functionId, string correlationId)
+    public async Task SetCorrelation(FlowId flowId, string correlationId)
     {
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (functionTypeId, functionInstanceId) = flowId;
         await using var conn = await _connFunc();
         _setCorrelationSql ??= $@"
             MERGE INTO {tablePrefix}_Correlations
@@ -67,7 +67,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
     }
 
     private string? _getCorrelations;
-    public async Task<IReadOnlyList<FunctionId>> GetCorrelations(string correlationId)
+    public async Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId)
     {
         await using var conn = await _connFunc();
         _getCorrelations ??= @$"
@@ -78,22 +78,22 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         await using var command = new SqlCommand(_getCorrelations, conn);
         command.Parameters.AddWithValue("@CorrelationId", correlationId);
 
-        var functions = new List<FunctionId>();
+        var functions = new List<FlowId>();
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
             var functionType = reader.GetString(0);
             var functionInstance = reader.GetString(1);
-            functions.Add(new FunctionId(functionType, functionInstance));
+            functions.Add(new FlowId(functionType, functionInstance));
         }
 
         return functions;
     }
 
     private string? _getCorrelationsForFunction;
-    public async Task<IReadOnlyList<string>> GetCorrelations(FunctionId functionId)
+    public async Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await _connFunc();
         _getCorrelationsForFunction ??= @$"
             SELECT Correlation
@@ -116,9 +116,9 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
     }
 
     private string? _removeCorrelationsSql;
-    public async Task RemoveCorrelations(FunctionId functionId)
+    public async Task RemoveCorrelations(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await _connFunc();
         _removeCorrelationsSql ??= @$"
             DELETE FROM {tablePrefix}_Correlations
@@ -132,9 +132,9 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
     }
 
     private string? _removeCorrelationSql;
-    public async Task RemoveCorrelation(FunctionId functionId, string correlationId)
+    public async Task RemoveCorrelation(FlowId flowId, string correlationId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await _connFunc();
         _removeCorrelationSql ??= @$"
             DELETE FROM {tablePrefix}_Correlations

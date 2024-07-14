@@ -5,7 +5,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public interface IQueueStore
 {
-    Task<StoredQueueItem?> Peek(FunctionId functionId);
-    Task Pop(FunctionId functionId);
-    Task Push(FunctionId functionId, StoredQueueItem storedQueueItem);
+    Task<StoredQueueItem?> Peek(FlowId flowId);
+    Task Pop(FlowId flowId);
+    Task Push(FlowId flowId, StoredQueueItem storedQueueItem);
 }

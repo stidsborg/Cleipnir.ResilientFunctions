@@ -49,9 +49,9 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
+    public async Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
     {
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (functionTypeId, functionInstanceId) = flowId;
         await using var conn = await _connFunc();
         _setEffectResultSql ??= $@"
             MERGE INTO {_tablePrefix}_Effects
@@ -75,7 +75,7 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _getEffectResultsSql;
-    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
+    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FlowId flowId)
     {
         await using var conn = await _connFunc();
         _getEffectResultsSql ??= @$"
@@ -83,7 +83,7 @@ public class SqlServerEffectsStore : IEffectsStore
             FROM {_tablePrefix}_Effects
             WHERE Id LIKE @IdPrefix";
 
-        var idPrefix = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
+        var idPrefix = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%";
         await using var command = new SqlCommand(_getEffectResultsSql, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix);
 
@@ -106,14 +106,14 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
+    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId)
     {
         await using var conn = await _connFunc();
         _deleteEffectResultSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id = @Id";
 
-        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         
@@ -121,14 +121,14 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
+    public async Task Remove(FlowId flowId)
     {
         await using var conn = await _connFunc();
         _removeSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id LIKE @Id";
 
-        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" ;
+        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%" ;
         await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

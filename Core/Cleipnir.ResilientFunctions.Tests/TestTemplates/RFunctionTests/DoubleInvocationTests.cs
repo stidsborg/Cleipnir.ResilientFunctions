@@ -17,7 +17,7 @@ public abstract class DoubleInvocationTests
     protected async Task SecondInvocationWaitsForAndReturnsSuccessfulResult(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var syncTask = new TaskCompletionSource();
@@ -55,7 +55,7 @@ public abstract class DoubleInvocationTests
     protected async Task SecondInvocationFailsOnSuspendedFlow(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var functionsRegistry = new FunctionsRegistry
@@ -87,7 +87,7 @@ public abstract class DoubleInvocationTests
     protected async Task SecondInvocationFailsOnPostponedFlow(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var functionsRegistry = new FunctionsRegistry
@@ -119,7 +119,7 @@ public abstract class DoubleInvocationTests
     protected async Task SecondInvocationFailsOnFailedFlow(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var functionsRegistry = new FunctionsRegistry

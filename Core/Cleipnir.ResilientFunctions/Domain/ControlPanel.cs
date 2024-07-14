@@ -11,13 +11,13 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
     internal ControlPanel(
         Invoker<Unit, Unit> invoker, 
         InvocationHelper<Unit, Unit> invocationHelper, 
-        FunctionId functionId, 
+        FlowId flowId, 
         Status status, int epoch, long leaseExpiration,  
         DateTime? postponedUntil, ExistingEffects effects, 
         ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, functionId, status, epoch, 
+        invoker, invocationHelper, flowId, status, epoch, 
         leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, 
         effects, states, messages, timeouts, correlations, previouslyThrownException
     ) { }
@@ -30,13 +30,13 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
     internal ControlPanel(
         Invoker<TParam, Unit> invoker, 
         InvocationHelper<TParam, Unit> invocationHelper, 
-        FunctionId functionId, 
+        FlowId flowId, 
         Status status, int epoch, long leaseExpiration, TParam innerParam, 
         DateTime? postponedUntil, ExistingEffects effects, 
         ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, functionId, status, epoch, 
+        invoker, invocationHelper, flowId, status, epoch, 
         leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, 
         effects, states, messages, timeouts, correlations, previouslyThrownException
     ) { }
@@ -55,13 +55,13 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
     internal ControlPanel(
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper, 
-        FunctionId functionId, Status status, int epoch, 
+        FlowId flowId, Status status, int epoch, 
         long leaseExpiration, TParam innerParam, 
         TReturn? innerResult, 
         DateTime? postponedUntil, ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
         ExistingTimeouts timeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, functionId, status, epoch, leaseExpiration, 
+        invoker, invocationHelper, flowId, status, epoch, leaseExpiration, 
         innerParam, innerResult, postponedUntil, effects, states, messages, 
         timeouts, correlations, previouslyThrownException
     ) { }
@@ -85,7 +85,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     internal BaseControlPanel(
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper,
-        FunctionId functionId, 
+        FlowId flowId, 
         Status status, 
         int epoch,
         long leaseExpiration,
@@ -101,7 +101,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
-        FunctionId = functionId;
+        FlowId = flowId;
         Status = status;
         Epoch = epoch;
         LeaseExpiration = new DateTime(leaseExpiration, DateTimeKind.Utc);
@@ -117,7 +117,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         PreviouslyThrownException = previouslyThrownException;
     }
 
-    public FunctionId FunctionId { get; }
+    public FlowId FlowId { get; }
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
@@ -152,7 +152,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     protected async Task InnerSucceed(TReturn? result)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Succeeded, 
+            FlowId, Status.Succeeded, 
             InnerParam, 
             result, 
             PostponedUntil, exception: null, 
@@ -160,7 +160,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         );
 
         if (!success)
-            throw new ConcurrentModificationException(FunctionId);
+            throw new ConcurrentModificationException(FlowId);
         
         Epoch++;
         Status = Status.Succeeded;
@@ -170,7 +170,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public async Task Postpone(DateTime until)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Postponed, 
+            FlowId, Status.Postponed, 
             InnerParam,  
             result: default, until, 
             exception: null, 
@@ -178,7 +178,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         );
 
         if (!success)
-            throw new ConcurrentModificationException(FunctionId);
+            throw new ConcurrentModificationException(FlowId);
         
         Epoch++;
         Status = Status.Postponed;
@@ -191,14 +191,14 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public async Task Fail(Exception exception)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FunctionId, Status.Failed, 
+            FlowId, Status.Failed, 
             InnerParam,  
             result: default, postponeUntil: null, exception, 
             Epoch
         );
 
         if (!success)
-            throw new ConcurrentModificationException(FunctionId);
+            throw new ConcurrentModificationException(FlowId);
         
         Epoch++;
         Status = Status.Failed;
@@ -208,36 +208,36 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FunctionId, InnerParam, InnerResult, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(FlowId, InnerParam, InnerResult, Epoch);
         if (!success)
-            throw new ConcurrentModificationException(FunctionId);
+            throw new ConcurrentModificationException(FlowId);
         
         Epoch++;
         _innerParamChanged = false;
     }
     
-    public Task Delete() => _invocationHelper.Delete(FunctionId);
+    public Task Delete() => _invocationHelper.Delete(FlowId);
 
     public async Task<TReturn> ReInvoke()
     {
         if (_innerParamChanged)
             await SaveChanges();
 
-        return await _invoker.ReInvoke(FunctionId.InstanceId.Value, Epoch);   
+        return await _invoker.ReInvoke(FlowId.Instance.Value, Epoch);   
     }
     public async Task ScheduleReInvoke()
     {
         if (_innerParamChanged)
             await SaveChanges();
 
-        await _invoker.ScheduleReInvoke(FunctionId.InstanceId.Value, Epoch);
+        await _invoker.ScheduleReInvoke(FlowId.Instance.Value, Epoch);
     }
     
     public async Task Refresh()
     {
-        var sf = await _invocationHelper.GetFunction(FunctionId);
+        var sf = await _invocationHelper.GetFunction(FlowId);
         if (sf == null)
-            throw new UnexpectedFunctionState(FunctionId, $"Function '{FunctionId}' not found");
+            throw new UnexpectedFunctionState(FlowId, $"Function '{FlowId}' not found");
 
         Status = sf.Status;
         Epoch = sf.Epoch;
@@ -246,15 +246,15 @@ public abstract class BaseControlPanel<TParam, TReturn>
         InnerResult = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
-        Messages = await _invocationHelper.GetExistingMessages(FunctionId);
-        Effects = await _invocationHelper.GetExistingEffects(FunctionId);
-        States = await _invocationHelper.GetExistingStates(FunctionId, sf.DefaultState);
-        Timeouts = await _invocationHelper.GetExistingTimeouts(FunctionId);
-        Correlations = await _invocationHelper.CreateCorrelations(FunctionId, sync: true);
+        Messages = await _invocationHelper.GetExistingMessages(FlowId);
+        Effects = await _invocationHelper.GetExistingEffects(FlowId);
+        States = await _invocationHelper.GetExistingStates(FlowId, sf.DefaultState);
+        Timeouts = await _invocationHelper.GetExistingTimeouts(FlowId);
+        Correlations = await _invocationHelper.CreateCorrelations(FlowId, sync: true);
 
         _innerParamChanged = false;
     }
     
     public async Task<TReturn> WaitForCompletion(bool allowPostponeAndSuspended = false) 
-        => await _invocationHelper.WaitForFunctionResult(FunctionId, allowPostponeAndSuspended);
+        => await _invocationHelper.WaitForFunctionResult(FlowId, allowPostponeAndSuspended);
 }

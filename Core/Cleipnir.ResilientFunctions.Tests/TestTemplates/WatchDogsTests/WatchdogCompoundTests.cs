@@ -19,7 +19,7 @@ public abstract class WatchdogCompoundTests
     public async Task FunctionCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -45,7 +45,7 @@ public abstract class WatchdogCompoundTests
                 }
             ).Invoke;
 
-            _ = rFunc(functionId.InstanceId.Value, param);
+            _ = rFunc(functionId.Instance.Value, param);
 
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
@@ -136,7 +136,7 @@ public abstract class WatchdogCompoundTests
     public async Task FunctionWithStateCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -164,7 +164,7 @@ public abstract class WatchdogCompoundTests
                 }
             ).Invoke;
 
-            _ = rFunc(functionId.InstanceId.Value, param);
+            _ = rFunc(functionId.Instance.Value, param);
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
 
@@ -270,7 +270,7 @@ public abstract class WatchdogCompoundTests
     public async Task ActionCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -296,7 +296,7 @@ public abstract class WatchdogCompoundTests
                     })
                 .Invoke;
             
-            _ = rAction(functionId.InstanceId.Value, param);
+            _ = rAction(functionId.Instance.Value, param);
             var actualParam = await tcs.Task;
             actualParam.ShouldBe(param);
 
@@ -389,7 +389,7 @@ public abstract class WatchdogCompoundTests
     public async Task ActionWithStateCompoundTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -417,7 +417,7 @@ public abstract class WatchdogCompoundTests
                 }
             ).Invoke;
 
-            _ = rFunc(functionId.InstanceId.Value, param);
+            _ = rFunc(functionId.Instance.Value, param);
             var actualParam = await paramTcs.Task;
             actualParam.ShouldBe(param);
 
@@ -530,7 +530,7 @@ public abstract class WatchdogCompoundTests
     public async Task RetentionWatchdogDeletesEligibleSucceededFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, _) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
@@ -548,7 +548,7 @@ public abstract class WatchdogCompoundTests
             inner: (string p, Workflow workflow) => { }
         );
 
-        await registration.Invoke(functionId.InstanceId.Value, "SomeParam");
+        await registration.Invoke(functionId.Instance.Value, "SomeParam");
 
         await BusyWait.UntilAsync(() => store.GetFunction(functionId) is not null);
     }

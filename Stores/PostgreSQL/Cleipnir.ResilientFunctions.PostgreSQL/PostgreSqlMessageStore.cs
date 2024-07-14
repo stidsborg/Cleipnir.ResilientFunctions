@@ -65,7 +65,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
     private string? _appendMessageSql;
     private string? _getFunctionStatusInAppendMessageSql;
-    public async Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+    public async Task<FunctionStatus?> AppendMessage(FlowId flowId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
@@ -84,8 +84,8 @@ public class PostgreSqlMessageStore : IMessageStore
             {
                 Parameters =
                 {
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value},
+                    new() {Value = flowId.Type.Value},
+                    new() {Value = flowId.Instance.Value},
                     new() {Value = messageJson},
                     new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
@@ -103,8 +103,8 @@ public class PostgreSqlMessageStore : IMessageStore
             var command = new NpgsqlBatchCommand(_getFunctionStatusInAppendMessageSql)
             {
                 Parameters = { 
-                    new() {Value = functionId.TypeId.Value},
-                    new() {Value = functionId.InstanceId.Value}
+                    new() {Value = flowId.Type.Value},
+                    new() {Value = flowId.Instance.Value}
                 }
             };
             batch.BatchCommands.Add(command);  
@@ -130,17 +130,17 @@ public class PostgreSqlMessageStore : IMessageStore
             {
                 await Task.Delay(Random.Shared.Next(10, 250));
                 conn.Dispose();
-                return await AppendMessage(functionId, storedMessage);
+                return await AppendMessage(flowId, storedMessage);
             }
             //read status separately
-            return await GetSuspensionStatus(functionId);
+            return await GetSuspensionStatus(flowId);
         } //ignore entry already exist error
 
         return null;
     }
     
     private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
+    public async Task<bool> ReplaceMessage(FlowId flowId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         _replaceMessageSql ??= @$"    
@@ -156,8 +156,8 @@ public class PostgreSqlMessageStore : IMessageStore
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value},
                 new() {Value = position},
             }
         };
@@ -167,7 +167,7 @@ public class PostgreSqlMessageStore : IMessageStore
     }
 
     private string? _truncateFunctionSql;
-    public async Task Truncate(FunctionId functionId)
+    public async Task Truncate(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _truncateFunctionSql ??= @$"    
@@ -177,15 +177,15 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value}
             }
         };
         await command.ExecuteNonQueryAsync();
     }
 
     private string? _getMessagesSql;
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip)
     {
         await using var conn = await CreateConnection();
         _getMessagesSql ??= @$"    
@@ -197,8 +197,8 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value},
                 new () {Value = skip}
             }
         };
@@ -217,7 +217,7 @@ public class PostgreSqlMessageStore : IMessageStore
     }
 
     private string? _hasMoreMessagesSql;
-    public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
+    public async Task<bool> HasMoreMessages(FlowId flowId, int skip)
     {
         await using var conn = await CreateConnection();
         _hasMoreMessagesSql ??= @$"    
@@ -228,8 +228,8 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value}
             }
         };
 
@@ -241,7 +241,7 @@ public class PostgreSqlMessageStore : IMessageStore
     }
 
     private string? _getSuspensionStatusSql;
-    private async Task<FunctionStatus> GetSuspensionStatus(FunctionId functionId)
+    private async Task<FunctionStatus> GetSuspensionStatus(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _getSuspensionStatusSql ??= @$"    
@@ -251,8 +251,8 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value}
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value}
             }
         };
 
@@ -264,6 +264,6 @@ public class PostgreSqlMessageStore : IMessageStore
             return new FunctionStatus(status, epoch);
         }
         
-        throw new ConcurrentModificationException(functionId); //row must have been deleted concurrently
+        throw new ConcurrentModificationException(flowId); //row must have been deleted concurrently
     }
 }

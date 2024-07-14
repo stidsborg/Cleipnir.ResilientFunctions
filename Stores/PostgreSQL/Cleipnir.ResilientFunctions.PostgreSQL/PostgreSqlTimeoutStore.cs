@@ -75,8 +75,8 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = functionId.Type.Value},
+                new() {Value = functionId.Instance.Value},
                 new() {Value = timeoutId},
                 new() {Value = expiry}
             }
@@ -86,7 +86,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(FunctionId functionId, string timeoutId)
+    public async Task RemoveTimeout(FlowId flowId, string timeoutId)
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
@@ -100,8 +100,8 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value},
                 new() {Value = timeoutId}
             }
         };
@@ -110,7 +110,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
+    public async Task Remove(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
@@ -121,8 +121,8 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.TypeId.Value},
-                new() {Value = functionId.InstanceId.Value},
+                new() {Value = flowId.Type.Value},
+                new() {Value = flowId.Instance.Value},
             }
         };
 
@@ -156,7 +156,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
             var functionInstanceId = reader.GetString(0);
             var timeoutId = reader.GetString(1);
             var expires = reader.GetInt64(2);
-            var functionId = new FunctionId(functionTypeId, functionInstanceId);
+            var functionId = new FlowId(functionTypeId, functionInstanceId);
             storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -164,9 +164,9 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     }
 
     private string? _getTimeoutsSql;    
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
         _getTimeoutsSql ??= @$"
             SELECT timeout_id, expires
@@ -188,7 +188,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
+            storedMessages.Add(new StoredTimeout(flowId, timeoutId, expires));
         }
 
         return storedMessages;

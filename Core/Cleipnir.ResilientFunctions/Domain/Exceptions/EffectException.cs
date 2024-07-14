@@ -2,13 +2,13 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public class EffectException : RFunctionException
 {
-    public FunctionId FunctionId { get; }
+    public FlowId FlowId { get; }
     public PreviouslyThrownException Exception { get; }
 
-    public EffectException(FunctionId functionId, string effectId, PreviouslyThrownException exception) 
-        : base(functionId.TypeId, $"Effect '{effectId}' execution for function '{functionId}' failed")
+    public EffectException(FlowId flowId, string effectId, PreviouslyThrownException exception) 
+        : base(flowId.Type, $"Effect '{effectId}' execution for function '{flowId}' failed")
     {
-        FunctionId = functionId;
+        FlowId = flowId;
         Exception = exception;
     }
 }

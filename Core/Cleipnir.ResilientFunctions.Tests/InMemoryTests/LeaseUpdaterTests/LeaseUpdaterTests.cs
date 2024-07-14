@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.LeaseUpdaterTests;
 [TestClass]
 public class LeaseUpdaterTests
 {
-    private readonly FunctionId _functionId = new FunctionId("functionId", "instanceId");
+    private readonly FlowId _flowId = new FlowId("functionId", "instanceId");
     private UnhandledExceptionCatcher _unhandledExceptionCatcher = new();
         
     [TestInitialize]
@@ -37,7 +37,7 @@ public class LeaseUpdaterTests
             leaseLength: TimeSpan.FromMilliseconds(10)
         );
         var updater = LeaseUpdater.CreateAndStart(
-            _functionId,
+            _flowId,
             expectedEpoch,
             store,
             SettingsWithDefaults.Default.Merge(settings)
@@ -47,7 +47,7 @@ public class LeaseUpdaterTests
         updater.Dispose();
 
         invocations.Count.ShouldBeGreaterThan(2);
-        invocations.All(p => p.FunctionId == _functionId).ShouldBeTrue();
+        invocations.All(p => p.FlowId == _flowId).ShouldBeTrue();
 
         const long expectedInitialLeaseExpiry = 0;
         _ = invocations.Aggregate(expectedInitialLeaseExpiry, (prevLeaseExpiry, parameters) =>
@@ -73,7 +73,7 @@ public class LeaseUpdaterTests
             leaseLength: TimeSpan.FromMilliseconds(10)
         );
         var updater = LeaseUpdater.CreateAndStart(
-            _functionId,
+            _flowId,
             epoch: 0,
             store,
             SettingsWithDefaults.Default.Merge(settings)
@@ -102,7 +102,7 @@ public class LeaseUpdaterTests
             leaseLength: TimeSpan.FromMilliseconds(10)
         );
         using var updater = LeaseUpdater.CreateAndStart(
-            _functionId,
+            _flowId,
             epoch: 0,
             store,
             SettingsWithDefaults.Default.Merge(settings)
@@ -116,5 +116,5 @@ public class LeaseUpdaterTests
         syncedCounter.Current.ShouldBe(1);
     }
 
-    private record Parameters(FunctionId FunctionId, int ExpectedEpoch, long LeaseExpiry);
+    private record Parameters(FlowId FlowId, int ExpectedEpoch, long LeaseExpiry);
 }

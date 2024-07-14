@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class States
 {
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly IStatesStore _statesStore;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
@@ -23,14 +23,14 @@ public class States
     private readonly object _sync = new();
 
     public States(
-        FunctionId functionId, 
+        FlowId flowId, 
         string? defaultStateJson,
         IEnumerable<StoredState> existingStates, 
         IFunctionStore functionStore, 
         IStatesStore statesStore, 
         ISerializer serializer)
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _statesStore = statesStore;
         _functionStore = functionStore;
         _serializer = serializer;
@@ -51,7 +51,7 @@ public class States
             {
                 var newState = new T();
                 newState.Initialize(
-                    onSave: () => _functionStore.SetDefaultState(_functionId, _serializer.SerializeState(newState))
+                    onSave: () => _functionStore.SetDefaultState(_flowId, _serializer.SerializeState(newState))
                 );
                 _defaultStateSerializer = () => _serializer.SerializeState(newState);
                 _defaultState = newState;
@@ -108,13 +108,13 @@ public class States
                 return;
         }
 
-        await _statesStore.RemoveState(_functionId, id);
+        await _statesStore.RemoveState(_flowId, id);
     }
 
     private async Task SaveState<T>(string id, T state) where T : FlowState, new()
     {
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(new StateId(id), json);
-        await _statesStore.UpsertState(_functionId, storedState);
+        await _statesStore.UpsertState(_flowId, storedState);
     }
 }

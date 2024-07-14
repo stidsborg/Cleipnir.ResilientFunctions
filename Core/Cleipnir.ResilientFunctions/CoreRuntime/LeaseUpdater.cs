@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 internal class LeaseUpdater : IDisposable
 {
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly int _epoch;
 
     private readonly TimeSpan _leaseLength;
@@ -18,13 +18,13 @@ internal class LeaseUpdater : IDisposable
     private volatile bool _disposed;
 
     private LeaseUpdater(
-        FunctionId functionId, 
+        FlowId flowId, 
         int epoch, 
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan leaseLength)
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _epoch = epoch;
             
         _functionStore = functionStore;
@@ -32,10 +32,10 @@ internal class LeaseUpdater : IDisposable
         _leaseLength = leaseLength;
     }
 
-    public static IDisposable CreateAndStart(FunctionId functionId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings)
+    public static IDisposable CreateAndStart(FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings)
     {
         var leaseUpdater = new LeaseUpdater(
-            functionId,
+            flowId,
             epoch,
             functionStore,
             settings.UnhandledExceptionHandler,
@@ -60,7 +60,7 @@ internal class LeaseUpdater : IDisposable
                 if (_disposed) return;
 
                 var success = await _functionStore.RenewLease(
-                    _functionId,
+                    _flowId,
                     expectedEpoch: _epoch,
                     leaseExpiration: DateTime.UtcNow.Ticks + _leaseLength.Ticks
                 );
@@ -70,8 +70,8 @@ internal class LeaseUpdater : IDisposable
                     _disposed = true;
                     _unhandledExceptionHandler.Invoke(
                         new UnexpectedFunctionState(
-                            _functionId,
-                            $"{nameof(LeaseUpdater)} failed to update lease for executing function: '{_functionId}'"
+                            _flowId,
+                            $"{nameof(LeaseUpdater)} failed to update lease for executing function: '{_flowId}'"
                         )
                     );
                 }
@@ -81,8 +81,8 @@ internal class LeaseUpdater : IDisposable
                 _disposed = true;
                 _unhandledExceptionHandler.Invoke(
                     new FrameworkException(
-                        _functionId.TypeId,
-                        $"{nameof(LeaseUpdater)} failed while executing function: '{_functionId}'",
+                        _flowId.Type,
+                        $"{nameof(LeaseUpdater)} failed while executing function: '{_flowId}'",
                         e
                     )
                 );

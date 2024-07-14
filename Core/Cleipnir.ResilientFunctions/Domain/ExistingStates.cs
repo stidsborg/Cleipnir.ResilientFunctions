@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ExistingStates
 {
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly Dictionary<StateId, StoredState> _storedStates;
     private readonly IFunctionStore _functionStore;
     private readonly IStatesStore _statesStore;
@@ -17,9 +17,9 @@ public class ExistingStates
     private string? _defaultStateJson;
     private FlowState? _defaultState;
 
-    public ExistingStates(FunctionId functionId, string? defaultState, IEnumerable<StoredState> storedStates, IFunctionStore functionStore, ISerializer serializer)
+    public ExistingStates(FlowId flowId, string? defaultState, IEnumerable<StoredState> storedStates, IFunctionStore functionStore, ISerializer serializer)
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _functionStore = functionStore;
         _statesStore = functionStore.StatesStore;
         _serializer = serializer;
@@ -40,7 +40,7 @@ public class ExistingStates
             return (TState) (_defaultState = _serializer.DeserializeState<TState>(_defaultStateJson));
 
         var state = new TState();
-        state.Initialize(() => _functionStore.SetDefaultState(_functionId, _serializer.SerializeState(state)));
+        state.Initialize(() => _functionStore.SetDefaultState(_flowId, _serializer.SerializeState(state)));
         _defaultState = state;
         return state;
     }
@@ -57,27 +57,27 @@ public class ExistingStates
 
     public async Task RemoveDefault()
     {
-        await _functionStore.SetDefaultState(_functionId, stateJson: null);
+        await _functionStore.SetDefaultState(_flowId, stateJson: null);
         _defaultState = null;
         _defaultStateJson = null;
     }
     public async Task Remove(string stateId)
     {
-        await _statesStore.RemoveState(_functionId, stateId);
+        await _statesStore.RemoveState(_flowId, stateId);
         _storedStates.Remove(stateId);
     }
 
     public async Task Set<TState>(TState state) where TState : FlowState, new()
     {
         _defaultState = state;
-        await _functionStore.SetDefaultState(_functionId, _serializer.SerializeState(state));
+        await _functionStore.SetDefaultState(_flowId, _serializer.SerializeState(state));
     }
     
     public async Task Set<TState>(string stateId, TState state) where TState : FlowState, new()
     {
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(stateId, json);
-        await _statesStore.UpsertState(_functionId, storedState);
+        await _statesStore.UpsertState(_flowId, storedState);
         _storedStates[stateId] = storedState;
     }
 }

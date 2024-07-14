@@ -14,11 +14,11 @@ public class UnhandledExceptionHandler
 
     public void Invoke(RFunctionException exception) => SafeTry(() => _exceptionHandler(exception));
     
-    public void Invoke(FunctionTypeId functionTypeId, Exception exception)
+    public void Invoke(FlowType flowType, Exception exception)
     {
         if (exception is RFunctionException re)
             Invoke(re);
         else 
-            Invoke(new FrameworkException(functionTypeId, "Unhandled exception", exception));
+            Invoke(new FrameworkException(flowType, "Unhandled exception", exception));
     }
 }

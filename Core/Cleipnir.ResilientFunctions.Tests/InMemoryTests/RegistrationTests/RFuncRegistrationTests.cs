@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 [TestClass]
 public class RFuncRegistrationTests
 {
-    private readonly FunctionTypeId _functionTypeId = new FunctionTypeId("FunctionTypeId");
+    private readonly FlowType _flowType = new FlowType("FunctionTypeId");
     private const string FunctionInstanceId = "FunctionInstanceId";
     
     [TestMethod]
@@ -20,7 +20,7 @@ public class RFuncRegistrationTests
         using var rFunctions = CreateRFunctions();
         var rFunc = rFunctions
             .RegisterFunc<string, string>(
-                _functionTypeId,
+                _flowType,
                 InnerFunc
             )
             .Invoke;
@@ -36,7 +36,7 @@ public class RFuncRegistrationTests
         var serializer = new Serializer();
         var rFunc = rFunctions
             .RegisterFunc<string, string>(
-                _functionTypeId,
+                _flowType,
                 InnerFunc,
                 new Settings(serializer: serializer)
             )

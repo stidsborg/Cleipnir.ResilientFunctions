@@ -13,7 +13,7 @@ public abstract class StatesStoreTests
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
         var statesStore = await storeTask.SelectAsync(s => s.StatesStore);
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
 
         var initialStates = await statesStore.GetStates(functionId);
         initialStates.ShouldBeEmpty();

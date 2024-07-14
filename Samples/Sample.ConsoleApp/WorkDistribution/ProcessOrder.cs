@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace ConsoleApp.WorkDistribution;
 
-public record ProcessOrderRequest(string OrderId, FunctionId SendResultTo);
+public record ProcessOrderRequest(string OrderId, FlowId SendResultTo);
 
 public static class ProcessOrder
 {
@@ -19,8 +19,8 @@ public static class ProcessOrder
 
         await workflow.SendMessage(
             sendResultTo,
-            new FunctionCompletion<string>(trackingNumber, workflow.FunctionId),
-            idempotencyKey: workflow.FunctionId.ToString()
+            new FunctionCompletion<string>(trackingNumber, workflow.FlowId),
+            idempotencyKey: workflow.FlowId.ToString()
         );
     }
 

@@ -18,7 +18,7 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(
@@ -54,7 +54,7 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(
@@ -90,7 +90,7 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(
@@ -115,7 +115,7 @@ public abstract class AtLeastOnceWorkStatusTests
         var store = await functionStoreTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(

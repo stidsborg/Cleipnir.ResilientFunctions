@@ -17,7 +17,7 @@ public abstract class TimeoutTests
     protected async Task ExpiredTimeoutIsAddedToMessages(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ExpiredTimeoutIsAddedToMessages).ToFunctionTypeId();
+        var functionTypeId = nameof(ExpiredTimeoutIsAddedToMessages).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
         (

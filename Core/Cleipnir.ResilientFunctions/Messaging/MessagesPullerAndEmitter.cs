@@ -18,7 +18,7 @@ public class MessagesPullerAndEmitter
 
     private DateTime _lastSynced = default;
     private long _interruptCount;
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly IFunctionStore _functionStore;
     private readonly IMessageStore _messageStore;
 
@@ -42,13 +42,13 @@ public class MessagesPullerAndEmitter
     }
 
     public MessagesPullerAndEmitter(
-        FunctionId functionId,
+        FlowId flowId,
         TimeSpan defaultDelay,
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
         IFunctionStore functionStore, ISerializer serializer, ITimeoutProvider timeoutProvider)
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _functionStore = functionStore;
         _messageStore = functionStore.MessageStore;
         
@@ -81,19 +81,19 @@ public class MessagesPullerAndEmitter
 
         try
         {
-            var hasMoreMessages = await _messageStore.HasMoreMessages(_functionId, _skip);
+            var hasMoreMessages = await _messageStore.HasMoreMessages(_flowId, _skip);
 
             if (!hasMoreMessages)
                 return new InterruptCount(_interruptCount);
 
-            var interruptCount = await _functionStore.GetInterruptCount(_functionId);
+            var interruptCount = await _functionStore.GetInterruptCount(_flowId);
             if (interruptCount == null)
-                throw new UnexpectedFunctionState(_functionId, "Function was not found when fetching interrupt count");
+                throw new UnexpectedFunctionState(_flowId, "Function was not found when fetching interrupt count");
 
             lock (_sync)
                 _interruptCount = interruptCount.Value;
 
-            var storedMessages = await _messageStore.GetMessages(_functionId, _skip);
+            var storedMessages = await _messageStore.GetMessages(_flowId, _skip);
             
             _lastSynced = DateTime.UtcNow;
             _skip += storedMessages.Count;

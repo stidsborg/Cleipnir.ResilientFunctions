@@ -53,12 +53,12 @@ public abstract class MessagingTests
     {
         var store = await functionStore;
 
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rAction = functionsRegistry.RegisterFunc(
-            functionId.TypeId,
+            functionId.Type,
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
@@ -67,7 +67,7 @@ public abstract class MessagingTests
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            rAction.Invoke(functionId.InstanceId.Value, "")
+            rAction.Invoke(functionId.Instance.Value, "")
         );
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -81,12 +81,12 @@ public abstract class MessagingTests
     {
         var store = await functionStore;
 
-        var functionId = new FunctionId(nameof(TimeoutEventCausesSuspendedFunctionToBeReInvoked),"instanceId");
+        var functionId = new FlowId(nameof(TimeoutEventCausesSuspendedFunctionToBeReInvoked),"instanceId");
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc(
-            functionId.TypeId,
+            functionId.Type,
             inner: async Task<Tuple<bool, string>> (string _, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
@@ -106,7 +106,7 @@ public abstract class MessagingTests
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            rFunc.Invoke(functionId.InstanceId.Value, "")
+            rFunc.Invoke(functionId.Instance.Value, "")
         );
 
         var controlPanel = await rFunc.ControlPanel("instanceId");
@@ -132,31 +132,31 @@ public abstract class MessagingTests
     {
         var store = await functionStore;
 
-        var parentFunctionId = TestFunctionId.Create();
-        var childFunctionId = TestFunctionId.Create();
+        var parentFunctionId = TestFlowId.Create();
+        var childFunctionId = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
         var child = functionsRegistry.RegisterAction(
-            childFunctionId.TypeId,
+            childFunctionId.Type,
             inner: Task (string _, Workflow workflow) => workflow.SendMessage(parentFunctionId, "hello world", idempotencyKey: null)
         );
 
         var parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.TypeId,
+            parentFunctionId.Type,
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-                await child.Schedule(childFunctionId.InstanceId.Value, param: "stuff");
+                await child.Schedule(childFunctionId.Instance.Value, param: "stuff");
                 return await workflow.Messages.FirstOfType<string>(TimeSpan.Zero);
             }
         );
         
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            parent.Invoke(parentFunctionId.InstanceId.Value, "")
+            parent.Invoke(parentFunctionId.Instance.Value, "")
         );
         
-        var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
+        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
         controlPanel.ShouldNotBeNull();
 
         await BusyWait.Until(async () =>
@@ -177,7 +177,7 @@ public abstract class MessagingTests
     {
         var store = await functionStore;
 
-        var (typeId, instanceId) = TestFunctionId.Create();
+        var (typeId, instanceId) = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));

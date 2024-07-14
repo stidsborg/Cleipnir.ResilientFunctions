@@ -18,7 +18,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
-        var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
+        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,
             "hello world".ToJson(),
@@ -33,7 +33,7 @@ public class DelayedStartUpTests
             delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             void(string param) => { }
         );
 
@@ -46,7 +46,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
-        var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
+        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,
             "hello world".ToJson(),
@@ -58,7 +58,7 @@ public class DelayedStartUpTests
         stopWatch.Start();
         using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             void(string param) => { }
         );
 
@@ -71,7 +71,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
         var storedParameter = "hello world".ToJson();
-        var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId"); 
+        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId"); 
         await store.CreateFunction(
             functionId,
             storedParameter,
@@ -95,7 +95,7 @@ public class DelayedStartUpTests
             delayStartup: TimeSpan.FromSeconds(1))
         );
         rFunctions.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             void(string param) => { }
         );
 
@@ -109,7 +109,7 @@ public class DelayedStartUpTests
         var store = new InMemoryFunctionStore();
 
         var storedParameter = "hello world".ToJson();
-        var functionId = new FunctionId("FunctionTypeId", "FunctionInstanceId");
+        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId");
         await store.CreateFunction(
             functionId,
             storedParameter,
@@ -130,7 +130,7 @@ public class DelayedStartUpTests
         stopWatch.Start();
         using var rFunctions = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
-            functionId.TypeId,
+            functionId.Type,
             void(string param) => { }
         );
 

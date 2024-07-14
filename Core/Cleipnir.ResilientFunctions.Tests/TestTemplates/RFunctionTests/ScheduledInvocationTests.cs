@@ -12,9 +12,9 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted).ToFlowType();
         const string functionInstanceId = "someFunctionId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = new FlowId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -37,9 +37,9 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted).ToFlowType();
         const string functionInstanceId = "someFunctionId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = new FlowId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -62,9 +62,9 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted).ToFlowType();
         const string functionInstanceId = "someFunctionId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = new FlowId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
@@ -87,9 +87,9 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted).ToFunctionTypeId();
+        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted).ToFlowType();
         const string functionInstanceId = "someFunctionId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = new FlowId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));

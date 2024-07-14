@@ -18,7 +18,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(
@@ -57,7 +57,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rFunc = functionsRegistry.RegisterFunc(
@@ -97,7 +97,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rFunc = functionsRegistry.RegisterFunc(
@@ -137,7 +137,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store);
@@ -167,7 +167,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var counter = new SyncedCounter();
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(

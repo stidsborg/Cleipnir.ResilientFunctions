@@ -30,7 +30,7 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create(callerMemberName);
+        var functionId = TestFlowId.Create(callerMemberName);
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -101,7 +101,7 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFunctionTypeId();
+        var functionTypeId = callerMemberName.ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             using var functionsRegistry = new FunctionsRegistry
@@ -146,7 +146,7 @@ public abstract class FailedTests
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var functionId = new FunctionId(functionTypeId, PARAM.ToFunctionInstanceId());
+            var functionId = new FlowId(functionTypeId, PARAM.ToFlowInstance());
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
@@ -161,7 +161,7 @@ public abstract class FailedTests
     public async Task ExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -215,7 +215,7 @@ public abstract class FailedTests
     public async Task PassingInNullParameterResultsInException(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFunctionTypeId();
+        var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(
@@ -255,7 +255,7 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
@@ -314,7 +314,7 @@ public abstract class FailedTests
     public async Task FuncReturningTaskThrowsSerialization(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         
         using var functionsRegistry = new FunctionsRegistry(
@@ -327,17 +327,17 @@ public abstract class FailedTests
         );
         var funcRegistration = functionsRegistry
             .RegisterFunc(
-                functionId.TypeId,
+                functionId.Type,
                 inner: (string _) => Task.CompletedTask
             );
 
         var rFunc = funcRegistration.Invoke;
         
         await Should.ThrowAsync<SerializationException>(
-            () => rFunc(functionId.InstanceId.Value, "test")
+            () => rFunc(functionId.Instance.Value, "test")
         );
 
-        var controlPanel = await funcRegistration.ControlPanel(functionId.InstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await funcRegistration.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);

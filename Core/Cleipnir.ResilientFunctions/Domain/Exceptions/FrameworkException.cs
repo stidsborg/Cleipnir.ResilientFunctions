@@ -4,9 +4,9 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public sealed class FrameworkException : RFunctionException
 {
-    public FrameworkException(FunctionTypeId functionTypeId, string message) 
-        : base(functionTypeId, message) {}
+    public FrameworkException(FlowType flowType, string message) 
+        : base(flowType, message) {}
 
-    public FrameworkException(FunctionTypeId functionTypeId, string message, Exception innerException) 
-        : base(functionTypeId, message, innerException) {}
+    public FrameworkException(FlowType flowType, string message, Exception innerException) 
+        : base(flowType, message, innerException) {}
 }

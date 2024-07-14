@@ -14,7 +14,7 @@ public abstract class EffectStoreTests
     protected async Task SunshineScenarioTest(Task<IEffectsStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var storedEffect1 = new StoredEffect(
             "EffectId1",
             WorkStatus.Started,
@@ -62,7 +62,7 @@ public abstract class EffectStoreTests
     protected async Task SingleEffectWithResultLifeCycle(Task<IEffectsStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var effect = new StoredEffect(
             "EffectId1",
             WorkStatus.Started,
@@ -88,7 +88,7 @@ public abstract class EffectStoreTests
     protected async Task SingleFailingEffectLifeCycle(Task<IEffectsStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var storedException = new StoredException(
             "Some Exception Message",
             "SomeStackTrace",
@@ -119,7 +119,7 @@ public abstract class EffectStoreTests
     protected async Task EffectCanBeDeleted(Task<IEffectsStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var storedEffect1 = new StoredEffect(
             "EffectId1",
             WorkStatus.Started,
@@ -161,8 +161,8 @@ public abstract class EffectStoreTests
     protected async Task DeleteFunctionIdDeletesAllRelatedEffects(Task<IEffectsStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var otherFunctionId = new FunctionId(functionId.TypeId, functionInstanceId: functionId.InstanceId + "123");
+        var functionId = TestFlowId.Create();
+        var otherFunctionId = new FlowId(functionId.Type, flowInstance: functionId.Instance + "123");
         
         var storedEffect1 = new StoredEffect(
             "EffectId1",
@@ -203,8 +203,8 @@ public abstract class EffectStoreTests
     protected async Task TruncateDeletesAllEffects(Task<IEffectsStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
-        var otherFunctionId = new FunctionId(functionId.TypeId, functionInstanceId: functionId.InstanceId + "123");
+        var functionId = TestFlowId.Create();
+        var otherFunctionId = new FlowId(functionId.Type, flowInstance: functionId.Instance + "123");
         
         var storedEffect1 = new StoredEffect(
             "EffectId1",

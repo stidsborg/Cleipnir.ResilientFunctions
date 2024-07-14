@@ -29,7 +29,7 @@ public static class ProcessOrders
                 foreach (var orderId in orderIds)
                     await ProcessOrder!.Value!.Schedule(
                         functionInstanceId: orderId,
-                        new ProcessOrderRequest(orderId, workflow.FunctionId)
+                        new ProcessOrderRequest(orderId, workflow.FlowId)
                     );
             }
         );

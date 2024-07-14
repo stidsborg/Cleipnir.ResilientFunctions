@@ -8,12 +8,12 @@ public interface IMessageStore
 {
     Task Initialize();
 
-    Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage);
+    Task<FunctionStatus?> AppendMessage(FlowId flowId, StoredMessage storedMessage);
 
-    Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage);
+    Task<bool> ReplaceMessage(FlowId flowId, int position, StoredMessage storedMessage);
     
-    Task Truncate(FunctionId functionId);
+    Task Truncate(FlowId flowId);
     
-    Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip);
-    Task<bool> HasMoreMessages(FunctionId functionId, int skip);
+    Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip);
+    Task<bool> HasMoreMessages(FlowId flowId, int skip);
 }

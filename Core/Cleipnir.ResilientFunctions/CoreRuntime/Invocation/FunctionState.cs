@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public record FunctionState<TParam, TReturn>(
-    FunctionId FunctionId, 
+    FlowId FlowId, 
     Status Status,
     int Epoch,
     long LeaseExpiration,

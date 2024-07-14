@@ -8,8 +8,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryCorrelationStore : ICorrelationStore
 {
-    private readonly Dictionary<FunctionId, HashSet<string>> _correlations = new();
-    private readonly Dictionary<string, HashSet<FunctionId>> _reverseLookup = new();
+    private readonly Dictionary<FlowId, HashSet<string>> _correlations = new();
+    private readonly Dictionary<string, HashSet<FlowId>> _reverseLookup = new();
     private readonly object _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
@@ -25,72 +25,72 @@ public class InMemoryCorrelationStore : ICorrelationStore
         return Task.CompletedTask;
     }
 
-    public Task SetCorrelation(FunctionId functionId, string correlationId)
+    public Task SetCorrelation(FlowId flowId, string correlationId)
     {
         lock (_sync)
         {
-            if (!_correlations.ContainsKey(functionId))
-                _correlations[functionId] = new HashSet<string>();
+            if (!_correlations.ContainsKey(flowId))
+                _correlations[flowId] = new HashSet<string>();
 
-            _correlations[functionId].Add(correlationId);
+            _correlations[flowId].Add(correlationId);
 
             if (!_reverseLookup.ContainsKey(correlationId))
-                _reverseLookup[correlationId] = new HashSet<FunctionId>();
+                _reverseLookup[correlationId] = new HashSet<FlowId>();
 
-            _reverseLookup[correlationId].Add(functionId);
+            _reverseLookup[correlationId].Add(flowId);
         }
 
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<FunctionId>> GetCorrelations(string correlationId)
+    public Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId)
     {
         lock (_sync)
         {
             if (!_reverseLookup.ContainsKey(correlationId))
-                return new List<FunctionId>().CastTo<IReadOnlyList<FunctionId>>().ToTask();
+                return new List<FlowId>().CastTo<IReadOnlyList<FlowId>>().ToTask();
 
-            return _reverseLookup[correlationId].ToList().CastTo<IReadOnlyList<FunctionId>>().ToTask();
+            return _reverseLookup[correlationId].ToList().CastTo<IReadOnlyList<FlowId>>().ToTask();
         }
     }
 
-    public Task<IReadOnlyList<string>> GetCorrelations(FunctionId functionId)
+    public Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
     {
         lock (_sync)
         {
-            if (!_correlations.ContainsKey(functionId))
+            if (!_correlations.ContainsKey(flowId))
                 return new List<string>().CastTo<IReadOnlyList<string>>().ToTask();
 
-            return _correlations[functionId]
+            return _correlations[flowId]
                 .ToList()
                 .CastTo<IReadOnlyList<string>>()
                 .ToTask();
         }
     }
 
-    public Task RemoveCorrelations(FunctionId functionId)
+    public Task RemoveCorrelations(FlowId flowId)
     {
         lock (_sync)
         {
-            if (!_correlations.ContainsKey(functionId))
+            if (!_correlations.ContainsKey(flowId))
                 return Task.CompletedTask;
 
-            var correlations = _correlations[functionId];
+            var correlations = _correlations[flowId];
             foreach (var correlation in correlations)
-                _reverseLookup[correlation].Remove(functionId);
+                _reverseLookup[correlation].Remove(flowId);
 
-            _correlations.Remove(functionId);
+            _correlations.Remove(flowId);
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RemoveCorrelation(FunctionId functionId, string correlationId)
+    public Task RemoveCorrelation(FlowId flowId, string correlationId)
     {
         lock (_sync)
         {
-            _correlations[functionId].Remove(correlationId);
-            _reverseLookup[correlationId].Remove(functionId);
+            _correlations[flowId].Remove(correlationId);
+            _reverseLookup[correlationId].Remove(flowId);
         }
 
         return Task.CompletedTask;

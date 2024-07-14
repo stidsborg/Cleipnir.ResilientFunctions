@@ -31,20 +31,20 @@ public class InMemoryTimeoutStore : ITimeoutStore
         return Task.CompletedTask;
     }
 
-    public Task RemoveTimeout(FunctionId functionId, string timeoutId)
+    public Task RemoveTimeout(FlowId flowId, string timeoutId)
     {
-        var key = new Key(functionId.TypeId.Value, functionId.InstanceId.Value, timeoutId);
+        var key = new Key(flowId.Type.Value, flowId.Instance.Value, timeoutId);
         lock (_sync)
             _timeouts.Remove(key);
 
         return Task.CompletedTask;
     }
 
-    public Task Remove(FunctionId functionId)
+    public Task Remove(FlowId flowId)
     {
         lock (_sync)
             foreach (var key in _timeouts.Keys.ToList())
-                if (functionId.TypeId == key.FunctionTypeId && functionId.InstanceId == key.FunctionInstanceId)
+                if (flowId.Type == key.FunctionTypeId && flowId.Instance == key.FunctionInstanceId)
                     _timeouts.Remove(key);
 
         return Task.CompletedTask;
@@ -58,7 +58,7 @@ public class InMemoryTimeoutStore : ITimeoutStore
                 .Where(kv => kv.Value <= expiresBefore)
                 .Select(kv =>
                 {
-                    var functionId = new FunctionId(kv.Key.FunctionTypeId, kv.Key.FunctionInstanceId);
+                    var functionId = new FlowId(kv.Key.FunctionTypeId, kv.Key.FunctionInstanceId);
                     return new StoredTimeout(functionId, kv.Key.TimeoutId, kv.Value);
                 })
                 .ToList()
@@ -66,14 +66,14 @@ public class InMemoryTimeoutStore : ITimeoutStore
                 .ToTask();
     }
 
-    public Task<IEnumerable<StoredTimeout>> GetTimeouts(FunctionId functionId)
+    public Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
     {
         lock (_sync)
             return _timeouts.Where(kv =>
-                    kv.Key.FunctionTypeId == functionId.TypeId &&
-                    kv.Key.FunctionInstanceId == functionId.InstanceId
+                    kv.Key.FunctionTypeId == flowId.Type &&
+                    kv.Key.FunctionInstanceId == flowId.Instance
                 )
-                .Select(kv => new StoredTimeout(functionId, kv.Key.TimeoutId, Expiry: kv.Value))
+                .Select(kv => new StoredTimeout(flowId, kv.Key.TimeoutId, Expiry: kv.Value))
                 .ToList()
                 .AsEnumerable()
                 .ToTask();

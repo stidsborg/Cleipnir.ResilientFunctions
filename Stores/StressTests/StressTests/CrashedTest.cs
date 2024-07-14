@@ -24,7 +24,7 @@ public static class CrashedTest
         for (var i = 0; i < testSize; i++)
         {
             await store.CreateFunction(
-                new FunctionId("CrashedTest", i.ToString()),
+                new FlowId("CrashedTest", i.ToString()),
                 param: JsonSerializer.Serialize("hello world"),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,

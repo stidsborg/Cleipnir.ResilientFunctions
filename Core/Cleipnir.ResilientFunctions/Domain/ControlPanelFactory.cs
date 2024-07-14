@@ -6,20 +6,20 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ControlPanelFactory 
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly Invoker<Unit, Unit> _invoker;
     private readonly InvocationHelper<Unit, Unit> _invocationHelper;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<Unit, Unit> invoker, InvocationHelper<Unit, Unit> invocationHelper)
+    internal ControlPanelFactory(FlowType flowType, Invoker<Unit, Unit> invoker, InvocationHelper<Unit, Unit> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
     }
     
-    public async Task<ControlPanel?> Create(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel?> Create(FlowInstance flowInstance)
     {
-        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
+        var functionId = new FlowId(_flowType, flowInstance);
         var functionState = await _invocationHelper.GetFunction(functionId);
         if (functionState == null)
             return null;
@@ -45,20 +45,20 @@ public class ControlPanelFactory
 
 public class ControlPanelFactory<TParam> where TParam : notnull 
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly Invoker<TParam, Unit> _invoker;
     private readonly InvocationHelper<TParam, Unit> _invocationHelper;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper)
+    internal ControlPanelFactory(FlowType flowType, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
     }
     
-    public async Task<ControlPanel<TParam>?> Create(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel<TParam>?> Create(FlowInstance flowInstance)
     {
-        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
+        var functionId = new FlowId(_flowType, flowInstance);
         var functionState = await _invocationHelper.GetFunction(functionId);
         if (functionState == null)
             return null;
@@ -84,20 +84,20 @@ public class ControlPanelFactory<TParam> where TParam : notnull
 
 public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly Invoker<TParam, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
 
-    internal ControlPanelFactory(FunctionTypeId functionTypeId, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper)
+    internal ControlPanelFactory(FlowType flowType, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
     }
 
-    public async Task<ControlPanel<TParam, TReturn>?> Create(FunctionInstanceId functionInstanceId)
+    public async Task<ControlPanel<TParam, TReturn>?> Create(FlowInstance flowInstance)
     {
-        var functionId = new FunctionId(_functionTypeId, functionInstanceId);
+        var functionId = new FlowId(_flowType, flowInstance);
         var f = await _invocationHelper.GetFunction(functionId);
         if (f == null)
             return null;

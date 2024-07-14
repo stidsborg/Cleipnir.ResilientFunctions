@@ -41,9 +41,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _setCorrelationSql;
-    public async Task SetCorrelation(FunctionId functionId, string correlationId)
+    public async Task SetCorrelation(FlowId flowId, string correlationId)
     {
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (functionTypeId, functionInstanceId) = flowId;
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
           INSERT IGNORE INTO {_tablePrefix}_correlations 
@@ -65,7 +65,7 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _getCorrelationsSql;
-    public async Task<IReadOnlyList<FunctionId>> GetCorrelations(string correlationId)
+    public async Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId)
     {
         await using var conn = await CreateConnection();
         _getCorrelationsSql ??= @$"
@@ -82,21 +82,21 @@ public class MySqlCorrelationStore : ICorrelationStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var states = new List<FunctionId>();
+        var states = new List<FlowId>();
         while (await reader.ReadAsync())
         {
             var functionType = reader.GetString(0);
             var functionInstance = reader.GetString(1);
-            states.Add(new FunctionId(functionType, functionInstance));
+            states.Add(new FlowId(functionType, functionInstance));
         }
 
         return states;
     }
 
     private string? _getCorrelationsForFunctionSql;
-    public async Task<IReadOnlyList<string>> GetCorrelations(FunctionId functionId)
+    public async Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
         _getCorrelationsForFunctionSql ??= @$"
             SELECT correlation
@@ -124,9 +124,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _removeCorrelationsSql;
-    public async Task RemoveCorrelations(FunctionId functionId)
+    public async Task RemoveCorrelations(FlowId flowId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE function_type = ? AND function_instance = ?";
         await using var command = new MySqlCommand(_removeCorrelationsSql, conn)
@@ -142,9 +142,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _removeCorrelationSql;
-    public async Task RemoveCorrelation(FunctionId functionId, string correlationId)
+    public async Task RemoveCorrelation(FlowId flowId, string correlationId)
     {
-        var (typeId, instanceId) = functionId;
+        var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE function_type = ? AND function_instance = ? AND correlation = ?";
         await using var command = new MySqlCommand(_removeCorrelationSql, conn)

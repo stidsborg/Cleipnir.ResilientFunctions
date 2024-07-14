@@ -21,7 +21,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 callback
             )
         );
@@ -33,7 +33,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 string(string param, Workflow workflow) => callback(param)
             )
         );
@@ -45,7 +45,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 Task<string>(string param) => Task.FromResult(callback(param))
             )
         );
@@ -58,7 +58,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 Task<string>(string param, Workflow workflow)
                     => Task.FromResult(callback(param))
             )
@@ -71,7 +71,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 Result<string>(string param) => callback(param)
             )
         );
@@ -83,7 +83,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((functionsRegistry, callback)
             => functionsRegistry.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 Result<string>(string param, Workflow workflow) 
                     => Result.SucceedWithValue(callback(param))
                )
@@ -96,7 +96,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((functionsRegistry, callback)
             => functionsRegistry.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 Task<Result<string>>(string param) 
                     => Task.FromResult(Result.SucceedWithValue(callback(param)))
                )
@@ -109,7 +109,7 @@ public class InMemorySunshineTests
     {
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
-                functionTypeId: "",
+                flowType: "",
                 Task<Result<string>>(string param, Workflow workflow)
                     => Task.FromResult(Result.SucceedWithValue(callback(param))))
             );
@@ -167,7 +167,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 callback
             )
         );
@@ -179,7 +179,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
                 => rFunctions.RegisterAction(
-                    functionTypeId: "",
+                    flowType: "",
                     void(string param, Workflow workflow) => callback(param)
                 )
         );
@@ -191,7 +191,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 Task (string param) =>
                 {
                     callback(param);
@@ -207,7 +207,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 Task (string param, Workflow workflow) =>
                 {
                     callback(param);
@@ -222,7 +222,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 Result(string param) => { callback(param); return Result.Succeed; }
             )
         );
@@ -234,7 +234,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 Result(string param, Workflow workflow) => { callback(param); return Result.Succeed; }
             )
         );
@@ -246,7 +246,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 Task<Result> (string param) => { callback(param); return Task.FromResult(Result.Succeed); }
             )
         );
@@ -258,7 +258,7 @@ public class InMemorySunshineTests
     {
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
-                functionTypeId: "",
+                flowType: "",
                 Task<Result> (string param, Workflow workflow) => { callback(param); return Task.FromResult(Result.Succeed); }
             )
         );

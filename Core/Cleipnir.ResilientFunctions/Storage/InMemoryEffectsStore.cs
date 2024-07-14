@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryEffectsStore : IEffectsStore
 {
-    private readonly Dictionary<FunctionId, Dictionary<EffectId, StoredEffect>> _effects = new();
+    private readonly Dictionary<FlowId, Dictionary<EffectId, StoredEffect>> _effects = new();
     private readonly object _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
@@ -21,40 +21,40 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
-    public Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
+    public Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
     {
         lock (_sync)
         {
-            if (!_effects.ContainsKey(functionId))
-                _effects[functionId] = new Dictionary<EffectId, StoredEffect>();
+            if (!_effects.ContainsKey(flowId))
+                _effects[flowId] = new Dictionary<EffectId, StoredEffect>();
                 
-            _effects[functionId][storedEffect.EffectId] = storedEffect;
+            _effects[flowId][storedEffect.EffectId] = storedEffect;
         }
         
         return Task.CompletedTask;
     }
 
-    public Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
+    public Task<IEnumerable<StoredEffect>> GetEffectResults(FlowId flowId)
     {
         lock (_sync)
-            return !_effects.ContainsKey(functionId)
+            return !_effects.ContainsKey(flowId)
                 ? Enumerable.Empty<StoredEffect>().ToTask()
-                : _effects[functionId].Values.ToList().AsEnumerable().ToTask();
+                : _effects[flowId].Values.ToList().AsEnumerable().ToTask();
     }
 
-    public Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
+    public Task DeleteEffectResult(FlowId flowId, EffectId effectId)
     {
         lock (_sync)
-            if (_effects.ContainsKey(functionId))
-                _effects[functionId].Remove(effectId);
+            if (_effects.ContainsKey(flowId))
+                _effects[flowId].Remove(effectId);
 
         return Task.CompletedTask;
     }
 
-    public Task Remove(FunctionId functionId)
+    public Task Remove(FlowId flowId)
     {
         lock (_sync)
-            _effects.Remove(functionId);
+            _effects.Remove(flowId);
 
         return Task.CompletedTask;
     }

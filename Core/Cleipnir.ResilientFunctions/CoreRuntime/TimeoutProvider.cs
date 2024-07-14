@@ -27,14 +27,14 @@ public class TimeoutProvider : ITimeoutProvider
     private readonly HashSet<string> _localTimeouts = new();
     private readonly object _sync = new();
 
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
 
-    public TimeoutProvider(FunctionId functionId, ITimeoutStore timeoutStore, MessageWriter? messageWriter, TimeSpan timeoutCheckFrequency)
+    public TimeoutProvider(FlowId flowId, ITimeoutStore timeoutStore, MessageWriter? messageWriter, TimeSpan timeoutCheckFrequency)
     {
         _timeoutStore = timeoutStore;
         _messageWriter = messageWriter;
         _timeoutCheckFrequency = timeoutCheckFrequency;
-        _functionId = functionId;
+        _flowId = flowId;
     }
 
     public async Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false)
@@ -45,7 +45,7 @@ public class TimeoutProvider : ITimeoutProvider
         
         expiresAt = expiresAt.ToUniversalTime();
         _ = RegisterLocalTimeout(timeoutId, expiresAt);
-        await _timeoutStore.UpsertTimeout(new StoredTimeout(_functionId, timeoutId, expiresAt.Ticks), overwrite);
+        await _timeoutStore.UpsertTimeout(new StoredTimeout(_flowId, timeoutId, expiresAt.Ticks), overwrite);
     }
     
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
@@ -79,12 +79,12 @@ public class TimeoutProvider : ITimeoutProvider
         lock (_sync)
             _localTimeouts.Remove(timeoutId); 
         
-        await _timeoutStore.RemoveTimeout(_functionId, timeoutId);   
+        await _timeoutStore.RemoveTimeout(_flowId, timeoutId);   
     }
 
     public async Task<List<TimeoutEvent>> PendingTimeouts()
     {
-        var timeouts = (await _timeoutStore.GetTimeouts(_functionId)).ToList();
+        var timeouts = (await _timeoutStore.GetTimeouts(_flowId)).ToList();
 
         lock (_sync)
         {
@@ -94,7 +94,7 @@ public class TimeoutProvider : ITimeoutProvider
         }
         
         return timeouts
-            .Where(t => t.FunctionId == _functionId)
+            .Where(t => t.FlowId == _flowId)
             .Select(t => new TimeoutEvent(t.TimeoutId, Expiration: new DateTime(t.Expiry).ToUniversalTime()))
             .ToList();
     }

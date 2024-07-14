@@ -72,7 +72,7 @@ public static class BulkInsertionTest
         Console.WriteLine("BULK_INSERTION_TEST: Initializing");
         var functions = Enumerable
             .Range(0, testSize)
-            .Select(i => new FunctionIdWithParam(new FunctionId("BulkInsertionTest", i.ToString()), i.ToString().ToJson()));
+            .Select(i => new FunctionIdWithParam(new FlowId("BulkInsertionTest", i.ToString()), i.ToString().ToJson()));
         await store.BulkScheduleFunctions(functions);
         
         stopWatch.Stop();

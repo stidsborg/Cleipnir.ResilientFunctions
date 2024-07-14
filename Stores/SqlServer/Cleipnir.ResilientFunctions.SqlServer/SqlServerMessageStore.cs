@@ -60,7 +60,7 @@ public class SqlServerMessageStore : IMessageStore
     }
 
     private string? _appendMessageSql;
-    public async Task<FunctionStatus?> AppendMessage(FunctionId functionId, StoredMessage storedMessage)
+    public async Task<FunctionStatus?> AppendMessage(FlowId flowId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         
@@ -75,8 +75,8 @@ public class SqlServerMessageStore : IMessageStore
             );";
         
         await using var command = new SqlCommand(_appendMessageSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
         command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
@@ -87,20 +87,20 @@ public class SqlServerMessageStore : IMessageStore
         catch (SqlException e)
         {
             if (e.Number == SqlError.UNIQUENESS_INDEX_VIOLATION) //idempotency key already exists
-                return await GetSuspensionStatus(functionId, conn);
+                return await GetSuspensionStatus(flowId, conn);
             if (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION) 
                 throw;
             
             await conn.DisposeAsync();
             await Task.Delay(Random.Shared.Next(50, 250));
-            return await AppendMessage(functionId, storedMessage); 
+            return await AppendMessage(flowId, storedMessage); 
         }
         
-        return await GetSuspensionStatus(functionId, conn);
+        return await GetSuspensionStatus(flowId, conn);
     }
 
     private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(FunctionId functionId, int position, StoredMessage storedMessage)
+    public async Task<bool> ReplaceMessage(FlowId flowId, int position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         
@@ -110,8 +110,8 @@ public class SqlServerMessageStore : IMessageStore
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND Position = @Position";
         
         await using var command = new SqlCommand(_replaceMessageSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
         command.Parameters.AddWithValue("@Position", position);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
@@ -122,7 +122,7 @@ public class SqlServerMessageStore : IMessageStore
     }
 
     private string? _truncateSql;
-    public async Task Truncate(FunctionId functionId)
+    public async Task Truncate(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _truncateSql ??= @$"    
@@ -131,13 +131,13 @@ public class SqlServerMessageStore : IMessageStore
 
         await using var command = new SqlCommand(_truncateSql, conn);
         
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
         await command.ExecuteNonQueryAsync();
     }
 
     private string? _getMessagesSql;
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FunctionId functionId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip)
     {
         await using var conn = await CreateConnection();
         _getMessagesSql ??= @$"    
@@ -147,8 +147,8 @@ public class SqlServerMessageStore : IMessageStore
             ORDER BY Position ASC;";
         
         await using var command = new SqlCommand(_getMessagesSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
         command.Parameters.AddWithValue("@Position", skip);
         
         var storedMessages = new List<StoredMessage>();
@@ -168,14 +168,14 @@ public class SqlServerMessageStore : IMessageStore
             if (exception.Number != SqlError.UNIQUENESS_VIOLATION && exception.Number != SqlError.DEADLOCK_VICTIM) throw;
 
             conn.Dispose();
-            return await GetMessages(functionId, skip);
+            return await GetMessages(flowId, skip);
         }
 
         return storedMessages;
     }
 
     private string? _hasMoreMessagesSql;
-    public async Task<bool> HasMoreMessages(FunctionId functionId, int skip)
+    public async Task<bool> HasMoreMessages(FlowId flowId, int skip)
     {
         await using var conn = await CreateConnection();
         _hasMoreMessagesSql ??= @$"    
@@ -184,8 +184,8 @@ public class SqlServerMessageStore : IMessageStore
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         
         await using var command = new SqlCommand(_hasMoreMessagesSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
 
         var maxPosition = (int?) await command.ExecuteScalarAsync();
         if (maxPosition == null)
@@ -202,15 +202,15 @@ public class SqlServerMessageStore : IMessageStore
     }
 
     private string? _getSuspensionStatusSql;
-    private async Task<FunctionStatus?> GetSuspensionStatus(FunctionId functionId, SqlConnection connection)
+    private async Task<FunctionStatus?> GetSuspensionStatus(FlowId flowId, SqlConnection connection)
     {
         _getSuspensionStatusSql ??= @$"    
             SELECT Epoch, Status
             FROM {_tablePrefix}
             WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
         await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.TypeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.InstanceId.Value);
+        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

@@ -7,18 +7,18 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class Correlations
 {
-    private readonly FunctionId _functionId;
+    private readonly FlowId _flowId;
     private readonly HashSet<string> _registered;
     private readonly ICorrelationStore _correlationStore;
     private readonly object _sync = new();
 
     public Correlations(
-        FunctionId functionId,
+        FlowId flowId,
         IEnumerable<string> existingCorrelations,
         ICorrelationStore correlationStore
         )
     {
-        _functionId = functionId;
+        _flowId = flowId;
         _registered = existingCorrelations.ToHashSet();
         _correlationStore = correlationStore;
     }
@@ -29,7 +29,7 @@ public class Correlations
             if (_registered.Contains(correlation))
                 return;
 
-        await _correlationStore.SetCorrelation(_functionId, correlation);
+        await _correlationStore.SetCorrelation(_flowId, correlation);
         
         lock (_sync)
             _registered.Add(correlation);
@@ -47,7 +47,7 @@ public class Correlations
             if (!_registered.Contains(correlation))
                 return;
 
-        await _correlationStore.RemoveCorrelation(_functionId, correlation);
+        await _correlationStore.RemoveCorrelation(_flowId, correlation);
 
         lock (_sync)
             _registered.Remove(correlation);

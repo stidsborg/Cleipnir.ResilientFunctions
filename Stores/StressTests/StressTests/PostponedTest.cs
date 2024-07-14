@@ -24,7 +24,7 @@ public static class PostponedTest
         for (var i = 0; i < testSize; i++)
         {
             var storedParameter = JsonSerializer.Serialize("hello world");
-            var functionId = new FunctionId(nameof(PostponedTest), i.ToString());
+            var functionId = new FlowId(nameof(PostponedTest), i.ToString());
             await store.CreateFunction(
                 functionId,
                 storedParameter,

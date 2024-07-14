@@ -17,7 +17,7 @@ public abstract class RoutingTests
     protected async Task MessageIsRoutedToParamlessInstance(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -57,7 +57,7 @@ public abstract class RoutingTests
     protected async Task MessageIsRoutedToActionInstance(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -97,7 +97,7 @@ public abstract class RoutingTests
     protected async Task MessageIsRoutedToFuncInstance(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -143,7 +143,7 @@ public abstract class RoutingTests
     protected async Task MessageIsRoutedToParamlessInstanceUsingCorrelationId(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -194,7 +194,7 @@ public abstract class RoutingTests
     protected async Task ParamlessInstanceIsStartedByMessage(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

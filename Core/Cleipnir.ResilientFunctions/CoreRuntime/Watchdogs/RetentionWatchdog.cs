@@ -15,10 +15,10 @@ internal class RetentionWatchdog
     private readonly TimeSpan _cleanUpFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly TimeSpan _retentionPeriod;
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     
     public RetentionWatchdog(
-        FunctionTypeId functionTypeId,
+        FlowType flowType,
         IFunctionStore functionStore,
         TimeSpan cleanUpFrequency,
         TimeSpan delayStartUp,
@@ -26,7 +26,7 @@ internal class RetentionWatchdog
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -48,11 +48,11 @@ internal class RetentionWatchdog
                 var now = DateTime.UtcNow;
                 var completedBefore = now - _retentionPeriod;
                 var eligibleFunctions = 
-                    await _functionStore.GetSucceededFunctions(_functionTypeId, completedBefore.Ticks);
+                    await _functionStore.GetSucceededFunctions(_flowType, completedBefore.Ticks);
 
                 foreach (var eligibleFunction in eligibleFunctions.WithRandomOffset())
                 {
-                    var alreadyDeleted = !await _functionStore.DeleteFunction(new FunctionId(_functionTypeId, eligibleFunction));
+                    var alreadyDeleted = !await _functionStore.DeleteFunction(new FlowId(_flowType, eligibleFunction));
                     if (alreadyDeleted)
                         break;
                 }
@@ -67,8 +67,8 @@ internal class RetentionWatchdog
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    _functionTypeId,
-                    $"{nameof(RetentionWatchdog)} for '{_functionTypeId}' failed - retrying in 5 seconds",
+                    _flowType,
+                    $"{nameof(RetentionWatchdog)} for '{_flowType}' failed - retrying in 5 seconds",
                     innerException: thrownException
                 )
             );

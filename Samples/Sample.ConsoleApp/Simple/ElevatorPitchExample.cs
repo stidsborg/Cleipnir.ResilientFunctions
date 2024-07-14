@@ -28,7 +28,7 @@ public static class ElevatorPitchExample
         );
 
         var registration = functionsRegistry.RegisterFunc( //making a function resilient is simply a matter of registering it
-            functionTypeId: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
+            flowType: "HttpGetSaga", //a specific resilient function is identified by type and instance id - instance id is provided on invocation
             inner: async Task<string>(string url) => await HttpClient.GetStringAsync(url) //this is the function you are making resilient!
         ); //btw no need to define a cluster - just register it on multiple nodes to get redundancy!
            //also any crashed invocation of the function type will automatically be picked after this point

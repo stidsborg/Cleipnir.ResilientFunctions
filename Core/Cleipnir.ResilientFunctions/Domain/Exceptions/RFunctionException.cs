@@ -4,11 +4,11 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
 public abstract class RFunctionException : Exception
 {
-    public FunctionTypeId FunctionTypeId { get; }
+    public FlowType FlowType { get; }
     
-    public RFunctionException(FunctionTypeId functionTypeId, string message) 
-        : base(message) => FunctionTypeId = functionTypeId;
+    public RFunctionException(FlowType flowType, string message) 
+        : base(message) => FlowType = flowType;
 
-    public RFunctionException(FunctionTypeId functionTypeId, string message, Exception innerException) 
-        : base(message, innerException) => FunctionTypeId = functionTypeId;
+    public RFunctionException(FlowType flowType, string message, Exception innerException) 
+        : base(message, innerException) => FlowType = flowType;
 }

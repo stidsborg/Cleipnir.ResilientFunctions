@@ -17,7 +17,7 @@ public class Example
         var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
         var rFunc = functions.RegisterAction<string>(
-            functionTypeId: "DelaySuspension",
+            flowType: "DelaySuspension",
             inner: SuspensionDelayWorkflow
         );
 

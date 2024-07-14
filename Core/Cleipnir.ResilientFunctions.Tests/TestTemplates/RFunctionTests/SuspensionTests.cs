@@ -19,7 +19,7 @@ public abstract class SuspensionTests
     protected async Task ActionCanBeSuspended(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -53,7 +53,7 @@ public abstract class SuspensionTests
     protected async Task FunctionCanBeSuspended(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (typeId, instanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -87,7 +87,7 @@ public abstract class SuspensionTests
     protected async Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -130,7 +130,7 @@ public abstract class SuspensionTests
     protected async Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -173,9 +173,9 @@ public abstract class SuspensionTests
     protected async Task EligibleSuspendedFunctionIsPickedUpByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(EligibleSuspendedFunctionIsPickedUpByWatchdog).ToFunctionTypeId();
+        var functionTypeId = nameof(EligibleSuspendedFunctionIsPickedUpByWatchdog).ToFlowType();
         var functionInstanceId = "functionInstanceId";
-        var functionId = new FunctionId(functionTypeId, functionInstanceId);
+        var functionId = new FlowId(functionTypeId, functionInstanceId);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -256,7 +256,7 @@ public abstract class SuspensionTests
     protected async Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -302,7 +302,7 @@ public abstract class SuspensionTests
     protected async Task ParamlessFunctionWithPrefilledMessageCompletes(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -337,7 +337,7 @@ public abstract class SuspensionTests
     protected async Task StartedChildFuncInvocationPublishesResultSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
@@ -346,12 +346,12 @@ public abstract class SuspensionTests
             $"ChildFunction{Guid.NewGuid()}",
             inner: async Task (string param, Workflow workflow) =>
             {
-                await workflow.SendMessage(parentFunctionId, param.ToUpper(), workflow.FunctionId.ToString());
+                await workflow.SendMessage(parentFunctionId, param.ToUpper(), workflow.FlowId.ToString());
             }
         );
 
         var parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.TypeId,
+            parentFunctionId.Type,
             async Task<string> (string param, Workflow workflow) =>
             {
                 var words = param.Split(" ");
@@ -376,9 +376,9 @@ public abstract class SuspensionTests
                 return string.Join(" ", wordsList);
             });
 
-        await parent.Schedule(parentFunctionId.InstanceId.Value, "hello world and universe");
+        await parent.Schedule(parentFunctionId.Instance.Value, "hello world and universe");
 
-        var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
+        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
@@ -395,7 +395,7 @@ public abstract class SuspensionTests
     protected async Task StartedChildActionInvocationPublishesResultSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
@@ -411,7 +411,7 @@ public abstract class SuspensionTests
         );
 
         var parent = functionsRegistry.RegisterAction(
-            parentFunctionId.TypeId,
+            parentFunctionId.Type,
             inner: async Task (string param, Workflow workflow) =>
             {
                 await child.Schedule("SomeChildInstance#1", "hallo world");
@@ -421,9 +421,9 @@ public abstract class SuspensionTests
             }
         );
 
-        await parent.Schedule(parentFunctionId.InstanceId.Value, "hello world");
+        await parent.Schedule(parentFunctionId.Instance.Value, "hello world");
 
-        var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
+        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
@@ -439,7 +439,7 @@ public abstract class SuspensionTests
     protected async Task PublishFromChildActionStressTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var parentFunctionId = new FunctionId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
         const int numberOfChildren = 100;
         
         using var functionsRegistry = new FunctionsRegistry(store);
@@ -455,7 +455,7 @@ public abstract class SuspensionTests
         );
 
         var parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.TypeId,
+            parentFunctionId.Type,
             inner: async Task<List<string>> (string param, Workflow workflow) =>
             {
                 await workflow.Effect.Capture("ScheduleChildren", async () =>
@@ -473,9 +473,9 @@ public abstract class SuspensionTests
             }
         );
 
-        await parent.Schedule(parentFunctionId.InstanceId.Value, "hello world");
+        await parent.Schedule(parentFunctionId.Instance.Value, "hello world");
 
-        var controlPanel = await parent.ControlPanel(parentFunctionId.InstanceId);
+        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>

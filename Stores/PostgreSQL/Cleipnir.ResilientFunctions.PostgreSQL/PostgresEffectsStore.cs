@@ -45,9 +45,9 @@ public class PostgresEffectsStore : IEffectsStore
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(FunctionId functionId, StoredEffect storedEffect)
+    public async Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
     {
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (functionTypeId, functionInstanceId) = flowId;
         
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
@@ -74,7 +74,7 @@ public class PostgresEffectsStore : IEffectsStore
     }
 
     private string? _getEffectResultsSql;
-    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FunctionId functionId)
+    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
@@ -85,7 +85,7 @@ public class PostgresEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() { Value = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%" }
+                new() { Value = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%" }
             }
         };
 
@@ -106,12 +106,12 @@ public class PostgresEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FunctionId functionId, EffectId effectId)
+    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = $1";
         
-        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value, effectId.Value);
+        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters = { new() {Value = id } }
@@ -121,12 +121,12 @@ public class PostgresEffectsStore : IEffectsStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FunctionId functionId)
+    public async Task Remove(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE $1";
         
-        var id = Escaper.Escape(functionId.TypeId.Value, functionId.InstanceId.Value) + $"{Escaper.Separator}%";
+        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%";
         await using var command = new NpgsqlCommand(_removeSql, conn)
         {
             Parameters = { new() {Value = id } }

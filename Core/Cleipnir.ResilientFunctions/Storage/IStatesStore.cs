@@ -8,8 +8,8 @@ public interface IStatesStore
 {
     Task Initialize();
     Task Truncate();
-    Task UpsertState(FunctionId functionId, StoredState storedState);
-    Task<IEnumerable<StoredState>> GetStates(FunctionId functionId);
-    Task RemoveState(FunctionId functionId, StateId stateId);
-    Task Remove(FunctionId functionId);
+    Task UpsertState(FlowId flowId, StoredState storedState);
+    Task<IEnumerable<StoredState>> GetStates(FlowId flowId);
+    Task RemoveState(FlowId flowId, StateId stateId);
+    Task Remove(FlowId flowId);
 }

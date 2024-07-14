@@ -16,7 +16,7 @@ public abstract class ScheduleReInvocationTests
     protected async Task ActionReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionType = TestFunctionId.Create().TypeId;
+        var functionType = TestFlowId.Create().Type;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -49,14 +49,14 @@ public abstract class ScheduleReInvocationTests
 
         await rFunc.ControlPanel("something").Result!.ScheduleReInvoke();
 
-        var functionId = new FunctionId(functionType, "something");
+        var functionId = new FlowId(functionType, "something");
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
         );
         
         syncedParameter.Value.ShouldBe("something");
 
-        var function = await store.GetFunction(new FunctionId(functionType, "something"));
+        var function = await store.GetFunction(new FlowId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         
@@ -67,7 +67,7 @@ public abstract class ScheduleReInvocationTests
     protected async Task ActionWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -124,7 +124,7 @@ public abstract class ScheduleReInvocationTests
     protected async Task FuncReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -172,7 +172,7 @@ public abstract class ScheduleReInvocationTests
     protected async Task FuncWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

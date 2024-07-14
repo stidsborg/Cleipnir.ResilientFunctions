@@ -16,7 +16,7 @@ public abstract class MessagesSubscriptionTests
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 

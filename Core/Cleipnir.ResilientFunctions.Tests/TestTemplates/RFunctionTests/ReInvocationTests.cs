@@ -51,7 +51,7 @@ public abstract class ReInvocationTests
         
         syncedParameter.Value.ShouldBe("something");
 
-        var function = await store.GetFunction(new FunctionId(functionType, "something"));
+        var function = await store.GetFunction(new FlowId(functionType, "something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         
@@ -62,7 +62,7 @@ public abstract class ReInvocationTests
     protected async Task ActionWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -119,7 +119,7 @@ public abstract class ReInvocationTests
     protected async Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -167,7 +167,7 @@ public abstract class ReInvocationTests
     protected async Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -216,7 +216,7 @@ public abstract class ReInvocationTests
     protected async Task FuncReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -260,7 +260,7 @@ public abstract class ReInvocationTests
     protected async Task FuncWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -317,7 +317,7 @@ public abstract class ReInvocationTests
     protected async Task ReInvocationFailsWhenTheFunctionDoesNotExist(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFunctionId.Create();
+        var functionId = TestFlowId.Create();
         var (functionTypeId, functionInstanceId) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(

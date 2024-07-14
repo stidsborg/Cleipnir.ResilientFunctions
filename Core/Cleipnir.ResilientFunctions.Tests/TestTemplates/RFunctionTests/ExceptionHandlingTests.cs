@@ -18,7 +18,7 @@ public abstract class ExceptionHandlingTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
-            "typeId".ToFunctionTypeId(),
+            "typeId".ToFlowType(),
             string (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
@@ -34,7 +34,7 @@ public abstract class ExceptionHandlingTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc( 
-            "typeId".ToFunctionTypeId(),
+            "typeId".ToFlowType(),
             string (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
@@ -51,7 +51,7 @@ public abstract class ExceptionHandlingTests
 
         var rFunc = functionsRegistry
             .RegisterAction(
-                "typeId".ToFunctionTypeId(),
+                "typeId".ToFlowType(),
                 void (string _) => throw new ArithmeticException("Division by zero")
             )
             .Invoke;
@@ -69,7 +69,7 @@ public abstract class ExceptionHandlingTests
 
         var rFunc = functionsRegistry
             .RegisterAction(
-                "typeId".ToFunctionTypeId(),
+                "typeId".ToFlowType(),
                 void (string _) => throw new ArithmeticException("Division by zero")
             )
             .Invoke;

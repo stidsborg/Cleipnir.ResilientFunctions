@@ -19,7 +19,7 @@ public static class Example
 
         var registration = functions
             .RegisterAction<SupportTicketRequest>(
-                functionTypeId: "SupportTicketSaga",
+                flowType: "SupportTicketSaga",
                 Saga.AcceptSupportTicket
             );
         

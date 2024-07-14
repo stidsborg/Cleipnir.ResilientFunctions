@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class ReInvokerFactory
 {
-    private readonly FunctionTypeId _functionTypeId;
+    private readonly FlowType _flowType;
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -21,7 +21,7 @@ internal class ReInvokerFactory
     private readonly ScheduleReInvokeFromWatchdog _scheduleReInvoke;
 
     public ReInvokerFactory(
-        FunctionTypeId functionTypeId, 
+        FlowType flowType, 
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp, 
@@ -29,7 +29,7 @@ internal class ReInvokerFactory
         RestartFunction restartFunction, ScheduleReInvokeFromWatchdog scheduleReInvoke
     )
     {
-        _functionTypeId = functionTypeId;
+        _flowType = flowType;
         _functionStore = functionStore;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -42,7 +42,7 @@ internal class ReInvokerFactory
 
     public ReInvoker Create(ReInvoker.GetEligibleFunctions getEligibleFunctions)
         => new ReInvoker(
-            _functionTypeId,
+            _flowType,
             _functionStore,
             _shutdownCoordinator,
             _unhandledExceptionHandler,
