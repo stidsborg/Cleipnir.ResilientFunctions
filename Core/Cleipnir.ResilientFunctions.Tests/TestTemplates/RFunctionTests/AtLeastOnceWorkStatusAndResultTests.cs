@@ -19,10 +19,10 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
@@ -39,14 +39,14 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        _ = rAction.Invoke(functionInstanceId.ToString(), "hello");
+        _ = rAction.Invoke(flowInstance.ToString(), "hello");
         
         await BusyWait.Until(() =>
             store.GetFunction(functionId)
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId);
+        var controlPanel = await rAction.ControlPanel(flowInstance);
         controlPanel!.Effects.GetValue<int>("id").ShouldBe(1);
         counter.Current.ShouldBe(2);
     }
@@ -58,10 +58,10 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string>(string param, Workflow workflow) =>
             {
                 return await workflow.Effect
@@ -78,7 +78,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        _ = rFunc.Schedule(functionInstanceId.ToString(), "hello");
+        _ = rFunc.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId)
@@ -98,10 +98,10 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<Person>(string param, Workflow workflow) =>
             {
                 return await workflow.Effect
@@ -118,7 +118,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        _ = rFunc.Schedule(functionInstanceId.ToString(), "hello");
+        _ = rFunc.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId)
@@ -138,13 +138,13 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store);
         var counter = new SyncedCounter();
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
@@ -154,9 +154,9 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        await rAction.Invoke(functionInstanceId.ToString(), "hello");
+        await rAction.Invoke(flowInstance.ToString(), "hello");
         await BusyWait.Until(async () => await store.GetFunction(functionId) != null);
-        await rAction.ControlPanel(functionInstanceId).Result!.ReInvoke();
+        await rAction.ControlPanel(flowInstance).Result!.Restart();
 
         counter.Current.ShouldBe(1);
     }
@@ -168,10 +168,10 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         using var functionsRegistry = new FunctionsRegistry(store);
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
@@ -181,11 +181,11 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        await rAction.Invoke(functionInstanceId.ToString(), "hello");
-        var controlPanel = await rAction.ControlPanel(functionInstanceId);
+        await rAction.Invoke(flowInstance.ToString(), "hello");
+        var controlPanel = await rAction.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         await controlPanel.Refresh();
 
         var value = controlPanel.Effects.GetValue<string>("someId");

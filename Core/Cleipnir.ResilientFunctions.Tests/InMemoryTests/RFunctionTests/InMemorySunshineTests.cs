@@ -136,7 +136,7 @@ public class InMemorySunshineTests
         syncedParam = new Synced<string>();
         var controlPanel = await registration.ControlPanel("id1");
         controlPanel.ShouldNotBeNull();
-        returned = await controlPanel.ReInvoke();
+        returned = await controlPanel.Restart();
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
         
@@ -150,7 +150,7 @@ public class InMemorySunshineTests
         syncedParam = new Synced<string>();
         controlPanel = await registration.ControlPanel("id2");
         controlPanel.ShouldNotBeNull();
-        await controlPanel.ScheduleReInvoke();
+        await controlPanel.ScheduleRestart();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         returned = await registration.Invoke("id2", "hello universe");
@@ -277,7 +277,7 @@ public class InMemorySunshineTests
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam = new Synced<string>();
-        await registration.ControlPanel("id1").Result!.ReInvoke();
+        await registration.ControlPanel("id1").Result!.Restart();
         syncedParam.Value.ShouldBe("hello world");
         
         syncedParam = new Synced<string>();
@@ -287,7 +287,7 @@ public class InMemorySunshineTests
         await registration.Invoke("id2", "hello universe");
         
         syncedParam = new Synced<string>();
-        await registration.ControlPanel("id2").Result!.ScheduleReInvoke();
+        await registration.ControlPanel("id2").Result!.ScheduleRestart();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
     }

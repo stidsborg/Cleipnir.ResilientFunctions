@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReInvokerFactory
+internal class RestarterFactory
 {
     private readonly FlowType _flowType;
     private readonly IFunctionStore _functionStore;
@@ -18,15 +18,15 @@ internal class ReInvokerFactory
     private readonly AsyncSemaphore _asyncSemaphore;
     
     private readonly RestartFunction _restartFunction;
-    private readonly ScheduleReInvokeFromWatchdog _scheduleReInvoke;
+    private readonly ScheduleRestartFromWatchdog _scheduleRestart;
 
-    public ReInvokerFactory(
+    public RestarterFactory(
         FlowType flowType, 
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp, 
         AsyncSemaphore asyncSemaphore, 
-        RestartFunction restartFunction, ScheduleReInvokeFromWatchdog scheduleReInvoke
+        RestartFunction restartFunction, ScheduleRestartFromWatchdog scheduleRestart
     )
     {
         _flowType = flowType;
@@ -37,11 +37,11 @@ internal class ReInvokerFactory
         _delayStartUp = delayStartUp;
         _asyncSemaphore = asyncSemaphore;
         _restartFunction = restartFunction;
-        _scheduleReInvoke = scheduleReInvoke;
+        _scheduleRestart = scheduleRestart;
     }
 
-    public ReInvoker Create(ReInvoker.GetEligibleFunctions getEligibleFunctions)
-        => new ReInvoker(
+    public Restarter Create(Restarter.GetEligibleFunctions getEligibleFunctions)
+        => new Restarter(
             _flowType,
             _functionStore,
             _shutdownCoordinator,
@@ -50,7 +50,7 @@ internal class ReInvokerFactory
             _delayStartUp,
             _asyncSemaphore,
             _restartFunction,
-            _scheduleReInvoke,
+            _scheduleRestart,
             getEligibleFunctions
         );
 }

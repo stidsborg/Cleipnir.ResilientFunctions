@@ -33,10 +33,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         long timestamp
     ) => _inner.CreateFunction(flowId, param, leaseExpiration, postponeUntil, timestamp);
 
-    public Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
         => _inner.BulkScheduleFunctions(functionsWithParam);
 
-    public Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(flowId, expectedEpoch, leaseExpiration);
     
     public Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration)
@@ -45,10 +45,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    public Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
         => _inner.GetCrashedFunctions(flowType, leaseExpiresBefore);
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
+    public Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
         => _inner.GetPostponedFunctions(flowType, isEligibleBefore);
 
     public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
@@ -113,7 +113,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
         => _inner.GetFunctionStatus(flowId);
 
-    public Task<StoredFunction?> GetFunction(FlowId flowId)
+    public Task<StoredFlow?> GetFunction(FlowId flowId)
         => _inner.GetFunction(flowId);
 
     public Task<bool> DeleteFunction(FlowId flowId) => _inner.DeleteFunction(flowId);

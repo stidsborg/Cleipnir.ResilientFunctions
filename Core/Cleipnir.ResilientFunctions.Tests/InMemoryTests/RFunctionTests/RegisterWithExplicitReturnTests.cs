@@ -16,7 +16,7 @@ public class RegisterWithExplicitReturnTests
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rFunc = rFunctions.RegisterFunc<string, string>(
-            "FunctionTypeId".ToFlowType(),
+            "flowType".ToFlowType(),
             inner: async param =>
             {
                 await Task.CompletedTask;
@@ -35,7 +35,7 @@ public class RegisterWithExplicitReturnTests
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rFunc = rFunctions.RegisterFunc<string, string>(
-            "FunctionTypeId".ToFlowType(),
+            "flowType".ToFlowType(),
             inner: async (param, state) =>
             {
                 await Task.CompletedTask;
@@ -56,7 +56,7 @@ public class RegisterWithExplicitReturnTests
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
             .RegisterAction<string>(
-                "FunctionTypeId".ToFlowType(),
+                "flowType".ToFlowType(),
                 inner: async param =>
                 {
                     await Task.CompletedTask;
@@ -76,7 +76,7 @@ public class RegisterWithExplicitReturnTests
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
             .RegisterAction<string>(
-                "FunctionTypeId".ToFlowType(),
+                "flowType".ToFlowType(),
                 inner: async (param, workflow) =>
                 {
                     await Task.CompletedTask;

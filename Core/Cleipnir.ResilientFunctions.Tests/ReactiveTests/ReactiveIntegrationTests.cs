@@ -23,16 +23,16 @@ public class ReactiveIntegrationTests
         var store = new InMemoryFunctionStore();
         var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var rAction = functionsRegistry.RegisterAction<string>(
-            functionTypeId,
+            flowType,
             inner: async (_, workflow) =>
             {
                 var messages = workflow.Messages;
                 await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(rAction.Invoke(functionInstanceId.Value, "param"));
+        await Should.ThrowAsync<FunctionInvocationSuspendedException>(rAction.Invoke(flowInstance.Value, "param"));
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)

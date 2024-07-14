@@ -4,13 +4,13 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class PostponedWatchdog
 {
-    private readonly ReInvoker _reInvoker;
+    private readonly Restarter _restarter;
 
-    public PostponedWatchdog(ReInvokerFactory reInvokerFactory)
-        => _reInvoker = reInvokerFactory.Create(
-            getEligibleFunctions: (functionTypeId, store, t) => store.GetPostponedFunctions(functionTypeId, isEligibleBefore: t) 
+    public PostponedWatchdog(RestarterFactory restarterFactory)
+        => _restarter = restarterFactory.Create(
+            getEligibleFunctions: (flowType, store, t) => store.GetPostponedFunctions(flowType, isEligibleBefore: t) 
         );
 
 
-    public Task Start() => _reInvoker.Start(nameof(PostponedWatchdog));
+    public Task Start() => _restarter.Start(nameof(PostponedWatchdog));
 }

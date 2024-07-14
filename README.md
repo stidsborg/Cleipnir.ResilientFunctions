@@ -66,7 +66,7 @@ Secondly, setup the framework:
 Finally, register and invoke a function using the framework:
 ```csharp
 var actionRegistration = functionsRegistry.RegisterAction(
-  functionTypeId: "OrderProcessor",
+  flowType: "OrderProcessor",
   async (Order order, Workflow workflow) => 
   { 
     var effect = workflow.Effect;  
@@ -101,7 +101,7 @@ It is also possible to implement message-based flows using the framework.
 I.e. awaiting 2 external messages before completing an invocation can be accomplished as follows:
 ```csharp
  var rAction = functionsRegistry.RegisterAction(
-  functionTypeId: "MessageWaitingFunc",
+  flowType: "MessageWaitingFunc",
   async (string param, Workflow workflow) => 
   {
     var messages = await workflow.Messages;
@@ -124,11 +124,11 @@ var store = new InMemoryFunctionStore();
 var functions = new FunctionsRegistry(store, unhandledExceptionHandler: Console.WriteLine);
 
 var rFunc = functions.RegisterFunc(
-  functionTypeId: "HelloWorld",
+  flowType: "HelloWorld",
   inner: (string param) => param.ToUpper()
 ).Invoke;
 
-var returned = await rFunc(functionInstanceId: "", param: "hello world");
+var returned = await rFunc(flowInstance: "", param: "hello world");
 Console.WriteLine($"Returned: '{returned}'");
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Samples/Sample.ConsoleApp/Simple/HelloWorldExample.cs)
@@ -144,7 +144,7 @@ public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionSt
   var httpClient = new HttpClient();
 
   var rAction = functions.RegisterAction(
-    functionTypeId: "HttpAndDatabaseSaga",
+    flowType: "HttpAndDatabaseSaga",
     inner: async (Guid id) =>
     {
       var response = await httpClient.PostAsync(URL, new StringContent(id.ToString()));
@@ -157,7 +157,7 @@ public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionSt
     }).Invoke;
 
   var id = Guid.NewGuid();
-  await rAction(functionInstanceId: id.ToString(), param: id);
+  await rAction(flowInstance: id.ToString(), param: id);
 }
 ```
 [Source Code](https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Samples/Sample.ConsoleApp/Simple/SimpleHttpAndDbExample.cs)

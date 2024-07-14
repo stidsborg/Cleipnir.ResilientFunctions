@@ -17,7 +17,7 @@ public abstract class TimeoutTests
     protected async Task ExpiredTimeoutIsAddedToMessages(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ExpiredTimeoutIsAddedToMessages).ToFlowType();
+        var flowType = nameof(ExpiredTimeoutIsAddedToMessages).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
         (
@@ -29,7 +29,7 @@ public abstract class TimeoutTests
             )
         );
         var rFunc = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             inner: async Task (string _, Workflow workflow) =>
             {
                 var messages = workflow.Messages;

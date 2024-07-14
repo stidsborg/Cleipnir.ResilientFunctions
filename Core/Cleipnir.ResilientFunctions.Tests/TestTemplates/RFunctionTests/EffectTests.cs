@@ -20,10 +20,10 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -33,7 +33,7 @@ public abstract class EffectTests
                 );
             });
 
-        await rAction.Schedule(functionInstanceId.ToString(), "hello");
+        await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -45,7 +45,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(functionId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -58,10 +58,10 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -70,7 +70,7 @@ public abstract class EffectTests
                     work: () => { syncedCounter.Increment(); return Task.CompletedTask; });
             });
 
-        await rAction.Schedule(functionInstanceId.ToString(), "hello");
+        await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -82,7 +82,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(functionId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -95,10 +95,10 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -111,7 +111,7 @@ public abstract class EffectTests
                     });
             });
 
-        await rAction.Schedule(functionInstanceId.ToString(), param: "hello");
+        await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -125,7 +125,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(functionId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
@@ -140,10 +140,10 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -156,7 +156,7 @@ public abstract class EffectTests
                     });
             });
 
-        await rAction.Schedule(functionInstanceId.ToString(), param: "hello");
+        await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -170,7 +170,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(functionId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
@@ -185,10 +185,10 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -201,7 +201,7 @@ public abstract class EffectTests
                     });
             });
 
-        await rAction.Schedule(functionInstanceId.ToString(), "hello");
+        await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Failed)
@@ -216,7 +216,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
-        await Should.ThrowAsync<EffectException>(() => controlPanel.ReInvoke());
+        await Should.ThrowAsync<EffectException>(() => controlPanel.Restart());
         
         effectResults = await store.EffectsStore.GetEffectResults(functionId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
@@ -232,9 +232,9 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var rAction = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<int> (string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -243,7 +243,7 @@ public abstract class EffectTests
                 return await effect.WhenAny("WhenAny", t1, t2);
             });
 
-        var result = await rAction.Invoke(functionInstanceId.ToString(), param: "hello");
+        var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
         result.ShouldBe(2);
         
         var effectResults = await store.EffectsStore.GetEffectResults(functionId);
@@ -258,9 +258,9 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var rAction = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<int[]> (string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -269,7 +269,7 @@ public abstract class EffectTests
                 return await effect.WhenAll("WhenAll", t1, t2);
             });
 
-        var result = await rAction.Invoke(functionInstanceId.ToString(), param: "hello");
+        var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
         result.ShouldBe(new [] { 1, 2 });
         
         var effectResults = await store.EffectsStore.GetEffectResults(functionId);
@@ -284,7 +284,7 @@ public abstract class EffectTests
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
 
         await store.CreateFunction(
             functionId,
@@ -295,7 +295,7 @@ public abstract class EffectTests
         );
         
         var registration = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task (string param, Workflow workflow) =>
             {
                 var (effect, _, _) = workflow;
@@ -306,7 +306,7 @@ public abstract class EffectTests
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Effects.SetSucceeded("SomeEffect");
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
 
         await controlPanel.Refresh();
         controlPanel.Effects.All.Count.ShouldBe(0);

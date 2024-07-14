@@ -2,7 +2,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public record StoredFunction(
+public record StoredFlow(
     FlowId FlowId,
     string? Parameter,
     string? DefaultState,
@@ -16,7 +16,7 @@ public record StoredFunction(
     long InterruptCount
 );
 
-public record InstanceIdAndEpoch(FlowInstance Instance, int Epoch);
+public record InstanceAndEpoch(FlowInstance Instance, int Epoch);
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);
@@ -24,4 +24,4 @@ public record StatusAndEpoch(Status Status, int Epoch);
 public record StoredEffect(EffectId EffectId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
 public record StoredState(StateId StateId, string StateJson);
 
-public record FunctionIdWithParam(FlowId FlowId, string? Param);
+public record IdWithParam(FlowId FlowId, string? Param);

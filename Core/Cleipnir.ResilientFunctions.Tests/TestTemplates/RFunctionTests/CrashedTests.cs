@@ -18,7 +18,7 @@ public abstract class CrashedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -32,11 +32,11 @@ public abstract class CrashedTests
                     )
                 )
                 .RegisterFunc(
-                    functionTypeId,
+                    flowType,
                     (string _) => NeverCompletingTask.OfType<string>()
                 ).Invoke;
 
-            _ = nonCompletingRFunctions(functionInstanceId.Value, param);
+            _ = nonCompletingRFunctions(flowInstance.Value, param);
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -49,7 +49,7 @@ public abstract class CrashedTests
 
             var rFunc = functionsRegistry
                 .RegisterFunc(
-                    functionTypeId,
+                    flowType,
                     (string s) => s.ToUpper().ToTask()
                 ).Invoke;
             
@@ -61,7 +61,7 @@ public abstract class CrashedTests
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
-            await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
+            await rFunc(flowInstance.Value, param).ShouldBeAsync("TEST");
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -73,7 +73,7 @@ public abstract class CrashedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -88,11 +88,11 @@ public abstract class CrashedTests
                 );
             var nonCompletingFunctionsRegistry = functionsRegistry    
                 .RegisterFunc(
-                    functionTypeId,
+                    flowType,
                     (string _) => NeverCompletingTask.OfType<Result<string>>()
                 ).Invoke;
 
-            _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
+            _ = nonCompletingFunctionsRegistry(flowInstance.Value, param);
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -105,7 +105,7 @@ public abstract class CrashedTests
 
             var rFunc = functionsRegistry
                 .RegisterFunc(
-                    functionTypeId,
+                    flowType,
                     async (string s, Workflow workflow) =>
                     {
                         var state = workflow.States.CreateOrGet<State>("State");
@@ -129,7 +129,7 @@ public abstract class CrashedTests
             var stateResult = effects.Single(e => e.StateId == "State").StateJson;
             stateResult.ShouldNotBeNull();
             stateResult.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
-            await rFunc(functionInstanceId.Value, param).ShouldBeAsync("TEST");
+            await rFunc(flowInstance.Value, param).ShouldBeAsync("TEST");
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -141,7 +141,7 @@ public abstract class CrashedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -155,12 +155,12 @@ public abstract class CrashedTests
                     )
                 )
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) => NeverCompletingTask.OfVoidType
                 )
                 .Invoke;
 
-            _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
+            _ = nonCompletingFunctionsRegistry(flowInstance.Value, param);
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -173,7 +173,7 @@ public abstract class CrashedTests
 
             var rAction = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) => Task.CompletedTask
                 )
                 .Invoke;
@@ -186,7 +186,7 @@ public abstract class CrashedTests
 
             var status = await store.GetFunction(functionId).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
-            await rAction(functionInstanceId.Value, param);
+            await rAction(flowInstance.Value, param);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())
@@ -198,7 +198,7 @@ public abstract class CrashedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         const string param = "test";
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
@@ -212,11 +212,11 @@ public abstract class CrashedTests
                     )
                 )
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) => NeverCompletingTask.OfVoidType
                 ).Invoke;
 
-            _ = nonCompletingFunctionsRegistry(functionInstanceId.Value, param);
+            _ = nonCompletingFunctionsRegistry(flowInstance.Value, param);
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -229,7 +229,7 @@ public abstract class CrashedTests
 
             var rAction = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     async (string _, Workflow workflow) =>
                     {
                         var state = workflow.States.CreateOrGet<State>("State");
@@ -251,7 +251,7 @@ public abstract class CrashedTests
             var effects = await store.StatesStore.GetStates(functionId);
             var state = effects.Single(e => e.StateId == "State").StateJson;
             state.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
-            await rAction(functionInstanceId.Value, param);
+            await rAction(flowInstance.Value, param);
         }
 
         if (unhandledExceptionHandler.ThrownExceptions.Any())

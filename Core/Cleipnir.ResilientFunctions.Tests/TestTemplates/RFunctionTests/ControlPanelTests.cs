@@ -23,10 +23,10 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async (string _, Workflow workflow) =>
             {
                 var (effect, messages, states) = workflow;
@@ -39,11 +39,11 @@ public abstract class ControlPanelTests
             }
         );
         
-        await rAction.Invoke(functionInstanceId.Value, "");
+        await rAction.Invoke(flowInstance.Value, "");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Delete();
-
+        
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
 
         await store.GetFunction(functionId).ShouldBeNullAsync();
@@ -82,11 +82,11 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string>(string _, Workflow workflow) =>
             {
                 var (effect, messages, states) = workflow;
@@ -99,9 +99,9 @@ public abstract class ControlPanelTests
                 return "hello";
             });
         
-        await rFunc.Invoke(functionInstanceId.Value, "");
+        await rFunc.Invoke(flowInstance.Value, "");
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Delete();
 
         await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
@@ -142,17 +142,17 @@ public abstract class ControlPanelTests
 
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void (string _) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
@@ -179,17 +179,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             string (_) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
         
@@ -216,17 +216,17 @@ public abstract class ControlPanelTests
 
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
         
@@ -251,17 +251,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             string (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
 
@@ -286,17 +286,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void (string _) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
@@ -319,17 +319,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var paramlessRegistration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             inner: Task () => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => paramlessRegistration.Invoke(functionInstanceId.Value));
+        await Should.ThrowAsync<Exception>(() => paramlessRegistration.Invoke(flowInstance.Value));
 
-        var controlPanel = await paramlessRegistration.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await paramlessRegistration.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
@@ -352,17 +352,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             string (_) => throw new Exception("oh no")
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.PreviouslyThrownException.ShouldNotBeNull();
 
@@ -388,10 +388,10 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void(string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<TestState>("State");
@@ -399,9 +399,9 @@ public abstract class ControlPanelTests
                 state.Save().Wait();
             });
 
-        await rAction.Invoke(functionInstanceId.Value, param: "first");
+        await rAction.Invoke(flowInstance.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
@@ -409,7 +409,7 @@ public abstract class ControlPanelTests
         controlPanel.Param = "second";
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("second");
@@ -433,22 +433,22 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             string (string param) => param
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "first");
+        await rAction.Invoke(flowInstance.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        var result = await controlPanel.ReInvoke();
+        var result = await controlPanel.Restart();
         result.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
@@ -465,10 +465,10 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void(string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<TestState>("State");
@@ -476,9 +476,9 @@ public abstract class ControlPanelTests
                 state.Save().Wait();
             });
 
-        await rAction.Invoke(functionInstanceId.Value, param: "first");
+        await rAction.Invoke(flowInstance.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
@@ -486,7 +486,7 @@ public abstract class ControlPanelTests
         controlPanel.Param = "second";
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
-        await controlPanel.ScheduleReInvoke();
+        await controlPanel.ScheduleRestart();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
@@ -507,22 +507,22 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             string (string param) => param
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "first");
+        await rAction.Invoke(flowInstance.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        await controlPanel.ScheduleReInvoke();
+        await controlPanel.ScheduleRestart();
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Result.ShouldBe("second");
@@ -541,24 +541,24 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void (string _) => {}
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "first");
+        await rAction.Invoke(flowInstance.Value, param: "first");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         {
-            var tempControlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+            var tempControlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
             await tempControlPanel.SaveChanges(); //increment epoch
         }
         
         controlPanel.Param = "second";
-        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleReInvoke());
+        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleRestart());
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -570,24 +570,24 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             string (string param) => param
         );
 
-        await rFunc.Invoke(functionInstanceId.Value, param: "first");
+        await rFunc.Invoke(flowInstance.Value, param: "first");
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         {
-            var tempControlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+            var tempControlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
             await tempControlPanel.SaveChanges(); //increment epoch
         }
         
         controlPanel.Param = "second";
-        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleReInvoke());
+        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleRestart());
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -599,20 +599,20 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string> (string param) =>
             {
                 await flag.WaitForRaised();
                 return param;
             });
 
-        await rFunc.Schedule(functionInstanceId.Value, param: "param");
+        await rFunc.Schedule(flowInstance.Value, param: "param");
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
 
         var completionTask = controlPanel.WaitForCompletion();
@@ -635,17 +635,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task(string param) => flag.WaitForRaised()
         );
 
-        await rAction.Schedule(functionInstanceId.Value, param: "param");
+        await rAction.Schedule(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
 
         var completionTask = controlPanel.WaitForCompletion();
@@ -665,22 +665,22 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var before = DateTime.UtcNow;
         
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
         var flag = new SyncedFlag();
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string> (string param) =>
             {
                 await flag.WaitForRaised();
                 return param;
             });
 
-        await rFunc.Schedule(functionInstanceId.Value, param: "param");
+        await rFunc.Schedule(flowInstance.Value, param: "param");
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
         var curr = controlPanel.LeaseExpiration;
         curr.ShouldBeGreaterThan(before);
@@ -701,7 +701,7 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var before = DateTime.UtcNow;
 
         using var functionsRegistry = new FunctionsRegistry(
@@ -713,15 +713,15 @@ public abstract class ControlPanelTests
         );
         var flag = new SyncedFlag();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param) =>
             {
                 await flag.WaitForRaised();
             });
 
-        await rAction.Schedule(functionInstanceId.Value, param: "param");
+        await rAction.Schedule(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Executing);
         var curr = controlPanel.LeaseExpiration;
         curr.ShouldBeGreaterThan(before);
@@ -742,19 +742,19 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             string (string param) => param
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
-        await controlPanel.ReInvoke().ShouldBeAsync("param");
+        await controlPanel.Restart().ShouldBeAsync("param");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -766,19 +766,19 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             void(string _) => { }
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -790,20 +790,20 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Messages.AppendMessage(param);
             }
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(1);
         existingMessages[0].ShouldBe("param");
@@ -819,14 +819,14 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
         var invocationCount = new SyncedCounter();
         var syncedList = new SyncedList<string>();
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
@@ -845,9 +845,9 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(2);
@@ -858,7 +858,7 @@ public abstract class ControlPanelTests
         
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         controlPanel.Messages.Count().ShouldBe(2);
         
@@ -882,12 +882,12 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var first = true;
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task(string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
@@ -900,9 +900,9 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Param = "test";
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
@@ -924,21 +924,21 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
             new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(1);
 
@@ -961,21 +961,21 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
             new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -1005,21 +1005,21 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
             new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         existingMessages.Count().ShouldBe(1);
 
@@ -1042,21 +1042,21 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
             new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -1086,20 +1086,20 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task(string param, Workflow workflow) => Task.CompletedTask
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         await rAction.MessageWriters
-            .For(functionInstanceId.Value)
+            .For(flowInstance.Value)
             .AppendMessage("hello world", idempotencyKey: "first");
             
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         var (message, idempotencyKey) = existingMessages.MessagesWithIdempotencyKeys.Single();
         message.ShouldBe("hello world");
@@ -1125,23 +1125,23 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             Task<string> (string param, Workflow workflow) 
                 => workflow.Effect.Capture("Test", () => "EffectResult")
         );
 
-        var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        var result = await rFunc.Invoke(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
         await effects.SetSucceeded(effectId: "Test", result: "ReplacedResult");
 
-        result = await controlPanel.ReInvoke();
+        result = await controlPanel.Restart();
         result.ShouldBe("ReplacedResult");
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -1154,26 +1154,26 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var runEffect = false;
         
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task (string param, Workflow workflow) 
                 => runEffect 
                     ? workflow.Effect.Capture("Test", () => {}, ResiliencyLevel.AtMostOnce)
                     : Task.CompletedTask
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
         await effects.SetStarted(effectId: "Test");
         
         runEffect = true;
-        await Should.ThrowAsync<Exception>(controlPanel.ReInvoke());
+        await Should.ThrowAsync<Exception>(controlPanel.Restart());
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -1185,22 +1185,22 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task (string param, Workflow workflow) 
                 => workflow.Effect.Capture("Test", () => throw new InvalidOperationException("oh no"))
         );
 
-        await Should.ThrowAsync<Exception>(rFunc.Invoke(functionInstanceId.Value, param: "param"));
+        await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.Value, param: "param"));
         
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var activities = controlPanel.Effects;
         await activities.SetSucceeded(effectId: "Test");
         
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
@@ -1212,12 +1212,12 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             Task<string> (string param, Workflow workflow) =>
                 workflow.Effect.Capture("Test", () =>
                 {
@@ -1226,13 +1226,13 @@ public abstract class ControlPanelTests
                 })
         );
 
-        var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        var result = await rFunc.Invoke(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
+        var controlPanel = await rFunc.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
-        result = await controlPanel.ReInvoke();
+        result = await controlPanel.Restart();
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
         
@@ -1240,9 +1240,9 @@ public abstract class ControlPanelTests
         var activities = controlPanel.Effects;
         await activities.Remove("Test");
 
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
 
-        result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        result = await rFunc.Invoke(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(2);
 
@@ -1256,19 +1256,19 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             (string _, Workflow _) => {}
         );
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
         
-        var firstControlPanel = await rAction.ControlPanel(functionInstanceId.Value);
+        var firstControlPanel = await rAction.ControlPanel(flowInstance.Value);
         firstControlPanel.ShouldNotBeNull();
         
-        var secondControlPanel = await rAction.ControlPanel(functionInstanceId.Value);
+        var secondControlPanel = await rAction.ControlPanel(flowInstance.Value);
         secondControlPanel.ShouldNotBeNull();
 
         await firstControlPanel.Effects.SetSucceeded("Id", "SomeResult");
@@ -1287,12 +1287,12 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             Task<string> (string param, Workflow workflow) =>
                 workflow.Effect.Capture("Test", () =>
                 {
@@ -1301,17 +1301,17 @@ public abstract class ControlPanelTests
                 })
         );
 
-        var result = await rFunc.Invoke(functionInstanceId.Value, param: "param");
+        var result = await rFunc.Invoke(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId.Value);
+        var controlPanel = await rFunc.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var effects = controlPanel.Effects;
         await effects.SetFailed(effectId: "Test", new InvalidOperationException("oh no"));
 
         await Should.ThrowAsync<PreviousFunctionInvocationException>(() => 
-            controlPanel.ReInvoke()
+            controlPanel.Restart()
         );
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -1329,11 +1329,11 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<State>();
@@ -1347,11 +1347,11 @@ public abstract class ControlPanelTests
                 return state.Value;
             });
 
-        var result = await rFunc.Invoke(functionInstanceId.Value, param: "Some Param");
+        var result = await rFunc.Invoke(flowInstance.Value, param: "Some Param");
         result.ShouldBe("Some Param");
         
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var otherControlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        var otherControlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         
         var states = controlPanel.States;
         states.HasDefaultState().ShouldBeTrue();
@@ -1389,24 +1389,24 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var rAction = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             inner: param => param
         );
 
-        await rAction.Invoke(functionInstanceId.Value, param: "param");
+        await rAction.Invoke(flowInstance.Value, param: "param");
 
         {
-            var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
             controlPanel.Result.ShouldBe("param");
             await controlPanel.Succeed("changed");
         }
         
         {
-            var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+            var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
             controlPanel.Result.ShouldBe("changed");
         }
         
@@ -1420,20 +1420,20 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var actionRegistration = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Task (string param, Workflow workflow) =>
                 workflow.Messages.TimeoutProvider.RegisterTimeout(
                     "someTimeoutId", expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
                 )
         );
 
-        await actionRegistration.Invoke(functionInstanceId.Value, param: "param");
+        await actionRegistration.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await actionRegistration.ControlPanel(functionInstanceId.Value);
+        var controlPanel = await actionRegistration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var timeouts = controlPanel.Timeouts;
         timeouts.All.Count.ShouldBe(1);
@@ -1459,11 +1459,11 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var funcRegistration = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
                 await workflow.Messages.TimeoutProvider.RegisterTimeout(
@@ -1474,9 +1474,9 @@ public abstract class ControlPanelTests
             }
         );
 
-        await funcRegistration.Invoke(functionInstanceId.Value, param: "param");
+        await funcRegistration.Invoke(flowInstance.Value, param: "param");
 
-        var controlPanel = await funcRegistration.ControlPanel(functionInstanceId.Value);
+        var controlPanel = await funcRegistration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var timeouts = controlPanel.Timeouts;
         timeouts.All.Count.ShouldBe(1);
@@ -1502,11 +1502,11 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var registration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             async workflow =>
             {
                 await workflow.Correlations.Register("SomeCorrelation");
@@ -1514,16 +1514,16 @@ public abstract class ControlPanelTests
             }
         );
 
-        await registration.Invoke(functionInstanceId.Value);
+        await registration.Invoke(flowInstance.Value);
 
-        var controlPanel = await registration.ControlPanel(functionInstanceId.Value);
+        var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
        
         controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeTrue();
         await controlPanel.Correlations.Remove("SomeCorrelation");
         await controlPanel.Correlations.Register("SomeNewCorrelation");
 
-        controlPanel = await registration.ControlPanel(functionInstanceId.Value);
+        controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalse();
         controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrue();
@@ -1536,17 +1536,17 @@ public abstract class ControlPanelTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         
         var registration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             inner: () => Task.CompletedTask
         );
 
-        await registration.Invoke(functionInstanceId.Value);
+        await registration.Invoke(flowInstance.Value);
 
-        var controlPanel = await registration.ControlPanel(functionInstanceId.Value);
+        var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Correlations.Register("SomeCorrelation");

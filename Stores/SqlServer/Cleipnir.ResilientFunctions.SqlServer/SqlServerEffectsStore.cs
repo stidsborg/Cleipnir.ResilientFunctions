@@ -51,7 +51,7 @@ public class SqlServerEffectsStore : IEffectsStore
     private string? _setEffectResultSql;
     public async Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         await using var conn = await _connFunc();
         _setEffectResultSql ??= $@"
             MERGE INTO {_tablePrefix}_Effects
@@ -65,7 +65,7 @@ public class SqlServerEffectsStore : IEffectsStore
                     VALUES (source.Id, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(_setEffectResultSql, conn);
-        var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedEffect.EffectId.ToString());    
+        var escapedId = Escaper.Escape(flowType.ToString(), flowInstance.ToString(), storedEffect.EffectId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
         command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) DBNull.Value);

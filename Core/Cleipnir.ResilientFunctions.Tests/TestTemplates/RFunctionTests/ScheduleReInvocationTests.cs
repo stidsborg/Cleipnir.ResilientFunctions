@@ -47,7 +47,7 @@ public abstract class ScheduleReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ControlPanel("something").Result!.ScheduleReInvoke();
+        await rFunc.ControlPanel("something").Result!.ScheduleRestart();
 
         var functionId = new FlowId(functionType, "something");
         await BusyWait.Until(
@@ -68,7 +68,7 @@ public abstract class ScheduleReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -81,7 +81,7 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rAction = functionsRegistry.RegisterAction<string>(
-            functionTypeId,
+            flowType,
             async (param, workflow) =>
             {
                 var state = workflow.States.CreateOrGet<ListState<string>>("State");
@@ -97,14 +97,14 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(functionInstanceId.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, "something"));
 
         var syncedListFromState = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.States.Remove("State");
         await controlPanel.SaveChanges();
         
-        await rAction.ControlPanel(functionInstanceId).Result!.ScheduleReInvoke();
+        await rAction.ControlPanel(flowInstance).Result!.ScheduleRestart();
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
@@ -125,7 +125,7 @@ public abstract class ScheduleReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -138,7 +138,7 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             async s =>
             {
                 await Task.CompletedTask;
@@ -151,10 +151,10 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.ScheduleReInvoke();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await controlPanel.ScheduleRestart();
 
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
@@ -173,7 +173,7 @@ public abstract class ScheduleReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -186,7 +186,7 @@ public abstract class ScheduleReInvocationTests
         );
 
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             async (param, workflow) =>
             {
                 var state = workflow.States.CreateOrGet<ListState<string>>("State");
@@ -203,14 +203,14 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
         
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.States.Remove("State");
         await controlPanel.SaveChanges();
 
-        controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.ScheduleReInvoke();
+        controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await controlPanel.ScheduleRestart();
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)

@@ -54,14 +54,14 @@ public class CrashableFunctionStore : IFunctionStore
             timestamp
         );
 
-    public Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
         => _crashed
             ? Task.FromException(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam);
 
-    public Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
         => _crashed
-            ? Task.FromException<StoredFunction?>(new TimeoutException())
+            ? Task.FromException<StoredFlow?>(new TimeoutException())
             : _inner.RestartExecution(flowId, expectedEpoch, leaseExpiration);
     
     public Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration)
@@ -69,14 +69,14 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.RenewLease(flowId, expectedEpoch, leaseExpiration);
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    public Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<InstanceIdAndEpoch>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<InstanceAndEpoch>>(new TimeoutException())
             : _inner.GetCrashedFunctions(flowType, leaseExpiresBefore);
 
-    public Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
+    public Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<InstanceIdAndEpoch>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<InstanceAndEpoch>>(new TimeoutException())
             : _inner.GetPostponedFunctions(flowType, isEligibleBefore);
 
     public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
@@ -174,9 +174,9 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<StatusAndEpoch?>(new TimeoutException())
             : _inner.GetFunctionStatus(flowId);
 
-    public Task<StoredFunction?> GetFunction(FlowId flowId)
+    public Task<StoredFlow?> GetFunction(FlowId flowId)
         => _crashed
-            ? Task.FromException<StoredFunction?>(new TimeoutException())
+            ? Task.FromException<StoredFlow?>(new TimeoutException())
             : _inner.GetFunction(flowId);
 
     public Task<bool> DeleteFunction(FlowId flowId)

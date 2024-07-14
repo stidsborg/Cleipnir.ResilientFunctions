@@ -1,9 +1,7 @@
-﻿using System.Data;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
@@ -60,8 +58,8 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
-                function_type_id VARCHAR(200) NOT NULL,
-                function_instance_id VARCHAR(200) NOT NULL,
+                type VARCHAR(200) NOT NULL,
+                instance VARCHAR(200) NOT NULL,
                 param_json TEXT NULL,                    
                 status INT NOT NULL,
                 result_json TEXT NULL,
@@ -72,8 +70,8 @@ public class MySqlFunctionStore : IFunctionStore
                 lease_expiration BIGINT NOT NULL,
                 interrupt_count BIGINT NOT NULL DEFAULT 0,
                 timestamp BIGINT NOT NULL,
-                PRIMARY KEY (function_type_id, function_instance_id),
-                INDEX (function_type_id, status, function_instance_id)   
+                PRIMARY KEY (type, instance),
+                INDEX (type, status, instance)   
             );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
@@ -122,7 +120,7 @@ public class MySqlFunctionStore : IFunctionStore
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {_tablePrefix}
-                (function_type_id, function_instance_id, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
+                (type, instance, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES
                 (?, ?, ?, ?, 0, ?, ?, ?)";
         await using var command = new MySqlCommand(_createFunctionSql, conn)
@@ -143,11 +141,11 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
-              (function_type_id, function_instance_id, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
+              (type, instance, param_json, status, epoch, lease_expiration, postponed_until, timestamp)
             VALUES                      
                     ";
         
@@ -172,13 +170,13 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _restartExecutionSql;
-    public async Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _restartExecutionSql ??= @$"
             UPDATE {_tablePrefix}
             SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = ?
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ?;
+            WHERE type = ? AND instance = ? AND epoch = ?;
             SELECT               
                 param_json,            
                 status,
@@ -191,7 +189,7 @@ public class MySqlFunctionStore : IFunctionStore
                 interrupt_count,
                 timestamp
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND function_instance_id = ?;";
+            WHERE type = ? AND instance = ?;";
 
         await using var command = new MySqlCommand(_restartExecutionSql, conn)
         {
@@ -223,7 +221,7 @@ public class MySqlFunctionStore : IFunctionStore
         _renewLeaseSql ??= $@"
             UPDATE {_tablePrefix}
             SET lease_expiration = ?
-            WHERE function_type_id = ? AND function_instance_id = ? AND epoch = ? AND status = {(int) Status.Executing}";
+            WHERE type = ? AND instance = ? AND epoch = ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(_renewLeaseSql, conn)
         {
             Parameters =
@@ -240,13 +238,13 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getCrashedFunctionsSql ??= @$"
-            SELECT function_instance_id, epoch 
+            SELECT instance, epoch 
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
+            WHERE type = ? AND lease_expiration < ? AND status = {(int) Status.Executing}";
         await using var command = new MySqlCommand(_getCrashedFunctionsSql, conn)
         {
             Parameters =
@@ -258,25 +256,25 @@ public class MySqlFunctionStore : IFunctionStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<InstanceIdAndEpoch>();
+        var functions = new List<InstanceAndEpoch>();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
+            var flowInstance = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            functions.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));
+            functions.Add(new InstanceAndEpoch(flowInstance, epoch));
         }
         
         return functions;
     }
 
     private string? _getPostponedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
+    public async Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getPostponedFunctionsSql ??= @$"
-            SELECT function_instance_id, epoch
+            SELECT instance, epoch
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
+            WHERE type = ? AND status = {(int) Status.Postponed} AND postponed_until <= ?";
         await using var command = new MySqlCommand(_getPostponedFunctionsSql, conn)
         {
             Parameters =
@@ -287,12 +285,12 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<InstanceIdAndEpoch>();
+        var functions = new List<InstanceAndEpoch>();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
+            var flowInstance = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            functions.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));
+            functions.Add(new InstanceAndEpoch(flowInstance, epoch));
         }
         
         return functions;
@@ -304,9 +302,9 @@ public class MySqlFunctionStore : IFunctionStore
         
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
-            SELECT function_instance_id
+            SELECT instance
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND status = {(int) Status.Succeeded} AND timestamp <= ?";
+            WHERE type = ? AND status = {(int) Status.Succeeded} AND timestamp <= ?";
         await using var command = new MySqlCommand(_getSucceededFunctionsSql, conn)
         {
             Parameters =
@@ -320,8 +318,8 @@ public class MySqlFunctionStore : IFunctionStore
         var functions = new List<FlowInstance>();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
-            functions.Add(functionInstanceId);
+            var flowInstance = reader.GetString(0);
+            functions.Add(flowInstance);
         }
         
         return functions;
@@ -345,8 +343,8 @@ public class MySqlFunctionStore : IFunctionStore
                 exception_json = ?, postponed_until = ?,
                 epoch = epoch + 1
             WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
+                type = ? AND 
+                instance = ? AND 
                 epoch = ?";
         await using var command = new MySqlCommand(_setFunctionStateSql, conn)
         {
@@ -381,8 +379,8 @@ public class MySqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Succeeded}, result_json = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
+                type = ? AND 
+                instance = ? AND 
                 epoch = ?";
 
         await using var command = new MySqlCommand(_succeedFunctionSql, conn)
@@ -417,8 +415,8 @@ public class MySqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Postponed}, postponed_until = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
+                type = ? AND 
+                instance = ? AND 
                 epoch = ?";
 
         await using var command = new MySqlCommand(_postponedFunctionSql, conn)
@@ -453,8 +451,8 @@ public class MySqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Failed}, exception_json = ?, default_state = ?, timestamp = ?, epoch = ?
             WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
+                type = ? AND 
+                instance = ? AND 
                 epoch = ?";
 
         await using var command = new MySqlCommand(_failFunctionSql, conn)
@@ -489,8 +487,8 @@ public class MySqlFunctionStore : IFunctionStore
         _suspendFunctionSql ??= $@"
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Suspended}, default_state = ?, timestamp = ?
-            WHERE function_type_id = ? AND 
-                  function_instance_id = ? AND 
+            WHERE type = ? AND 
+                  instance = ? AND 
                   epoch = ? AND
                   interrupt_count = ?;";
 
@@ -518,7 +516,7 @@ public class MySqlFunctionStore : IFunctionStore
         _setDefaultStateSql ??= $@"
             UPDATE {_tablePrefix}
             SET default_state = ?
-            WHERE function_type_id = ? AND function_instance_id = ?";
+            WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_setDefaultStateSql, conn)
         {
             Parameters =
@@ -546,8 +544,8 @@ public class MySqlFunctionStore : IFunctionStore
                 result_json = ?,
                 epoch = epoch + 1
             WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
+                type = ? AND 
+                instance = ? AND 
                 epoch = ?";
 
         await using var command = new MySqlCommand(_setParametersSql, conn)
@@ -574,7 +572,7 @@ public class MySqlFunctionStore : IFunctionStore
         _incrementInterruptCountSql ??= $@"
             UPDATE {_tablePrefix}
             SET interrupt_count = interrupt_count + 1
-            WHERE function_type_id = ? AND function_instance_id = ? AND status = {(int) Status.Executing};";
+            WHERE type = ? AND instance = ? AND status = {(int) Status.Executing};";
 
         await using var command = new MySqlCommand(_incrementInterruptCountSql, conn)
         {
@@ -597,7 +595,7 @@ public class MySqlFunctionStore : IFunctionStore
         _getInterruptCountSql ??= $@"
             SELECT interrupt_count 
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND function_instance_id = ?;";
+            WHERE type = ? AND instance = ?;";
 
         await using var command = new MySqlCommand(_getInterruptCountSql, conn)
         {
@@ -618,7 +616,7 @@ public class MySqlFunctionStore : IFunctionStore
         _getFunctionStatusSql ??= $@"
             SELECT status, epoch
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND function_instance_id = ?;";
+            WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
@@ -641,7 +639,7 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getFunctionSql;
-    public async Task<StoredFunction?> GetFunction(FlowId flowId)
+    public async Task<StoredFlow?> GetFunction(FlowId flowId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getFunctionSql ??= $@"
@@ -657,7 +655,7 @@ public class MySqlFunctionStore : IFunctionStore
                 interrupt_count,
                 timestamp
             FROM {_tablePrefix}
-            WHERE function_type_id = ? AND function_instance_id = ?;";
+            WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
@@ -670,7 +668,7 @@ public class MySqlFunctionStore : IFunctionStore
         return await ReadToStoredFunction(flowId, reader);
     }
 
-    private async Task<StoredFunction?> ReadToStoredFunction(FlowId flowId, MySqlDataReader reader)
+    private async Task<StoredFlow?> ReadToStoredFunction(FlowId flowId, MySqlDataReader reader)
     {
         const int paramIndex = 0;
         const int statusIndex = 1;
@@ -696,7 +694,7 @@ public class MySqlFunctionStore : IFunctionStore
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
                 : null;
             var postponedUntil = !await reader.IsDBNullAsync(postponeUntilIndex);
-            return new StoredFunction(
+            return new StoredFlow(
                 flowId,
                 hasParam ? reader.GetString(paramIndex) : null,
                 defaultState,
@@ -732,7 +730,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         _deleteFunctionSql ??= $@"            
             DELETE FROM {_tablePrefix}
-            WHERE function_type_id = ? AND function_instance_id = ?";
+            WHERE type = ? AND instance = ?";
         
         await using var command = new MySqlCommand(_deleteFunctionSql, conn)
         {

@@ -8,14 +8,14 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 public class DelimiterTests
 {
     [TestMethod]
-    public void FunctionInstanceIdMustNotContainUnitDelimiter()
+    public void flowInstanceMustNotContainUnitDelimiter()
     {
         var invalidId = "Test" + Delimiters.UnitSeparator;
         Assert.ThrowsException<ArgumentException>(() => new FlowInstance(invalidId));
     }
     
     [TestMethod]
-    public void FunctionTypeIdMustNotContainUnitDelimiter()
+    public void flowTypeMustNotContainUnitDelimiter()
     {
         var invalidId = "Test" + Delimiters.UnitSeparator;
         Assert.ThrowsException<ArgumentException>(() => new FlowType(invalidId));

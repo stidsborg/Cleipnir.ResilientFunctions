@@ -13,7 +13,7 @@ public class FlowType
         Value = value;
     }
     
-    public static implicit operator FlowType(string functionTypeId) => new(functionTypeId);
+    public static implicit operator FlowType(string flowType) => new(flowType);
     public override string ToString() => Value;
     public static bool operator ==(FlowType id1, FlowType id2) => id1.Equals(id2);
     public static bool operator !=(FlowType id1, FlowType id2) => !(id1 == id2);

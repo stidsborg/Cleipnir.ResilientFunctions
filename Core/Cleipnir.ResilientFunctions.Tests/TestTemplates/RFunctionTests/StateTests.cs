@@ -22,11 +22,11 @@ public abstract class StateTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var funcRegistration = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<State>();
@@ -37,9 +37,9 @@ public abstract class StateTests
             }
         );
 
-        await funcRegistration.Invoke(functionInstanceId.Value, param: "");
+        await funcRegistration.Invoke(flowInstance.Value, param: "");
 
-        var state = await funcRegistration.GetState<State>(functionInstanceId);
+        var state = await funcRegistration.GetState<State>(flowInstance);
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
 
@@ -49,7 +49,7 @@ public abstract class StateTests
             await state.Save();
         });
 
-        state = await funcRegistration.GetState<State>(functionInstanceId);
+        state = await funcRegistration.GetState<State>(flowInstance);
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
     }
@@ -61,11 +61,11 @@ public abstract class StateTests
         
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var actionRegistration = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async Task (string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<State>();
@@ -74,9 +74,9 @@ public abstract class StateTests
             }
         );
 
-        await actionRegistration.Invoke(functionInstanceId.Value, param: "");
+        await actionRegistration.Invoke(flowInstance.Value, param: "");
 
-        var state = await actionRegistration.GetState<State>(functionInstanceId);
+        var state = await actionRegistration.GetState<State>(flowInstance);
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
 
@@ -86,7 +86,7 @@ public abstract class StateTests
             await state.Save();
         });
         
-        state = await actionRegistration.GetState<State>(functionInstanceId);
+        state = await actionRegistration.GetState<State>(flowInstance);
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
     }

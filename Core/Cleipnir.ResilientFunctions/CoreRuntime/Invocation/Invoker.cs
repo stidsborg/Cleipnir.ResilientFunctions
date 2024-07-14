@@ -36,9 +36,9 @@ public class Invoker<TParam, TReturn>
         _messageWriterFunc = messageWriterFunc;
     }
 
-    public async Task<TReturn> Invoke(string functionInstanceId, TParam param)
+    public async Task<TReturn> Invoke(string flowInstance, TParam param)
     {
-        var functionId = new FlowId(_flowType, functionInstanceId);
+        var functionId = new FlowId(_flowType, flowInstance);
         (var created, var workflow, var disposables) = await PrepareForInvocation(functionId, param);
         if (!created) return await WaitForFunctionResult(functionId);
 
@@ -55,9 +55,9 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvoke(string functionInstanceId, TParam param)
+    public async Task ScheduleInvoke(string flowInstance, TParam param)
     {
-        var functionId = new FlowId(_flowType, functionInstanceId);
+        var functionId = new FlowId(_flowType, flowInstance);
         (var created, var workflow, var disposables) = await PrepareForInvocation(functionId, param);
         if (!created) return;
 
@@ -98,7 +98,7 @@ public class Invoker<TParam, TReturn>
         disposable.Dispose();
     }
 
-    public async Task<TReturn> ReInvoke(string instanceId, int expectedEpoch)
+    public async Task<TReturn> Restart(string instanceId, int expectedEpoch)
     {
         var functionId = new FlowId(_flowType, instanceId);
         var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
@@ -116,7 +116,7 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleReInvoke(string instanceId, int expectedEpoch)
+    public async Task ScheduleRestart(string instanceId, int expectedEpoch)
     {
         var functionId = new FlowId(_flowType, instanceId);
         var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, expectedEpoch);
@@ -143,7 +143,7 @@ public class Invoker<TParam, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FlowId flowId)
         => await _invocationHelper.WaitForFunctionResult(flowId, allowPostponedAndSuspended: false);
 
-    internal async Task ScheduleReInvoke(FlowInstance instance, RestartedFunction rf, Action onCompletion)
+    internal async Task ScheduleRestart(FlowInstance instance, RestartedFunction rf, Action onCompletion)
     {
         var functionId = new FlowId(_flowType, instance);
         var (inner, param, workflow, epoch, disposables) = await PrepareForReInvocation(functionId, rf);
@@ -187,7 +187,7 @@ public class Invoker<TParam, TReturn>
             success = persisted;
             var messages = await _invocationHelper.CreateMessages(
                 flowId, 
-                ScheduleReInvoke, 
+                ScheduleRestart, 
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: false
             );
@@ -238,7 +238,7 @@ public class Invoker<TParam, TReturn>
             
             var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(
                 flowId, 
-                ScheduleReInvoke,
+                ScheduleRestart,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: true));
             var effectsTask = Task.Run(() => _invocationHelper.CreateEffect(flowId, sync: true));
@@ -301,7 +301,7 @@ public class Invoker<TParam, TReturn>
             {
                 try
                 {
-                    await ScheduleReInvoke(flowId.Instance.Value, expectedEpoch);
+                    await ScheduleRestart(flowId.Instance.Value, expectedEpoch);
                 } catch (UnexpectedFunctionState) {} //allow this exception - the invocation has been surpassed by other execution
                 InvocationHelper<TParam, TReturn>.EnsureSuccess(flowId, result, allowPostponedOrSuspended);
                 break;

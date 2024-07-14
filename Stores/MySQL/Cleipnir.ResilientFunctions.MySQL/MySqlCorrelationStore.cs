@@ -21,11 +21,11 @@ public class MySqlCorrelationStore : ICorrelationStore
         await using var conn = await CreateConnection();
         _initialize ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_correlations (
-                function_type VARCHAR(200) NOT NULL,
-                function_instance VARCHAR(200) NOT NULL,
+                type VARCHAR(200) NOT NULL,
+                instance VARCHAR(200) NOT NULL,
                 correlation VARCHAR(200) NOT NULL,
-                PRIMARY KEY (function_type, function_instance, correlation),
-                INDEX (correlation, function_type, function_instance)
+                PRIMARY KEY (type, instance, correlation),
+                INDEX (correlation, type, instance)
             );";
         var command = new MySqlCommand(_initialize, conn);
         await command.ExecuteNonQueryAsync();
@@ -43,11 +43,11 @@ public class MySqlCorrelationStore : ICorrelationStore
     private string? _setCorrelationSql;
     public async Task SetCorrelation(FlowId flowId, string correlationId)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
           INSERT IGNORE INTO {_tablePrefix}_correlations 
-              (function_type, function_instance, correlation)
+              (type, instance, correlation)
           VALUES
               (?, ?, ?)";
         
@@ -55,8 +55,8 @@ public class MySqlCorrelationStore : ICorrelationStore
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value},
-                new() {Value = functionInstanceId.Value},
+                new() {Value = flowType.Value},
+                new() {Value = flowInstance.Value},
                 new() {Value = correlationId},
             }
         };
@@ -69,7 +69,7 @@ public class MySqlCorrelationStore : ICorrelationStore
     {
         await using var conn = await CreateConnection();
         _getCorrelationsSql ??= @$"
-            SELECT function_type, function_instance
+            SELECT type, instance
             FROM {_tablePrefix}_correlations
             WHERE correlation = ?";
         await using var command = new MySqlCommand(_getCorrelationsSql, conn)
@@ -101,7 +101,7 @@ public class MySqlCorrelationStore : ICorrelationStore
         _getCorrelationsForFunctionSql ??= @$"
             SELECT correlation
             FROM {_tablePrefix}_correlations
-            WHERE function_type = ? AND function_instance = ?";
+            WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_getCorrelationsForFunctionSql, conn)
         {
             Parameters =
@@ -128,7 +128,7 @@ public class MySqlCorrelationStore : ICorrelationStore
     {
         var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
-        _removeCorrelationsSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE function_type = ? AND function_instance = ?";
+        _removeCorrelationsSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_removeCorrelationsSql, conn)
         {
             Parameters =
@@ -146,7 +146,7 @@ public class MySqlCorrelationStore : ICorrelationStore
     {
         var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
-        _removeCorrelationSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE function_type = ? AND function_instance = ? AND correlation = ?";
+        _removeCorrelationSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE type = ? AND instance = ? AND correlation = ?";
         await using var command = new MySqlCommand(_removeCorrelationSql, conn)
         {
             Parameters =

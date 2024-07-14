@@ -18,7 +18,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
-        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId");
+        var functionId = new FlowId("flowType", "flowInstance");
         await store.CreateFunction(
             functionId,
             "hello world".ToJson(),
@@ -46,7 +46,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
-        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId");
+        var functionId = new FlowId("flowType", "flowInstance");
         await store.CreateFunction(
             functionId,
             "hello world".ToJson(),
@@ -71,7 +71,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
         var storedParameter = "hello world".ToJson();
-        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId"); 
+        var functionId = new FlowId("flowType", "flowInstance"); 
         await store.CreateFunction(
             functionId,
             storedParameter,
@@ -109,7 +109,7 @@ public class DelayedStartUpTests
         var store = new InMemoryFunctionStore();
 
         var storedParameter = "hello world".ToJson();
-        var functionId = new FlowId("FunctionTypeId", "FunctionInstanceId");
+        var functionId = new FlowId("flowType", "flowInstance");
         await store.CreateFunction(
             functionId,
             storedParameter,

@@ -43,7 +43,7 @@ public class PostgresStatesStore : IStatesStore
     private string? _upsertStateSql;
     public async Task UpsertState(FlowId flowId, StoredState storedState)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         
         await using var conn = await CreateConnection();
         _upsertStateSql ??= $@"
@@ -59,7 +59,7 @@ public class PostgresStatesStore : IStatesStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(functionTypeId.Value, functionInstanceId.Value, storedState.StateId.Value)},
+                new() {Value = Escaper.Escape(flowType.Value, flowInstance.Value, storedState.StateId.Value)},
                 new() {Value = storedState.StateJson}
             }
         };

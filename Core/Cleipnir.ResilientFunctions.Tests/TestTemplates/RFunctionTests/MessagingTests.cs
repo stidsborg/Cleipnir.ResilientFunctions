@@ -201,7 +201,7 @@ public abstract class MessagingTests
         var controlPanel = await registration.ControlPanel(instanceId);
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.ReInvoke();
+        await controlPanel.Restart();
         subscription.ShouldNotBeNull();
         subscription.IsWorkflowRunning.ShouldBeFalse();
         

@@ -297,7 +297,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator
             );
-            var rFuncInvoker = new Invoker<TParam, TReturn>(
+            var invoker = new Invoker<TParam, TReturn>(
                 flowType, 
                 inner,
                 invocationHelper,
@@ -309,26 +309,26 @@ public class FunctionsRegistry : IDisposable
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 _functionStore,
-                rFuncInvoker.ReInvoke,
+                invoker.Restart,
                 invocationHelper.RestartFunction,
-                rFuncInvoker.ScheduleReInvoke,
+                invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
 
             var controlPanels = new ControlPanelFactory<TParam, TReturn>(
                 flowType,
-                rFuncInvoker,
+                invoker,
                 invocationHelper
             );
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
-                rFuncInvoker.Invoke,
-                rFuncInvoker.ScheduleInvoke,
-                rFuncInvoker.ScheduleAt,
+                invoker.Invoke,
+                invoker.ScheduleInvoke,
+                invoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
                 controlPanels,
-                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, rFuncInvoker.ScheduleReInvoke),
+                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleRestart),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
             _functions[flowType] = registration;
@@ -374,9 +374,9 @@ public class FunctionsRegistry : IDisposable
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 _functionStore,
-                invoker.ReInvoke,
+                invoker.Restart,
                 invocationHelper.RestartFunction,
-                invoker.ScheduleReInvoke,
+                invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
@@ -393,7 +393,7 @@ public class FunctionsRegistry : IDisposable
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
                 bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id, Unit.Instance))),
                 controlPanels,
-                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleReInvoke),
+                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleRestart),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
             _functions[flowType] = registration;
@@ -439,9 +439,9 @@ public class FunctionsRegistry : IDisposable
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 _functionStore,
-                rActionInvoker.ReInvoke,
+                rActionInvoker.Restart,
                 invocationHelper.RestartFunction,
-                rActionInvoker.ScheduleReInvoke,
+                rActionInvoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator
             );
@@ -458,7 +458,7 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
                 controlPanels,
-                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleReInvoke),
+                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleRestart),
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
             );
             _functions[flowType] = registration;
@@ -491,21 +491,21 @@ public class FunctionsRegistry : IDisposable
         {
             resolvers = _routes
                 .SelectMany(kv =>
-                    kv.Value.Select(ri => new { FunctionTypeId = kv.Key, RouteInfo = ri })
+                    kv.Value.Select(ri => new { flowType = kv.Key, RouteInfo = ri })
                 )
                 .Where(a => a.RouteInfo.MessageType == messageType)
                 .ToDictionary(
-                    a => a.FunctionTypeId, 
+                    a => a.flowType, 
                     a => 
                         Tuple.Create(
                             a.RouteInfo.RouteResolver,
-                            (MessageWriters) ((dynamic) _functions[a.FunctionTypeId]).MessageWriters
+                            (MessageWriters) ((dynamic) _functions[a.flowType]).MessageWriters
                         )
                 );
             
         }
 
-        foreach (var (functionTypeId, (routeResolver, messageWriters)) in resolvers)
+        foreach (var (flowType, (routeResolver, messageWriters)) in resolvers)
         {
             var routingInfo = routeResolver(message);
             if (routingInfo.CorrelationId is not null)
@@ -528,7 +528,7 @@ public class FunctionsRegistry : IDisposable
                 var finding = await messageWriter.AppendMessage(message, routingInfo.IdempotencyKey);   
                 
                 if (finding == Finding.NotFound)
-                    await ScheduleIfParamless(functionTypeId, routingInfo.FlowInstanceId!);
+                    await ScheduleIfParamless(flowType, routingInfo.FlowInstanceId!);
             }
         }
     }

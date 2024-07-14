@@ -24,11 +24,11 @@ public class SqlServerTimeoutStore : ITimeoutStore
         
         _initializeSql ??= @$"            
             CREATE TABLE {_tablePrefix}_Timeouts (
-                FunctionTypeId NVARCHAR(255),
-                FunctionInstanceId NVARCHAR(255),
+                flowType NVARCHAR(255),
+                flowInstance NVARCHAR(255),
                 TimeoutId NVARCHAR(255),
                 Expires BIGINT,          
-                PRIMARY KEY (FunctionTypeId, FunctionInstanceId, TimeoutId)
+                PRIMARY KEY (flowType, flowInstance, TimeoutId)
             );";
         var command = new SqlCommand(_initializeSql, conn);
         try
@@ -64,23 +64,23 @@ public class SqlServerTimeoutStore : ITimeoutStore
         _upsertTimeoutSql ??= @$"
             IF EXISTS (
                 SELECT * FROM {_tablePrefix}_Timeouts 
-                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId=@TimeoutId
+                WHERE flowType = @flowType AND flowInstance = @flowInstance AND TimeoutId=@TimeoutId
             )           
             BEGIN
                 UPDATE {_tablePrefix}_Timeouts
                 SET Expires = @Expiry
-                WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId AND TimeoutId = @TimeoutId AND @Overwrite = 1
+                WHERE flowType = @flowType AND flowInstance = @flowInstance AND TimeoutId = @TimeoutId AND @Overwrite = 1
             END
             ELSE
             BEGIN                
                 INSERT INTO {_tablePrefix}_Timeouts
-                    (FunctionTypeId, FunctionInstanceId, TimeoutId, Expires)
+                    (flowType, flowInstance, TimeoutId, Expires)
                 VALUES 
-                    (@FunctionTypeId, @FunctionInstanceId, @TimeoutId, @Expiry);
+                    (@flowType, @flowInstance, @TimeoutId, @Expiry);
             END";
         await using var command = new SqlCommand(_upsertTimeoutSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionId.Type.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", functionId.Instance.Value);
+        command.Parameters.AddWithValue("@flowType", functionId.Type.Value);
+        command.Parameters.AddWithValue("@flowInstance", functionId.Instance.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         command.Parameters.AddWithValue("@Expiry", expiry);
         command.Parameters.AddWithValue("@Overwrite", overwrite ? 1 : 2);
@@ -95,12 +95,12 @@ public class SqlServerTimeoutStore : ITimeoutStore
         _removeTimeoutSql ??= @$"    
             DELETE FROM {_tablePrefix}_Timeouts
             WHERE
-                FunctionTypeId = @FunctionTypeId AND
-                FunctionInstanceId = @FunctionInstanceId AND 
+                flowType = @flowType AND
+                flowInstance = @flowInstance AND 
                 TimeoutId = @TimeoutId";
         await using var command = new SqlCommand(_removeTimeoutSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
+        command.Parameters.AddWithValue("@flowType", flowId.Type.Value);
+        command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         await command.ExecuteNonQueryAsync();
     }
@@ -112,35 +112,35 @@ public class SqlServerTimeoutStore : ITimeoutStore
 
         _removeSql ??= @$"    
             DELETE FROM {_tablePrefix}_Timeouts
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+            WHERE flowType = @flowType AND flowInstance = @flowInstance";
         
         await using var command = new SqlCommand(_removeSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", flowId.Type.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", flowId.Instance.Value);
+        command.Parameters.AddWithValue("@flowType", flowId.Type.Value);
+        command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         await command.ExecuteNonQueryAsync();
     }
 
     private string? _getTimeoutsExpiresBeforeSql;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore)
     {
         await using var conn = await CreateConnection();
         _getTimeoutsExpiresBeforeSql ??= @$"    
-            SELECT FunctionInstanceId, TimeoutId, Expires
+            SELECT flowInstance, TimeoutId, Expires
             FROM {_tablePrefix}_Timeouts
-            WHERE FunctionTypeId = @FunctionTypeId AND Expires <= @ExpiresBefore";
+            WHERE flowType = @flowType AND Expires <= @ExpiresBefore";
         
         await using var command = new SqlCommand(_getTimeoutsExpiresBeforeSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", functionTypeId);
+        command.Parameters.AddWithValue("@flowType", flowType);
         command.Parameters.AddWithValue("@ExpiresBefore", expiresBefore);
         
         var storedTimeouts = new List<StoredTimeout>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
+            var flowInstance = reader.GetString(0);
             var timeoutId = reader.GetString(1);
             var expires = reader.GetInt64(2);
-            var functionId = new FlowId(functionTypeId, functionInstanceId);
+            var functionId = new FlowId(flowType, flowInstance);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -155,11 +155,11 @@ public class SqlServerTimeoutStore : ITimeoutStore
         _getTimeoutsSql ??= @$"    
             SELECT TimeoutId, Expires
             FROM {_tablePrefix}_Timeouts
-            WHERE FunctionTypeId = @FunctionTypeId AND FunctionInstanceId = @FunctionInstanceId";
+            WHERE flowType = @flowType AND flowInstance = @flowInstance";
         
         await using var command = new SqlCommand(_getTimeoutsSql, conn);
-        command.Parameters.AddWithValue("@FunctionTypeId", typeId.Value);
-        command.Parameters.AddWithValue("@FunctionInstanceId", instanceId.Value);
+        command.Parameters.AddWithValue("@flowType", typeId.Value);
+        command.Parameters.AddWithValue("@flowInstance", instanceId.Value);
         
         var storedTimeouts = new List<StoredTimeout>();
         await using var reader = await command.ExecuteReaderAsync();

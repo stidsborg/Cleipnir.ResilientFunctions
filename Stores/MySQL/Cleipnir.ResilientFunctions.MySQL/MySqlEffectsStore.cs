@@ -43,7 +43,7 @@ public class MySqlEffectsStore : IEffectsStore
     private string? _setEffectResultSql;
     public async Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {_tablePrefix}_effects 
@@ -57,7 +57,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(functionTypeId.Value, functionInstanceId.Value, storedEffect.EffectId.Value)},
+                new() {Value = Escaper.Escape(flowType.Value, flowInstance.Value, storedEffect.EffectId.Value)},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}

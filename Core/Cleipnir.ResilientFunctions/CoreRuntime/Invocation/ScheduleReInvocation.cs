@@ -3,4 +3,4 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public delegate Task ScheduleReInvocation(string functionInstanceId, int expectedEpoch);
+public delegate Task ScheduleReInvocation(string flowInstance, int expectedEpoch);

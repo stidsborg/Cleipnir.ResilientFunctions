@@ -218,19 +218,19 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public Task Delete() => _invocationHelper.Delete(FlowId);
 
-    public async Task<TReturn> ReInvoke()
+    public async Task<TReturn> Restart()
     {
         if (_innerParamChanged)
             await SaveChanges();
 
-        return await _invoker.ReInvoke(FlowId.Instance.Value, Epoch);   
+        return await _invoker.Restart(FlowId.Instance.Value, Epoch);   
     }
-    public async Task ScheduleReInvoke()
+    public async Task ScheduleRestart()
     {
         if (_innerParamChanged)
             await SaveChanges();
 
-        await _invoker.ScheduleReInvoke(FlowId.Instance.Value, Epoch);
+        await _invoker.ScheduleRestart(FlowId.Instance.Value, Epoch);
     }
     
     public async Task Refresh()

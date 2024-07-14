@@ -31,7 +31,7 @@ public abstract class FailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create(callerMemberName);
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             using var functionsRegistry = new FunctionsRegistry
@@ -45,7 +45,7 @@ public abstract class FailedTests
             );
             var rFunc = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) =>
                         throwUnhandledException
                             ? throw new Exception()
@@ -53,7 +53,7 @@ public abstract class FailedTests
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<Exception>(async () => await rFunc(functionInstanceId.ToString(), PARAM));
+            await Should.ThrowAsync<Exception>(async () => await rFunc(flowInstance.ToString(), PARAM));
             await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         }
         {
@@ -67,7 +67,7 @@ public abstract class FailedTests
                 )
             );
             var rFunc = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 (string s) =>
                 {
                     flag.Raise();
@@ -81,7 +81,7 @@ public abstract class FailedTests
             var sf = await store.GetFunction(functionId);
             sf.ShouldNotBeNull();
             sf.Status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(async () => await rFunc(functionInstanceId.ToString(), PARAM));
+            await Should.ThrowAsync<Exception>(async () => await rFunc(flowInstance.ToString(), PARAM));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -101,7 +101,7 @@ public abstract class FailedTests
     )
     {
         var store = await storeTask;
-        var functionTypeId = callerMemberName.ToFlowType();
+        var flowType = callerMemberName.ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             using var functionsRegistry = new FunctionsRegistry
@@ -115,7 +115,7 @@ public abstract class FailedTests
             );
             var nonCompletingFunctionsRegistry = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) =>
                         throwUnhandledException 
                             ? throw new Exception()
@@ -135,7 +135,7 @@ public abstract class FailedTests
                         watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                     )
                 );
-            var rAction = functionsRegistry.RegisterAction(functionTypeId,
+            var rAction = functionsRegistry.RegisterAction(flowType,
                 (string _) =>
                 {
                     flag.Raise();
@@ -146,7 +146,7 @@ public abstract class FailedTests
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var functionId = new FlowId(functionTypeId, PARAM.ToFlowInstance());
+            var functionId = new FlowId(flowType, PARAM.ToFlowInstance());
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
@@ -162,7 +162,7 @@ public abstract class FailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             using var functionsRegistry = new FunctionsRegistry
@@ -176,12 +176,12 @@ public abstract class FailedTests
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) => Task.FromException(new Exception())
                 )
                 .Invoke;
 
-            await Should.ThrowAsync<Exception>(nonCompletingFunctionsRegistry(functionInstanceId.ToString(), PARAM));
+            await Should.ThrowAsync<Exception>(nonCompletingFunctionsRegistry(flowInstance.ToString(), PARAM));
         }
         {
             var flag = new SyncedFlag();
@@ -195,7 +195,7 @@ public abstract class FailedTests
             );
             var rFunc = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     inner: (string _) => flag.Raise()
                 )
                 .Invoke;
@@ -205,7 +205,7 @@ public abstract class FailedTests
             var status = await store.GetFunction(functionId).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(rFunc(functionInstanceId.ToString(), PARAM));
+            await Should.ThrowAsync<Exception>(rFunc(flowInstance.ToString(), PARAM));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -215,7 +215,7 @@ public abstract class FailedTests
     public async Task PassingInNullParameterResultsInException(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFlowType();
+        var flowType = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(
@@ -228,7 +228,7 @@ public abstract class FailedTests
         );
         var rFunc = functionsRegistry
             .RegisterAction(
-                functionTypeId,
+                flowType,
                 inner: (string _) => flag.Raise()
             )
             .Invoke;
@@ -236,7 +236,7 @@ public abstract class FailedTests
         flag.Position.ShouldBe(Lowered);
 
         await Should.ThrowAsync<ArgumentNullException>(
-            () => rFunc("someFunctionInstanceId", param: null!)
+            () => rFunc("someflowInstance", param: null!)
         );
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
@@ -256,7 +256,7 @@ public abstract class FailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
@@ -266,14 +266,14 @@ public abstract class FailedTests
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     (string _) => 
                         throwUnhandledException
                             ? throw new Exception()
                             : Task.FromException(new Exception())
                 ).Invoke;
 
-            await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(functionInstanceId.ToString(), param));
+            await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(flowInstance.ToString(), param));
         }
         {
             var flag = new SyncedFlag();
@@ -282,7 +282,7 @@ public abstract class FailedTests
                 new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.FromMilliseconds(100))
             );
             var rFunc = functionsRegistry.RegisterAction(
-                functionTypeId,
+                flowType,
                 (string _) =>
                 {
                     flag.Raise();
@@ -297,7 +297,7 @@ public abstract class FailedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
             
-            await Should.ThrowAsync<Exception>(() => rFunc(functionInstanceId.ToString(), param));
+            await Should.ThrowAsync<Exception>(() => rFunc(flowInstance.ToString(), param));
         }
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);

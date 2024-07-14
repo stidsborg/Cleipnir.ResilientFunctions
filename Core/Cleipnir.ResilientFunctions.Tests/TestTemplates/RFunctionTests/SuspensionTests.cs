@@ -20,7 +20,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
         (
@@ -29,12 +29,12 @@ public abstract class SuspensionTests
         );
 
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Result(string _) => Suspend.While(0)
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            () => rAction.Invoke(functionInstanceId.Value, "hello world")
+            () => rAction.Invoke(flowInstance.Value, "hello world")
         );
 
         await BusyWait.Until(() =>
@@ -88,7 +88,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -99,7 +99,7 @@ public abstract class SuspensionTests
 
         var invocations = 0;
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             Result<string>(string _) =>
             {
                 if (invocations == 0)
@@ -113,12 +113,12 @@ public abstract class SuspensionTests
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            () => rFunc.Invoke(functionInstanceId.Value, "hello world")
+            () => rFunc.Invoke(flowInstance.Value, "hello world")
         );
 
         await Task.Delay(250);
 
-        var messagesWriter = rFunc.MessageWriters.For(functionInstanceId); 
+        var messagesWriter = rFunc.MessageWriters.For(flowInstance); 
         await messagesWriter.AppendMessage("hello multiverse");
 
         await BusyWait.UntilAsync(() => invocations == 2);
@@ -131,7 +131,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -142,7 +142,7 @@ public abstract class SuspensionTests
 
         var invocations = 0;
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             Result<string>(string _) =>
             {
                 if (invocations == 0)
@@ -156,12 +156,12 @@ public abstract class SuspensionTests
             });
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(
-            () => rFunc.Invoke(functionInstanceId.Value, "hello world")
+            () => rFunc.Invoke(flowInstance.Value, "hello world")
         );
 
         await Task.Delay(250);
 
-        var messagesWriter = rFunc.MessageWriters.For(functionInstanceId); 
+        var messagesWriter = rFunc.MessageWriters.For(flowInstance); 
         await messagesWriter.AppendMessage("hello multiverse");
 
         await BusyWait.UntilAsync(() => invocations == 2);
@@ -173,9 +173,9 @@ public abstract class SuspensionTests
     protected async Task EligibleSuspendedFunctionIsPickedUpByWatchdog(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(EligibleSuspendedFunctionIsPickedUpByWatchdog).ToFlowType();
-        var functionInstanceId = "functionInstanceId";
-        var functionId = new FlowId(functionTypeId, functionInstanceId);
+        var flowType = nameof(EligibleSuspendedFunctionIsPickedUpByWatchdog).ToFlowType();
+        var flowInstance = "flowInstance";
+        var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -186,7 +186,7 @@ public abstract class SuspensionTests
 
         var flag = new SyncedFlag();
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             Result<string>(_) =>
             {
                 if (flag.IsRaised) return "success";
@@ -195,10 +195,10 @@ public abstract class SuspensionTests
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
-            () => rFunc.Invoke(functionInstanceId, "hello world")
+            () => rFunc.Invoke(flowInstance, "hello world")
         );
 
-        await rFunc.MessageWriters.For(functionInstanceId).AppendMessage("hello universe");
+        await rFunc.MessageWriters.For(flowInstance).AppendMessage("hello universe");
         
         await BusyWait.Until(
             () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -211,7 +211,7 @@ public abstract class SuspensionTests
     protected async Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionInstanceId = "functionInstanceId";
+        var flowInstance = "flowInstance";
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -231,13 +231,13 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            registration.Invoke(functionInstanceId, "hello world")
+            registration.Invoke(flowInstance, "hello world")
         );
 
-        var messagesWriter = registration.MessageWriters.For(functionInstanceId);
+        var messagesWriter = registration.MessageWriters.For(flowInstance);
         await messagesWriter.AppendMessage("hello universe");
 
-        var controlPanel = await registration.ControlPanel(functionInstanceId);
+        var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
@@ -257,7 +257,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -267,7 +267,7 @@ public abstract class SuspensionTests
         );
 
         var registration = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
@@ -277,13 +277,13 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            registration.Invoke(functionInstanceId.Value, "hello world")
+            registration.Invoke(flowInstance.Value, "hello world")
         );
 
-        var messagesWriter = registration.MessageWriters.For(functionInstanceId);
+        var messagesWriter = registration.MessageWriters.For(flowInstance);
         await messagesWriter.AppendMessage("hello universe");
 
-        var controlPanel = await registration.ControlPanel(functionInstanceId);
+        var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
@@ -303,7 +303,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry
@@ -315,7 +315,7 @@ public abstract class SuspensionTests
         var syncedValue = new Synced<string>();
         
         var registration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             inner: async Task (workflow) =>
             {
                 var msg = await workflow.Messages.FirstOfType<string>();
@@ -323,10 +323,10 @@ public abstract class SuspensionTests
             }
         );
 
-        await registration.MessageWriters.For(functionInstanceId.Value).AppendMessage("Hello!");
-        await registration.Schedule(functionInstanceId);
+        await registration.MessageWriters.For(flowInstance.Value).AppendMessage("Hello!");
+        await registration.Schedule(flowInstance);
 
-        var controlPanel = await registration.ControlPanel(functionInstanceId);
+        var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.WaitForCompletion();
         

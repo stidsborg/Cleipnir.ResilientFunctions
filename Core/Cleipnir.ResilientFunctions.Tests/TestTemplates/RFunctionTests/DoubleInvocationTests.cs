@@ -18,7 +18,7 @@ public abstract class DoubleInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var syncTask = new TaskCompletionSource();
         var functionsRegistry = new FunctionsRegistry
@@ -31,14 +31,14 @@ public abstract class DoubleInvocationTests
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string input) => syncTask.Task.ContinueWith(_ => input)
         );
         
-        var invocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        var invocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         invocationTask.IsCompleted.ShouldBeFalse();
         
-        var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         secondInvocationTask.IsCompleted.ShouldBeFalse();
         
         syncTask.SetResult();
@@ -56,7 +56,7 @@ public abstract class DoubleInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var functionsRegistry = new FunctionsRegistry
         (
@@ -68,13 +68,13 @@ public abstract class DoubleInvocationTests
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string input) => Suspend.While(0).ToResult<string>()
         );
         
-        await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));
+        await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
         
-        var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(secondInvocationTask);
@@ -88,7 +88,7 @@ public abstract class DoubleInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var functionsRegistry = new FunctionsRegistry
         (
@@ -100,13 +100,13 @@ public abstract class DoubleInvocationTests
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string input) => Postpone.For(100_000).ToResult<string>()
         );
         
-        await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));
+        await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
         
-        var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(secondInvocationTask);
@@ -120,7 +120,7 @@ public abstract class DoubleInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var functionsRegistry = new FunctionsRegistry
         (
@@ -132,13 +132,13 @@ public abstract class DoubleInvocationTests
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>()
         );
 
-        await Safe.Try(() => rFunc.Invoke(functionInstanceId.Value, param: "Hallo World"));
+        await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
         
-        var secondInvocationTask = rFunc.Invoke(functionInstanceId.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
 
         try

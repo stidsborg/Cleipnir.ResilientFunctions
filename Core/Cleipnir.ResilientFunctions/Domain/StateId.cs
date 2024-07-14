@@ -13,7 +13,7 @@ public class StateId
         Value = value;
     }
     
-    public static implicit operator StateId(string functionInstanceId) => new(functionInstanceId);
+    public static implicit operator StateId(string flowInstance) => new(flowInstance);
     public override string ToString() => Value;
     public static bool operator ==(StateId id1, StateId id2) => id1.Equals(id2);
     public static bool operator !=(StateId id1, StateId id2) => !(id1 == id2);

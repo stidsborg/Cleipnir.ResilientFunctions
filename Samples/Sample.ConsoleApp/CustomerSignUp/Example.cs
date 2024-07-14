@@ -25,7 +25,7 @@ public static class Example
 
         var offerDate = new DateOnly(2022, 1, 1);
         await rAction(
-            functionInstanceId: offerDate.ToString(),
+            flowInstance: offerDate.ToString(),
             param: "billgates@microsoft.net"
         );
         

@@ -48,7 +48,7 @@ public class SqlServerStatesStore : IStatesStore
     private string? _upsertStateSql;
     public async Task UpsertState(FlowId flowId, StoredState storedState)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         await using var conn = await _connFunc();
         _upsertStateSql ??= $@"
             MERGE INTO {_tablePrefix}_States
@@ -62,7 +62,7 @@ public class SqlServerStatesStore : IStatesStore
                     VALUES (source.Id, source.State);";
         
         await using var command = new SqlCommand(_upsertStateSql, conn);
-        var escapedId = Escaper.Escape(functionTypeId.ToString(), functionInstanceId.ToString(), storedState.StateId.ToString());    
+        var escapedId = Escaper.Escape(flowType.ToString(), flowInstance.ToString(), storedState.StateId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@State", storedState.StateJson);
 

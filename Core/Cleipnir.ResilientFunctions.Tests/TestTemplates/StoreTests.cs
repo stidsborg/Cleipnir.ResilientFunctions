@@ -438,8 +438,8 @@ public abstract class StoreTests
         
         var storedFunctions = await store.GetCrashedFunctions(function1Id.Type, leaseExpiresBefore: 1);
         storedFunctions.Count.ShouldBe(1);
-        var (functionInstanceId, epoch) = storedFunctions[0];
-        functionInstanceId.ShouldBe(function1Id.Instance);
+        var (flowInstance, epoch) = storedFunctions[0];
+        flowInstance.ShouldBe(function1Id.Instance);
         epoch.ShouldBe(0);
     }
     
@@ -1193,7 +1193,7 @@ public abstract class StoreTests
             .ToList();
         
         await store.BulkScheduleFunctions(
-            functionIds.Select(functionId => new FunctionIdWithParam(functionId, Param: ""))
+            functionIds.Select(functionId => new IdWithParam(functionId, Param: ""))
         );
 
         var eligibleFunctions = 

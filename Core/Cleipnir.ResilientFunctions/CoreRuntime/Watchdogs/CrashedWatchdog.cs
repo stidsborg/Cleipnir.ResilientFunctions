@@ -4,14 +4,14 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class CrashedWatchdog
 {
-    private readonly ReInvoker _reInvoker;
+    private readonly Restarter _restarter;
 
-    public CrashedWatchdog(ReInvokerFactory reInvokerFactory)
+    public CrashedWatchdog(RestarterFactory restarterFactory)
     {
-        _reInvoker = reInvokerFactory.Create(
-            (functionTypeId, store, t) => store.GetCrashedFunctions(functionTypeId, leaseExpiresBefore: t)
+        _restarter = restarterFactory.Create(
+            (flowType, store, t) => store.GetCrashedFunctions(flowType, leaseExpiresBefore: t)
         );
     }
 
-    public Task Start() => _reInvoker.Start(nameof(CrashedWatchdog));
+    public Task Start() => _restarter.Start(nameof(CrashedWatchdog));
 }

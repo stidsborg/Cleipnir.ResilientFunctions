@@ -26,7 +26,7 @@ public static class Example
 
         const string customerEmail = "peter@gmail.com";
         await rAction.Schedule(
-            functionInstanceId: customerEmail,
+            flowInstance: customerEmail,
             param: new StartCustomerEngagement(customerEmail, DateTime.Today)
         );
 

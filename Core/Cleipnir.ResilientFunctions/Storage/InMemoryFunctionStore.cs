@@ -74,7 +74,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
     {
         lock (_sync)
         {
@@ -100,16 +100,16 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public virtual Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public virtual Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(flowId))
-                return default(StoredFunction).ToTask();
+                return default(StoredFlow).ToTask();
 
             var state = _states[flowId];
             if (state.Epoch != expectedEpoch)
-                return default(StoredFunction).ToTask();
+                return default(StoredFlow).ToTask();
 
             state.Epoch += 1;
             state.Status = Status.Executing;
@@ -134,7 +134,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public virtual Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    public virtual Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
     {
         lock (_sync)
             return _states
@@ -142,13 +142,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .Where(s => s.FlowId.Type == flowType)
                 .Where(s => s.Status == Status.Executing)
                 .Where(s => s.LeaseExpiration < leaseExpiresBefore)
-                .Select(s => new InstanceIdAndEpoch(s.FlowId.Instance, s.Epoch))
+                .Select(s => new InstanceAndEpoch(s.FlowId.Instance, s.Epoch))
                 .ToList()
-                .CastTo<IReadOnlyList<InstanceIdAndEpoch>>()
+                .CastTo<IReadOnlyList<InstanceAndEpoch>>()
                 .ToTask();
     }
 
-    public virtual Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
+    public virtual Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
     {
         lock (_sync)
             return _states
@@ -156,9 +156,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .Where(s => s.FlowId.Type == flowType)
                 .Where(s => s.Status == Status.Postponed)
                 .Where(s => s.PostponeUntil <= isEligibleBefore)
-                .Select(s => new InstanceIdAndEpoch(s.FlowId.Instance, s.Epoch))
+                .Select(s => new InstanceAndEpoch(s.FlowId.Instance, s.Epoch))
                 .ToList()
-                .CastTo<IReadOnlyList<InstanceIdAndEpoch>>()
+                .CastTo<IReadOnlyList<InstanceAndEpoch>>()
                 .ToTask();
     }
 
@@ -370,16 +370,16 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
     
-    public virtual Task<StoredFunction?> GetFunction(FlowId flowId)
+    public virtual Task<StoredFlow?> GetFunction(FlowId flowId)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(flowId))
-                return default(StoredFunction).ToTask();
+                return default(StoredFlow).ToTask();
 
             var state = _states[flowId];
 
-            return new StoredFunction(
+            return new StoredFlow(
                     flowId,
                     state.Param,
                     state.DefaultState,

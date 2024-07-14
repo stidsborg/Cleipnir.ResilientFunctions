@@ -2,4 +2,4 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public delegate Task ReInvoke(string functionInstanceId, int expectedEpoch);
+public delegate Task Restart(string instanceId, int expectedEpoch);

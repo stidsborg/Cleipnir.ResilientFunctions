@@ -41,7 +41,7 @@ public class MySqlStatesStore : IStatesStore
     private string? _upsertStateSql;
     public async Task UpsertState(FlowId flowId, StoredState storedState)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         await using var conn = await CreateConnection();
         _upsertStateSql ??= $@"
           INSERT INTO {_tablePrefix}_states 
@@ -55,7 +55,7 @@ public class MySqlStatesStore : IStatesStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(functionTypeId.Value, functionInstanceId.Value, storedState.StateId.Value)},
+                new() {Value = Escaper.Escape(flowType.Value, flowInstance.Value, storedState.StateId.Value)},
                 new() {Value = storedState.StateJson},
             }
         };

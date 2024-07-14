@@ -23,14 +23,14 @@ public class PostgresCorrelationStore : ICorrelationStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_correlations (
-                function_type VARCHAR(255),
-                function_instance VARCHAR(255),
+                type VARCHAR(255),
+                instance VARCHAR(255),
                 correlation VARCHAR(255) NOT NULL,
-                PRIMARY KEY(function_type, function_instance, correlation)
+                PRIMARY KEY(type, instance, correlation)
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS idx_{_tablePrefix}_correlations
-            ON {_tablePrefix}_correlations(correlation, function_type, function_instance);";
+            ON {_tablePrefix}_correlations(correlation, type, instance);";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -47,22 +47,22 @@ public class PostgresCorrelationStore : ICorrelationStore
     private string? _setCorrelationSql;
     public async Task SetCorrelation(FlowId flowId, string correlationId)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
           INSERT INTO {_tablePrefix}_correlations 
-              (function_type, function_instance, correlation)
+              (type, instance, correlation)
           VALUES
               ($1, $2, $3) 
-          ON CONFLICT (function_type, function_instance, correlation) DO NOTHING";
+          ON CONFLICT (type, instance, correlation) DO NOTHING";
         
         await using var command = new NpgsqlCommand(_setCorrelationSql, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value},
-                new() {Value = functionInstanceId.Value},
+                new() {Value = flowType.Value},
+                new() {Value = flowInstance.Value},
                 new() {Value = correlationId}
             }
         };
@@ -75,7 +75,7 @@ public class PostgresCorrelationStore : ICorrelationStore
     {
         await using var conn = await CreateConnection();
         _getCorrelationsSql ??= @$"
-            SELECT function_type, function_instance
+            SELECT type, instance
             FROM {_tablePrefix}_correlations
             WHERE correlation = $1";
         await using var command = new NpgsqlCommand(_getCorrelationsSql, conn)
@@ -108,7 +108,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         _getCorrelationsForFunction ??= @$"
             SELECT correlation
             FROM {_tablePrefix}_correlations
-            WHERE function_type = $1 AND function_instance = $2";
+            WHERE type = $1 AND instance = $2";
         await using var command = new NpgsqlCommand(_getCorrelationsForFunction, conn)
         {
             Parameters =
@@ -133,19 +133,19 @@ public class PostgresCorrelationStore : ICorrelationStore
     private string? _removeCorrelationsSql;
     public async Task RemoveCorrelations(FlowId flowId)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $@"
           DELETE FROM {_tablePrefix}_correlations 
-          WHERE function_type = $1 AND function_instance = $2";
+          WHERE type = $1 AND instance = $2";
         
         await using var command = new NpgsqlCommand(_removeCorrelationsSql, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value},
-                new() {Value = functionInstanceId.Value},
+                new() {Value = flowType.Value},
+                new() {Value = flowInstance.Value},
             }
         };
 
@@ -155,19 +155,19 @@ public class PostgresCorrelationStore : ICorrelationStore
     private string? _removeCorrelationSql;
     public async Task RemoveCorrelation(FlowId flowId, string correlationId)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $@"
           DELETE FROM {_tablePrefix}_correlations 
-          WHERE function_type = $1 AND function_instance = $2 AND correlation = $3";
+          WHERE type = $1 AND instance = $2 AND correlation = $3";
         
         await using var command = new NpgsqlCommand(_removeCorrelationSql, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId.Value},
-                new() {Value = functionInstanceId.Value},
+                new() {Value = flowType.Value},
+                new() {Value = flowInstance.Value},
                 new() {Value = correlationId},
             }
         };

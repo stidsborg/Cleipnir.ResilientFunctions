@@ -12,24 +12,24 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted).ToFlowType();
-        const string functionInstanceId = "someFunctionId";
-        var functionId = new FlowId(functionTypeId, functionInstanceId);
+        var flowType = nameof(ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted).ToFlowType();
+        const string flowInstance = "someFunctionId";
+        var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string _) => NeverCompletingTask.OfType<Result<string>>()
         ).Schedule;
         
-        await schedule(functionInstanceId, functionInstanceId);
+        await schedule(flowInstance, flowInstance);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -37,24 +37,24 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted).ToFlowType();
-        const string functionInstanceId = "someFunctionId";
-        var functionId = new FlowId(functionTypeId, functionInstanceId);
+        var flowType = nameof(ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted).ToFlowType();
+        const string flowInstance = "someFunctionId";
+        var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string _) => NeverCompletingTask.OfType<Result<string>>()
         ).Schedule;
 
-        await schedule(functionInstanceId, functionInstanceId);
+        await schedule(flowInstance, flowInstance);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -62,24 +62,24 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted).ToFlowType();
-        const string functionInstanceId = "someFunctionId";
-        var functionId = new FlowId(functionTypeId, functionInstanceId);
+        var flowType = nameof(ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted).ToFlowType();
+        const string flowInstance = "someFunctionId";
+        var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             (string _) => NeverCompletingTask.OfType<Result>()
         ).Schedule;
 
-        await schedule(functionInstanceId, functionInstanceId);
+        await schedule(flowInstance, flowInstance);
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 
@@ -87,24 +87,24 @@ public abstract class ScheduledInvocationTests
     protected async Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionTypeId = nameof(ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted).ToFlowType();
-        const string functionInstanceId = "someFunctionId";
-        var functionId = new FlowId(functionTypeId, functionInstanceId);
+        var flowType = nameof(ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted).ToFlowType();
+        const string flowInstance = "someFunctionId";
+        var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var schedule = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             (string _) => NeverCompletingTask.OfType<Result>()
         ).Schedule;
 
-        await schedule(functionInstanceId, functionInstanceId);
+        await schedule(flowInstance, flowInstance);
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(functionInstanceId);
+        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }
 }

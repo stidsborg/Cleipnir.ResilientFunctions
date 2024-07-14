@@ -12,9 +12,9 @@ internal static class WatchDogsFactory
     public static void CreateAndStart(
         FlowType flowType, 
         IFunctionStore functionStore,
-        ReInvoke reInvoke, 
+        Restart restart, 
         RestartFunction restartFunction,
-        ScheduleReInvokeFromWatchdog scheduleReInvoke,
+        ScheduleRestartFromWatchdog scheduleRestart,
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator)
     {
@@ -25,7 +25,7 @@ internal static class WatchDogsFactory
             throw new InvalidOperationException(nameof(Settings.WatchdogCheckFrequency) + " is invalid");
         
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
-        var reInvokerFactory = new ReInvokerFactory(
+        var restarterFactory = new RestarterFactory(
             flowType,
             functionStore,
             shutdownCoordinator,
@@ -34,17 +34,17 @@ internal static class WatchDogsFactory
             settings.DelayStartup,
             asyncSemaphore,
             restartFunction,
-            scheduleReInvoke
+            scheduleRestart
         );
         
-        var crashedWatchdog = new CrashedWatchdog(reInvokerFactory);
-        var postponedWatchdog = new PostponedWatchdog(reInvokerFactory);
+        var crashedWatchdog = new CrashedWatchdog(restarterFactory);
+        var postponedWatchdog = new PostponedWatchdog(restarterFactory);
 
         var messagesWriters = new MessageWriters(
             flowType,
             functionStore,
             settings.Serializer,
-            scheduleReInvocation: (id, epoch) => reInvoke(id, epoch)
+            scheduleReInvocation: (id, epoch) => restart(id, epoch)
         );
         
         var timeoutWatchdog = new TimeoutWatchdog(

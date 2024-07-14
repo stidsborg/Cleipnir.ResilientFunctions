@@ -18,30 +18,30 @@ public abstract class TimeoutStoreTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var functionTypeId = functionId.Type;
+        var flowType = functionId.Type;
         const string timeoutId = "TimeoutId";
         var expiry = DateTime.UtcNow.Date.AddDays(1).Ticks;
         await store.UpsertTimeout(new StoredTimeout(functionId, timeoutId, expiry), overwrite: true);
 
         await BusyWait.Until(
-            () => store.GetTimeouts(functionTypeId.Value, expiry + 1).SelectAsync(ts => ts.Any())
+            () => store.GetTimeouts(flowType.Value, expiry + 1).SelectAsync(ts => ts.Any())
         );
         
-        var timeouts = await store.GetTimeouts(functionTypeId.Value, expiresBefore: expiry + 1).ToListAsync();
+        var timeouts = await store.GetTimeouts(flowType.Value, expiresBefore: expiry + 1).ToListAsync();
         
         timeouts.Count.ShouldBe(1);
         timeouts[0].FlowId.ShouldBe(functionId);
         timeouts[0].TimeoutId.ShouldBe(timeoutId);
         timeouts[0].Expiry.ShouldBe(expiry);
 
-        timeouts = await store.GetTimeouts(functionTypeId.Value, expiresBefore: expiry - 1).ToListAsync();
+        timeouts = await store.GetTimeouts(flowType.Value, expiresBefore: expiry - 1).ToListAsync();
         
         timeouts.ShouldBeEmpty();
 
         await store.RemoveTimeout(functionId, timeoutId);
         
         timeouts = await store
-            .GetTimeouts(functionTypeId.Value, expiresBefore: expiry + 1).ToListAsync();
+            .GetTimeouts(flowType.Value, expiresBefore: expiry + 1).ToListAsync();
         timeouts.ShouldBeEmpty();
     }
     
@@ -50,19 +50,19 @@ public abstract class TimeoutStoreTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var functionTypeId = functionId.Type;
+        var flowType = functionId.Type;
         const string timeoutId = "TimeoutId";
         var expiry = DateTime.UtcNow.Date.AddDays(1).Ticks;
         var storedTimeout = new StoredTimeout(functionId, timeoutId, expiry);
         await store.UpsertTimeout(storedTimeout, overwrite: true);
 
         await BusyWait.Until(
-            () => store.GetTimeouts(functionTypeId.Value, expiry + 1).SelectAsync(ts => ts.Any())
+            () => store.GetTimeouts(flowType.Value, expiry + 1).SelectAsync(ts => ts.Any())
         );
 
         await store.UpsertTimeout(storedTimeout with { Expiry = 0 }, overwrite: true);
 
-        var timeouts = await store.GetTimeouts(functionTypeId.Value, expiry).ToListAsync();
+        var timeouts = await store.GetTimeouts(flowType.Value, expiry).ToListAsync();
         timeouts.Count.ShouldBe(1);
         timeouts[0].TimeoutId.ShouldBe(timeoutId);
         timeouts[0].FlowId.ShouldBe(functionId);
@@ -74,19 +74,19 @@ public abstract class TimeoutStoreTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var functionTypeId = functionId.Type;
+        var flowType = functionId.Type;
         const string timeoutId = "TimeoutId";
         var expiry = DateTime.UtcNow.Date.AddDays(1).Ticks;
         var storedTimeout = new StoredTimeout(functionId, timeoutId, expiry);
         await store.UpsertTimeout(storedTimeout, overwrite: true);
 
         await BusyWait.Until(
-            () => store.GetTimeouts(functionTypeId.Value, expiry + 1).SelectAsync(ts => ts.Any())
+            () => store.GetTimeouts(flowType.Value, expiry + 1).SelectAsync(ts => ts.Any())
         );
 
         await store.UpsertTimeout(storedTimeout with { Expiry = 0 }, overwrite: false);
 
-        var timeouts = await store.GetTimeouts(functionTypeId.Value, expiry).ToListAsync();
+        var timeouts = await store.GetTimeouts(flowType.Value, expiry).ToListAsync();
         timeouts.Count.ShouldBe(1);
         timeouts[0].TimeoutId.ShouldBe(timeoutId);
         timeouts[0].FlowId.ShouldBe(functionId);
@@ -208,8 +208,8 @@ public abstract class TimeoutStoreTests
         public Task Remove(FlowId flowId)
             => _inner.Remove(flowId); 
 
-        public Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
-            => _inner.GetTimeouts(functionTypeId, expiresBefore);
+        public Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore)
+            => _inner.GetTimeouts(flowType, expiresBefore);
 
         public Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
             => _inner.GetTimeouts(flowId);

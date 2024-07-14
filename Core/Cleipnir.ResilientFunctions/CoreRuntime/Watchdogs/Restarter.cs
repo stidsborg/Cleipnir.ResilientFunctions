@@ -11,9 +11,9 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReInvoker
+internal class Restarter
 {
-    public delegate Task<IReadOnlyList<InstanceIdAndEpoch>> GetEligibleFunctions(FlowType flowType, IFunctionStore functionStore, long t);
+    public delegate Task<IReadOnlyList<InstanceAndEpoch>> GetEligibleFunctions(FlowType flowType, IFunctionStore functionStore, long t);
     
     private readonly FlowType _flowType;
 
@@ -27,16 +27,16 @@ internal class ReInvoker
     private readonly AsyncSemaphore _asyncSemaphore;
     
     private readonly RestartFunction _restartFunction;
-    private readonly ScheduleReInvokeFromWatchdog _scheduleReInvoke;
+    private readonly ScheduleRestartFromWatchdog _scheduleRestart;
     private readonly GetEligibleFunctions _getEligibleFunctions;
 
-    public ReInvoker(
+    public Restarter(
         FlowType flowType, 
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp, 
         AsyncSemaphore asyncSemaphore, 
-        RestartFunction restartFunction, ScheduleReInvokeFromWatchdog scheduleReInvoke,
+        RestartFunction restartFunction, ScheduleRestartFromWatchdog scheduleRestart,
         GetEligibleFunctions getEligibleFunctions
     )
     {
@@ -48,7 +48,7 @@ internal class ReInvoker
         _delayStartUp = delayStartUp;
         _asyncSemaphore = asyncSemaphore;
         _restartFunction = restartFunction;
-        _scheduleReInvoke = scheduleReInvoke;
+        _scheduleRestart = scheduleRestart;
         _getEligibleFunctions = getEligibleFunctions;
     }
     
@@ -89,7 +89,7 @@ internal class ReInvoker
                         break;
                     }
 
-                    await _scheduleReInvoke(
+                    await _scheduleRestart(
                         sef.Instance,
                         restartedFunction,
                         onCompletion: () =>
@@ -121,7 +121,7 @@ internal class ReInvoker
         }
     }
 
-    private async Task<IReadOnlyList<InstanceIdAndEpoch>> ReAssertCrashedFunctions(IReadOnlyList<InstanceIdAndEpoch> eligibleFunctions, DateTime now)
+    private async Task<IReadOnlyList<InstanceAndEpoch>> ReAssertCrashedFunctions(IReadOnlyList<InstanceAndEpoch> eligibleFunctions, DateTime now)
     {
         //race-condition fix between re-invoker and lease-updater. Task.Delays are not respected when debugging.
         //fix is to allow lease updater to update lease before crashed watchdog asserts that the functions in question has crashed

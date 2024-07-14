@@ -9,17 +9,17 @@ namespace Cleipnir.ResilientFunctions;
 public static class FuncRegistration
 {
     public delegate Task<TReturn> Invoke<in TParam, TReturn>(
-        string functionInstanceId,
+        string flowInstance,
         TParam param
     ) where TParam : notnull;
 
     public delegate Task Schedule<in TParam>(
-        string functionInstanceId,
+        string flowInstance,
         TParam param
     ) where TParam : notnull;
 
     public delegate Task ScheduleAt<in TParam>(
-        string functionInstanceId,
+        string flowInstance,
         TParam param,
         DateTime delayUntil
     ) where TParam : notnull;
@@ -74,6 +74,6 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
             : _stateFetcher.FetchState<TState>(functionId, stateId);
     }
 
-    public Task ScheduleIn(string functionInstanceId, TParam param, TimeSpan delay) 
-        => ScheduleAt(functionInstanceId, param, delayUntil: DateTime.UtcNow.Add(delay));
+    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay) 
+        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay));
 }

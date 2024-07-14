@@ -18,7 +18,7 @@ public static class HelloWorldExample
             inner: (string param) => param.ToUpper()
         ).Invoke;
 
-        var returned = await rFunc(functionInstanceId: "", param: "hello world");
+        var returned = await rFunc(flowInstance: "", param: "hello world");
         Console.WriteLine($"Returned: '{returned}'");
     }
 }

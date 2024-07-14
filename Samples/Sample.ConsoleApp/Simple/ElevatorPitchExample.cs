@@ -35,7 +35,7 @@ public static class ElevatorPitchExample
 
         var rFunc = registration.Invoke; //you can also re-invoke (useful for manual handling) an existing function or schedule one for invocation
         const string url = "https://google.com";
-        var responseBody = await rFunc(functionInstanceId: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
+        var responseBody = await rFunc(flowInstance: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
         Log.Information("Resilient Function getting {Url} completed successfully with body: {Body}", url, responseBody);
         
         await functionsRegistry.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!

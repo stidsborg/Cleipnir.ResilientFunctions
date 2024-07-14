@@ -352,7 +352,7 @@ internal class InvocationHelper<TParam, TReturn>
         var serializer = _settings.Serializer;
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
-                new FunctionIdWithParam(
+                new IdWithParam(
                     new FlowId(_flowType, bw.Instance),
                     _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
                 )

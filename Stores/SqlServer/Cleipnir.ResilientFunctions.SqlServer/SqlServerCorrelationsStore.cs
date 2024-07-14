@@ -17,13 +17,13 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
             CREATE TABLE {tablePrefix}_Correlations (
-                Function_Type NVARCHAR(200),
-                Function_Instance NVARCHAR(200),
+                Type NVARCHAR(200),
+                Instance NVARCHAR(200),
                 Correlation NVARCHAR(200),                
-                PRIMARY KEY (Function_Type, Function_Instance, Correlation)        
+                PRIMARY KEY (Type, Instance, Correlation)        
             );
 
-            CREATE INDEX IDX_{tablePrefix}_Correlations ON {tablePrefix}_Correlations (Correlation, Function_Type, Function_Instance);
+            CREATE INDEX IDX_{tablePrefix}_Correlations ON {tablePrefix}_Correlations (Correlation, Type, Instance);
         ";
 
         await using var command = new SqlCommand(_initializeSql, conn);
@@ -45,22 +45,22 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
     private string? _setCorrelationSql;
     public async Task SetCorrelation(FlowId flowId, string correlationId)
     {
-        var (functionTypeId, functionInstanceId) = flowId;
+        var (flowType, flowInstance) = flowId;
         await using var conn = await _connFunc();
         _setCorrelationSql ??= $@"
             MERGE INTO {tablePrefix}_Correlations
-                USING (VALUES (@Function_Type, @Function_Instance, @Correlation)) 
-                AS source (Function_Type, Function_Instance, Correlation)
-                ON {tablePrefix}_Correlations.Function_Type = source.Function_Type AND 
-                   {tablePrefix}_Correlations.Function_Instance = source.Function_Instance AND
+                USING (VALUES (@Type, @Instance, @Correlation)) 
+                AS source (Type, Instance, Correlation)
+                ON {tablePrefix}_Correlations.Type = source.Type AND 
+                   {tablePrefix}_Correlations.Instance = source.Instance AND
                    {tablePrefix}_Correlations.Correlation = source.Correlation
                 WHEN NOT MATCHED THEN
-                    INSERT (Function_Type, Function_Instance, Correlation)
-                    VALUES (source.Function_Type, source.Function_Instance, source.Correlation);";
+                    INSERT (Type, Instance, Correlation)
+                    VALUES (source.Type, source.Instance, source.Correlation);";
         
         await using var command = new SqlCommand(_setCorrelationSql, conn);
-        command.Parameters.AddWithValue("@Function_Type", functionTypeId.Value);
-        command.Parameters.AddWithValue("@Function_Instance", functionInstanceId.Value);
+        command.Parameters.AddWithValue("@Type", flowType.Value);
+        command.Parameters.AddWithValue("@Instance", flowInstance.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
         
         await command.ExecuteNonQueryAsync();
@@ -71,7 +71,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
     {
         await using var conn = await _connFunc();
         _getCorrelations ??= @$"
-            SELECT Function_Type, Function_Instance
+            SELECT Type, Instance
             FROM {tablePrefix}_Correlations
             WHERE Correlation = @CorrelationId";
         
@@ -98,7 +98,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         _getCorrelationsForFunction ??= @$"
             SELECT Correlation
             FROM {tablePrefix}_Correlations
-            WHERE Function_Type = @FunctionType AND Function_Instance = @FunctionInstance";
+            WHERE Type = @FunctionType AND Instance = @FunctionInstance";
         
         await using var command = new SqlCommand(_getCorrelationsForFunction, conn);
         command.Parameters.AddWithValue("@FunctionType", typeId.Value);
@@ -122,11 +122,11 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         await using var conn = await _connFunc();
         _removeCorrelationsSql ??= @$"
             DELETE FROM {tablePrefix}_Correlations
-            WHERE Function_Type = @Function_Type AND Function_Instance = @Function_Instance";
+            WHERE Type = @Type AND Instance = @Instance";
         
         await using var command = new SqlCommand(_removeCorrelationsSql, conn);
-        command.Parameters.AddWithValue("@Function_Type", typeId.Value);
-        command.Parameters.AddWithValue("@Function_Instance", instanceId.Value);
+        command.Parameters.AddWithValue("@Type", typeId.Value);
+        command.Parameters.AddWithValue("@Instance", instanceId.Value);
         
         await command.ExecuteNonQueryAsync();
     }
@@ -138,11 +138,11 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         await using var conn = await _connFunc();
         _removeCorrelationSql ??= @$"
             DELETE FROM {tablePrefix}_Correlations
-            WHERE Function_Type = @Function_Type AND Function_Instance = @Function_Instance AND Correlation = @Correlation";
+            WHERE Type = @Type AND Instance = @Instance AND Correlation = @Correlation";
         
         await using var command = new SqlCommand(_removeCorrelationSql, conn);
-        command.Parameters.AddWithValue("@Function_Type", typeId.Value);
-        command.Parameters.AddWithValue("@Function_Instance", instanceId.Value);
+        command.Parameters.AddWithValue("@Type", typeId.Value);
+        command.Parameters.AddWithValue("@Instance", instanceId.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
         
         await command.ExecuteNonQueryAsync();

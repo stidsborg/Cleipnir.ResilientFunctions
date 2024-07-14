@@ -47,7 +47,7 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
 
-        await rFunc.ControlPanel("something").Result!.ReInvoke();
+        await rFunc.ControlPanel("something").Result!.Restart();
         
         syncedParameter.Value.ShouldBe("something");
 
@@ -63,7 +63,7 @@ public abstract class ReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -76,7 +76,7 @@ public abstract class ReInvocationTests
         );
 
         var rAction = functionsRegistry.RegisterAction<string>(
-            functionTypeId,
+            flowType,
             async (param, workflow) =>
             {
                 var state = workflow.States.CreateOrGet<ListState<string>>("State");
@@ -93,18 +93,18 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(functionInstanceId.Value, "something")
+            rAction.Invoke(flowInstance.Value, "something")
         );
 
         var syncedListFromState = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
             
         syncedListFromState.Value = new List<string>(controlPanel.States.Get<ListState<string>>("State")!.List);
         await controlPanel.States.Set("State", new ListState<string>());
         await controlPanel.SaveChanges();
         
-        controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.ReInvoke();
+        controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await controlPanel.Restart();
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
@@ -120,7 +120,7 @@ public abstract class ReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -134,7 +134,7 @@ public abstract class ReInvocationTests
 
         var syncedParam = new Synced<string>();
         var rAction = functionsRegistry.RegisterAction<string>(
-            functionTypeId,
+            flowType,
             param =>
             {
                 if (flag.Position == FlagPosition.Lowered)
@@ -148,16 +148,16 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(functionInstanceId.Value, "something")
+            rAction.Invoke(flowInstance.Value, "something")
         );
         
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = "something_else";
         await controlPanel.SaveChanges();
        
-        controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.ReInvoke();
+        controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await controlPanel.Restart();
         
         syncedParam.Value.ShouldBe("something_else");
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
@@ -168,7 +168,7 @@ public abstract class ReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -182,7 +182,7 @@ public abstract class ReInvocationTests
 
         var syncedValue = new Synced<string>();
         var rAction = functionsRegistry.RegisterAction<string>(
-            functionTypeId,
+            flowType,
             (param, workflow) =>
             {
                 if (flag.Position == FlagPosition.Lowered)
@@ -196,16 +196,16 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(functionInstanceId.Value, "something")
+            rAction.Invoke(flowInstance.Value, "something")
         );
 
-        var controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Param.ShouldBe("something");
         controlPanel.Param = "something_else";
         await controlPanel.SaveChanges();
        
-        controlPanel = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.ReInvoke();
+        controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await controlPanel.Restart();
         
         syncedValue.Value.ShouldBe("something_else");
         
@@ -217,7 +217,7 @@ public abstract class ReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -230,7 +230,7 @@ public abstract class ReInvocationTests
         );
 
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             async s =>
             {
                 await Task.CompletedTask;
@@ -243,10 +243,10 @@ public abstract class ReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        await controlPanel.ReInvoke();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await controlPanel.Restart();
 
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
@@ -261,7 +261,7 @@ public abstract class ReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -274,7 +274,7 @@ public abstract class ReInvocationTests
         );
         
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            functionTypeId,
+            flowType,
             async (param, workflow) =>
             {
                 var state = workflow.States.CreateOrGet<ListState<string>>("State");
@@ -292,14 +292,14 @@ public abstract class ReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(functionInstanceId.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
 
-        var controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.States.Remove("State");
         await controlPanel.SaveChanges();
         
-        controlPanel = await rFunc.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var result = await controlPanel.ReInvoke(); 
+        controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        var result = await controlPanel.Restart(); 
         result.ShouldBe("something");
 
         var function = await store.GetFunction(functionId);
@@ -318,7 +318,7 @@ public abstract class ReInvocationTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             store,
@@ -330,16 +330,16 @@ public abstract class ReInvocationTests
         );
 
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             (string _) => {}
         );
 
-        await rAction.Invoke(functionInstanceId.Value, "");
-        var controlPanel1 = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
-        var controlPanel2 = await rAction.ControlPanel(functionInstanceId).ShouldNotBeNullAsync();
+        await rAction.Invoke(flowInstance.Value, "");
+        var controlPanel1 = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        var controlPanel2 = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel1.Delete();
         
-        await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel2.ReInvoke());
+        await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel2.Restart());
 
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
     }

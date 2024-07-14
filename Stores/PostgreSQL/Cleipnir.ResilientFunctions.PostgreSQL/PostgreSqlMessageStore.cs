@@ -32,13 +32,13 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
-                function_type_id VARCHAR(255),
-                function_instance_id VARCHAR(255),
+                type VARCHAR(255),
+                instance VARCHAR(255),
                 position INT NOT NULL,
                 message_json TEXT NOT NULL,
                 message_type VARCHAR(255) NOT NULL,   
                 idempotency_key VARCHAR(255),          
-                PRIMARY KEY (function_type_id, function_instance_id, position)
+                PRIMARY KEY (type, instance, position)
             );";
         
         var command = new NpgsqlCommand(_initializeSql, conn);
@@ -74,10 +74,10 @@ public class PostgreSqlMessageStore : IMessageStore
         { //append Message to message stream sql
             _appendMessageSql ??= @$"    
                 INSERT INTO {_tablePrefix}_messages
-                    (function_type_id, function_instance_id, position, message_json, message_type, idempotency_key)
+                    (type, instance, position, message_json, message_type, idempotency_key)
                 VALUES (
                      $1, $2, 
-                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE function_type_id = $1 AND function_instance_id = $2), 
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE type = $1 AND instance = $2), 
                      $3, $4, $5
                 ) RETURNING position;";
             var command = new NpgsqlBatchCommand(_appendMessageSql)
@@ -98,7 +98,7 @@ public class PostgreSqlMessageStore : IMessageStore
             _getFunctionStatusInAppendMessageSql ??= @$"    
             SELECT epoch, status
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
+            WHERE type = $1 AND instance = $2;";
            
             var command = new NpgsqlBatchCommand(_getFunctionStatusInAppendMessageSql)
             {
@@ -146,7 +146,7 @@ public class PostgreSqlMessageStore : IMessageStore
         _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}_messages
                 SET message_json = $1, message_type = $2, idempotency_key = $3
-                WHERE function_type_id = $4 AND function_instance_id = $5 AND position = $6";
+                WHERE type = $4 AND instance = $5 AND position = $6";
 
         var (messageJson, messageType, idempotencyKey) = storedMessage;
         var command = new NpgsqlCommand(_replaceMessageSql, conn)
@@ -172,7 +172,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         _truncateFunctionSql ??= @$"    
                 DELETE FROM {_tablePrefix}_messages
-                WHERE function_type_id = $1 AND function_instance_id = $2;";
+                WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_truncateFunctionSql, conn)
         {
             Parameters =
@@ -191,7 +191,7 @@ public class PostgreSqlMessageStore : IMessageStore
         _getMessagesSql ??= @$"    
             SELECT message_json, message_type, idempotency_key
             FROM {_tablePrefix}_messages
-            WHERE function_type_id = $1 AND function_instance_id = $2 AND position >= $3
+            WHERE type = $1 AND instance = $2 AND position >= $3
             ORDER BY position ASC;";
         await using var command = new NpgsqlCommand(_getMessagesSql, conn)
         {
@@ -223,7 +223,7 @@ public class PostgreSqlMessageStore : IMessageStore
         _hasMoreMessagesSql ??= @$"    
             SELECT COALESCE(MAX(position), -1) 
             FROM {_tablePrefix}_messages 
-            WHERE function_type_id = $1 AND function_instance_id = $2";
+            WHERE type = $1 AND instance = $2";
         await using var command = new NpgsqlCommand(_hasMoreMessagesSql, conn)
         {
             Parameters =
@@ -247,7 +247,7 @@ public class PostgreSqlMessageStore : IMessageStore
         _getSuspensionStatusSql ??= @$"    
             SELECT epoch, status
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
+            WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
         {
             Parameters = { 

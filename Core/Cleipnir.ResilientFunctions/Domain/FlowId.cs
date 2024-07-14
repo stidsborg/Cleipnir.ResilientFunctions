@@ -60,7 +60,7 @@ public class FlowId
 
 public static class FlowIdExtensions 
 {
-    public static FlowType ToFlowType(this string functionTypeId) => new(functionTypeId);
+    public static FlowType ToFlowType(this string flowType) => new(flowType);
 
-    public static FlowInstance ToFlowInstance(this string functionInstanceId) => new(functionInstanceId);
+    public static FlowInstance ToFlowInstance(this string flowInstance) => new(flowInstance);
 }

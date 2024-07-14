@@ -20,7 +20,7 @@ public abstract class WatchdogCompoundTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, _) = functionId;
+        var (flowType, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         {
@@ -37,7 +37,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             var rFunc = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
@@ -67,7 +67,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterFunc<Param, string>(
-                functionTypeId,
+                flowType,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
@@ -92,7 +92,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
@@ -115,7 +115,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 (Param p) => $"{p.Id}-{p.Value}".ToTask()
             );
 
@@ -137,7 +137,7 @@ public abstract class WatchdogCompoundTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, _) = functionId;
+        var (flowType, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         {
@@ -153,7 +153,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             var rFunc = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 async (Param p, Workflow flow) =>
                 {
                     var state = flow.States.CreateOrGet<ListState>("Scraps");
@@ -186,7 +186,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterFunc<Param, string>(  //explicit generic parameters to satisfy Rider-ide
-                functionTypeId,
+                flowType,
                 async (p, workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -214,7 +214,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 async (Param p, Workflow workflow) =>
                 {
                     var state = workflow.States.CreateOrGet<ListState>("Scraps");
@@ -240,7 +240,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterFunc(
-                functionTypeId,
+                flowType,
                 async (Param p, Workflow workflow) =>
                 {
                     var state = workflow.States.CreateOrGet<ListState>("Scraps");
@@ -271,7 +271,7 @@ public abstract class WatchdogCompoundTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, _) = functionId;
+        var (flowType, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         //first invocation crashes
@@ -288,7 +288,7 @@ public abstract class WatchdogCompoundTests
             );
             var rAction = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     inner: (Param p) =>
                     {
                         tcs.TrySetResult(p);
@@ -318,7 +318,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
@@ -345,7 +345,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterAction(
-                functionTypeId,
+                flowType,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
@@ -371,7 +371,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                 (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
                 );
 
@@ -390,7 +390,7 @@ public abstract class WatchdogCompoundTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, _) = functionId;
+        var (flowType, _) = functionId;
         var param = new Param("SomeId", 25);
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         {
@@ -406,7 +406,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             var rFunc = functionsRegistry.RegisterAction(
-                functionTypeId,
+                flowType,
                 async (Param p, Workflow workflow) =>
                 {
                     var state = workflow.States.CreateOrGet<ListState>("Scraps");
@@ -439,7 +439,7 @@ public abstract class WatchdogCompoundTests
             );
             _ = functionsRegistry
                 .RegisterAction(
-                    functionTypeId,
+                    flowType,
                     async (Param p, Workflow workflow) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -469,7 +469,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterAction(
-                functionTypeId,
+                flowType,
                 async (Param p, Workflow workflow) =>
                 {
                     var state = workflow.States.CreateOrGet<ListState>("Scraps");
@@ -499,7 +499,7 @@ public abstract class WatchdogCompoundTests
                 )
             );
             _ = functionsRegistry.RegisterAction(
-                functionTypeId,
+                flowType,
                 async (Param p, Workflow workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -531,7 +531,7 @@ public abstract class WatchdogCompoundTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, _) = functionId;
+        var (flowType, _) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         using var functionsRegistry = new FunctionsRegistry(
@@ -544,7 +544,7 @@ public abstract class WatchdogCompoundTests
             )
         );
         var registration = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             inner: (string p, Workflow workflow) => { }
         );
 

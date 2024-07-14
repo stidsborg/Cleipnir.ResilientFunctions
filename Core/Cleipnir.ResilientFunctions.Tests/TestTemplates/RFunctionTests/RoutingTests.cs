@@ -18,7 +18,7 @@ public abstract class RoutingTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -30,7 +30,7 @@ public abstract class RoutingTests
         var syncedValue = new Synced<string>();
         
         var registration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             inner: async (Workflow workflow) =>
             {
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
@@ -45,9 +45,9 @@ public abstract class RoutingTests
             })
         );
 
-        await registration.Schedule(functionInstanceId);
+        await registration.Schedule(flowInstance);
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: functionInstanceId.Value, Value: "SomeValue!"));
+        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -58,7 +58,7 @@ public abstract class RoutingTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -70,7 +70,7 @@ public abstract class RoutingTests
         var syncedValue = new Synced<string>();
         
         var registration = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             inner: async (string _, Workflow workflow) =>
             {
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
@@ -85,9 +85,9 @@ public abstract class RoutingTests
             })
         );
 
-        await registration.Schedule(functionInstanceId.Value, param: "SomeParam");
+        await registration.Schedule(flowInstance.Value, param: "SomeParam");
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: functionInstanceId.Value, Value: "SomeValue!"));
+        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -98,7 +98,7 @@ public abstract class RoutingTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -110,7 +110,7 @@ public abstract class RoutingTests
         var syncedValue = new Synced<string>();
         
         var registration = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
@@ -127,9 +127,9 @@ public abstract class RoutingTests
             })
         );
 
-        await registration.Schedule(functionInstanceId.Value, param: "SomeParam");
+        await registration.Schedule(flowInstance.Value, param: "SomeParam");
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: functionInstanceId.Value, Value: "SomeValue!"));
+        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -144,7 +144,7 @@ public abstract class RoutingTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -159,7 +159,7 @@ public abstract class RoutingTests
         var syncedValue = new Synced<string>();
         
         var registration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             inner: async workflow =>
             {
                 await workflow.RegisterCorrelation(correlationId);
@@ -177,7 +177,7 @@ public abstract class RoutingTests
             })
         );
 
-        await registration.Schedule(functionInstanceId);
+        await registration.Schedule(flowInstance);
         await correlationIdRegisteredFlag.WaitForRaised();
         
         await functionsRegistry.DeliverMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
@@ -195,7 +195,7 @@ public abstract class RoutingTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        var (functionTypeId, functionInstanceId) = functionId;
+        var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -207,7 +207,7 @@ public abstract class RoutingTests
         var syncedValue = new Synced<string>();
 
         var registration = functionsRegistry.RegisterParamless(
-            functionTypeId,
+            flowType,
             inner: async (Workflow workflow) =>
             {
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
@@ -226,7 +226,7 @@ public abstract class RoutingTests
             )
         );
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: functionInstanceId.Value, Value: "SomeValue!"));
+        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised(5_000);
         syncedValue.Value.ShouldBe("SomeValue!");

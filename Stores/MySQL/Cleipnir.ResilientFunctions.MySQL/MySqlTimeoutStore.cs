@@ -21,11 +21,11 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
-                function_type_id VARCHAR(255),
-                function_instance_id VARCHAR(255),
+                type VARCHAR(255),
+                instance VARCHAR(255),
                 timeout_id VARCHAR(255),
                 expires BIGINT,
-                PRIMARY KEY (function_type_id, function_instance_id, timeout_id)
+                PRIMARY KEY (type, instance, timeout_id)
             )";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -48,14 +48,14 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         _upsertTimeoutSql ??= @$"
             INSERT INTO {_tablePrefix}_timeouts 
-                (function_type_id, function_instance_id, timeout_id, expires)
+                (type, instance, timeout_id, expires)
             VALUES
                 (?, ?, ?, ?) 
            ON DUPLICATE KEY UPDATE
                 expires = ?";
         _insertTimeoutSql ??= @$"
                 INSERT IGNORE INTO {_tablePrefix}_timeouts 
-                    (function_type_id, function_instance_id, timeout_id, expires)
+                    (type, instance, timeout_id, expires)
                 VALUES
                     (?, ?, ?, ?)";
 
@@ -82,8 +82,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         _removeTimeoutSql ??= @$"
             DELETE FROM {_tablePrefix}_timeouts 
             WHERE 
-                function_type_id = ? AND 
-                function_instance_id = ? AND 
+                type = ? AND 
+                instance = ? AND 
                 timeout_id = ?";
         
         await using var command = new MySqlCommand(_removeTimeoutSql, conn)
@@ -105,7 +105,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
             DELETE FROM {_tablePrefix}_timeouts 
-            WHERE function_type_id = ? AND function_instance_id = ?";
+            WHERE type = ? AND instance = ?";
         
         await using var command = new MySqlCommand(_removeSql, conn)
         {
@@ -120,19 +120,19 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private string? _getTimeoutsSqlExpiresBefore;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string functionTypeId, long expiresBefore)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getTimeoutsSqlExpiresBefore ??= @$"    
-            SELECT function_instance_id, timeout_id, expires
+            SELECT instance, timeout_id, expires
             FROM {_tablePrefix}_timeouts
-            WHERE function_type_id = ? AND expires <= ?";
+            WHERE type = ? AND expires <= ?";
         
         await using var command = new MySqlCommand(_getTimeoutsSqlExpiresBefore, conn)
         {
             Parameters =
             {
-                new() {Value = functionTypeId},
+                new() {Value = flowType},
                 new() {Value = expiresBefore},
             }
         };
@@ -141,10 +141,10 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
+            var flowInstance = reader.GetString(0);
             var timeoutId = reader.GetString(1);
             var expires = reader.GetInt64(2);
-            var functionId = new FlowId(functionTypeId, functionInstanceId);
+            var functionId = new FlowId(flowType, flowInstance);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -159,7 +159,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         _getFunctionTimeoutsSql ??= @$"    
             SELECT timeout_id, expires
             FROM {_tablePrefix}_timeouts
-            WHERE function_type_id = ? AND function_instance_id = ?";
+            WHERE type = ? AND instance = ?";
         
         await using var command = new MySqlCommand(_getFunctionTimeoutsSql, conn)
         {

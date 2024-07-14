@@ -66,8 +66,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
-                function_type_id VARCHAR(200) NOT NULL,
-                function_instance_id VARCHAR(200) NOT NULL,
+                type VARCHAR(200) NOT NULL,
+                instance VARCHAR(200) NOT NULL,
                 param_json TEXT NULL,            
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
@@ -78,20 +78,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 lease_expiration BIGINT NOT NULL,
                 interrupt_count BIGINT NOT NULL DEFAULT 0,
                 timestamp BIGINT NOT NULL,
-                PRIMARY KEY (function_type_id, function_instance_id)
+                PRIMARY KEY (type, instance)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_executing
-            ON {_tablePrefix}(function_type_id, lease_expiration, function_instance_id)
+            ON {_tablePrefix}(type, lease_expiration, instance)
             INCLUDE (epoch)
             WHERE status = {(int) Status.Executing};
 
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_postponed
-            ON {_tablePrefix}(function_type_id, postponed_until, function_instance_id)
+            ON {_tablePrefix}(type, postponed_until, instance)
             INCLUDE (epoch)
             WHERE status = {(int) Status.Postponed};
 
             CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_succeeded
-            ON {_tablePrefix}(function_type_id, function_instance_id)
+            ON {_tablePrefix}(type, instance)
             WHERE status = {(int) Status.Succeeded};
             ";
 
@@ -140,7 +140,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         _createFunctionSql ??= @$"
             INSERT INTO {_tablePrefix}
-                (function_type_id, function_instance_id, status, param_json, lease_expiration, postponed_until, timestamp)
+                (type, instance, status, param_json, lease_expiration, postponed_until, timestamp)
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT DO NOTHING;";
@@ -163,11 +163,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _bulkScheduleFunctionsSql;
-    public async Task BulkScheduleFunctions(IEnumerable<FunctionIdWithParam> functionsWithParam)
+    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tablePrefix}
-                (function_type_id, function_instance_id, status, param_json, lease_expiration, postponed_until, timestamp)
+                (type, instance, status, param_json, lease_expiration, postponed_until, timestamp)
             VALUES
                 ($1, $2, {(int) Status.Postponed}, $3, 0, 0, 0)
             ON CONFLICT DO NOTHING;";
@@ -196,14 +196,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _restartExecutionSql;
-    public async Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
     {
         await using var conn = await CreateConnection();
 
         _restartExecutionSql ??= @$"
             UPDATE {_tablePrefix}
             SET epoch = epoch + 1, status = {(int)Status.Executing}, lease_expiration = $1
-            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4
+            WHERE type = $2 AND instance = $3 AND epoch = $4
             RETURNING               
                 param_json, 
                 status,
@@ -244,7 +244,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _renewLeaseSql ??= $@"
             UPDATE {_tablePrefix}
             SET lease_expiration = $1
-            WHERE function_type_id = $2 AND function_instance_id = $3 AND epoch = $4";
+            WHERE type = $2 AND instance = $3 AND epoch = $4";
         await using var command = new NpgsqlCommand(_renewLeaseSql, conn)
         {
             Parameters =
@@ -261,13 +261,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getCrashedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    public async Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
     {
         await using var conn = await CreateConnection();
         _getCrashedFunctionsSql ??= @$"
-            SELECT function_instance_id, epoch 
+            SELECT instance, epoch 
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND lease_expiration < $2 AND status = {(int) Status.Executing}";
+            WHERE type = $1 AND lease_expiration < $2 AND status = {(int) Status.Executing}";
         await using var command = new NpgsqlCommand(_getCrashedFunctionsSql, conn)
         {
             Parameters =
@@ -279,25 +279,25 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<InstanceIdAndEpoch>();
+        var functions = new List<InstanceAndEpoch>();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
+            var flowInstance = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            functions.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));
+            functions.Add(new InstanceAndEpoch(flowInstance, epoch));
         }
 
         return functions;
     }
 
     private string? _getPostponedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
+    public async Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
     {
         await using var conn = await CreateConnection();
         _getPostponedFunctionsSql ??= @$"
-            SELECT function_instance_id, epoch
+            SELECT instance, epoch
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND status = {(int) Status.Postponed} AND postponed_until <= $2";
+            WHERE type = $1 AND status = {(int) Status.Postponed} AND postponed_until <= $2";
         await using var command = new NpgsqlCommand(_getPostponedFunctionsSql, conn)
         {
             Parameters =
@@ -308,12 +308,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<InstanceIdAndEpoch>();
+        var functions = new List<InstanceAndEpoch>();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
+            var flowInstance = reader.GetString(0);
             var epoch = reader.GetInt32(1);
-            functions.Add(new InstanceIdAndEpoch(functionInstanceId, epoch));
+            functions.Add(new InstanceAndEpoch(flowInstance, epoch));
         }
 
         return functions;
@@ -324,9 +324,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
-            SELECT function_instance_id
+            SELECT instance
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND status = {(int) Status.Succeeded} AND timestamp <= $2";
+            WHERE type = $1 AND status = {(int) Status.Succeeded} AND timestamp <= $2";
         await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
         {
             Parameters =
@@ -337,14 +337,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functionInstanceIds = new List<FlowInstance>();
+        var flowInstances = new List<FlowInstance>();
         while (await reader.ReadAsync())
         {
-            var functionInstanceId = reader.GetString(0);
-            functionInstanceIds.Add(functionInstanceId);
+            var flowInstance = reader.GetString(0);
+            flowInstances.Add(flowInstance);
         }
 
-        return functionInstanceIds;
+        return flowInstances;
     }
 
     private string? _setFunctionStateSql;
@@ -365,8 +365,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 exception_json = $4, postponed_until = $5,
                 epoch = epoch + 1
             WHERE 
-                function_type_id = $6 AND 
-                function_instance_id = $7 AND 
+                type = $6 AND 
+                instance = $7 AND 
                 epoch = $8";
         await using var command = new NpgsqlCommand(_setFunctionStateSql, conn)
         {
@@ -401,8 +401,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Succeeded}, result_json = $1, default_state = $2, timestamp = $3
             WHERE 
-                function_type_id = $4 AND 
-                function_instance_id = $5 AND 
+                type = $4 AND 
+                instance = $5 AND 
                 epoch = $6";
         await using var command = new NpgsqlCommand(_succeedFunctionSql, conn)
         {
@@ -435,8 +435,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Postponed}, postponed_until = $1, default_state = $2, timestamp = $3
             WHERE 
-                function_type_id = $4 AND 
-                function_instance_id = $5 AND 
+                type = $4 AND 
+                instance = $5 AND 
                 epoch = $6";
         await using var command = new NpgsqlCommand(_postponeFunctionSql, conn)
         {
@@ -469,8 +469,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET status = {(int) Status.Failed}, exception_json = $1, default_state = $2, timestamp = $3
             WHERE 
-                function_type_id = $4 AND 
-                function_instance_id = $5 AND 
+                type = $4 AND 
+                instance = $5 AND 
                 epoch = $6";
         await using var command = new NpgsqlCommand(_failFunctionSql, conn)
         {
@@ -503,8 +503,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _suspendFunctionSql ??= $@"
             UPDATE {_tablePrefix}
             SET status = {(int)Status.Suspended}, default_state = $1, timestamp = $2
-            WHERE function_type_id = $3 AND 
-                  function_instance_id = $4 AND 
+            WHERE type = $3 AND 
+                  instance = $4 AND 
                   epoch = $5 AND
                   interrupt_count = $6";
         await using var command = new NpgsqlCommand(_suspendFunctionSql, conn)
@@ -530,7 +530,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _setDefaultStateSql ??= $@"
             UPDATE {_tablePrefix}
             SET default_state = $1
-            WHERE function_type_id = $2 AND function_instance_id = $3";
+            WHERE type = $2 AND instance = $3";
         await using var command = new NpgsqlCommand(_setDefaultStateSql, conn)
         {
             Parameters =
@@ -557,7 +557,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             SET param_json = $1,             
                 result_json = $2, 
                 epoch = epoch + 1
-            WHERE function_type_id = $3 AND function_instance_id = $4 AND epoch = $5";
+            WHERE type = $3 AND instance = $4 AND epoch = $5";
         
         var command = new NpgsqlCommand(_setParametersSql, conn)
         {
@@ -584,7 +584,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _incrementInterruptCountSql ??= $@"
                 UPDATE {_tablePrefix}
                 SET interrupt_count = interrupt_count + 1
-                WHERE function_type_id = $1 AND function_instance_id = $2  AND status = {(int) Status.Executing};";
+                WHERE type = $1 AND instance = $2  AND status = {(int) Status.Executing};";
         await using var command = new NpgsqlCommand(_incrementInterruptCountSql, conn)
         {
             Parameters =
@@ -605,7 +605,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _getInterruptCountSql ??= $@"
                 SELECT interrupt_count 
                 FROM {_tablePrefix}
-                WHERE function_type_id = $1 AND function_instance_id = $2";
+                WHERE type = $1 AND instance = $2";
         await using var command = new NpgsqlCommand(_getInterruptCountSql, conn)
         {
             Parameters =
@@ -624,7 +624,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _getFunctionStatusSql ??= $@"
             SELECT status, epoch
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
+            WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
@@ -646,7 +646,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getFunctionSql;
-    public async Task<StoredFunction?> GetFunction(FlowId flowId)
+    public async Task<StoredFlow?> GetFunction(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _getFunctionSql ??= $@"
@@ -662,7 +662,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 interrupt_count,
                 timestamp
             FROM {_tablePrefix}
-            WHERE function_type_id = $1 AND function_instance_id = $2;";
+            WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
@@ -675,7 +675,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return await ReadToStoredFunction(flowId, reader);
     }
 
-    private async Task<StoredFunction?> ReadToStoredFunction(FlowId flowId, NpgsqlDataReader reader)
+    private async Task<StoredFlow?> ReadToStoredFunction(FlowId flowId, NpgsqlDataReader reader)
     {
         /*
            0  param_json,         
@@ -697,7 +697,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasException = !await reader.IsDBNullAsync(4);
             var postponedUntil = !await reader.IsDBNullAsync(5);
             
-            return new StoredFunction(
+            return new StoredFlow(
                 flowId,
                 hasParameter ? reader.GetString(0) : null,
                 Status: (Status) reader.GetInt32(1),
@@ -732,8 +732,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _deleteFunctionSql ??= @$"
             DELETE FROM {_tablePrefix}
-            WHERE function_type_id = $1
-            AND function_instance_id = $2 ";
+            WHERE type = $1
+            AND instance = $2 ";
 
         await using var command = new NpgsqlCommand(_deleteFunctionSql, conn)
         {

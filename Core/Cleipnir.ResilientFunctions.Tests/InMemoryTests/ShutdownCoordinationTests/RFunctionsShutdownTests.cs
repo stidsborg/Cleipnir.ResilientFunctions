@@ -15,7 +15,7 @@ public class RFunctionsShutdownTests
     [TestMethod]
     public async Task RFunctionsShutdownTaskOnlyCompletesAfterInvokedRFuncCompletes()
     {
-        var functionTypeId = "functionTypeId".ToFlowType();
+        var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             new InMemoryFunctionStore(),
@@ -30,7 +30,7 @@ public class RFunctionsShutdownTests
         var completeRFuncFlag = new SyncedFlag();
 
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             async (string _) =>
             {
                 insideRFuncFlag.Raise();
@@ -57,7 +57,7 @@ public class RFunctionsShutdownTests
     [TestMethod]
     public async Task RFunctionsShutdownTaskThrowsExceptionWhenWaitThresholdIsExceeded()
     {
-        var functionTypeId = "functionTypeId".ToFlowType();
+        var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             new InMemoryFunctionStore(),
@@ -71,7 +71,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
 
         var rFunc = functionsRegistry.RegisterFunc(
-            functionTypeId,
+            flowType,
              (string _) =>
             {
                 insideRFuncFlag.Raise();
@@ -91,7 +91,7 @@ public class RFunctionsShutdownTests
     public async Task RFunctionsShutdownTaskOnlyCompletesAfterCrashedWatchDogsRFunctionHasCompleted()
     {
         var store = new InMemoryFunctionStore();
-        var functionId = new FlowId("someFunctionType", "someFunctionInstanceId");
+        var functionId = new FlowId("someFunctionType", "someflowInstance");
 
         await store.CreateFunction(
             functionId,
@@ -138,7 +138,7 @@ public class RFunctionsShutdownTests
     public async Task RFunctionsShutdownTaskOnlyCompletesAfterPostponedWatchDogsRFunctionHasCompleted()
     {
         var store = new InMemoryFunctionStore();
-        var functionId = new FlowId("someFunctionType", "someFunctionInstanceId");
+        var functionId = new FlowId("someFunctionType", "someflowInstance");
 
         var storedParameter = "".ToJson();
         
@@ -196,7 +196,7 @@ public class RFunctionsShutdownTests
     [TestMethod]
     public async Task RFunctionsShutdownTaskCompletesWhenInvokedRFuncIsPostponed()
     {
-        var functionTypeId = "functionTypeId".ToFlowType();
+        var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
         using var functionsRegistry = new FunctionsRegistry(
@@ -211,7 +211,7 @@ public class RFunctionsShutdownTests
         var counter = new SyncedCounter();
 
         var rAction = functionsRegistry.RegisterAction(
-            functionTypeId,
+            flowType,
             Result (string _) =>
             {
                 counter.Increment();
@@ -231,7 +231,7 @@ public class RFunctionsShutdownTests
         
         counter.Current.ShouldBe(1);
 
-        var sf = await store.GetFunction(new FlowId(functionTypeId, "instanceId"));
+        var sf = await store.GetFunction(new FlowId(flowType, "instanceId"));
         sf!.Status.ShouldBe(Status.Postponed);
             
         unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();

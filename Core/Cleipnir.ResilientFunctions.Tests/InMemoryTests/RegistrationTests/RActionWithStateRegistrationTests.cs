@@ -12,8 +12,8 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RegistrationTests;
 [TestClass]
 public class RActionWithStateRegistrationTests
 {
-    private readonly FlowType _flowType = new FlowType("FunctionTypeId");
-    private const string FunctionInstanceId = "FunctionInstanceId";
+    private readonly FlowType _flowType = new FlowType("flowType");
+    private const string flowInstance = "flowInstance";
     
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
@@ -26,7 +26,7 @@ public class RActionWithStateRegistrationTests
             )
             .Invoke;
 
-        await rAction(FunctionInstanceId, "hello world");
+        await rAction(flowInstance, "hello world");
     }
     
     [TestMethod]
@@ -42,7 +42,7 @@ public class RActionWithStateRegistrationTests
             )
             .Invoke;
 
-        await rAction(FunctionInstanceId, "hello world");
+        await rAction(flowInstance, "hello world");
         serializer.Invoked.ShouldBeTrue();
     }
 

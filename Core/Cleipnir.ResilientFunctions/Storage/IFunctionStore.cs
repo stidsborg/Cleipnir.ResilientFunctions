@@ -25,15 +25,15 @@ public interface IFunctionStore
     );
 
     Task BulkScheduleFunctions(
-        IEnumerable<FunctionIdWithParam> functionsWithParam
+        IEnumerable<IdWithParam> functionsWithParam
     );
     
-    Task<StoredFunction?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration);
+    Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration);
     
     Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration);
 
-    Task<IReadOnlyList<InstanceIdAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore);
-    Task<IReadOnlyList<InstanceIdAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore);
+    Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore);
+    Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore);
     Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore);
     
     Task<bool> SetParameters(
@@ -95,7 +95,7 @@ public interface IFunctionStore
     Task<long?> GetInterruptCount(FlowId flowId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId);
-    Task<StoredFunction?> GetFunction(FlowId flowId);
+    Task<StoredFlow?> GetFunction(FlowId flowId);
 
     Task<bool> DeleteFunction(FlowId flowId);
 }

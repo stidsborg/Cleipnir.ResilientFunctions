@@ -53,6 +53,6 @@ public class ParamlessRegistration
     }
          
     
-    public Task ScheduleIn(string functionInstanceId, TimeSpan delay) 
-        => ScheduleAt(functionInstanceId, DateTime.UtcNow.Add(delay));
+    public Task ScheduleIn(string flowInstance, TimeSpan delay) 
+        => ScheduleAt(flowInstance, DateTime.UtcNow.Add(delay));
 }
