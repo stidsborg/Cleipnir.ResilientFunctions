@@ -88,5 +88,23 @@ public abstract class CorrelationStoreTests
         correlations.Any(c => c == "SomeCorrelationId1").ShouldBeTrue();
         correlations.Any(c => c == "SomeCorrelationId2").ShouldBeTrue();
     }
+    
+    public abstract Task FunctionInstancesCanBeFetchedForFunctionTypeAndCorrelation();
+    public async Task FunctionInstancesCanBeFetchedForFunctionTypeAndCorrelation(Task<IFunctionStore> storeTask)
+    {
+        var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
+        var functionId1 = TestFlowId.Create();
+        var functionId2 = TestFlowId.Create().WithTypeId(functionId1.Type);
+        var functionId3 = TestFlowId.Create();
+
+        await correlationStore.SetCorrelation(functionId1, "SomeCorrelationId1");
+        await correlationStore.SetCorrelation(functionId2, "SomeCorrelationId1");
+        await correlationStore.SetCorrelation(functionId3, "SomeCorrelationId1");
+
+        var instances = await correlationStore.GetCorrelations(functionId1.Type, "SomeCorrelationId1");
+        instances.Count.ShouldBe(2);
+        instances.Any(i => i == functionId1.Instance).ShouldBeTrue();
+        instances.Any(i => i == functionId2.Instance).ShouldBeTrue();
+    }
 }
 

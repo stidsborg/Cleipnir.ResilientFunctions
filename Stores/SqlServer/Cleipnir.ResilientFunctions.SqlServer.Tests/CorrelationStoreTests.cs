@@ -25,4 +25,8 @@ public class CorrelationStoreTests : Cleipnir.ResilientFunctions.Tests.TestTempl
     [TestMethod]
     public override Task SingleFunctionCanHaveMultipleCorrelations()
         => SingleFunctionCanHaveMultipleCorrelations(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task FunctionInstancesCanBeFetchedForFunctionTypeAndCorrelation()
+        => FunctionInstancesCanBeFetchedForFunctionTypeAndCorrelation(FunctionStoreFactory.Create());
 }

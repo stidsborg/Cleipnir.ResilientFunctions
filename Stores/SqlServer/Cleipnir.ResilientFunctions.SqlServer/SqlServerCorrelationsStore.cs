@@ -90,6 +90,30 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         return functions;
     }
 
+    private string? _getInstancesForFunctionTypeAndCorrelationId;
+    public async Task<IReadOnlyList<FlowInstance>> GetCorrelations(FlowType flowType, string correlationId)
+    {
+        await using var conn = await _connFunc();
+        _getInstancesForFunctionTypeAndCorrelationId ??= @$"
+            SELECT Instance
+            FROM {tablePrefix}_Correlations
+            WHERE Type = @Type AND Correlation = @Correlation";
+        
+        await using var command = new SqlCommand(_getInstancesForFunctionTypeAndCorrelationId, conn);
+        command.Parameters.AddWithValue("@Type", flowType.Value);
+        command.Parameters.AddWithValue("@Correlation", correlationId);
+
+        var correlations = new List<FlowInstance>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (reader.HasRows && reader.Read())
+        {
+            var correlation = reader.GetString(0);
+            correlations.Add(correlation);
+        }
+
+        return correlations;
+    }
+
     private string? _getCorrelationsForFunction;
     public async Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
     {

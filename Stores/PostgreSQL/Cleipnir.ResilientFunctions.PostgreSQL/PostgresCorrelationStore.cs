@@ -100,6 +100,35 @@ public class PostgresCorrelationStore : ICorrelationStore
         return functions;
     }
 
+    private string? _getInstancesForFlowTypeAndCorrelation;
+    public async Task<IReadOnlyList<FlowInstance>> GetCorrelations(FlowType flowType, string correlationId)
+    {
+        await using var conn = await CreateConnection();
+        _getInstancesForFlowTypeAndCorrelation ??= @$"
+            SELECT instance
+            FROM {_tablePrefix}_correlations
+            WHERE type = $1 AND correlation = $2";
+        await using var command = new NpgsqlCommand(_getInstancesForFlowTypeAndCorrelation, conn)
+        {
+            Parameters =
+            {
+                new() { Value = flowType.Value },
+                new() { Value = correlationId }
+            }
+        };
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var correlations = new List<FlowInstance>();
+        while (await reader.ReadAsync())
+        {
+            var correlation = reader.GetString(0);
+            correlations.Add(correlation);
+        }
+
+        return correlations;
+    }
+
     private string? _getCorrelationsForFunction;
     public async Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
     {
