@@ -135,6 +135,73 @@ public abstract class RoutingTests
         syncedValue.Value.ShouldBe("SomeValue!");
     }
     
+    public abstract Task MessageIsRoutedToSpecificFunctionTypeOnly();
+    protected async Task MessageIsRoutedToSpecificFunctionTypeOnly(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+        
+        var functionId2 = TestFlowId.Create();
+        var (flowType2, _) = functionId2;
+        
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store, 
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var syncedFlag = new SyncedFlag();
+        var syncedValue = new Synced<string>();
+        
+        var registration1 = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async workflow =>
+            {
+                var msg = await workflow.Messages.FirstOfType<SomeMessage>();
+                syncedValue.Value = msg.Value;
+                syncedFlag.Raise();
+                
+            },
+            new Settings(routes: new RoutingInformation[]
+            {
+                new RoutingInformation<SomeMessage>(
+                    someMsg => Route.To(someMsg.RouteTo)
+                )
+            })
+        );
+        
+        var syncedFlag2 = new SyncedFlag();
+        var registration2 = functionsRegistry.RegisterParamless(
+            flowType2,
+            inner: _ =>
+            {
+                syncedFlag2.Raise();
+                return Task.CompletedTask;
+            },
+            new Settings(routes: new RoutingInformation[]
+            {
+                new RoutingInformation<SomeMessage>(
+                    someMsg => Route.To(someMsg.RouteTo)
+                )
+            })
+        );
+
+        await functionsRegistry.DeliverMessage(
+            registration1.Type.Value,
+            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"),
+            typeof(SomeMessage)
+        );
+        
+        await syncedFlag.WaitForRaised();
+        syncedValue.Value.ShouldBe("SomeValue!");
+
+        await Task.Delay(100);
+        syncedFlag2.Position.ShouldBe(FlagPosition.Lowered);
+        
+        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+    }
+    
     #endregion
 
     #region Route using Correlation

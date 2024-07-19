@@ -483,13 +483,17 @@ public class FunctionsRegistry : IDisposable
         return (MessageWriter) registration.MessageWriters.For(flowId.Instance);
     }
 
-    public async Task DeliverMessage(object message, Type messageType)
+    public Task DeliverMessage(string functionType, object message, Type messageType)
+        => DeliverMessage(message, messageType, functionType);
+    
+    public async Task DeliverMessage(object message, Type messageType, string? functionType = null)
     {
         Dictionary<FlowType, Tuple<RouteResolver, MessageWriters>> resolvers;
         
         lock (_sync)
         {
             resolvers = _routes
+                .Where(kv => functionType == null || kv.Key == functionType)
                 .SelectMany(kv =>
                     kv.Value.Select(ri => new { flowType = kv.Key, RouteInfo = ri })
                 )
