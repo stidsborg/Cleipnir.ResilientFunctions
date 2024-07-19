@@ -276,17 +276,17 @@ public class InMemorySunshineTests
         await registration.Invoke("id1", "hello world");
         syncedParam.Value.ShouldBe("hello world");
 
-        syncedParam = new Synced<string>();
+        syncedParam.Value = null;
         await registration.ControlPanel("id1").Result!.Restart();
         syncedParam.Value.ShouldBe("hello world");
-        
-        syncedParam = new Synced<string>();
+
+        syncedParam.Value = null;
         await registration.Schedule("id2", "hello universe");
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
         await registration.Invoke("id2", "hello universe");
-        
-        syncedParam = new Synced<string>();
+
+        syncedParam.Value = null;
         await registration.ControlPanel("id2").Result!.ScheduleRestart();
         await BusyWait.UntilAsync(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
