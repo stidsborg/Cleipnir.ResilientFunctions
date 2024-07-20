@@ -51,7 +51,6 @@ public class ParamlessRegistration
             ? _stateFetcher.FetchState<TState>(functionId) 
             : _stateFetcher.FetchState<TState>(functionId, stateId);
     }
-         
     
     public Task ScheduleIn(string flowInstance, TimeSpan delay) 
         => ScheduleAt(flowInstance, DateTime.UtcNow.Add(delay));

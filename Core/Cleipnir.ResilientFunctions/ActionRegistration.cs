@@ -64,7 +64,6 @@ public class ActionRegistration<TParam> where TParam : notnull
             ? _stateFetcher.FetchState<TState>(functionId) 
             : _stateFetcher.FetchState<TState>(functionId, stateId);
     }
-         
     
     public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay) 
         => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay));
