@@ -21,8 +21,6 @@ public class FunctionsRegistry : IDisposable
     public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
-
-    private readonly Dictionary<FlowType, List<RoutingInformation>> _routes = new();
     
     private volatile bool _disposed;
     private readonly object _sync = new();
@@ -348,9 +346,6 @@ public class FunctionsRegistry : IDisposable
                 postman
             );
             _functions[flowType] = registration;
-
-            if (settingsWithDefaults.Routes.Any())
-                _routes[flowType] = settingsWithDefaults.Routes.ToList();
             
             return registration;
         }
@@ -430,9 +425,6 @@ public class FunctionsRegistry : IDisposable
             );
             _functions[flowType] = registration;
             
-            if (settingsWithDefaults.Routes.Any())
-                _routes[flowType] = settingsWithDefaults.Routes.ToList();
-            
             return registration;
         }
     }
@@ -509,9 +501,6 @@ public class FunctionsRegistry : IDisposable
                 postman
             );
             _functions[flowType] = registration;
-            
-            if (settingsWithDefaults.Routes.Any())
-                _routes[flowType] = settingsWithDefaults.Routes.ToList();
             
             return registration;
         }
