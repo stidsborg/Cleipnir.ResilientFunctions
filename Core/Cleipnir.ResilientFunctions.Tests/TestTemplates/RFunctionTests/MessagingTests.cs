@@ -45,7 +45,7 @@ public abstract class MessagingTests
         var result = await invocationTask;
         result.ShouldBe("hello world");
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist();
@@ -73,7 +73,7 @@ public abstract class MessagingTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task TimeoutEventCausesSuspendedFunctionToBeReInvoked();
@@ -124,7 +124,7 @@ public abstract class MessagingTests
         success.ShouldBeTrue();
         timeoutId.ShouldBe("timeoutId1");
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId();
@@ -169,7 +169,7 @@ public abstract class MessagingTests
         var functionCompletion = controlPanel.Result;
         functionCompletion.ShouldBe("hello world");
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted();
@@ -205,6 +205,6 @@ public abstract class MessagingTests
         subscription.ShouldNotBeNull();
         subscription.IsWorkflowRunning.ShouldBeFalse();
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }

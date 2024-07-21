@@ -49,7 +49,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
                 .DeserializeFromJsonTo<string>()
                 .ShouldBe("HELLO");
             
-            unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
 
         private class FlowState : Domain.FlowState

@@ -359,7 +359,7 @@ public abstract class PostponedTests
             postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
             postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
         }
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ThrownPostponeExceptionResultsInPostponedActionWithState();
@@ -445,7 +445,7 @@ public abstract class PostponedTests
             postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
         }
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ThrownPostponeExceptionResultsInPostponedFunc();
@@ -533,7 +533,7 @@ public abstract class PostponedTests
             postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
             postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
         }
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ThrownPostponeExceptionResultsInPostponedFuncWithState();
@@ -621,7 +621,7 @@ public abstract class PostponedTests
             postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
         }
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp();
@@ -672,7 +672,7 @@ public abstract class PostponedTests
 
         await BusyWait.UntilAsync(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
         syncedParam.Value.ShouldBe("hello");
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     private class State : Domain.FlowState

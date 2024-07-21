@@ -60,7 +60,7 @@ public abstract class ScheduleReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ActionWithStateReInvocationSunshineScenario();
@@ -117,7 +117,7 @@ public abstract class ScheduleReInvocationTests
         var state = states.Single(e => e.StateId == "State").StateJson.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task FuncReInvocationSunshineScenario();
@@ -165,7 +165,7 @@ public abstract class ScheduleReInvocationTests
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task FuncWithStateReInvocationSunshineScenario();
@@ -223,6 +223,6 @@ public abstract class ScheduleReInvocationTests
         var state = states.Single(e => e.StateId == "State").StateJson.DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

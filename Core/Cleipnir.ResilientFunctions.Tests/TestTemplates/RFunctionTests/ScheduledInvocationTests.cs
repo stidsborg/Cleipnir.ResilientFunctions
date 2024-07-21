@@ -30,7 +30,7 @@ public abstract class ScheduledInvocationTests
         
         storedFunction.Status.ShouldBe(Status.Executing);
         storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ScheduledFunctionIsInvokedAfterFuncWithStateHasBeenPersisted();
@@ -55,7 +55,7 @@ public abstract class ScheduledInvocationTests
         
         storedFunction.Status.ShouldBe(Status.Executing);
         storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ScheduledFunctionIsInvokedAfterActionWithStateHasBeenPersisted();
@@ -80,7 +80,7 @@ public abstract class ScheduledInvocationTests
         
         storedFunction.Status.ShouldBe(Status.Executing);
         storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ScheduledFunctionIsInvokedAfterActionStateHasBeenPersisted();
@@ -105,6 +105,6 @@ public abstract class ScheduledInvocationTests
         
         storedFunction.Status.ShouldBe(Status.Executing);
         storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

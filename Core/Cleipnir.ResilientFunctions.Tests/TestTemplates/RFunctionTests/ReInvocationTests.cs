@@ -55,7 +55,7 @@ public abstract class ReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ActionWithStateReInvocationSunshineScenario();
@@ -112,7 +112,7 @@ public abstract class ReInvocationTests
         var state = controlPanel.States.Get<ListState<string>>("State");
         state.List.Single().ShouldBe("world");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario();
@@ -160,7 +160,7 @@ public abstract class ReInvocationTests
         await controlPanel.Restart();
         
         syncedParam.Value.ShouldBe("something_else");
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario();
@@ -209,7 +209,7 @@ public abstract class ReInvocationTests
         
         syncedValue.Value.ShouldBe("something_else");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task FuncReInvocationSunshineScenario();
@@ -253,7 +253,7 @@ public abstract class ReInvocationTests
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task FuncWithStateReInvocationSunshineScenario();
@@ -310,7 +310,7 @@ public abstract class ReInvocationTests
         var state = controlPanel.States.Get<ListState<string>>("State");
         state!.List.Single().ShouldBe("world");
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     public abstract Task ReInvocationFailsWhenTheFunctionDoesNotExist();
@@ -341,6 +341,6 @@ public abstract class ReInvocationTests
         
         await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel2.Restart());
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

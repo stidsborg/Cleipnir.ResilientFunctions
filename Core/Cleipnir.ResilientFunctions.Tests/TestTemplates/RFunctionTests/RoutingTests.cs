@@ -199,7 +199,7 @@ public abstract class RoutingTests
         await Task.Delay(100);
         syncedFlag2.Position.ShouldBe(FlagPosition.Lowered);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     #endregion

@@ -49,7 +49,7 @@ public abstract class SunshineTests
         var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task SunshineScenarioParamless();
@@ -80,7 +80,7 @@ public abstract class SunshineTests
         storedFunction.Result.ShouldBeNull();
         storedFunction.Parameter.ShouldBeNull();
             
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task SunshineScenarioParamlessWithResultReturnType();
@@ -111,7 +111,7 @@ public abstract class SunshineTests
         storedFunction.Result.ShouldBeNull();
         storedFunction.Parameter.ShouldBeNull();
             
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
         
     public abstract Task SunshineScenarioFuncWithState();
@@ -150,7 +150,7 @@ public abstract class SunshineTests
         var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
         
     public abstract Task SunshineScenarioAction();
@@ -178,7 +178,7 @@ public abstract class SunshineTests
         );
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
         
     public abstract Task SunshineScenarioActionWithState();
@@ -206,7 +206,7 @@ public abstract class SunshineTests
         );
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 
     public abstract Task SunshineScenarioNullReturningFunc();
@@ -325,7 +325,7 @@ public abstract class SunshineTests
             await BusyWait.Until(async () => await store.GetFunction(functionId) is null);
         }
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     private class State : Domain.FlowState {}
 }

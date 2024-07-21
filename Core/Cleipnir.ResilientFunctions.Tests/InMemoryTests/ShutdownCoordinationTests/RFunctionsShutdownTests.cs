@@ -51,7 +51,7 @@ public class RFunctionsShutdownTests
         await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
         rFuncTask1.IsCompletedSuccessfully.ShouldBeTrue();
         rFuncTask2.IsCompletedSuccessfully.ShouldBeTrue();
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     [TestMethod]
@@ -131,7 +131,7 @@ public class RFunctionsShutdownTests
         
         completeRFuncFlag.Raise();
         await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     [TestMethod]
@@ -190,7 +190,7 @@ public class RFunctionsShutdownTests
         
         completeRFuncFlag.Raise();
         await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     [TestMethod]
@@ -234,6 +234,6 @@ public class RFunctionsShutdownTests
         var sf = await store.GetFunction(new FlowId(flowType, "instanceId"));
         sf!.Status.ShouldBe(Status.Postponed);
             
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

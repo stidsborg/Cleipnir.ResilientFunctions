@@ -72,7 +72,7 @@ public abstract class ControlPanelTests
             .SelectAsync(timeouts => timeouts.Count())
             .ShouldBeAsync(0);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingFunctionCanBeDeletedFromControlPanel();
@@ -132,7 +132,7 @@ public abstract class ControlPanelTests
             .SelectAsync(timeouts => timeouts.Count())
             .ShouldBeAsync(0);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task PostponingExistingActionFromControlPanelSucceeds();
@@ -169,7 +169,7 @@ public abstract class ControlPanelTests
         sf.PostponedUntil.ShouldNotBeNull();
         sf.PostponedUntil.Value.ShouldBe(1_000_000);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task PostponingExistingFunctionFromControlPanelSucceeds();
@@ -206,7 +206,7 @@ public abstract class ControlPanelTests
         sf.PostponedUntil.ShouldNotBeNull();
         sf.PostponedUntil.Value.ShouldBe(1_000_000);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task FailingExistingActionFromControlPanelSucceeds();
@@ -241,7 +241,7 @@ public abstract class ControlPanelTests
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task FailingExistingFunctionFromControlPanelSucceeds();
@@ -276,7 +276,7 @@ public abstract class ControlPanelTests
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task SucceedingExistingActionFromControlPanelSucceeds();
@@ -309,7 +309,7 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task SucceedingExistingParamlessFromControlPanelSucceeds();
@@ -342,7 +342,7 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task SucceedingExistingFunctionFromControlPanelSucceeds();
@@ -378,7 +378,7 @@ public abstract class ControlPanelTests
         var result = DefaultSerializer.Instance.DeserializeResult<string>(sf.Result!);
         result.ShouldBe("hello world");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ReInvokingExistingActionFromControlPanelSucceeds();
@@ -418,7 +418,7 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
     private class TestState : FlowState
@@ -455,7 +455,7 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ScheduleReInvokingExistingActionFromControlPanelSucceeds();
@@ -497,7 +497,7 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds();
@@ -531,7 +531,7 @@ public abstract class ControlPanelTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected();
@@ -560,7 +560,7 @@ public abstract class ControlPanelTests
         controlPanel.Param = "second";
         await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleRestart());
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected();
@@ -589,7 +589,7 @@ public abstract class ControlPanelTests
         controlPanel.Param = "second";
         await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleRestart());
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds();
@@ -625,7 +625,7 @@ public abstract class ControlPanelTests
         var result = await completionTask;
         result.ShouldBe("param");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task WaitingForExistingActionFromControlPanelToCompleteSucceeds();
@@ -655,7 +655,7 @@ public abstract class ControlPanelTests
 
         await BusyWait.UntilAsync(() => completionTask.IsCompleted);
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task LeaseIsUpdatedForExecutingFunc();
@@ -691,7 +691,7 @@ public abstract class ControlPanelTests
         }
 
         flag.Raise();
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task LeaseIsUpdatedForExecutingAction();
@@ -732,7 +732,7 @@ public abstract class ControlPanelTests
         }
 
         flag.Raise();
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndState();
@@ -756,7 +756,7 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Restart().ShouldBeAsync("param");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndState();
@@ -780,7 +780,7 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Restart();
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages();
@@ -809,7 +809,7 @@ public abstract class ControlPanelTests
         existingMessages[0].ShouldBe("param");
         await existingMessages.Replace(0, "hello");
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingMessagesCanBeReplacedUsingControlPanel();
@@ -872,7 +872,7 @@ public abstract class ControlPanelTests
         syncedList[0].ShouldBe("hello to you");
         syncedList[1].ShouldBe("hello from me");
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation();
@@ -914,7 +914,7 @@ public abstract class ControlPanelTests
         messages[1].Message.ShouldBe("hello universe");
         messages[1].IdempotencyKey.ShouldBe("2");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSaveChanges();
@@ -951,7 +951,7 @@ public abstract class ControlPanelTests
         await existingMessages.Append("hej verden");
         await existingMessages.Append("hej univers");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSaveChangesWhenMessagesAreNotReplaced();
@@ -995,7 +995,7 @@ public abstract class ControlPanelTests
         messages[0].ShouldBe("hello world");
         messages[1].ShouldBe("hello universe");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ConcurrentModificationOfExistingMessagesCausesExceptionOnSave();
@@ -1032,7 +1032,7 @@ public abstract class ControlPanelTests
         await existingMessages.Append("hej verden");
         await existingMessages.Append("hej univers");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ConcurrentModificationOfExistingMessagesDoesNotCauseExceptionOnSucceedWhenMessagesAreNotReplaced();
@@ -1076,7 +1076,7 @@ public abstract class ControlPanelTests
         messages[0].ShouldBe("hello world");
         messages[1].ShouldBe("hello universe");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingMessagesCanBeReplaced();
@@ -1115,7 +1115,7 @@ public abstract class ControlPanelTests
         message.ShouldBe("hello universe");
         idempotencyKey.ShouldBe("second");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingEffectCanBeReplacedWithValue();
@@ -1144,7 +1144,7 @@ public abstract class ControlPanelTests
         result = await controlPanel.Restart();
         result.ShouldBe("ReplacedResult");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task EffectCanBeStarted();
@@ -1175,7 +1175,7 @@ public abstract class ControlPanelTests
         runEffect = true;
         await Should.ThrowAsync<Exception>(controlPanel.Restart());
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingEffectCanBeReplaced();
@@ -1202,7 +1202,7 @@ public abstract class ControlPanelTests
         
         await controlPanel.Restart();
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingEffectCanBeRemoved();
@@ -1246,7 +1246,7 @@ public abstract class ControlPanelTests
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(2);
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task EffectsAreUpdatedAfterRefresh();
@@ -1277,7 +1277,7 @@ public abstract class ControlPanelTests
         await secondControlPanel.Refresh();
         secondControlPanel.Effects.GetValue<string>("Id").ShouldBe("SomeResult");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingEffectCanBeSetToFailed();
@@ -1314,7 +1314,7 @@ public abstract class ControlPanelTests
             controlPanel.Restart()
         );
 
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     private class State : FlowState
@@ -1379,7 +1379,7 @@ public abstract class ControlPanelTests
         states.Get<State>(stateId: "SomeId").Value.ShouldBe("New Value");
         states.Get<State>(stateId: "NewState").Value.ShouldBe("NewState's Value");
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task SaveChangesPersistsChangedResult();
@@ -1410,7 +1410,7 @@ public abstract class ControlPanelTests
             controlPanel.Result.ShouldBe("changed");
         }
         
-        unhandledExceptionCatcher.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingTimeoutCanBeUpdatedForAction();

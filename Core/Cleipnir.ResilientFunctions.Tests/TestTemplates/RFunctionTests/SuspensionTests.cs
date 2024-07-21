@@ -46,7 +46,7 @@ public abstract class SuspensionTests
         sf.Status.ShouldBe(Status.Suspended);
         (sf.Epoch is 0).ShouldBeTrue();
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task FunctionCanBeSuspended();
@@ -80,7 +80,7 @@ public abstract class SuspensionTests
         sf.Status.ShouldBe(Status.Suspended);
         (sf.Epoch is 0).ShouldBeTrue();
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task DetectionOfEligibleSuspendedFunctionSucceedsAfterEventAdded();
@@ -123,7 +123,7 @@ public abstract class SuspensionTests
 
         await BusyWait.UntilAsync(() => invocations == 2);
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task PostponedFunctionIsResumedAfterEventIsAppendedToMessages();
@@ -166,7 +166,7 @@ public abstract class SuspensionTests
 
         await BusyWait.UntilAsync(() => invocations == 2);
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task EligibleSuspendedFunctionIsPickedUpByWatchdog();
@@ -204,7 +204,7 @@ public abstract class SuspensionTests
             () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag();
@@ -249,7 +249,7 @@ public abstract class SuspensionTests
         await controlPanel.Refresh();
         controlPanel.Result.ShouldBe("hello universe");
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleByWatchdog();
@@ -295,7 +295,7 @@ public abstract class SuspensionTests
         await controlPanel.Refresh();
         controlPanel.Result.ShouldBe("hello universe");
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task ParamlessFunctionWithPrefilledMessageCompletes();
@@ -330,7 +330,7 @@ public abstract class SuspensionTests
         controlPanel.ShouldNotBeNull();
         await controlPanel.WaitForCompletion();
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task StartedChildFuncInvocationPublishesResultSuccessfully();
@@ -388,7 +388,7 @@ public abstract class SuspensionTests
         });
 
         controlPanel.Result.ShouldBe("hello world and universe".ToUpper());
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task StartedChildActionInvocationPublishesResultSuccessfully();
@@ -432,7 +432,7 @@ public abstract class SuspensionTests
             return controlPanel.Status == Status.Succeeded;
         });
         
-        unhandledExceptionHandler.ThrownExceptions.ShouldBeEmpty();
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task PublishFromChildActionStressTest();
