@@ -17,15 +17,13 @@ public class Invoker<TParam, TReturn>
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Utilities _utilities;
-    private readonly Func<FlowId, MessageWriter> _messageWriterFunc;
 
     internal Invoker(
         FlowType flowType,
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Utilities utilities,
-        Func<FlowId, MessageWriter> messageWriterFunc
+        Utilities utilities
     )
     {
         _flowType = flowType;
@@ -33,7 +31,6 @@ public class Invoker<TParam, TReturn>
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _utilities = utilities;
-        _messageWriterFunc = messageWriterFunc;
     }
 
     public async Task<TReturn> Invoke(string flowInstance, TParam param)
@@ -195,7 +192,7 @@ public class Invoker<TParam, TReturn>
             var effect = await _invocationHelper.CreateEffect(flowId, sync: false);
             var states = await _invocationHelper.CreateStates(flowId, defaultState: null, sync: false);
             var correlations = await _invocationHelper.CreateCorrelations(flowId, sync: false);
-            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations, _messageWriterFunc);
+            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations);
 
             return new PreparedInvocation(
                 persisted,
@@ -250,8 +247,7 @@ public class Invoker<TParam, TReturn>
                 await effectsTask,
                 await statesTask,
                 _utilities,
-                await correlationsTask,
-                _messageWriterFunc
+                await correlationsTask
             );
 
             return new PreparedReInvocation(

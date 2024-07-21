@@ -59,6 +59,7 @@ public static class Example
             "ProcessOrders",
             ProcessOrders.Execute
         );
+        ProcessOrder.MessageWriters = processOrders.MessageWriters;
 
         var orderIds = Enumerable
             .Range(0, 150)

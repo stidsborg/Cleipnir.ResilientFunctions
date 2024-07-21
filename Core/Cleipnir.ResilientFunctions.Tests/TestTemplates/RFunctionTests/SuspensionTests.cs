@@ -342,15 +342,19 @@ public abstract class SuspensionTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
+        FuncRegistration<string, string>? parent = null;
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: async Task (string param, Workflow workflow) =>
             {
-                await workflow.SendMessage(parentFunctionId, param.ToUpper(), workflow.FlowId.ToString());
+                await parent!.MessageWriters
+                    .For(parentFunctionId.Instance)
+                    .AppendMessage(param.ToUpper(), workflow.FlowId.ToString()
+                );
             }
         );
 
-        var parent = functionsRegistry.RegisterFunc(
+        parent = functionsRegistry.RegisterFunc(
             parentFunctionId.Type,
             async Task<string> (string param, Workflow workflow) =>
             {
@@ -400,17 +404,14 @@ public abstract class SuspensionTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
+        ActionRegistration<string>? parent = null;
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: (string param, Workflow workflow) =>
-                workflow.SendMessage(
-                    parentFunctionId,
-                    message: "",
-                    idempotencyKey: null
-                )
+                parent!.MessageWriters.For(parentFunctionId.Instance).AppendMessage("")
         );
 
-        var parent = functionsRegistry.RegisterAction(
+        parent = functionsRegistry.RegisterAction(
             parentFunctionId.Type,
             inner: async Task (string param, Workflow workflow) =>
             {
@@ -444,17 +445,16 @@ public abstract class SuspensionTests
         
         using var functionsRegistry = new FunctionsRegistry(store);
 
+        FuncRegistration<string, List<string>>? parent = null;
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param, Workflow workflow) =>
-                workflow.SendMessage(
-                    parentFunctionId,
-                    message: param,
-                    idempotencyKey: $"ChildFunction{Guid.NewGuid()}"
-                )
+            inner: (string param) =>
+                parent!.MessageWriters
+                    .For(parentFunctionId.Instance)
+                    .AppendMessage(param, idempotencyKey: $"ChildFunction{Guid.NewGuid()}")
         );
 
-        var parent = functionsRegistry.RegisterFunc(
+        parent = functionsRegistry.RegisterFunc(
             parentFunctionId.Type,
             inner: async Task<List<string>> (string param, Workflow workflow) =>
             {

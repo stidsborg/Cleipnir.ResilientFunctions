@@ -24,12 +24,16 @@ public class ChildWorkflowsTest
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         var parentFunctionId = new FlowId("Parent", "Parent");
+
+        ActionRegistration<string>? parentRegistration = null;
         var childRegistration = functionsRegistry.RegisterAction(
             "Child",
             async Task (string param, Workflow workflow) =>
-                await workflow.SendMessage(parentFunctionId, param, idempotencyKey: workflow.FlowId.ToString())
+                await parentRegistration!.MessageWriters
+                    .For(parentFunctionId.Instance)
+                    .AppendMessage(param, idempotencyKey: workflow.FlowId.ToString())
         );
-        var parentRegistration = functionsRegistry.RegisterAction(
+        parentRegistration = functionsRegistry.RegisterAction(
             parentFunctionId.Type,
             async Task (string param, Workflow workflow) =>
             {

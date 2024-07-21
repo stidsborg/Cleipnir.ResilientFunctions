@@ -138,12 +138,17 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
+        FuncRegistration<string, string>? parent = null;
+        
         var child = functionsRegistry.RegisterAction(
             childFunctionId.Type,
-            inner: Task (string _, Workflow workflow) => workflow.SendMessage(parentFunctionId, "hello world", idempotencyKey: null)
+            inner: Task (string _) => parent!
+                .MessageWriters
+                .For(parentFunctionId.Instance)
+                .AppendMessage("hello world")
         );
 
-        var parent = functionsRegistry.RegisterFunc(
+        parent = functionsRegistry.RegisterFunc(
             parentFunctionId.Type,
             inner: async Task<string> (string _, Workflow workflow) =>
             {

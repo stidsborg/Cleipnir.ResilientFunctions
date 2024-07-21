@@ -24,9 +24,9 @@ public class MessageWriter
         _scheduleReInvocation = scheduleReInvocation;
     }
 
-    public async Task<Finding> AppendMessage<TEvent>(TEvent @event, string? idempotencyKey = null) where TEvent : notnull
+    public async Task<Finding> AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null) where TMessage : notnull
     {
-        var (eventJson, eventType) = _serializer.SerializeMessage(@event);
+        var (eventJson, eventType) = _serializer.SerializeMessage(message);
         
         var functionStatus = await _messageStore.AppendMessage(
             _flowId,

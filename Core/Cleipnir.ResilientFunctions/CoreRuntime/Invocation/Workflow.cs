@@ -8,8 +8,6 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class Workflow
 {
-    private readonly Func<FlowId, MessageWriter> _messageWriterFunc;
-    
     public FlowId FlowId { get; }
     public Messages Messages { get; }
     public Effect Effect { get; }
@@ -17,9 +15,8 @@ public class Workflow
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
     
-    public Workflow(FlowId flowId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, Func<FlowId, MessageWriter> messageWriterFunc)
+    public Workflow(FlowId flowId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations)
     {
-        _messageWriterFunc = messageWriterFunc;
         FlowId = flowId;
         Utilities = utilities;
         Messages = messages;
@@ -33,12 +30,6 @@ public class Workflow
         effect = Effect;
         messages = Messages;
         states = States;
-    }
-
-    public async Task SendMessage<T>(FlowId receiver, T message, string? idempotencyKey) where T : notnull
-    {
-        var messageWriter = _messageWriterFunc(receiver);
-        await messageWriter.AppendMessage(message, idempotencyKey);
     }
 
     public async Task RegisterCorrelation(string correlation)

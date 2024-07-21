@@ -302,8 +302,7 @@ public class FunctionsRegistry : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities,
-                GetMessageWriter
+                _functionStore.Utilities
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -384,8 +383,7 @@ public class FunctionsRegistry : IDisposable
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities,
-                GetMessageWriter
+                _functionStore.Utilities
             );
             
             WatchDogsFactory.CreateAndStart(
@@ -466,8 +464,7 @@ public class FunctionsRegistry : IDisposable
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities,
-                GetMessageWriter
+                _functionStore.Utilities
             );
             
             WatchDogsFactory.CreateAndStart(
@@ -518,19 +515,6 @@ public class FunctionsRegistry : IDisposable
             
             return registration;
         }
-    }
-
-    public MessageWriter GetMessageWriter(FlowId flowId)
-    {
-        dynamic? registration = null;
-        lock (_sync)
-            if (_functions.ContainsKey(flowId.Type))
-                registration = _functions[flowId.Type];
-
-        if (registration == null)
-            throw new ArgumentException($"Cannot create {nameof(MessageWriter)} for unregistered function type '{flowId.Type}'");
-        
-        return (MessageWriter) registration.MessageWriters.For(flowId.Instance);
     }
 
     public Task DeliverMessage(string functionType, object message, Type messageType)
