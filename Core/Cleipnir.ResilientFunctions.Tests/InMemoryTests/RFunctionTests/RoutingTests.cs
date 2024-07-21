@@ -19,12 +19,12 @@ public class RoutingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
         => MessageIsRoutedToFuncInstance(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessageIsRoutedToSpecificFunctionTypeOnly()
-        => MessageIsRoutedToSpecificFunctionTypeOnly(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task MessageIsRoutedToParamlessInstanceUsingCorrelationId()
         => MessageIsRoutedToParamlessInstanceUsingCorrelationId(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessageIsRoutedToMultipleInstancesUsingCorrelationId()
+        => MessageIsRoutedToMultipleInstancesUsingCorrelationId(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParamlessInstanceIsStartedByMessage()

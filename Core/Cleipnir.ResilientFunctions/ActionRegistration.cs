@@ -19,7 +19,7 @@ public static class ActionRegistration
     ) where TParam : notnull;
 }
 
-public class ActionRegistration<TParam> where TParam : notnull
+public class ActionRegistration<TParam> : BaseRegistration where TParam : notnull
 {
     private readonly ControlPanelFactory<TParam> _controlPanelFactory;
     public FlowType Type { get; }
@@ -40,7 +40,9 @@ public class ActionRegistration<TParam> where TParam : notnull
         ActionRegistration.BulkSchedule<TParam> bulkSchedule,
         ControlPanelFactory<TParam> controlPanelFactory, 
         MessageWriters messageWriters, 
-        StateFetcher stateFetcher)
+        StateFetcher stateFetcher,
+        Postman postman
+    ) : base(postman)
     {
         Type = flowType;
         

@@ -321,6 +321,22 @@ public class FunctionsRegistry : IDisposable
                 invoker,
                 invocationHelper
             );
+
+            var messageWriters = new MessageWriters(
+                flowType,
+                _functionStore,
+                settingsWithDefaults.Serializer,
+                invoker.ScheduleRestart
+            );
+
+            var postman = new Postman(
+                flowType,
+                settingsWithDefaults.Routes,
+                _functionStore.CorrelationStore,
+                messageWriters,
+                scheduleParamless: _ => Task.CompletedTask
+            );
+            
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
                 invoker.Invoke,
@@ -328,8 +344,9 @@ public class FunctionsRegistry : IDisposable
                 invoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
                 controlPanels,
-                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleRestart),
-                new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
+                messageWriters,
+                new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
+                postman
             );
             _functions[flowType] = registration;
 
@@ -386,6 +403,22 @@ public class FunctionsRegistry : IDisposable
                 invoker,
                 invocationHelper
             );
+
+            var messageWriters = new MessageWriters(
+                flowType,
+                _functionStore,
+                settingsWithDefaults.Serializer,
+                invoker.ScheduleRestart
+            );
+
+            var postman = new Postman(
+                flowType,
+                settingsWithDefaults.Routes,
+                _functionStore.CorrelationStore,
+                messageWriters,
+                instance => invoker.ScheduleInvoke(instance.Value, Unit.Instance)
+            );
+
             var registration = new ParamlessRegistration(
                 flowType,
                 invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
@@ -393,8 +426,9 @@ public class FunctionsRegistry : IDisposable
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
                 bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id, Unit.Instance))),
                 controlPanels,
-                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, invoker.ScheduleRestart),
-                new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
+                messageWriters,
+                new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
+                postman
             );
             _functions[flowType] = registration;
             
@@ -451,6 +485,21 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker,
                 invocationHelper
             );
+
+            var messageWriters = new MessageWriters(
+                flowType,
+                _functionStore,
+                settingsWithDefaults.Serializer,
+                rActionInvoker.ScheduleRestart
+            );
+            var postman = new Postman(
+                flowType,
+                settingsWithDefaults.Routes,
+                _functionStore.CorrelationStore,
+                messageWriters,
+                scheduleParamless: _ => Task.CompletedTask
+            );
+            
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 rActionInvoker.Invoke,
@@ -458,8 +507,9 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
                 controlPanels,
-                new MessageWriters(flowType, _functionStore, settingsWithDefaults.Serializer, rActionInvoker.ScheduleRestart),
-                new StateFetcher(_functionStore, settingsWithDefaults.Serializer)
+                messageWriters,
+                new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
+                postman
             );
             _functions[flowType] = registration;
             

@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -11,8 +12,6 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
 public abstract class RoutingTests
 {
-    #region Route to FunctionInstance
-    
     public abstract Task MessageIsRoutedToParamlessInstance();
     protected async Task MessageIsRoutedToParamlessInstance(Task<IFunctionStore> storeTask)
     {
@@ -47,7 +46,7 @@ public abstract class RoutingTests
 
         await registration.Schedule(flowInstance);
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.PostMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -87,7 +86,7 @@ public abstract class RoutingTests
 
         await registration.Schedule(flowInstance.Value, param: "SomeParam");
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.PostMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -129,80 +128,11 @@ public abstract class RoutingTests
 
         await registration.Schedule(flowInstance.Value, param: "SomeParam");
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.PostMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
     }
-    
-    public abstract Task MessageIsRoutedToSpecificFunctionTypeOnly();
-    protected async Task MessageIsRoutedToSpecificFunctionTypeOnly(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        
-        var functionId2 = TestFlowId.Create();
-        var (flowType2, _) = functionId2;
-        
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
-            store, 
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
-        var syncedFlag = new SyncedFlag();
-        var syncedValue = new Synced<string>();
-        
-        var registration1 = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async workflow =>
-            {
-                var msg = await workflow.Messages.FirstOfType<SomeMessage>();
-                syncedValue.Value = msg.Value;
-                syncedFlag.Raise();
-                
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeMessage>(
-                    someMsg => Route.To(someMsg.RouteTo)
-                )
-            })
-        );
-        
-        var syncedFlag2 = new SyncedFlag();
-        var registration2 = functionsRegistry.RegisterParamless(
-            flowType2,
-            inner: _ =>
-            {
-                syncedFlag2.Raise();
-                return Task.CompletedTask;
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeMessage>(
-                    someMsg => Route.To(someMsg.RouteTo)
-                )
-            })
-        );
-
-        await functionsRegistry.DeliverMessage(
-            registration1.Type.Value,
-            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"),
-            typeof(SomeMessage)
-        );
-        
-        await syncedFlag.WaitForRaised();
-        syncedValue.Value.ShouldBe("SomeValue!");
-
-        await Task.Delay(100);
-        syncedFlag2.Position.ShouldBe(FlagPosition.Lowered);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
-    #endregion
 
     #region Route using Correlation
 
@@ -247,10 +177,70 @@ public abstract class RoutingTests
         await registration.Schedule(flowInstance);
         await correlationIdRegisteredFlag.WaitForRaised();
         
-        await functionsRegistry.DeliverMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
+        await registration.PostMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
+    }
+    
+    public abstract Task MessageIsRoutedToMultipleInstancesUsingCorrelationId();
+    protected async Task MessageIsRoutedToMultipleInstancesUsingCorrelationId(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance1) = functionId;
+        var (_, flowInstance2) = TestFlowId.Create().WithTypeId(flowType);
+        
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store, 
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var correlationId = $"SomeCorrelationId_{Guid.NewGuid().ToString()}";
+        
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async workflow =>
+            {
+                await workflow.RegisterCorrelation(correlationId);
+                await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
+            },
+            new Settings(routes: new RoutingInformation[]
+            {
+                new RoutingInformation<SomeCorrelatedMessage>(
+                    someMsg => Route.Using(someMsg.Correlation)
+                )
+            })
+        );
+
+        await registration.Schedule(flowInstance1);
+        await registration.Schedule(flowInstance2);
+
+        await BusyWait.Until(() => store
+            .CorrelationStore
+            .GetCorrelations(correlationId)
+            .SelectAsync(l => l.Count == 2)
+        );
+        
+        await registration.PostMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
+
+        var controlPanel1 = await registration.ControlPanel(flowInstance1);
+        controlPanel1.ShouldNotBeNull();
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel1.Refresh();
+            return controlPanel1.Status == Status.Succeeded;
+        });
+        
+        
+        var controlPanel2 = await registration.ControlPanel(flowInstance2);
+        controlPanel2.ShouldNotBeNull();
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel2.Refresh();
+            return controlPanel2.Status == Status.Succeeded;
+        });
     }
 
     #endregion
@@ -293,7 +283,7 @@ public abstract class RoutingTests
             )
         );
 
-        await functionsRegistry.DeliverMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.PostMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
         
         await syncedFlag.WaitForRaised(5_000);
         syncedValue.Value.ShouldBe("SomeValue!");

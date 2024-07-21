@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions;
 
-public class ParamlessRegistration
+public class ParamlessRegistration : BaseRegistration
 {
     private readonly ControlPanelFactory _controlPanelFactory;
     public FlowType Type { get; }
@@ -27,7 +27,9 @@ public class ParamlessRegistration
         Func<IEnumerable<FlowInstance>, Task> bulkSchedule,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
-        StateFetcher stateFetcher)
+        StateFetcher stateFetcher,
+        Postman postman
+    ) : base(postman)
     {
         Type = flowType;
         

@@ -27,7 +27,7 @@ public static class FuncRegistration
     public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances) where TParam : notnull;
 }
 
-public class FuncRegistration<TParam, TReturn> where TParam : notnull
+public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam : notnull
 {
     public FlowType Type { get; }
     
@@ -48,7 +48,9 @@ public class FuncRegistration<TParam, TReturn> where TParam : notnull
         FuncRegistration.BulkSchedule<TParam> bulkSchedule,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory, 
         MessageWriters messageWriters, 
-        StateFetcher stateFetcher)
+        StateFetcher stateFetcher,
+        Postman postman
+    ) : base(postman)
     {
         Type = flowType;
         
