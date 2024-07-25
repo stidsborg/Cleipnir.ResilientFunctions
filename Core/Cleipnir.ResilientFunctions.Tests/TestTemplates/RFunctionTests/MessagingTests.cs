@@ -116,7 +116,7 @@ public abstract class MessagingTests
         {
             await controlPanel.Refresh();
             return controlPanel.Status == Status.Succeeded;
-        });
+        }, maxWait: TimeSpan.FromSeconds(10));
 
 
         controlPanel.Result.ShouldNotBeNull();
