@@ -83,7 +83,7 @@ public abstract class PostponedTests
                 );
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
                     flowType,
-                    (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
+                    inner: (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
                 )
                 .Invoke;
 
@@ -112,10 +112,22 @@ public abstract class PostponedTests
                 ).Invoke;
 
             var functionId = new FlowId(flowType, param.ToFlowInstance());
-            await BusyWait.Until(
-                async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded,
-                maxWait: TimeSpan.FromSeconds(10)
-            );
+
+            try
+            {
+                await BusyWait.Until(
+                    async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded,
+                    maxWait: TimeSpan.FromSeconds(10)
+                );
+            }
+            catch (TimeoutException)
+            {
+                unhandledExceptionHandler.ShouldNotHaveExceptions();
+                throw new TimeoutException(
+                    "Timeout when waiting for function completion - has status: " + await store.GetFunction(functionId).SelectAsync(sf => sf!.Status)
+                );
+            }
+            
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
