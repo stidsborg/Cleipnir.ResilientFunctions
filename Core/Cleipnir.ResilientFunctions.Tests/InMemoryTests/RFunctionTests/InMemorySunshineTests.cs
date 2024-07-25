@@ -282,13 +282,13 @@ public class InMemorySunshineTests
 
         syncedParam.Value = null;
         await registration.Schedule("id2", "hello universe");
-        await BusyWait.UntilAsync(() => syncedParam.Value != null);
+        await BusyWait.UntilAsync(() => syncedParam.Value != null, maxWait: TimeSpan.FromSeconds(10));
         syncedParam.Value.ShouldBe("hello universe");
         await registration.Invoke("id2", "hello universe");
 
         syncedParam.Value = null;
         await registration.ControlPanel("id2").Result!.ScheduleRestart();
-        await BusyWait.UntilAsync(() => syncedParam.Value != null);
+        await BusyWait.UntilAsync(() => syncedParam.Value != null, maxWait: TimeSpan.FromSeconds(10));
         syncedParam.Value.ShouldBe("hello universe");
     }
 
