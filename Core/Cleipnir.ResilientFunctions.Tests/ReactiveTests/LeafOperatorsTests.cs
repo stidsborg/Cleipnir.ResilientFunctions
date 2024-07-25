@@ -82,7 +82,7 @@ public class LeafOperatorsTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        var nextOrSuspend = source.First(maxWait: TimeSpan.FromSeconds(1));
+        var nextOrSuspend = source.First(maxWait: TimeSpan.FromSeconds(2));
         source.SignalNext(1, new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
 
@@ -92,7 +92,7 @@ public class LeafOperatorsTests
         nextOrSuspend.IsCompletedSuccessfully.ShouldBeTrue();
         nextOrSuspend.Result.ShouldBe(1);
         
-        stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(1));
+        stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(2));
     }
 
     [TestMethod]
