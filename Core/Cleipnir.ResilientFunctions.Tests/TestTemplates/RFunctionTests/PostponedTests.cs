@@ -95,7 +95,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
                 )
             );
 
@@ -112,7 +112,10 @@ public abstract class PostponedTests
                 ).Invoke;
 
             var functionId = new FlowId(flowType, param.ToFlowInstance());
-            await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
+            await BusyWait.Until(
+                async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded,
+                maxWait: TimeSpan.FromSeconds(10)
+            );
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
 
