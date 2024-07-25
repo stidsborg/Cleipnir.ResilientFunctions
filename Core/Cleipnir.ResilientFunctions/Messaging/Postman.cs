@@ -32,12 +32,18 @@ public class Postman
         _scheduleParamless = scheduleParamless;
     }
 
-    public async Task PostMessage(object message, Type messageType)
+    public async Task RouteMessage<TMessage>(TMessage message) where TMessage : notnull
     {
+        var messageType = typeof(TMessage);
         var success = _routes.TryGetValue(messageType, out var routeResolver);
         if (!success) return;
 
         var routingInfo = routeResolver!(message);
+        await RouteMessage(message, routingInfo);
+    }
+
+    public async Task RouteMessage<TMessage>(TMessage message, RoutingInfo routingInfo) where TMessage : notnull
+    {
         if (routingInfo.CorrelationId is not null)
         {
             var flowInstances = await _correlationStore.GetCorrelations(_flowType, routingInfo.CorrelationId);

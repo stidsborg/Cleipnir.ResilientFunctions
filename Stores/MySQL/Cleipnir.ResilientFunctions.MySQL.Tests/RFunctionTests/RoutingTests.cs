@@ -18,6 +18,10 @@ public class RoutingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
         => MessageIsRoutedToFuncInstance(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessageIsRoutedUsingRoutingInfo()
+        => MessageIsRoutedUsingRoutingInfo(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task MessageIsRoutedToParamlessInstanceUsingCorrelationId()
         => MessageIsRoutedToParamlessInstanceUsingCorrelationId(FunctionStoreFactory.Create());
     
