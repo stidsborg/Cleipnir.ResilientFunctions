@@ -27,17 +27,7 @@ public class SyncedFlag
         }
     }
 
-    public Task WaitForRaised()
-    {
-        var tcs = new TaskCompletionSource();
-        lock (_sync)
-            if (_position == FlagPosition.Raised)
-                return Task.CompletedTask;
-            else
-                _waiters.Add(tcs);
-
-        return tcs.Task;
-    }
+    public Task WaitForRaised() => WaitForRaised(10_000);
     
     public Task WaitForRaised(int maxWaitMs)
     {
@@ -52,7 +42,7 @@ public class SyncedFlag
 
         return tcs.Task;
     }
-
+    
     public void Raise()
     {
         List<TaskCompletionSource> waiters;
