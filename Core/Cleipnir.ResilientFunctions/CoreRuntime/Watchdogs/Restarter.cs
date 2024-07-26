@@ -13,7 +13,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class Restarter
 {
-    public delegate Task<IReadOnlyList<InstanceAndEpoch>> GetEligibleFunctions(FlowType flowType, IFunctionStore functionStore, long t);
+    public delegate Task<IReadOnlyList<InstanceAndEpoch>> GetEligibleFunctions(FlowType flowType, IFunctionStore functionStore);
     
     private readonly FlowType _flowType;
 
@@ -63,9 +63,9 @@ internal class Restarter
             {
                 var now = DateTime.UtcNow;
 
-                var eligibleFunctions = await _getEligibleFunctions(_flowType, _functionStore, now.Ticks);
+                var eligibleFunctions = await _getEligibleFunctions(_flowType, _functionStore);
                 #if DEBUG
-                    eligibleFunctions = await ReAssertCrashedFunctions(eligibleFunctions, now);
+                    eligibleFunctions = await ReAssertEligibleFunctions(eligibleFunctions);
                 #endif
                 
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
@@ -121,7 +121,7 @@ internal class Restarter
         }
     }
 
-    private async Task<IReadOnlyList<InstanceAndEpoch>> ReAssertCrashedFunctions(IReadOnlyList<InstanceAndEpoch> eligibleFunctions, DateTime now)
+    private async Task<IReadOnlyList<InstanceAndEpoch>> ReAssertEligibleFunctions(IReadOnlyList<InstanceAndEpoch> eligibleFunctions)
     {
         //race-condition fix between re-invoker and lease-updater. Task.Delays are not respected when debugging.
         //fix is to allow lease updater to update lease before crashed watchdog asserts that the functions in question has crashed
@@ -131,7 +131,7 @@ internal class Restarter
         
         await Task.Delay(500);
         var eligibleFunctionsRepeated = 
-            (await _getEligibleFunctions(_flowType, _functionStore, now.Ticks)).ToHashSet();
+            (await _getEligibleFunctions(_flowType, _functionStore)).ToHashSet();
         
         return eligibleFunctions.Where(ie => eligibleFunctionsRepeated.Contains(ie)).ToList();
     }

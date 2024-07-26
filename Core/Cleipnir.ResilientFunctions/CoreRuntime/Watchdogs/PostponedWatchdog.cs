@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
@@ -8,7 +9,7 @@ internal class PostponedWatchdog
 
     public PostponedWatchdog(RestarterFactory restarterFactory)
         => _restarter = restarterFactory.Create(
-            getEligibleFunctions: (flowType, store, t) => store.GetPostponedFunctions(flowType, isEligibleBefore: t) 
+            getEligibleFunctions: (flowType, store) => store.GetPostponedFunctions(flowType, isEligibleBefore: DateTime.UtcNow.Ticks) 
         );
 
 

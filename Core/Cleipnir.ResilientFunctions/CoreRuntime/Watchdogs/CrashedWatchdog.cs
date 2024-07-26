@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -9,7 +10,7 @@ internal class CrashedWatchdog
     public CrashedWatchdog(RestarterFactory restarterFactory)
     {
         _restarter = restarterFactory.Create(
-            (flowType, store, t) => store.GetCrashedFunctions(flowType, leaseExpiresBefore: t)
+            (flowType, store) => store.GetCrashedFunctions(flowType, leaseExpiresBefore: DateTime.UtcNow.Ticks)
         );
     }
 
