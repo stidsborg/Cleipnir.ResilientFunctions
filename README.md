@@ -10,6 +10,12 @@
   <br>
 </p>
 
+# Cleipnir.Flows
+Looking for Cleipnir.Flows, which provides better support for ASP.NET and generic hosted services?
+
+[Github Repo](http://cleipnir.net/)
+
+
 # Cleipnir Resilient Functions
 **Providing a simple way to ensure your code gets run - until you say it is done!**
 
