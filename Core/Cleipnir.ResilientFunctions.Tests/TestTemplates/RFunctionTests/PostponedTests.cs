@@ -33,7 +33,7 @@ public abstract class PostponedTests
                 );
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
                 flowType,
-                (string _) => Postpone.For(1_000)
+                (string _) => Postpone.For(1_000).ToResult<string>().ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() =>

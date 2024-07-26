@@ -1394,7 +1394,7 @@ public abstract class ControlPanelTests
         
         var rAction = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            inner: param => param
+            inner: param => param.ToTask()
         );
 
         await rAction.Invoke(flowInstance.Value, param: "param");

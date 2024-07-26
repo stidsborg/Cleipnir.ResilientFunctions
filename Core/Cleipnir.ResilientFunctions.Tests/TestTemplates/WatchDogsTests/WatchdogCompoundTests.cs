@@ -66,12 +66,12 @@ public abstract class WatchdogCompoundTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = functionsRegistry.RegisterFunc<Param, string>(
+            _ = functionsRegistry.RegisterFunc(
                 flowType,
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return Postpone.For(100);
+                    return Postpone.For(100).ToResult<string>().ToTask();
                 });
             
             await afterNextSetFunctionState;

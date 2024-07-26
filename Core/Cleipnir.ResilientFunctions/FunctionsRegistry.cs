@@ -53,17 +53,6 @@ public class FunctionsRegistry : IDisposable
         InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
         settings
     );
-
-    // ** SYNC W. RESULT ** //
-    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FlowType flowType,
-        Func<TParam, Result<TReturn>> inner,
-        Settings? settings = null
-    ) where TParam : notnull => RegisterFunc(
-        flowType,
-        InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
-        settings
-    );
     
     // ** ASYNC W. RESULT ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(

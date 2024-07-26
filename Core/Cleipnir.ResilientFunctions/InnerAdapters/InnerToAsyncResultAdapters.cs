@@ -277,22 +277,6 @@ internal static class InnerToAsyncResultAdapters
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
-    
-    // ** SYNC W. RESULT ** //
-    public static Func<TParam, Workflow, Task<Result<TReturn>>> ToInnerFuncWithTaskResultReturn<TParam, TReturn>(Func<TParam, Result<TReturn>> inner) where TParam : notnull
-    {
-        return (param, workflow) =>
-        {
-            try
-            {
-                var result = inner(param);
-                return Task.FromResult(result);
-            }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<TReturn>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
-        };
-    }
    
     // ** ASYNC W. RESULT ** //
     public static Func<TParam, Workflow, Task<Result<TReturn>>> ToInnerFuncWithTaskResultReturn<TParam, TReturn>(Func<TParam, Task<Result<TReturn>>> inner) where TParam : notnull

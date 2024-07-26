@@ -64,7 +64,7 @@ public abstract class SuspensionTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             typeId,
-            Result<string>(string _) => Suspend.While(0)
+            Task<Result<string>>(string _) => Suspend.While(0).ToResult<string>().ToTask()
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -100,16 +100,16 @@ public abstract class SuspensionTests
         var invocations = 0;
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            Result<string>(string _) =>
+            Task<Result<string>> (string _) =>
             {
                 if (invocations == 0)
                 {
                     invocations++;
-                    return Suspend.While(0);
+                    return Suspend.While(0).ToResult<string>().ToTask();
                 }
 
                 invocations++;
-                return Result.SucceedWithValue("completed");
+                return Result.SucceedWithValue("completed").ToTask();
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(
@@ -143,16 +143,16 @@ public abstract class SuspensionTests
         var invocations = 0;
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            Result<string>(string _) =>
+            Task<Result<string>> (string _) =>
             {
                 if (invocations == 0)
                 {
                     invocations++;
-                    return Postpone.For(TimeSpan.FromHours(1));
+                    return Postpone.For(TimeSpan.FromHours(1)).ToResult<string>().ToTask();
                 }
 
                 invocations++;
-                return Result.SucceedWithValue("completed");
+                return Result.SucceedWithValue("completed").ToTask();
             });
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(
@@ -187,11 +187,11 @@ public abstract class SuspensionTests
         var flag = new SyncedFlag();
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            Result<string>(_) =>
+            Task<Result<string>> (_) =>
             {
-                if (flag.IsRaised) return "success";
+                if (flag.IsRaised) return Result.SucceedWithValue("success").ToTask();
                 flag.Raise();
-                return Suspend.While(0);
+                return Suspend.While(0).ToResult<string>().ToTask();
             });
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(

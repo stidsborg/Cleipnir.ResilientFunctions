@@ -69,7 +69,7 @@ public abstract class DoubleInvocationTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string input) => Suspend.While(0).ToResult<string>()
+            (string input) => Suspend.While(0).ToResult<string>().ToTask()
         );
         
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
@@ -101,7 +101,7 @@ public abstract class DoubleInvocationTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string input) => Postpone.For(100_000).ToResult<string>()
+            (string input) => Postpone.For(100_000).ToResult<string>().ToTask()
         );
         
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
@@ -133,7 +133,7 @@ public abstract class DoubleInvocationTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>()
+            (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>().ToTask()
         );
 
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
