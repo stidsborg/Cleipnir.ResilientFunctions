@@ -278,13 +278,6 @@ public class Invoker<TParam, TReturn>
 
     private async Task PersistResultAndEnsureSuccess(FlowId flowId, Result<TReturn> result, TParam param, Workflow workflow, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        if (result.Succeed && result.SucceedWithValue is Task) //todo remove
-        {
-            var serializationException = new SerializationException("Unable to serialize result of Task-type");
-            await _invocationHelper.PersistFailure(flowId, serializationException, param, workflow.States.SerializeDefaultState(), expectedEpoch);
-            throw serializationException;
-        }
-            
         var outcome = await _invocationHelper.PersistResult(flowId, result, param, workflow.States.SerializeDefaultState(), expectedEpoch);
         switch (outcome)
         {
