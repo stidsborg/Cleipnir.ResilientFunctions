@@ -28,9 +28,10 @@ public static class BulkInsertionTest
         );
         var _ = functionsRegistry1.RegisterAction(
             "BulkInsertionTest",
-            void (string param) =>
+            Task (string param) =>
             {
                 bag.Add(1);
+                return Task.CompletedTask;
             }
         );
         
@@ -44,9 +45,10 @@ public static class BulkInsertionTest
         );
         functionsRegistry2.RegisterAction(
             "BulkInsertionTest",
-            void (string param) =>
+            Task (string param) =>
             {
                 bag.Add(2);
+                return Task.CompletedTask;
             }
         );
         
@@ -60,9 +62,10 @@ public static class BulkInsertionTest
         );
         functionsRegistry3.RegisterAction(
             "BulkInsertionTest",
-            void (string param) =>
+            Task (string param) =>
             {
                 bag.Add(3);
+                return Task.CompletedTask;
             }
         );
         

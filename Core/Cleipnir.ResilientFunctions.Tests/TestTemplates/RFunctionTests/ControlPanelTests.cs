@@ -147,7 +147,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void (string _) => throw new Exception("oh no")
+            Task (string _) => throw new Exception("oh no")
         );
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
@@ -221,7 +221,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
+            Task (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
@@ -291,7 +291,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void (string _) => throw new Exception("oh no")
+            Task (string _) => throw new Exception("oh no")
         );
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
@@ -392,11 +392,12 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void(string param, Workflow workflow) =>
+            Task (string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<TestState>("State");
                 state.Value = param;
                 state.Save().Wait();
+                return Task.CompletedTask;
             });
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -469,11 +470,12 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void(string param, Workflow workflow) =>
+            Task (string param, Workflow workflow) =>
             {
                 var state = workflow.States.CreateOrGet<TestState>("State");
                 state.Value = param;
                 state.Save().Wait();
+                return Task.CompletedTask;
             });
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -545,7 +547,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void (string _) => {}
+            Task (string _) => Task.CompletedTask
         );
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -771,7 +773,7 @@ public abstract class ControlPanelTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            void(string _) => { }
+            Task (string _) => Task.CompletedTask
         );
 
         await rAction.Invoke(flowInstance.Value, param: "param");
@@ -1261,7 +1263,7 @@ public abstract class ControlPanelTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            (string _, Workflow _) => {}
+            (string _, Workflow _) => Task.CompletedTask
         );
         await rAction.Invoke(flowInstance.Value, param: "param");
         

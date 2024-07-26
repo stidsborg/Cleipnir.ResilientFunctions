@@ -212,10 +212,10 @@ public class RFunctionsShutdownTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Result (string _) =>
+            Task<Result> (string _) =>
             {
                 counter.Increment();
-                return Postpone.For(500);
+                return Postpone.For(500).ToResult().ToTask();
             }
         ).Invoke;
 

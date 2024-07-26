@@ -46,7 +46,7 @@ public static class CrashedTest
         );
         var _ = functionsRegistry.RegisterAction(
             "CrashedTest",
-            void(string param) => { }
+            Task (string param) => Task.CompletedTask
         );
         
         using var functionsRegistry2 = new FunctionsRegistry(
@@ -58,7 +58,7 @@ public static class CrashedTest
         );
         functionsRegistry2.RegisterAction(
             "CrashedTest",
-            void(string param) => { }
+            Task (string param) => Task.CompletedTask
         );
 
         var executionAverageSpeed = await 

@@ -301,7 +301,7 @@ public abstract class SunshineTests
         
             var rFunc = functionsRegistry.RegisterAction(
                 functionId.Type,
-                inner: (string _) => {}
+                inner: (string _) => Task.CompletedTask
             ).Invoke;
 
             await rFunc("hello world", "hello world");
@@ -315,11 +315,11 @@ public abstract class SunshineTests
                     enableWatchdogs: true,
                     retentionPeriod: TimeSpan.Zero
                 )
-            );    
-            
+            );
+
             functionsRegistry.RegisterAction(
                 functionId.Type,
-                inner: (string _) => {}
+                inner: (string _) => Task.CompletedTask
             );
             
             await BusyWait.Until(async () => await store.GetFunction(functionId) is null);

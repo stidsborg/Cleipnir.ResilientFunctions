@@ -52,7 +52,7 @@ public abstract class ExceptionHandlingTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 "typeId".ToFlowType(),
-                void (string _) => throw new ArithmeticException("Division by zero")
+                Task (string _) => throw new ArithmeticException("Division by zero")
             )
             .Invoke;
         
@@ -70,7 +70,7 @@ public abstract class ExceptionHandlingTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 "typeId".ToFlowType(),
-                void (string _) => throw new ArithmeticException("Division by zero")
+                Task (string _) => throw new ArithmeticException("Division by zero")
             )
             .Invoke;
 

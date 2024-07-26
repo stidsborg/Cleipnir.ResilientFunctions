@@ -34,7 +34,7 @@ public class DelayedStartUpTests
         );
         rFunctions.RegisterAction(
             functionId.Type,
-            void(string param) => { }
+            Task (string param) => Task.CompletedTask
         );
 
         await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
@@ -59,7 +59,7 @@ public class DelayedStartUpTests
         using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.Type,
-            void(string param) => { }
+            Task (string param) => Task.CompletedTask
         );
 
         await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
@@ -96,7 +96,7 @@ public class DelayedStartUpTests
         );
         rFunctions.RegisterAction(
             functionId.Type,
-            void(string param) => { }
+            Task (string param) => Task.CompletedTask
         );
 
         await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
@@ -131,7 +131,7 @@ public class DelayedStartUpTests
         using var rFunctions = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
         rFunctions.RegisterAction(
             functionId.Type,
-            void(string param) => { }
+            Task (string param) => Task.CompletedTask
         );
 
         await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));

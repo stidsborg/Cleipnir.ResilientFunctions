@@ -164,7 +164,7 @@ public abstract class PostponedTests
             );
             var rAction = functionsRegistry.RegisterAction(
                 flowType,
-                (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
+                (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult().ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(flowInstance.Value, param));
@@ -210,7 +210,7 @@ public abstract class PostponedTests
             );
             var rAction = functionsRegistry.RegisterAction(
                 flowType,
-                (string _, Workflow _) => Postpone.For(1_000)
+                (string _, Workflow _) => Postpone.For(1_000).ToResult().ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
@@ -269,7 +269,7 @@ public abstract class PostponedTests
                 )
             );
             var rFunc = functionsRegistry
-                .RegisterAction(functionId.Type, (string _) => Postpone.For(1_000))
+                .RegisterAction(functionId.Type, (string _) => Postpone.For(1_000).ToResult().ToTask())
                 .Invoke;
 
             var instanceId = functionId.Instance.ToString();
@@ -286,7 +286,7 @@ public abstract class PostponedTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            functionsRegistry.RegisterAction(functionId.Type, (string _) => { });
+            functionsRegistry.RegisterAction(functionId.Type, (string _) => Task.CompletedTask);
             
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         
@@ -305,8 +305,11 @@ public abstract class PostponedTests
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
         var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            (string _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
+            flowType, Task (string _) =>
+            {
+                Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10));
+                return Task.CompletedTask;
+            }
         );
 
         //invoke
@@ -392,9 +395,11 @@ public abstract class PostponedTests
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
         var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            (string _, Workflow _) => Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10))
-        );
+            flowType, Task (string _, Workflow _) =>
+            {
+                Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10));
+                return Task.CompletedTask;
+            });
 
         //invoke
         {
@@ -683,10 +688,11 @@ public abstract class PostponedTests
         var invokedFlag = new SyncedFlag();
         functionsRegistry.RegisterAction(
             flowType,
-            void (string param) =>
+            Task (string param) =>
             {
                 syncedParam.Value = param; 
                 invokedFlag.Raise();
+                return Task.CompletedTask;
             });
 
         await BusyWait.UntilAsync(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
@@ -721,6 +727,7 @@ public abstract class PostponedTests
                 (string _) =>
                 {
                     flag.Raise();
+                    return Task.CompletedTask;
                 });
 
         await rAction.ScheduleAt(

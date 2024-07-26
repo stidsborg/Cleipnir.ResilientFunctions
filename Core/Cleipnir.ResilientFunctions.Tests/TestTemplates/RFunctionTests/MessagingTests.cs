@@ -191,10 +191,11 @@ public abstract class MessagingTests
         
         var registration = functionsRegistry.RegisterAction(
             typeId,
-            inner: void (string _, Workflow workflow) =>
+            inner: Task (string _, Workflow workflow) =>
             {
                 subscription = workflow.Messages.Subscribe(onNext: _ => { }, onCompletion: () => { }, onError: _ => { });
                 subscription.IsWorkflowRunning.ShouldBeTrue();
+                return Task.CompletedTask;
             }
         );
 

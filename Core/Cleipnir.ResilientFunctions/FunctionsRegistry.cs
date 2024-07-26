@@ -32,7 +32,6 @@ public class FunctionsRegistry : IDisposable
     }
 
     // ** !! FUNC !! ** //
-    // ** ASYNC ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Task<TReturn>> inner,
@@ -43,7 +42,7 @@ public class FunctionsRegistry : IDisposable
         settings
     );
     
-    // ** ASYNC W. WORKFLOW * //
+    // ** W. WORKFLOW * //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Workflow, Task<TReturn>> inner,
@@ -54,7 +53,7 @@ public class FunctionsRegistry : IDisposable
         settings
     );
     
-    // ** ASYNC W. RESULT ** //
+    // ** W. RESULT ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Task<Result<TReturn>>> inner,
@@ -67,31 +66,6 @@ public class FunctionsRegistry : IDisposable
         );
 
     // ** !! ACTION !! ** //
-    // ** SYNC ** //
-    public ActionRegistration<TParam> RegisterAction<TParam>(
-        FlowType flowType,
-        Action<TParam> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterAction(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
-            settings
-        );
-
-    // ** SYNC W. WORKFLOW ** //
-    public ActionRegistration<TParam> RegisterAction<TParam>(
-        FlowType flowType,
-        Action<TParam, Workflow> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterAction(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
-            settings
-        );
-    
-    // ** ASYNC ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Task> inner,
@@ -103,7 +77,7 @@ public class FunctionsRegistry : IDisposable
             settings
         );
 
-    // ** ASYNC W. WORKFLOW * //
+    // ** W. WORKFLOW * //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Workflow, Task> inner,
@@ -115,10 +89,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
     
-    // ** SYNC W. RESULT ** //
+    // ** W. RESULT ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
-        Func<TParam, Result> inner,
+        Func<TParam, Task<Result>> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
@@ -126,42 +100,18 @@ public class FunctionsRegistry : IDisposable
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
-    
-    // ** SYNC W. RESULT AND WORKFLOW ** //
-    public ActionRegistration<TParam> RegisterAction<TParam>(
-        FlowType flowType,
-        Func<TParam, Workflow, Result> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterAction(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
-            settings
-        );
-    
-        // ** ASYNC W. RESULT ** //
-        public ActionRegistration<TParam> RegisterAction<TParam>(
-            FlowType flowType,
-            Func<TParam, Task<Result>> inner,
-            Settings? settings = null
-        ) where TParam : notnull
-            => RegisterAction(
-                flowType,
-                InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
-                settings
-            );
         
-        // ** ASYNC W. RESULT AND WORKFLOW ** //   
-        public ActionRegistration<TParam> RegisterAction<TParam>(
-            FlowType flowType,
-            Func<TParam, Workflow, Task<Result>> inner,
-            Settings? settings = null
-        ) where TParam : notnull
-            => RegisterAction(
-                flowType,
-                InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
-                settings
-            );
+    // ** W. RESULT AND WORKFLOW ** //   
+    public ActionRegistration<TParam> RegisterAction<TParam>(
+        FlowType flowType,
+        Func<TParam, Workflow, Task<Result>> inner,
+        Settings? settings = null
+    ) where TParam : notnull
+        => RegisterAction(
+            flowType,
+            InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
+            settings
+        );
         
     // ** PARAMLESS ** //   
     public ParamlessRegistration RegisterParamless(

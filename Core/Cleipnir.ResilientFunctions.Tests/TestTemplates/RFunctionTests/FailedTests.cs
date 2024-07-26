@@ -196,8 +196,11 @@ public abstract class FailedTests
             var rFunc = functionsRegistry
                 .RegisterAction(
                     flowType,
-                    inner: (string _) => flag.Raise()
-                )
+                    inner: (string _) =>
+                    {
+                        flag.Raise();
+                        return Task.CompletedTask;
+                    })
                 .Invoke;
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
@@ -229,8 +232,11 @@ public abstract class FailedTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 flowType,
-                inner: (string _) => flag.Raise()
-            )
+                inner: (string _) =>
+                {
+                    flag.Raise();
+                    return Task.CompletedTask;
+                })
             .Invoke;
         await Task.Delay(100);
         flag.Position.ShouldBe(Lowered);

@@ -30,7 +30,7 @@ public abstract class SuspensionTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Result(string _) => Suspend.While(0)
+            Task<Result> (string _) => throw new SuspendInvocationException(expectedInterruptCount: new InterruptCount(0))
         );
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(

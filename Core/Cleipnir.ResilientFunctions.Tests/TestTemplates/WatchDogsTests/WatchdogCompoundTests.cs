@@ -322,7 +322,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.For(100);
+                        return Postpone.For(100).ToTask();
                     }
                 );
 
@@ -545,12 +545,14 @@ public abstract class WatchdogCompoundTests
         );
         var registration = functionsRegistry.RegisterAction(
             flowType,
-            inner: (string p, Workflow workflow) => { }
+            inner: (string _, Workflow _) => Task.CompletedTask
         );
 
         await registration.Invoke(functionId.Instance.Value, "SomeParam");
 
-        await BusyWait.UntilAsync(() => store.GetFunction(functionId) is not null);
+        await BusyWait.Until(
+            () => store.GetFunction(functionId).SelectAsync(sf => sf is not null)
+        );
     }
     
     private record Param(string Id, int Value);

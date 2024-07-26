@@ -33,7 +33,7 @@ public abstract class ReInvocationTests
 
         var rFunc = functionsRegistry
             .RegisterAction(
-                functionType, (string s) =>
+                functionType, Task (string s) =>
                 {
                     if (flag.Position == FlagPosition.Lowered)
                     {
@@ -42,6 +42,7 @@ public abstract class ReInvocationTests
                     }
 
                     syncedParameter.Value = s;
+                    return Task.CompletedTask;
                 }
             );
 
@@ -144,6 +145,7 @@ public abstract class ReInvocationTests
                 }
                 
                 syncedParam.Value = param;
+                return Task.CompletedTask;
             }
         );
 
@@ -192,6 +194,7 @@ public abstract class ReInvocationTests
                 }
                 
                 syncedValue.Value = param;
+                return Task.CompletedTask;
             }
         );
 
@@ -331,7 +334,7 @@ public abstract class ReInvocationTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            (string _) => {}
+            (string _) => Task.CompletedTask
         );
 
         await rAction.Invoke(flowInstance.Value, "");

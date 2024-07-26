@@ -28,8 +28,11 @@ public abstract class InitialInvocationFailedTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterAction(
             functionId.Type,
-            void(string param) => flag.Raise()
-        );
+            Task (string param) =>
+            {
+                flag.Raise();
+                return Task.CompletedTask;
+            });
 
         await flag.WaitForRaised();
 
@@ -55,8 +58,11 @@ public abstract class InitialInvocationFailedTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterAction<string>(
             functionId.Type,
-            void(string param) => flag.Raise()
-        );
+            Task (string param) =>
+            {
+                flag.Raise();
+                return Task.CompletedTask;
+            });
 
         await flag.WaitForRaised();
 
