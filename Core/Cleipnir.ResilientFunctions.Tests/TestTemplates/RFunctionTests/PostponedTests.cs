@@ -123,8 +123,12 @@ public abstract class PostponedTests
             catch (TimeoutException)
             {
                 unhandledExceptionHandler.ShouldNotHaveExceptions();
+                var sf = await store.GetFunction(functionId); 
                 throw new TimeoutException(
-                    "Timeout when waiting for function completion - has status: " + await store.GetFunction(functionId).SelectAsync(sf => sf!.Status)
+                    "Timeout when waiting for function completion - has status: " 
+                    + sf!.Status +
+                    " and expires: " + sf.PostponedUntil + 
+                    " ticks now is: " + DateTime.UtcNow.Ticks
                 );
             }
             
