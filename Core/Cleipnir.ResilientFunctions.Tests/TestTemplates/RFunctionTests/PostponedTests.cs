@@ -48,7 +48,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
 
@@ -175,7 +175,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
 
@@ -223,7 +223,7 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(250)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
             
@@ -283,7 +283,7 @@ public abstract class PostponedTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
             functionsRegistry.RegisterAction(functionId.Type, (string _) => Task.CompletedTask);
