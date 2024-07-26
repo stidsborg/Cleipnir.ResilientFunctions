@@ -81,11 +81,11 @@ public abstract class PostponedTests
                         enableWatchdogs: false
                     )
                 );
-            var rFunc = functionsRegistry.RegisterFunc<string, string>(
+            var rFunc = functionsRegistry
+                .RegisterFunc<string, string>(
                     flowType,
-                    inner: (_, _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000))
-                )
-                .Invoke;
+                    inner: (_, _) => throw new PostponeInvocationException(1_000)
+                ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -477,9 +477,9 @@ public abstract class PostponedTests
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
+        var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            string (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
+            Task<string> (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
         );
 
         //invoke
@@ -565,9 +565,9 @@ public abstract class PostponedTests
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
+        var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            string (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
+            Task<string> (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
         );
 
         //invoke
@@ -768,7 +768,7 @@ public abstract class PostponedTests
                 (string _) =>
                 {
                     flag.Raise();
-                    return "ok";
+                    return "ok".ToTask();
                 });
 
         await rFunc.ScheduleAt(

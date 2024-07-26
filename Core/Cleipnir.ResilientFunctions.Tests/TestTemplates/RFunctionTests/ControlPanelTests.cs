@@ -184,7 +184,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            string (_) => throw new Exception("oh no")
+            Task<string> (_) => throw new Exception("oh no")
         );
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
@@ -256,7 +256,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            string (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
+            Task<string> (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
         );
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
@@ -357,7 +357,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            string (_) => throw new Exception("oh no")
+            Task<string> (_) => throw new Exception("oh no")
         );
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
@@ -437,7 +437,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterFunc(
             flowType,
-            string (string param) => param
+            Task<string> (string param) => param.ToTask()
         );
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -511,7 +511,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterFunc(
             flowType,
-            string (string param) => param
+            Task<string> (string param) => param.ToTask()
         );
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -574,7 +574,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            string (string param) => param
+            Task<string> (string param) => param.ToTask()
         );
 
         await rFunc.Invoke(flowInstance.Value, param: "first");
@@ -747,7 +747,7 @@ public abstract class ControlPanelTests
 
         var rAction = functionsRegistry.RegisterFunc(
             flowType,
-            string (string param) => param
+            Task<string> (string param) => param.ToTask()
         );
 
         await rAction.Invoke(flowInstance.Value, param: "param");

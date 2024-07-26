@@ -82,10 +82,10 @@ public abstract class InitialInvocationFailedTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterFunc(
             functionId.Type,
-            string (string param) =>
+            Task<string> (string param) =>
             {
                 flag.Raise();
-                return param.ToUpper();
+                return param.ToUpper().ToTask();
             });
 
         await flag.WaitForRaised();
@@ -115,10 +115,10 @@ public abstract class InitialInvocationFailedTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
         _ = functionsRegistry.RegisterFunc(
             functionId.Type,
-            string (string param) =>
+            Task<string> (string param) =>
             {
                 flag.Raise();
-                return param.ToUpper();
+                return param.ToUpper().ToTask();
             });
 
         await flag.WaitForRaised();

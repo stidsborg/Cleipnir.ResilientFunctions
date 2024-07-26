@@ -18,7 +18,6 @@ public class FunctionsRegistry : IDisposable
     private readonly Dictionary<FlowType, object> _functions = new();
 
     private readonly IFunctionStore _functionStore;
-    public IFunctionStore FunctionStore => _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
     
@@ -33,30 +32,6 @@ public class FunctionsRegistry : IDisposable
     }
 
     // ** !! FUNC !! ** //
-    // ** SYNC ** //
-    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FlowType flowType,
-        Func<TParam, TReturn> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterFunc(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
-            settings
-        );
-    
-    // ** SYNC W. WORKFLOW ** //
-    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FlowType flowType,
-        Func<TParam, Workflow, TReturn> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterFunc(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
-            settings
-        );
-    
     // ** ASYNC ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
@@ -90,18 +65,6 @@ public class FunctionsRegistry : IDisposable
         settings
     );
     
-    // ** SYNC W. RESULT AND WORKFLOW ** //
-    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
-        FlowType flowType,
-        Func<TParam, Workflow, Result<TReturn>> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterFunc(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
-            settings
-        );
-   
     // ** ASYNC W. RESULT ** //
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,

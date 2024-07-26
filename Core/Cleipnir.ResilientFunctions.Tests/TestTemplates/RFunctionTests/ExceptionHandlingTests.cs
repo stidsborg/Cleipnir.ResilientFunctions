@@ -19,7 +19,7 @@ public abstract class ExceptionHandlingTests
 
         var rFunc = functionsRegistry.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFlowType(),
-            string (string param) => throw new ArithmeticException("Division by zero")
+            Task<string> (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
@@ -35,7 +35,7 @@ public abstract class ExceptionHandlingTests
 
         var rFunc = functionsRegistry.RegisterFunc( 
             "typeId".ToFlowType(),
-            string (string param) => throw new ArithmeticException("Division by zero")
+            Task<string> (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));

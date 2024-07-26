@@ -14,31 +14,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 public class InMemorySunshineTests
 {
     #region Func
-
-    // ** SYNC ** //
-    [TestMethod]
-    public async Task SyncFuncSunshineTest()
-    {
-        await ExecuteFunc((rFunctions, callback)
-            => rFunctions.RegisterFunc(
-                flowType: "",
-                callback
-            )
-        );
-    }
     
-    // ** SYNC W. WORKFLOW ** //
-    [TestMethod]
-    public async Task SyncFuncWithWorkflowSunshineTest()
-    {
-        await ExecuteFunc((rFunctions, callback)
-            => rFunctions.RegisterFunc(
-                flowType: "",
-                string(string param, Workflow workflow) => callback(param)
-            )
-        );
-    }
-        
     // ** ASYNC ** //
     [TestMethod]
     public async Task AsyncFuncSunshineTest()
@@ -46,7 +22,7 @@ public class InMemorySunshineTests
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 flowType: "",
-                Task<string>(string param) => Task.FromResult(callback(param))
+                callback
             )
         );
     }
@@ -59,37 +35,11 @@ public class InMemorySunshineTests
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 flowType: "",
-                Task<string>(string param, Workflow workflow)
-                    => Task.FromResult(callback(param))
+                Task<string>(string param, Workflow _) => callback(param)
             )
         );
     }
     
-    // ** SYNC W. RESULT ** //
-    [TestMethod]
-    public async Task SyncFuncWithResultSunshineTest()
-    {
-        await ExecuteFunc((rFunctions, callback)
-            => rFunctions.RegisterFunc(
-                flowType: "",
-                Result<string>(string param) => callback(param)
-            )
-        );
-    }    
-    
-    // ** SYNC W. RESULT AND WORKFLOW ** //
-    [TestMethod]
-    public async Task SyncFuncWithWorkflowAndResultSunshineTest()
-    {
-        await ExecuteFunc((functionsRegistry, callback)
-            => functionsRegistry.RegisterFunc(
-                flowType: "",
-                Result<string>(string param, Workflow workflow) 
-                    => Result.SucceedWithValue(callback(param))
-               )
-            );
-    }    
-   
     // ** ASYNC W. RESULT ** //
     [TestMethod]
     public async Task AsyncFuncWithResultSunshineTest()
@@ -98,7 +48,7 @@ public class InMemorySunshineTests
             => functionsRegistry.RegisterFunc(
                 flowType: "",
                 Task<Result<string>>(string param) 
-                    => Task.FromResult(Result.SucceedWithValue(callback(param)))
+                    => Result.SucceedWithValue(callback(param).Result).ToTask()
                )
             );
     }    
@@ -110,12 +60,13 @@ public class InMemorySunshineTests
         await ExecuteFunc((rFunctions, callback)
             => rFunctions.RegisterFunc(
                 flowType: "",
-                Task<Result<string>>(string param, Workflow workflow)
-                    => Task.FromResult(Result.SucceedWithValue(callback(param))))
-            );
+                Task<Result<string>> (string param, Workflow _)
+                    => Result.SucceedWithValue(callback(param).Result).ToTask()
+            )
+        );
     }    
 
-    private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, string>, FuncRegistration<string, string>> createRegistration)
+    private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, Task<string>>, FuncRegistration<string, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);
@@ -126,7 +77,7 @@ public class InMemorySunshineTests
         var registration = createRegistration(rFunctions, param =>
         {
             syncedParam.Value = param;
-            return toReturn;
+            return toReturn.ToTask();
         });
 
         var returned = await registration.Invoke("id1", "hello world");
@@ -160,30 +111,6 @@ public class InMemorySunshineTests
     #endregion
     
     #region Action
-
-    // ** SYNC ** //
-    [TestMethod]
-    public async Task SyncActionSunshineTest()
-    {
-        await ExecuteAction((rFunctions, callback)
-            => rFunctions.RegisterAction(
-                flowType: "",
-                callback
-            )
-        );
-    }
-    
-    // ** SYNC W. WORKFLOW ** //
-    [TestMethod]
-    public async Task SyncActionWithWorkflowSunshineTest()
-    {
-        await ExecuteAction((rFunctions, callback)
-                => rFunctions.RegisterAction(
-                    flowType: "",
-                    void(string param, Workflow workflow) => callback(param)
-                )
-        );
-    }
         
     // ** ASYNC ** //
     [TestMethod]
@@ -215,30 +142,6 @@ public class InMemorySunshineTests
                 })
         );
     }
-    
-    // ** SYNC W. RESULT ** //
-    [TestMethod]
-    public async Task SyncActionWithResultSunshineTest()
-    {
-        await ExecuteAction((rFunctions, callback)
-            => rFunctions.RegisterAction(
-                flowType: "",
-                Result(string param) => { callback(param); return Result.Succeed; }
-            )
-        );
-    }    
-    
-    // ** SYNC W. RESULT AND WORKFLOW ** //
-    [TestMethod]
-    public async Task SyncActionWithWorkflowAndResultSunshineTest()
-    {
-        await ExecuteAction((rFunctions, callback)
-            => rFunctions.RegisterAction(
-                flowType: "",
-                Result(string param, Workflow workflow) => { callback(param); return Result.Succeed; }
-            )
-        );
-    }    
    
     // ** ASYNC W. RESULT ** //
     [TestMethod]
@@ -264,14 +167,18 @@ public class InMemorySunshineTests
         );
     }    
 
-    private async Task ExecuteAction(Func<FunctionsRegistry, Action<string>, ActionRegistration<string>> createRegistration)
+    private async Task ExecuteAction(Func<FunctionsRegistry, Func<string, Task>, ActionRegistration<string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
         using var rFunctions = new FunctionsRegistry(store);
 
         var syncedParam = new Synced<string>();
         // ReSharper disable once AccessToModifiedClosure
-        var registration = createRegistration(rFunctions, param => syncedParam.Value = param);
+        var registration = createRegistration(rFunctions, param =>
+        {
+            syncedParam.Value = param;
+            return Task.CompletedTask;
+        });
 
         await registration.Invoke("id1", "hello world");
         syncedParam.Value.ShouldBe("hello world");

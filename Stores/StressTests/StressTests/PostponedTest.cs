@@ -54,7 +54,7 @@ public static class PostponedTest
         );
         functionsRegistry1.RegisterFunc(
             nameof(PostponedTest),
-            int (string param) => 1 
+            Task<int> (string param) => 1.ToTask() 
         );
 
         using var functionsRegistry2 = new FunctionsRegistry(
@@ -66,7 +66,7 @@ public static class PostponedTest
         );
         functionsRegistry2.RegisterFunc(
             nameof(PostponedTest),
-            int (string param) => 2
+            Task<int> (string param) => 2.ToTask()
         );
 
         Console.WriteLine("POSTPONED_TEST: Waiting for invocations to begin");

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace ConsoleApp.Simple;
@@ -15,7 +16,7 @@ public static class HelloWorldExample
 
         var rFunc = functions.RegisterFunc(
             flowType: "HelloWorld",
-            inner: (string param) => param.ToUpper()
+            inner: (string param) => param.ToUpper().ToTask()
         ).Invoke;
 
         var returned = await rFunc(flowInstance: "", param: "hello world");

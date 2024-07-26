@@ -230,53 +230,6 @@ internal static class InnerToAsyncResultAdapters
     }
     
     // ** !! FUNCTION !! ** //
-    // ** SYNC ** //
-    public static Func<TParam, Workflow, Task<Result<TReturn>>> ToInnerFuncWithTaskResultReturn<TParam, TReturn>(Func<TParam, TReturn> inner) where TParam : notnull
-    {
-        return (param, workflow) =>
-        {
-            try
-            {
-                var result = inner(param);
-                return Task.FromResult(new Result<TReturn>(result));
-            }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<TReturn>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
-        };
-    }
-    
-    // ** SYNC W. workflow ** //
-    public static Func<TParam, Workflow, Task<Result<TReturn>>> ToInnerFuncWithTaskResultReturn<TParam, TReturn>(Func<TParam, Workflow, TReturn> inner) where TParam : notnull
-    {
-        return (param, workflow) =>
-        {
-            try
-            {
-                var result = inner(param, workflow);
-                return Task.FromResult(new Result<TReturn>(result));
-            }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<TReturn>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
-        };
-    }
-    
-    public static Func<TParam, Workflow, Task<Result<TReturn>>> ToInnerFuncWithTaskResultReturn<TParam, TReturn>(Func<TParam, Workflow, Result<TReturn>> inner) where TParam : notnull
-    {
-        return (param, workflow) =>
-        {
-            try
-            {
-                var result = inner(param, workflow);
-                return Task.FromResult(result);
-            }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil).ToResult<TReturn>().ToTask(); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value).ToResult<TReturn>().ToTask(); }
-            catch (Exception exception) { return Fail.WithException(exception).ToResult<TReturn>().ToTask(); }
-        };
-    }
-    
     // ** ASYNC ** //
     public static Func<TParam, Workflow, Task<Result<TReturn>>> ToInnerFuncWithTaskResultReturn<TParam, TReturn>(Func<TParam, Task<TReturn>> inner) where TParam : notnull
     {

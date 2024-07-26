@@ -310,38 +310,5 @@ public abstract class FailedTests
         }
     }
     
-    public abstract Task FuncReturningTaskThrowsSerialization();
-    public async Task FuncReturningTaskThrowsSerialization(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        
-        using var functionsRegistry = new FunctionsRegistry(
-            store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.FromMilliseconds(100),
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-            )
-        );
-        var funcRegistration = functionsRegistry
-            .RegisterFunc(
-                functionId.Type,
-                inner: (string _) => Task.CompletedTask
-            );
-
-        var rFunc = funcRegistration.Invoke;
-        
-        await Should.ThrowAsync<SerializationException>(
-            () => rFunc(functionId.Instance.Value, "test")
-        );
-
-        var controlPanel = await funcRegistration.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
-        controlPanel.Status.ShouldBe(Status.Failed);
-        
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
-    }
-
     private class FlowState : Domain.FlowState { }
 }
