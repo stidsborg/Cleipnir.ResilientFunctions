@@ -21,7 +21,7 @@ public class ReactiveIntegrationTests
     public async Task FunctionCanBeSuspendedForASecondSuccessfully()
     {
         var store = new InMemoryFunctionStore();
-        var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(store);
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var rAction = functionsRegistry.RegisterAction<string>(
