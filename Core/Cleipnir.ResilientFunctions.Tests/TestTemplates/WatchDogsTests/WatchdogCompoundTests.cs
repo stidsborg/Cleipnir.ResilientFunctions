@@ -322,7 +322,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.For(100).ToTask();
+                        return Postpone.For(100).ToResult().ToTask();
                     }
                 );
 
@@ -401,8 +401,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(500),
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
+                    leaseLength: TimeSpan.FromMilliseconds(1_000),
+                    enableWatchdogs: false
                 )
             );
             var rFunc = functionsRegistry.RegisterAction(
@@ -433,8 +433,7 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.Zero,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
             _ = functionsRegistry
@@ -464,8 +463,8 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.Zero,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
+                    leaseLength: TimeSpan.FromMilliseconds(1_000),
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
             _ = functionsRegistry.RegisterAction(
@@ -494,8 +493,7 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.Zero,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
+                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
             _ = functionsRegistry.RegisterAction(
