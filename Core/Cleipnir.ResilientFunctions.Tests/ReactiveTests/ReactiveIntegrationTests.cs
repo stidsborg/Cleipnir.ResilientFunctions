@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -37,5 +34,27 @@ public class ReactiveIntegrationTests
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
+    }
+    
+    [TestMethod]
+    public async Task SyncingStopsAfterReactiveChainCompletion()
+    {
+        var counter = new SyncedCounter();
+        
+        var source = new TestSource(
+            NoOpTimeoutProvider.Instance,
+            syncStore: _ =>
+            {
+                counter.Increment();
+                return new InterruptCount(1).ToTask();
+            });
+
+        var listTask = source.Take(1).ToList();
+        source.SignalNext(1, new InterruptCount(1));
+        
+        await listTask;
+        var beforeDelayCounter = counter.Current;
+        await Task.Delay(250);
+        counter.Current.ShouldBe(beforeDelayCounter);
     }
 }
