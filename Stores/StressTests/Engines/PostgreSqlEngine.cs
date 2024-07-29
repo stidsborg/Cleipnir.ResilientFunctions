@@ -19,7 +19,7 @@ public class PostgreSqlEngine : IEngine
         
         var store = new PostgreSqlFunctionStore(ConnectionString);
         await store.Initialize();
-        await store.TruncateTable();
+        await store.TruncateTables();
     }
 
     public async Task<int> NumberOfNonCompleted()

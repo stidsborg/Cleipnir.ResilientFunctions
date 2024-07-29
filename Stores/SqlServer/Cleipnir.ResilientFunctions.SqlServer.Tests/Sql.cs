@@ -39,8 +39,8 @@ namespace Cleipnir.ResilientFunctions.SqlServer.Tests
         private static async Task<SqlServerFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
             var store = new SqlServerFunctionStore(ConnectionString);//, tablePrefix: ComputeSha256Hash(testClass + "§" + testMethod));
-            await store.DropIfExists();
             await store.Initialize();
+            await store.TruncateTables();
             return store;
         }
         

@@ -43,7 +43,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
         {
             var store = new PostgreSqlFunctionStore(ConnectionString); 
             await store.Initialize();
-            await store.TruncateTable();
+            await store.TruncateTables();
             return store;
         }
 

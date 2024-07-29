@@ -98,22 +98,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _dropIfExistsSql;
-    public async Task DropIfExists()
-    {
-        await _postgresSqlUnderlyingRegister.DropUnderlyingTable();
-        await _messageStore.DropUnderlyingTable();
-        await _timeoutStore.DropUnderlyingTable();
-        
-        await using var conn = await CreateConnection();
-        _dropIfExistsSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}";
-        await using var command = new NpgsqlCommand(_dropIfExistsSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
+    
     private string? _truncateTableSql;
-    public async Task TruncateTable()
+    public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
         await _timeoutStore.Truncate();

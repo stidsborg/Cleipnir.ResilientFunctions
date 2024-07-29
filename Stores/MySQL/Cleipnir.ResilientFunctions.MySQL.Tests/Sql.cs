@@ -48,8 +48,8 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
         private static async Task<MySqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
             var store = new MySqlFunctionStore(ConnectionString);
-            await store.DropIfExists();
             await store.Initialize();
+            await store.TruncateTables();
             return store;
         }
 

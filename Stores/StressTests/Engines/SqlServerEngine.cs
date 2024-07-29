@@ -18,7 +18,7 @@ public class SqlServerEngine : IEngine
         
         var store = new SqlServerFunctionStore(ConnectionString);
         await store.Initialize();
-        await store.Truncate();
+        await store.TruncateTables();
     }
 
     public async Task<int> NumberOfNonCompleted()

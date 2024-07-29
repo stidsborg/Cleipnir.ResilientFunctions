@@ -17,11 +17,14 @@ public static class Example
     public static async Task Perform()
     {
         var postgresStore = new PostgreSqlFunctionStore("Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!; Include Error Detail=true;");
-        await postgresStore.DropIfExists();
+        await postgresStore.Initialize();
+        await postgresStore.TruncateTables();
         var sqlServerStore = new SqlServerFunctionStore("Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;Max Pool Size=200;");
-        await sqlServerStore.DropIfExists();
+        await sqlServerStore.Initialize();
+        await sqlServerStore.TruncateTables();
         var mySqlStore = new MySqlFunctionStore("server=localhost;userid=root;password=Pa55word!;database=rfunctions;AllowPublicKeyRetrieval=True;");
-        await mySqlStore.DropIfExists();
+        await mySqlStore.Initialize();
+        await mySqlStore.TruncateTables();
         
         Console.WriteLine();
         Console.WriteLine("Postgres: ");

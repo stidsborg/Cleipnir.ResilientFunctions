@@ -99,21 +99,8 @@ public class SqlServerFunctionStore : IFunctionStore
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
-    private string? _dropIfExistsSql;
-    public async Task DropIfExists()
-    {
-        await _underlyingRegister.DropUnderlyingTable();
-        await _messageStore.DropUnderlyingTable();
-        await _timeoutStore.DropUnderlyingTable();
-        
-        await using var conn = await _connFunc();
-        _dropIfExistsSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}";
-        await using var command = new SqlCommand(_dropIfExistsSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _truncateSql;
-    public async Task Truncate()
+    public async Task TruncateTables()
     {
         await _underlyingRegister.TruncateTable();
         await _messageStore.TruncateTable();

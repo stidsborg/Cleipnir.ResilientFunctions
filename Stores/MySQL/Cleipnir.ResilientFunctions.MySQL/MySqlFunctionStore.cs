@@ -78,19 +78,6 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _dropIfExistsSql;
-    public async Task DropIfExists()
-    {
-        await _messageStore.DropUnderlyingTable();
-        await _mySqlUnderlyingRegister.DropUnderlyingTable();
-        await _timeoutStore.DropUnderlyingTable();
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        _dropIfExistsSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}";
-        await using var command = new MySqlCommand(_dropIfExistsSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _truncateTablesSql;
     public async Task TruncateTables()
     {

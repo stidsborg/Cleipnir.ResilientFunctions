@@ -15,8 +15,8 @@ internal static class Program
 
         var connStr = "Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!; Include Error Detail=true;";
         var store = new PostgreSqlFunctionStore(connStr);
-        await store.DropIfExists();
         await store.Initialize();
+        await store.TruncateTables();
         var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
