@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -34,16 +33,6 @@ public class Source : IReactiveChain<object>
         }
     }
     
-    public Source(ITimeoutProvider timeoutProvider) 
-    {
-        _timeoutProvider = timeoutProvider;
-        _defaultDelay = TimeSpan.FromMilliseconds(10);
-        _defaultMaxWait = TimeSpan.MaxValue;
-        _syncStore = _ => new InterruptCount(0).ToTask();
-        _isWorkflowRunning = () => true;
-        _initialSyncPerformed = () => true;
-    }
-
     public Source(
         ITimeoutProvider timeoutProvider, 
         SyncStore syncStore, 

@@ -2,10 +2,8 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -18,7 +16,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task StreamResultIsReflectedInAwaitable()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
 
             static async Task<int> Do(IReactiveChain<int> s) => await s.Last();
 
@@ -40,7 +38,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task StreamResultThrowsExceptionWhenNoResultIsReceivedBeforeCompletion()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
             var taken1 = source.Take(1);
 
             static async Task<int> Do(IReactiveChain<int> s) => await s.Last();
@@ -67,7 +65,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task StreamResultThrowsExceptionWhenExceptionHasBeenSignaled()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
 
             static async Task<int> Do(IReactiveChain<int> s) => await s.Last();
 

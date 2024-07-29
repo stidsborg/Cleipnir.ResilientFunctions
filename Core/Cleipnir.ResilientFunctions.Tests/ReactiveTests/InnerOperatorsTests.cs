@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -20,7 +19,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task SelectOperatorProjectsEvent()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         
         var emits = source
             .OfType<string>()
@@ -49,7 +48,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task WhereOperatorFiltersOutEmitsAsPerPredicate()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         
         var emits = source.OfType<int>().Where(n => n > 2).ToList();
         
@@ -75,7 +74,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task SubscriptionWithSkip1CompletesAfterNonSkippedSubscription()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         var next1 = source.First();
         var next2 = source.Skip(1).First();
             
@@ -92,7 +91,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task TakeUntilCompletesAfterPredicateIsMet()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
 
         var emits = source
             .OfType<int>()
@@ -117,7 +116,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task SkipUntilSkipsUntilPredicateIsMet()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
 
         var emits = source
             .OfType<int>()
@@ -146,7 +145,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task TakeOperatorCompletesAfterInput()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         
         var task = source.Take(2).ToList();
@@ -167,7 +166,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task ScanOperatorEmitsIntermediaryStateOnEachEmitTakeOperatorCompletesAfterInput()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
 
         source.SignalNext(1, new InterruptCount(1));
         var intermediaryEmits = new List<int>();
@@ -203,7 +202,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task EventsCanBeFilteredByType()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         var nextStringEmitted = source.OfType<string>().First();
         await Task.Delay(10);
         nextStringEmitted.IsCompleted.ShouldBeFalse();
@@ -222,7 +221,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public void OfTwoTypesTest()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
         
@@ -248,7 +247,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public void OfThreeTypesTest()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext(2, new InterruptCount(2));
         source.SignalNext(25L, new InterruptCount(3));
@@ -294,7 +293,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task BufferOperatorTest()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
 
         var nextTask = source.Buffer(2).First();
@@ -330,7 +329,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task BufferOperatorOnCompletionEmitsBufferContent()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
 
         var nextTask = source.Buffer(2).First();
@@ -351,7 +350,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task DistinctBySuccessfullyFiltersOutDuplicates()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext("hello", new InterruptCount(2));
 
@@ -381,7 +380,7 @@ public class InnerOperatorsTests
     [TestMethod]
     public async Task CallbackOperatorIsInvokedOnEachEmit()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext("world", new InterruptCount(2));
 

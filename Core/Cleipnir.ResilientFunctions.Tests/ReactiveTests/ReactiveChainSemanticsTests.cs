@@ -14,7 +14,7 @@ public class ReactiveChainSemanticsTests
     [TestMethod]
     public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext("world", new InterruptCount(2));
 
@@ -41,7 +41,7 @@ public class ReactiveChainSemanticsTests
     [TestMethod]
     public void StreamCanBeReplayedToCertainEventCountWhenFailedEarlySuccessfully()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         source.SignalNext("world", new InterruptCount(2));
 
@@ -71,7 +71,7 @@ public class ReactiveChainSemanticsTests
     [TestMethod]
     public void ExistingPropertyContainsPreviouslyEmittedEvents()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         source.SignalNext("hello", new InterruptCount(1));
         var existing = source.Existing.ToList();
         existing.Count.ShouldBe(1);
@@ -88,7 +88,7 @@ public class ReactiveChainSemanticsTests
     [TestMethod]
     public void StreamUnsubscribesToFutureEventsAfterDeliverExistingInvocation()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         var emitted = 0;
 
         source.SignalNext("hello", new InterruptCount(1));

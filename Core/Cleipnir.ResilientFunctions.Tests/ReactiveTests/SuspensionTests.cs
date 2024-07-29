@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -15,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task SuspensionExceptionIsThrownWhenNoEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
             source.SignalNext("hello", new InterruptCount(1));
             source.SignalNext("world", new InterruptCount(2));
 
@@ -27,7 +26,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public async Task EventIsEmittedInResultWhenEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
             source.SignalNext("hello", new InterruptCount(1));
             source.SignalNext(1, new InterruptCount(2));
             source.SignalNext("world", new InterruptCount(3));
@@ -40,7 +39,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public void TrySuspensionIsDetectedWhenNoEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
             source.SignalNext("hello", new InterruptCount(1));
             source.SignalNext("world", new InterruptCount(2));
 
@@ -53,7 +52,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         [TestMethod]
         public void EventIsEmittedInOptionResultWhenEventHasBeenEmittedFromLeafOperator()
         {
-            var source = new Source(NoOpTimeoutProvider.Instance);
+            var source = new TestSource();
             source.SignalNext("hello", new InterruptCount(1));
             source.SignalNext(1, new InterruptCount(2));
             source.SignalNext(2, new InterruptCount(3));

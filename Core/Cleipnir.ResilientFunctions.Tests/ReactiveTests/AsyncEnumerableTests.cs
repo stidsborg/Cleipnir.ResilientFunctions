@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -16,7 +15,7 @@ public class AsyncEnumerableTests
     [TestMethod]
     public async Task AsyncEnumerableSunshineTest()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         var emits = new SyncedList<string>();
         source.SignalNext("hello", new InterruptCount(1));
 
@@ -48,7 +47,7 @@ public class AsyncEnumerableTests
     [TestMethod]
     public async Task AsyncEnumerableThrownExceptionTest()
     {
-        var source = new Source(NoOpTimeoutProvider.Instance);
+        var source = new TestSource();
         var emits = new SyncedList<string>();
         source.SignalNext("hello", new InterruptCount(1));
 

@@ -24,7 +24,7 @@ public class TimeoutTests
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var timeoutProviderStub = new TimeoutProviderStub();
-        var source = new Source(timeoutProviderStub);
+        var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
@@ -49,7 +49,7 @@ public class TimeoutTests
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var timeoutProviderStub = new TimeoutProviderStub();
-        var source = new Source(timeoutProviderStub);
+        var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
@@ -75,7 +75,7 @@ public class TimeoutTests
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var timeoutProviderStub = new TimeoutProviderStub();
-        var source = new Source(timeoutProviderStub);
+        var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
@@ -93,7 +93,7 @@ public class TimeoutTests
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var timeoutProviderStub = new TimeoutProviderStub();
-        var source = new Source(timeoutProviderStub);
+        var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
