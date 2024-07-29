@@ -156,10 +156,8 @@ public abstract class MessagingTests
                 return await workflow.Messages.FirstOfType<string>(TimeSpan.Zero);
             }
         );
-        
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
-            parent.Invoke(parentFunctionId.Instance.Value, "")
-        );
+
+        await parent.Schedule(parentFunctionId.Instance.Value, "");
         
         var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
         controlPanel.ShouldNotBeNull();
