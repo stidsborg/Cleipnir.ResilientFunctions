@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -25,12 +23,11 @@ public abstract class FailedTests
     
     private async Task ExceptionThrowingFuncIsNotCompletedByWatchDog(
         Task<IFunctionStore> storeTask, 
-        bool throwUnhandledException,
-        [CallerMemberName] string callerMemberName = ""
+        bool throwUnhandledException
     )
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create(callerMemberName);
+        var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
