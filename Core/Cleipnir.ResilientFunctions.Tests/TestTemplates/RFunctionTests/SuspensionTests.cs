@@ -121,7 +121,7 @@ public abstract class SuspensionTests
         var messagesWriter = rFunc.MessageWriters.For(flowInstance); 
         await messagesWriter.AppendMessage("hello multiverse");
 
-        await BusyWait.UntilAsync(() => invocations == 2);
+        await BusyWait.Until(() => invocations == 2);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
@@ -164,7 +164,7 @@ public abstract class SuspensionTests
         var messagesWriter = rFunc.MessageWriters.For(flowInstance); 
         await messagesWriter.AppendMessage("hello multiverse");
 
-        await BusyWait.UntilAsync(() => invocations == 2);
+        await BusyWait.Until(() => invocations == 2);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

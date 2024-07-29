@@ -22,7 +22,7 @@ public class ShutdownCoordinatorTests
         shutdownCompleted.IsCompleted.ShouldBeFalse();
         runningFuncDisposable.Dispose();
         shutdownCoordinator.ShutdownInitiated.ShouldBeTrue();
-        await BusyWait.UntilAsync(() => shutdownCompleted.IsCompleted);
+        await BusyWait.Until(() => shutdownCompleted.IsCompleted);
     }
     
     [TestMethod]

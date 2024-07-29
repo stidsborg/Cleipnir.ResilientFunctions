@@ -49,7 +49,7 @@ public class AsyncSemaphoreTests
         _ = M1();
         _ = M2();
 
-        await BusyWait.UntilAsync(() => m1Flag.IsRaised && m2Flag.IsRaised);
+        await BusyWait.Until(() => m1Flag.IsRaised && m2Flag.IsRaised);
     }
     
     [TestMethod]
@@ -76,6 +76,6 @@ public class AsyncSemaphoreTests
         _ = M1();
         _ = M2();
 
-        await BusyWait.UntilAsync(() => m1Flag.IsRaised && m2Flag.IsRaised);
+        await BusyWait.Until(() => m1Flag.IsRaised && m2Flag.IsRaised);
     }
 }

@@ -26,19 +26,19 @@ public class AsyncEnumerableTests
         }
 
         var task = AwaitForeach();
-        await BusyWait.UntilAsync(() => emits.Count == 1);
+        await BusyWait.Until(() => emits.Count == 1);
         emits.Count.ShouldBe(1);
         emits[0].ShouldBe("hello");
         task.IsCompleted.ShouldBeFalse();
 
         source.SignalNext("world", new InterruptCount(2));
-        await BusyWait.UntilAsync(() => emits.Count == 2);
+        await BusyWait.Until(() => emits.Count == 2);
         emits.Count.ShouldBe(2);
         emits[1].ShouldBe("world");
         task.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        await BusyWait.Until(() => task.IsCompletedSuccessfully);
         emits.Count.ShouldBe(2);
 
         await task;
@@ -58,13 +58,13 @@ public class AsyncEnumerableTests
         }
 
         var task = AwaitForeach();
-        await BusyWait.UntilAsync(() => emits.Count == 1);
+        await BusyWait.Until(() => emits.Count == 1);
         emits.Count.ShouldBe(1);
         emits[0].ShouldBe("hello");
         task.IsCompleted.ShouldBeFalse();
 
         source.SignalError(new TimeoutException());
-        await BusyWait.UntilAsync(() => task.IsFaulted);
+        await BusyWait.Until(() => task.IsFaulted);
         await Should.ThrowAsync<TimeoutException>(task);
     }
 }

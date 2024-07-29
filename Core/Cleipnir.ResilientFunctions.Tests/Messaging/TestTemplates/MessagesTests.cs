@@ -123,7 +123,7 @@ public abstract class MessagesTests
         await messages.AppendMessage("hello world", idempotencyKey: "1");
         await messages.AppendMessage("hello universe");
 
-        await BusyWait.UntilAsync(() => task.IsCompleted);
+        await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         task.Result.Count.ShouldBe(2);
         task.Result[0].ShouldBe("hello world");
@@ -165,7 +165,7 @@ public abstract class MessagesTests
         await messages.AppendMessage("hello world", "1");
         await messages.AppendMessage("hello universe");
 
-        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        await BusyWait.Until(() => task.IsCompletedSuccessfully);
         
         task.Result.Count.ShouldBe(2);
         task.Result[0].ShouldBe("hello world");

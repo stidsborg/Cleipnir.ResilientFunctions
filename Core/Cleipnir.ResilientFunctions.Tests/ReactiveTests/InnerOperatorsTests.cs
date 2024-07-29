@@ -34,7 +34,7 @@ public class InnerOperatorsTests
         emits.IsCompleted.ShouldBeFalse();
         source.SignalCompletion();
 
-        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
+        await BusyWait.Until(() => emits.IsCompletedSuccessfully);
         emits.IsCompletedSuccessfully.ShouldBeTrue();
         
         var l = emits.Result;
@@ -59,7 +59,7 @@ public class InnerOperatorsTests
         emits.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
+        await BusyWait.Until(() => emits.IsCompletedSuccessfully);
         
         var l = emits.Result;
         l.Count.ShouldBe(2);
@@ -80,12 +80,12 @@ public class InnerOperatorsTests
             
         source.SignalNext("hello", new InterruptCount(1));
         
-        await BusyWait.UntilAsync(() => next1.IsCompletedSuccessfully);
+        await BusyWait.Until(() => next1.IsCompletedSuccessfully);
         next2.IsCompleted.ShouldBeFalse();
         
         source.SignalNext("world", new InterruptCount(2));
 
-        await BusyWait.UntilAsync(() => next2.IsCompletedSuccessfully);
+        await BusyWait.Until(() => next2.IsCompletedSuccessfully);
     }
     
     [TestMethod]
@@ -105,7 +105,7 @@ public class InnerOperatorsTests
         emits.IsCompleted.ShouldBeFalse();
         
         source.SignalNext(3, new InterruptCount(3));
-        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
+        await BusyWait.Until(() => emits.IsCompletedSuccessfully);
 
         var l = emits.Result;
         l.Count.ShouldBe(2);
@@ -134,7 +134,7 @@ public class InnerOperatorsTests
         
         source.SignalCompletion();
 
-        await BusyWait.UntilAsync(() => emits.IsCompletedSuccessfully);
+        await BusyWait.Until(() => emits.IsCompletedSuccessfully);
         
         var l = emits.Result;
         l.Count.ShouldBe(2);
@@ -152,7 +152,7 @@ public class InnerOperatorsTests
 
         source.SignalNext("world", new InterruptCount(2));
 
-        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        await BusyWait.Until(() => task.IsCompletedSuccessfully);
 
         var emits = task.Result;
         emits.Count.ShouldBe(2);
@@ -180,17 +180,17 @@ public class InnerOperatorsTests
             })
             .Last();
 
-        await BusyWait.UntilAsync(() => intermediaryEmits.Count == 1);
+        await BusyWait.Until(() => intermediaryEmits.Count == 1);
         intermediaryEmits[0].ShouldBe(1);
         lastTask.IsCompleted.ShouldBeFalse();
         
         source.SignalNext(1, new InterruptCount(2));
-        await BusyWait.UntilAsync(() => intermediaryEmits.Count == 2);
+        await BusyWait.Until(() => intermediaryEmits.Count == 2);
         intermediaryEmits[1].ShouldBe(2);
 
         source.SignalCompletion();
         
-        await BusyWait.UntilAsync(() => lastTask.IsCompletedSuccessfully);
+        await BusyWait.Until(() => lastTask.IsCompletedSuccessfully);
         
         intermediaryEmits.Count.ShouldBe(2);
         lastTask.IsCompletedSuccessfully.ShouldBeTrue();
@@ -213,7 +213,7 @@ public class InnerOperatorsTests
 
         source.SignalNext("hello", new InterruptCount(2));
 
-        await BusyWait.UntilAsync(() => nextStringEmitted.IsCompletedSuccessfully);
+        await BusyWait.Until(() => nextStringEmitted.IsCompletedSuccessfully);
         nextStringEmitted.IsCompleted.ShouldBeTrue();
         nextStringEmitted.Result.ShouldBe("hello");
     }
@@ -303,7 +303,7 @@ public class InnerOperatorsTests
         listTask.IsCompleted.ShouldBeFalse();
         source.SignalNext("world", new InterruptCount(2));
         
-        await BusyWait.UntilAsync(() => nextTask.IsCompletedSuccessfully);
+        await BusyWait.Until(() => nextTask.IsCompletedSuccessfully);
         
         var result = await nextTask;
         result.Count.ShouldBe(2);
@@ -314,7 +314,7 @@ public class InnerOperatorsTests
         source.SignalNext("universe", new InterruptCount(4));
         source.SignalCompletion();
 
-        await BusyWait.UntilAsync(() => listTask.IsCompletedSuccessfully);
+        await BusyWait.Until(() => listTask.IsCompletedSuccessfully);
         
         var list = await listTask;
         list.Count.ShouldBe(2);
@@ -336,7 +336,7 @@ public class InnerOperatorsTests
         
         source.SignalCompletion();
 
-        await BusyWait.UntilAsync(() => nextTask.IsCompleted);
+        await BusyWait.Until(() => nextTask.IsCompleted);
         nextTask.IsCompletedSuccessfully.ShouldBeTrue();
         var emitted = await nextTask;
         emitted.Count.ShouldBe(1);
@@ -365,7 +365,7 @@ public class InnerOperatorsTests
         
         source.SignalNext("world", new InterruptCount(3));
         
-        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        await BusyWait.Until(() => task.IsCompletedSuccessfully);
         
         var emitted = await task;
         emitted.Count.ShouldBe(2);
@@ -401,18 +401,18 @@ public class InnerOperatorsTests
         source.SignalNext("and", new InterruptCount(3));
         source.SignalNext("universe", new InterruptCount(4));
         
-        await BusyWait.UntilAsync(() => emittedSoFar.Count == 4);
+        await BusyWait.Until(() => emittedSoFar.Count == 4);
         
         emittedSoFar.Count.ShouldBe(4);
         emittedSoFar[2].ShouldBe("and");
         emittedSoFar[3].ShouldBe("universe");
 
-        await BusyWait.UntilAsync(() => task.IsCompletedSuccessfully);
+        await BusyWait.Until(() => task.IsCompletedSuccessfully);
         
         source.SignalNext("and", new InterruptCount(4));
         source.SignalNext("multiverse", new InterruptCount(5));
         
-        await BusyWait.UntilAsync(() => emittedSoFar.Count == 4);
+        await BusyWait.Until(() => emittedSoFar.Count == 4);
     }
 
     #endregion

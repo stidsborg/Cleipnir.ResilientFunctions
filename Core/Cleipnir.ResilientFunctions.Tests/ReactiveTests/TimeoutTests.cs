@@ -28,7 +28,7 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
-        await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
+        await BusyWait.Until(() => timeoutProviderStub.Registrations.Any());
         
         var (id, expiry) = timeoutProviderStub.Registrations.Single();
         id.ShouldBe(timeoutId);
@@ -36,7 +36,7 @@ public class TimeoutTests
         
         source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
 
-        await BusyWait.UntilAsync(() => task.IsCompleted);
+        await BusyWait.Until(() => task.IsCompleted);
         task.IsCompleted.ShouldBeTrue();
 
         await Should.ThrowAsync<NoResultException>(task);
@@ -53,11 +53,11 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
-        await BusyWait.UntilAsync(() => timeoutProviderStub.Registrations.Any());
+        await BusyWait.Until(() => timeoutProviderStub.Registrations.Any());
         
         source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
 
-        await BusyWait.UntilAsync(() => task.IsCompleted);
+        await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
 
         var option = await task;
@@ -81,7 +81,7 @@ public class TimeoutTests
         
         source.SignalNext("Hello", new InterruptCount(1));
 
-        await BusyWait.UntilAsync(() => task.IsCompleted);
+        await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         task.Result.ShouldBe("Hello");
     }
@@ -99,7 +99,7 @@ public class TimeoutTests
         
         source.SignalNext("Hello", new InterruptCount(1));
 
-        await BusyWait.UntilAsync(() => task.IsCompleted);
+        await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
         var option = task.Result;
         option.HasValue.ShouldBeTrue();

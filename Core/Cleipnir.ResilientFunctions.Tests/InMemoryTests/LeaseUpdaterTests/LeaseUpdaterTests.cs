@@ -87,7 +87,7 @@ public class LeaseUpdaterTests
     }
         
     [TestMethod]
-    public void WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
+    public async Task WhenFunctionStoreThrowsExceptionAnTheUnhandledExceptionActionIsInvokedWithAFrameworkException()
     {
         var syncedCounter = new SyncedCounter();
         var store = new LeaseUpdaterTestFunctionStore(
@@ -108,7 +108,7 @@ public class LeaseUpdaterTests
             SettingsWithDefaults.Default.Merge(settings)
         );
 
-        BusyWait.Until(() => _unhandledExceptionCatcher.ThrownExceptions.Any());
+        await BusyWait.Until(() => _unhandledExceptionCatcher.ThrownExceptions.Any());
             
         _unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
         var thrownException = _unhandledExceptionCatcher.ThrownExceptions[0];

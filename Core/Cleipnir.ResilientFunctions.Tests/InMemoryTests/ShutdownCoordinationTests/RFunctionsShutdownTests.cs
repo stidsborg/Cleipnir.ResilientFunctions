@@ -48,7 +48,7 @@ public class RFunctionsShutdownTests
         shutdownTask.IsCompleted.ShouldBeFalse();
         
         completeRFuncFlag.Raise();
-        await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
+        await BusyWait.Until(() => shutdownTask.IsCompleted);
         rFuncTask1.IsCompletedSuccessfully.ShouldBeTrue();
         rFuncTask2.IsCompletedSuccessfully.ShouldBeTrue();
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -130,7 +130,7 @@ public class RFunctionsShutdownTests
         shutdownTask.IsCompleted.ShouldBeFalse();
         
         completeRFuncFlag.Raise();
-        await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
+        await BusyWait.Until(() => shutdownTask.IsCompleted);
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -189,7 +189,7 @@ public class RFunctionsShutdownTests
         shutdownTask.IsCompleted.ShouldBeFalse();
         
         completeRFuncFlag.Raise();
-        await BusyWait.UntilAsync(() => shutdownTask.IsCompleted);
+        await BusyWait.Until(() => shutdownTask.IsCompleted);
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -221,7 +221,7 @@ public class RFunctionsShutdownTests
 
         _ = rAction("instanceId", "1");
 
-        await BusyWait.UntilAsync(() => counter.Current == 1);
+        await BusyWait.Until(() => counter.Current == 1);
 
         var shutdownTask = functionsRegistry.ShutdownGracefully();
         await Task.Delay(10);

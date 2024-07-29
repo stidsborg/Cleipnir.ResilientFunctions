@@ -29,7 +29,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             
             source.SignalCompletion();
 
-            await BusyWait.UntilAsync(() => t.IsCompleted);
+            await BusyWait.Until(() => t.IsCompleted);
             
             t.IsCompleted.ShouldBeTrue();
             t.Result.ShouldBe(5);
@@ -54,7 +54,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             await subscription.SyncStore(TimeSpan.Zero);
             subscription.PushMessages();
 
-            await BusyWait.UntilAsync(() => t.IsCompleted);
+            await BusyWait.Until(() => t.IsCompleted);
             completed.ShouldBeTrue();
             
             t.IsCompleted.ShouldBeTrue();
@@ -77,7 +77,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 
             source.SignalError(new TestException());
 
-            await BusyWait.UntilAsync(() => t.IsCompleted);
+            await BusyWait.Until(() => t.IsCompleted);
             t.IsCompleted.ShouldBeTrue();
 
             t.TaskShouldThrow<TestException>();

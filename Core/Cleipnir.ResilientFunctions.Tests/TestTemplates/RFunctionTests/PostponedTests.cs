@@ -695,7 +695,7 @@ public abstract class PostponedTests
                 return Task.CompletedTask;
             });
 
-        await BusyWait.UntilAsync(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
+        await BusyWait.Until(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
         syncedParam.Value.ShouldBe("hello");
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

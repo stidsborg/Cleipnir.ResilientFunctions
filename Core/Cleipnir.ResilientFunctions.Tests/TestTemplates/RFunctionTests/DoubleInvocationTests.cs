@@ -43,7 +43,7 @@ public abstract class DoubleInvocationTests
         
         syncTask.SetResult();
 
-        await BusyWait.UntilAsync(() => secondInvocationTask.IsCompletedSuccessfully);
+        await BusyWait.Until(() => secondInvocationTask.IsCompletedSuccessfully);
         
         secondInvocationTask.Result.ShouldBe("Hallo World");
         
@@ -75,7 +75,7 @@ public abstract class DoubleInvocationTests
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
         
         var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
-        await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
+        await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
         await Should.ThrowAsync<FunctionInvocationSuspendedException>(secondInvocationTask);
         
@@ -107,7 +107,7 @@ public abstract class DoubleInvocationTests
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
         
         var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
-        await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
+        await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
         await Should.ThrowAsync<FunctionInvocationPostponedException>(secondInvocationTask);
         
@@ -139,7 +139,7 @@ public abstract class DoubleInvocationTests
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
         
         var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
-        await BusyWait.UntilAsync(() => secondInvocationTask.IsCompleted);
+        await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
         try
         {

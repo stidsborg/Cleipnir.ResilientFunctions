@@ -181,7 +181,7 @@ public class LeafOperatorsTests
         firstOfType.IsCompleted.ShouldBeFalse();
         
         source.SignalNext(2, new InterruptCount(3));
-        await BusyWait.UntilAsync(() => firstOfType.IsCompletedSuccessfully);
+        await BusyWait.Until(() => firstOfType.IsCompletedSuccessfully);
         firstOfType.Result.ShouldBe(2);
     }
     
@@ -198,7 +198,7 @@ public class LeafOperatorsTests
         
         source.SignalNext(2, new InterruptCount(3));
         
-        await BusyWait.UntilAsync(() => firstOfType.IsCompletedSuccessfully);
+        await BusyWait.Until(() => firstOfType.IsCompletedSuccessfully);
         firstOfType.Result.ShouldBe(2);
     }
     
@@ -219,7 +219,7 @@ public class LeafOperatorsTests
         
         source.SignalCompletion();
 
-        await BusyWait.UntilAsync(() => last.IsCompletedSuccessfully);
+        await BusyWait.Until(() => last.IsCompletedSuccessfully);
         last.Result.ShouldBe(2);
     }
     
@@ -312,11 +312,11 @@ public class LeafOperatorsTests
         source.SignalNext(2, new InterruptCount(2));
         lastsTask.IsCompleted.ShouldBeFalse();
         source.SignalNext(3, new InterruptCount(3));
-        await BusyWait.UntilAsync(() => lastsTask.IsCompletedSuccessfully);
+        await BusyWait.Until(() => lastsTask.IsCompletedSuccessfully);
 
         source.SignalNext(4, new InterruptCount(4));
         
-        await BusyWait.UntilAsync(() => lastsTask.IsCompletedSuccessfully);
+        await BusyWait.Until(() => lastsTask.IsCompletedSuccessfully);
 
         var emits = lastsTask.Result;
         emits.Count.ShouldBe(3);
@@ -409,7 +409,7 @@ public class LeafOperatorsTests
         lastOfType.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        await BusyWait.UntilAsync(() => lastOfType.IsCompletedSuccessfully);
+        await BusyWait.Until(() => lastOfType.IsCompletedSuccessfully);
         lastOfType.Result.ShouldBe("world");
     }
     
@@ -426,7 +426,7 @@ public class LeafOperatorsTests
         lastOfType.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        await BusyWait.UntilAsync(() => lastOfType.IsCompletedSuccessfully);
+        await BusyWait.Until(() => lastOfType.IsCompletedSuccessfully);
 
         lastOfType.Result.ShouldBe("world");
     }
@@ -453,7 +453,7 @@ public class LeafOperatorsTests
         completion.IsCompleted.ShouldBeFalse();
         
         source.SignalCompletion();
-        await BusyWait.UntilAsync(() => completion.IsCompletedSuccessfully);
+        await BusyWait.Until(() => completion.IsCompletedSuccessfully);
     }
     
     [TestMethod]
@@ -523,7 +523,7 @@ public class LeafOperatorsTests
         next.IsCompleted.ShouldBeFalse();
         source.SignalNext("hello", new InterruptCount(1));
             
-        await BusyWait.UntilAsync(() => next.IsCompleted);
+        await BusyWait.Until(() => next.IsCompleted);
         
         next.IsFaulted.ShouldBeTrue();
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
@@ -538,7 +538,7 @@ public class LeafOperatorsTests
         next.IsCompleted.ShouldBeFalse();
         source.SignalNext("hello", new InterruptCount(1));
 
-        await BusyWait.UntilAsync(() => next.IsCompleted);
+        await BusyWait.Until(() => next.IsCompleted);
         next.IsFaulted.ShouldBeTrue();
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
     }
@@ -552,7 +552,7 @@ public class LeafOperatorsTests
         next.IsCompleted.ShouldBeFalse();
         source.SignalNext("hello", new InterruptCount(1));
             
-        await BusyWait.UntilAsync(() => next.IsCompleted);
+        await BusyWait.Until(() => next.IsCompleted);
         next.Exception!.InnerException.ShouldBeOfType<InvalidOperationException>();
     }
 

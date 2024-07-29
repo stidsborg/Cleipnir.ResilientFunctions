@@ -622,7 +622,7 @@ public abstract class ControlPanelTests
         completionTask.IsCompleted.ShouldBeFalse();
         flag.Raise();
 
-        await BusyWait.UntilAsync(() => completionTask.IsCompleted);
+        await BusyWait.Until(() => completionTask.IsCompleted);
 
         var result = await completionTask;
         result.ShouldBe("param");
@@ -655,7 +655,7 @@ public abstract class ControlPanelTests
         completionTask.IsCompleted.ShouldBeFalse();
         flag.Raise();
 
-        await BusyWait.UntilAsync(() => completionTask.IsCompleted);
+        await BusyWait.Until(() => completionTask.IsCompleted);
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
