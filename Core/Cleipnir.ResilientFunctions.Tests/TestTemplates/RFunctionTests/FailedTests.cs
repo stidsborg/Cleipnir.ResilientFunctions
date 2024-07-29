@@ -54,7 +54,8 @@ public abstract class FailedTests
                 .Invoke;
 
             await Should.ThrowAsync<Exception>(async () => await rFunc(flowInstance.ToString(), PARAM));
-            await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
+            var sf = await store.GetFunction(functionId);
+            sf.ShouldNotBeNull();
         }
         {
             var flag = new SyncedFlag();
@@ -62,7 +63,6 @@ public abstract class FailedTests
                 store, 
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
