@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Helpers;
 public static class BusyWait
 {
     private static readonly TimeSpan DefaultMaxWait = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan DefaultCheckFrequency = TimeSpan.FromMicroseconds(5);
+    private static readonly TimeSpan DefaultCheckFrequency = TimeSpan.FromMilliseconds(5);
     
     public static void Until(
         Func<bool> predicate, 
