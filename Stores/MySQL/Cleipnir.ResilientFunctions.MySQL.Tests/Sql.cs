@@ -47,7 +47,11 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
 
         private static async Task<MySqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new MySqlFunctionStore(ConnectionString);
+            var store = new MySqlFunctionStore(
+                ConnectionString,
+                tablePrefix: "T" + Guid.NewGuid().ToString("N")[..25]
+            );
+            
             await store.Initialize();
             await store.TruncateTables();
             return store;
@@ -59,7 +63,7 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests
         )
         {
             var sourceFileName = sourceFilePath
-                .Split(new[] {"\\", "/"}, StringSplitOptions.None)
+                .Split(["\\", "/"], StringSplitOptions.None)
                 .Last()
                 .Replace(".cs", "")
                 .Replace(".", "_");

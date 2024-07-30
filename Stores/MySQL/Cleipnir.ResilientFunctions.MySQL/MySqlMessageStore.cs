@@ -13,7 +13,7 @@ public class MySqlMessageStore : IMessageStore
     public MySqlMessageStore(string connectionString, string tablePrefix = "")
     {
         _connectionString = connectionString;
-        _tablePrefix = tablePrefix.ToLower();
+        _tablePrefix = tablePrefix;
     }
 
     private string? _initializeSql;
