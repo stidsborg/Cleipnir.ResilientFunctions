@@ -37,12 +37,14 @@ public class MySqlFunctionStore : IFunctionStore
         
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
+        
         _messageStore = new MySqlMessageStore(connectionString, tablePrefix);
         _effectsStore = new MySqlEffectsStore(connectionString, tablePrefix);
         _statesStore = new MySqlStatesStore(connectionString, tablePrefix);
         _correlationStore = new MySqlCorrelationStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
-        _mySqlUnderlyingRegister = new(connectionString, _tablePrefix);
+        _mySqlUnderlyingRegister = new MySqlUnderlyingRegister(connectionString, tablePrefix);
+        
         Utilities = new Utilities(_mySqlUnderlyingRegister);
     }
 
