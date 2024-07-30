@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -19,32 +19,55 @@ public enum ResiliencyLevel
 
 public class Effect
 {
-    private readonly Dictionary<EffectId, StoredEffect> _effectResults;
+    private readonly Func<Task<IEnumerable<StoredEffect>>> _existingEffectsFunc;
+    private Dictionary<EffectId, StoredEffect>? _effectResults;
+
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
     private readonly FlowId _flowId;
     private readonly object _sync = new();
     
-    public Effect(FlowId flowId, IEnumerable<StoredEffect> existingEffects, IEffectsStore effectsStore, ISerializer serializer)
+    public Effect(FlowId flowId, Func<Task<IEnumerable<StoredEffect>>> existingEffectsFunc, IEffectsStore effectsStore, ISerializer serializer)
     {
         _flowId = flowId;
+        _existingEffectsFunc = existingEffectsFunc;
         _effectsStore = effectsStore;
         _serializer = serializer;
-
-        _effectResults = existingEffects.ToDictionary(sa => sa.EffectId, sa => sa);
     }
-
-    public bool Contains(string id)
+    
+    private async Task<Dictionary<EffectId, StoredEffect>> GetEffectResults()
     {
         lock (_sync)
-            return _effectResults.ContainsKey(id);
+            if (_effectResults is not null)
+                return _effectResults;
+
+        var existingEffects = await _existingEffectsFunc();
+        var effectResults = existingEffects
+            .ToDictionary(e => e.EffectId, e => e); 
+        
+        lock (_sync)
+            if (_effectResults is null)
+                _effectResults = effectResults;
+            else
+                effectResults = _effectResults;
+        
+        return effectResults;
+    }
+    
+    public async Task<bool> Contains(string id)
+    {
+        var effectResults = await GetEffectResults();
+        
+        lock (_sync)
+            return effectResults.ContainsKey(id);
     }
 
     public async Task<T> CreateOrGet<T>(string id, T value)
     {
+        var effectResults = await GetEffectResults();
         lock (_sync)
         {
-            if (_effectResults.TryGetValue(id, out var existing) && existing.WorkStatus == WorkStatus.Completed)
+            if (effectResults.TryGetValue(id, out var existing) && existing.WorkStatus == WorkStatus.Completed)
                 return _serializer.DeserializeEffectResult<T>(existing.Result!);
             
             if (existing?.StoredException != null)
@@ -55,50 +78,52 @@ public class Effect
         await _effectsStore.SetEffectResult(_flowId, storedEffect);
 
         lock (_sync)
-            _effectResults[id] = storedEffect;
+            effectResults[id] = storedEffect;
         
         return value;
     }
 
     public async Task Upsert<T>(string id, T value)
     {
+        var effectResults = await GetEffectResults();
+        
         var storedEffect = new StoredEffect(id, WorkStatus.Completed, _serializer.SerializeEffectResult(value), StoredException: null);
         await _effectsStore.SetEffectResult(_flowId, storedEffect);
-
+        
         lock (_sync)
-            _effectResults[id] = storedEffect;
+            effectResults[id] = storedEffect;
     }
 
-    public bool TryGet<T>(string id, [NotNullWhen(true)] out T? value)
+    public async Task<Option<T>> TryGet<T>(string id)
     {
+        var effectResults = await GetEffectResults();
+        
         lock (_sync)
         {
-            if (_effectResults.TryGetValue(id, out var storedEffect))
+            if (effectResults.TryGetValue(id, out var storedEffect))
             {
                 if (storedEffect.WorkStatus == WorkStatus.Completed)
                 {
-                    value = _serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
-                    return true;    
+                    var value = _serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
+                    return new Option<T>(value);    
                 }
                 
                 if (storedEffect.StoredException != null)
                     throw new EffectException(_flowId, id, _serializer.DeserializeException(storedEffect.StoredException!));
             }
         }
-
-        value = default;
-        return false;
+        
+        return Option<T>.NoValue;
     }
     
-    public T Get<T>(string id)
+    public async Task<T> Get<T>(string id)
     {
-        lock (_sync)
-        {
-            if (!TryGet(id, out T? value))
-                throw new InvalidOperationException($"No value exists for id: '{id}'");
+        var option = await TryGet<T>(id);
+        
+        if (!option.HasValue)
+            throw new InvalidOperationException($"No value exists for id: '{id}'");
 
-            return value!;
-        }
+        return option.Value;
     }
     
     public Task Capture(string id, Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
@@ -108,9 +133,10 @@ public class Effect
 
     public async Task Capture(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
     {
+        var effectResults = await GetEffectResults();
         lock (_sync)
         {
-            var success = _effectResults.TryGetValue(id, out var storedEffect);
+            var success = effectResults.TryGetValue(id, out var storedEffect);
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
@@ -126,7 +152,7 @@ public class Effect
                 new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null)
             );
             lock (_sync)
-                _effectResults[id] = new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null);
+                effectResults[id] = new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null);
         }
         
         try
@@ -148,7 +174,7 @@ public class Effect
             await _effectsStore.SetEffectResult(_flowId, storedEffect);
             
             lock (_sync)
-                _effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
+                effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
 
             throw;
         }
@@ -157,14 +183,15 @@ public class Effect
         await _effectsStore.SetEffectResult(_flowId,effectResult);
 
         lock (_sync)
-            _effectResults[id] = effectResult;
+            effectResults[id] = effectResult;
     }
     
     public async Task<T> Capture<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
     {
+        var effectResults = await GetEffectResults();
         lock (_sync)
         {
-            var success = _effectResults.TryGetValue(id, out var storedEffect);
+            var success = effectResults.TryGetValue(id, out var storedEffect);
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return (storedEffect.Result == null ? default : JsonSerializer.Deserialize<T>(storedEffect.Result))!;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
@@ -180,7 +207,7 @@ public class Effect
                 new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null)
             );
             lock (_sync)
-                _effectResults[id] = new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null);
+                effectResults[id] = new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null);
         }
 
         T result;
@@ -203,7 +230,7 @@ public class Effect
             await _effectsStore.SetEffectResult(_flowId, storedEffect);
             
             lock (_sync)
-                _effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
+                effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
 
             throw;
         }
@@ -212,20 +239,21 @@ public class Effect
         await _effectsStore.SetEffectResult(_flowId,effectResult);
 
         lock (_sync)
-            _effectResults[id] = effectResult;
+            effectResults[id] = effectResult;
         
         return result;
     }
 
     public async Task Clear(string id)
     {
+        var effectResults = await GetEffectResults();
         lock (_sync)
-            if (!_effectResults.ContainsKey(id))
+            if (!effectResults.ContainsKey(id))
                 return;
         
         await _effectsStore.DeleteEffectResult(_flowId, id);
         lock (_sync)
-            _effectResults.Remove(id);
+            effectResults.Remove(id);
     }
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)

@@ -43,4 +43,8 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
     [TestMethod]
     public override Task EffectsCrudTest()
         => EffectsCrudTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+
+    [TestMethod]
+    public override Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue()
+        => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
 }

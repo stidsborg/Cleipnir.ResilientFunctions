@@ -389,14 +389,15 @@ internal class InvocationHelper<TParam, TReturn>
         return messages;
     }
 
-    public async Task<Effect> CreateEffect(FlowId flowId, bool sync)
+    public Effect CreateEffect(FlowId flowId)
     {
         var effectsStore = _functionStore.EffectsStore;
-        var existingActivities = sync 
-            ? await effectsStore.GetEffectResults(flowId)
-            : Enumerable.Empty<StoredEffect>();
-        
-        return new Effect(flowId, existingActivities, effectsStore, _settings.Serializer);
+        return new Effect(
+            flowId,
+            () => effectsStore.GetEffectResults(flowId),
+            effectsStore,
+            _settings.Serializer
+        );
     }
 
     public async Task<States> CreateStates(FlowId flowId, string? defaultState, bool sync)

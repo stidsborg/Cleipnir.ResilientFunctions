@@ -189,7 +189,7 @@ public class Invoker<TParam, TReturn>
                 sync: false
             );
             
-            var effect = await _invocationHelper.CreateEffect(flowId, sync: false);
+            var effect = _invocationHelper.CreateEffect(flowId);
             var states = await _invocationHelper.CreateStates(flowId, defaultState: null, sync: false);
             var correlations = await _invocationHelper.CreateCorrelations(flowId, sync: false);
             var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations);
@@ -238,13 +238,12 @@ public class Invoker<TParam, TReturn>
                 ScheduleRestart,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 sync: true));
-            var effectsTask = Task.Run(() => _invocationHelper.CreateEffect(flowId, sync: true));
             var statesTask = Task.Run(() => _invocationHelper.CreateStates(flowId, defaultState, sync: true));
             var correlationsTask = Task.Run(() => _invocationHelper.CreateCorrelations(flowId, sync: true));
             var workflow = new Workflow(
                 flowId,
                 await messagesTask,
-                await effectsTask,
+                _invocationHelper.CreateEffect(flowId),
                 await statesTask,
                 _utilities,
                 await correlationsTask

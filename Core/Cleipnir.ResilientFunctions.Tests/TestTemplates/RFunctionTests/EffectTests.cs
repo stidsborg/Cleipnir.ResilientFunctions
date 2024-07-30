@@ -19,8 +19,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -36,18 +36,18 @@ public abstract class EffectTests
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+            store.GetFunction(flowId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
-        var controlPanel = await rAction.ControlPanel(functionId.Instance);
+        var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
-        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults = await store.EffectsStore.GetEffectResults(flowId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
@@ -57,8 +57,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -73,18 +73,18 @@ public abstract class EffectTests
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+            store.GetFunction(flowId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
 
-        var controlPanel = await rAction.ControlPanel(functionId.Instance);
+        var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
-        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults = await store.EffectsStore.GetEffectResults(flowId);
         effectResults.Single(r => r.EffectId == "Test").WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
@@ -94,8 +94,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -114,20 +114,20 @@ public abstract class EffectTests
         await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+            store.GetFunction(flowId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
-        var controlPanel = await rAction.ControlPanel(functionId.Instance);
+        var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
-        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults = await store.EffectsStore.GetEffectResults(flowId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
@@ -139,8 +139,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -159,20 +159,20 @@ public abstract class EffectTests
         await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+            store.GetFunction(flowId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
 
-        var controlPanel = await rAction.ControlPanel(functionId.Instance);
+        var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
-        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults = await store.EffectsStore.GetEffectResults(flowId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
@@ -184,8 +184,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -204,21 +204,21 @@ public abstract class EffectTests
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Failed)
+            store.GetFunction(flowId).SelectAsync(sf => sf?.Status == Status.Failed)
         );
         
         syncedCounter.Current.ShouldBe(1);
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
         storedEffect.StoredException.ShouldNotBeNull();
         storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
 
-        var controlPanel = await rAction.ControlPanel(functionId.Instance);
+        var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await Should.ThrowAsync<EffectException>(() => controlPanel.Restart());
         
-        effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        effectResults = await store.EffectsStore.GetEffectResults(flowId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
         storedEffect.StoredException.ShouldNotBeNull();
@@ -231,8 +231,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc(
             flowType,
             async Task<int> (string param, Workflow workflow) =>
@@ -246,7 +246,7 @@ public abstract class EffectTests
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
         result.ShouldBe(2);
         
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAny");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
@@ -257,8 +257,8 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc(
             flowType,
             async Task<int[]> (string param, Workflow workflow) =>
@@ -272,7 +272,7 @@ public abstract class EffectTests
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
         result.ShouldBe(new [] { 1, 2 });
         
-        var effectResults = await store.EffectsStore.GetEffectResults(functionId);
+        var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAll");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
@@ -283,11 +283,11 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
 
         await store.CreateFunction(
-            functionId,
+            flowId,
             Test.SimpleStoredParameter,
             leaseExpiration: (DateTime.UtcNow + TimeSpan.FromMinutes(10)).Ticks,
             postponeUntil: null,
@@ -302,7 +302,7 @@ public abstract class EffectTests
                 await effect.Clear("SomeEffect");
             });
 
-        var controlPanel = await registration.ControlPanel(functionId.Instance);
+        var controlPanel = await registration.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Effects.SetSucceeded("SomeEffect");
@@ -316,16 +316,16 @@ public abstract class EffectTests
     public async Task EffectsCrudTest(Task<IFunctionStore> storeTask)
     {  
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var flowId = TestFlowId.Create();
         var effect = new Effect(
-            functionId,
-            existingEffects: Array.Empty<StoredEffect>(),
+            flowId,
+            existingEffectsFunc: () => store.EffectsStore.GetEffectResults(flowId),
             store.EffectsStore,
             DefaultSerializer.Instance
         );
         
-        var success = effect.TryGet("Id1", out int value);
-        success.ShouldBeFalse();
+        var option = await effect.TryGet<int>("Id1");
+        option.HasValue.ShouldBeFalse();
                 
         Should.Throw<InvalidOperationException>(() => effect.Get<int>("Id1"));
 
@@ -334,12 +334,40 @@ public abstract class EffectTests
         result = await effect.CreateOrGet("Id1", 100);
         result.ShouldBe(32);
                 
-        success = effect.TryGet("Id1", out int value2);
-        success.ShouldBeTrue();
+        option = await effect.TryGet<int>("Id1");
+        option.HasValue.ShouldBeTrue();
+        var value2 = option.Value;
         value2.ShouldBe(32);
-        effect.Get<int>("Id1").ShouldBe(32);
+        (await effect.Get<int>("Id1")).ShouldBe(32);
                 
         await effect.Upsert("Id1", 100);
-        effect.Get<int>("Id1").ShouldBe(100);
+        (await effect.Get<int>("Id1")).ShouldBe(100);
+    }
+    
+    public abstract Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue();
+    public async Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var syncedCounter = new SyncedCounter();
+        
+        var effect = new Effect(
+            flowId,
+            existingEffectsFunc: () =>
+            {
+                syncedCounter.Increment();
+                return Enumerable.Empty<StoredEffect>().ToTask();
+            },
+            store.EffectsStore,
+            DefaultSerializer.Instance
+        );
+        
+        syncedCounter.Current.ShouldBe(0);
+        
+        await effect.TryGet<int>("Id1");
+        syncedCounter.Current.ShouldBe(1);
+        
+        await effect.TryGet<int>("Id1");
+        syncedCounter.Current.ShouldBe(1);
     }
 }
