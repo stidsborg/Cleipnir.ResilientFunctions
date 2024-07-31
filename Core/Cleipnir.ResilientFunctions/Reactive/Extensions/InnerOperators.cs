@@ -101,10 +101,10 @@ public static class InnerOperators
             });
     }
 
-    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, TimeSpan expiresIn, bool overwrite = false)
-        => new TimeoutOperator<object>(s.Source, timeoutEventId, DateTime.UtcNow.Add(expiresIn), overwrite);
-    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, DateTime expiresAt, bool overwrite = false)
-        => new TimeoutOperator<object>(s.Source, timeoutEventId, expiresAt, overwrite);
+    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, TimeSpan expiresIn)
+        => new TimeoutOperator<object>(s.Source, timeoutEventId, DateTime.UtcNow.Add(expiresIn));
+    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, DateTime expiresAt)
+        => new TimeoutOperator<object>(s.Source, timeoutEventId, expiresAt);
 
     public static IReactiveChain<T> Skip<T>(this IReactiveChain<T> s, int toSkip)
     {

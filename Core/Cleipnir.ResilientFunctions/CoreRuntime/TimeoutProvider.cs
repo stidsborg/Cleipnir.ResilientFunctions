@@ -10,8 +10,8 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public interface ITimeoutProvider
 {
-    Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false);
-    Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false);
+    Task RegisterTimeout(string timeoutId, DateTime expiresAt);
+    Task RegisterTimeout(string timeoutId, TimeSpan expiresIn);
     Task CancelTimeout(string timeoutId);
     Task<IReadOnlyList<TimeoutEvent>> PendingTimeouts();
 }
@@ -53,21 +53,24 @@ public class TimeoutProvider : ITimeoutProvider
         return localTimeouts;
     }
     
-    public async Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false)
+    public async Task RegisterTimeout(string timeoutId, DateTime expiresAt)
     {
         var registeredTimeouts = await GetRegisteredTimeouts();
         lock (_sync)
-            if (registeredTimeouts.ContainsKey(timeoutId) && !overwrite)
+            if (registeredTimeouts.ContainsKey(timeoutId))
                 return;
             else
                 registeredTimeouts[timeoutId] = new TimeoutEvent(timeoutId, expiresAt.ToUniversalTime());
         
         expiresAt = expiresAt.ToUniversalTime();
-        await _timeoutStore.UpsertTimeout(new StoredTimeout(_flowId, timeoutId, expiresAt.Ticks), overwrite);
+        await _timeoutStore.UpsertTimeout(
+            new StoredTimeout(_flowId, timeoutId, expiresAt.Ticks),
+            overwrite: true
+        );
     }
     
-    public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
-        => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn), overwrite);
+    public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
+        => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
 
     public async Task CancelTimeout(string timeoutId)
     {

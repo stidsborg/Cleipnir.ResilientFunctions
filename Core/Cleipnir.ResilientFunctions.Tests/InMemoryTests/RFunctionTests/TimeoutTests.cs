@@ -1,6 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
@@ -11,4 +9,8 @@ public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
     [TestMethod]
     public override Task ExpiredTimeoutIsAddedToMessages()
         => ExpiredTimeoutIsAddedToMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ExpiredTimeoutMakesReactiveChainThrowTimeoutException()
+        => ExpiredTimeoutMakesReactiveChainThrowTimeoutException(FunctionStoreFactory.Create());
 }

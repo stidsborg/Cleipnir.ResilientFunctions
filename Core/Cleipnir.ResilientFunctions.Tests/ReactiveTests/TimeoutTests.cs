@@ -7,7 +7,6 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -120,7 +119,7 @@ public class TimeoutTests
         private readonly object _sync = new();
         private readonly List<Tuple<string, DateTime>> _registrations = new();
             
-        public Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false)
+        public Task RegisterTimeout(string timeoutId, DateTime expiresAt)
         {
             lock (_sync)
                 _registrations.Add(Tuple.Create(timeoutId, expiresAt));
@@ -128,7 +127,7 @@ public class TimeoutTests
             return Task.CompletedTask;
         }
 
-        public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
+        public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
             => Task.FromException(new Exception("Stub-method invocation"));
 
         public Task CancelTimeout(string timeoutId)

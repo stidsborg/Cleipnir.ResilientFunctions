@@ -13,14 +13,12 @@ public class TimeoutOperator<T> : IReactiveChain<T>
     private readonly IReactiveChain<T> _inner;
     private readonly string _timeoutId;
     private readonly DateTime _expiresAt;
-    private readonly bool _overwriteExisting;
 
-    public TimeoutOperator(IReactiveChain<T> inner, string timeoutId, DateTime expiresAt, bool overwriteExisting)
+    public TimeoutOperator(IReactiveChain<T> inner, string timeoutId, DateTime expiresAt)
     {
         _inner = inner;
         _timeoutId = timeoutId;
         _expiresAt = expiresAt;
-        _overwriteExisting = overwriteExisting;
     }
 
     public ISubscription Subscribe(Action<T> onNext, Action onCompletion, Action<Exception> onError)
@@ -29,7 +27,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             _inner, 
             _timeoutId,
             _expiresAt,
-            _overwriteExisting,
             onNext, 
             onCompletion, 
             onError
@@ -40,7 +37,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
     {
         private readonly string _timeoutId;
         private readonly DateTime _expiresAt;
-        private readonly bool _overwriteExisting;
 
         private readonly Action<T> _signalNext;
         private readonly Action _signalCompletion;
@@ -54,12 +50,11 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         
         public Subscription(
             IReactiveChain<T> inner,
-            string timeoutId, DateTime expiresAt, bool overwriteExisting,
+            string timeoutId, DateTime expiresAt,
             Action<T> signalNext, Action signalCompletion, Action<Exception> signalError)
         {
             _timeoutId = timeoutId;
             _expiresAt = expiresAt;
-            _overwriteExisting = overwriteExisting;
             _signalNext = signalNext;
             _signalCompletion = signalCompletion;
             _signalError = signalError;
@@ -82,7 +77,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
             try
             {
-                await _innerSubscription.TimeoutProvider.RegisterTimeout(_timeoutId, _expiresAt, _overwriteExisting);
+                await _innerSubscription.TimeoutProvider.RegisterTimeout(_timeoutId, _expiresAt);
             }
             catch (Exception exception)
             {

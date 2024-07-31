@@ -161,7 +161,7 @@ public abstract class TimeoutStoreTests
         pendingTimeouts.Count.ShouldBe(1);
         pendingTimeouts.Single().TimeoutId.ShouldBe("timeoutId1");
 
-        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1), overwrite: false);
+        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
         upsertCount.ShouldBe(1);
     }
     

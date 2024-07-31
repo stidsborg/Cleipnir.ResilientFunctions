@@ -8,4 +8,8 @@ public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
     [TestMethod]
     public override Task ExpiredTimeoutIsAddedToMessages()
         => ExpiredTimeoutIsAddedToMessages(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ExpiredTimeoutMakesReactiveChainThrowTimeoutException()
+        => ExpiredTimeoutMakesReactiveChainThrowTimeoutException(FunctionStoreFactory.Create());
 }
