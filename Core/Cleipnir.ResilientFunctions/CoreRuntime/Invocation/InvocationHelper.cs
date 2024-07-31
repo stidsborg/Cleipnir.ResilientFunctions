@@ -376,10 +376,7 @@ internal class InvocationHelper<TParam, TReturn>
         var messages = new Messages(messageWriter, timeoutProvider, messagesPullerAndEmitter);
 
         if (sync)
-            await Task.WhenAll(
-                timeoutProvider.PendingTimeouts(), //syncs local timeout cache inside the timeout provider
-                messages.Sync()
-            );
+            await messages.Sync();
         
         return messages;
     }
