@@ -841,7 +841,7 @@ public abstract class ControlPanelTests
                 }
                 else
                 {
-                    var existing = messages.Select(e => e.ToString()!).Existing(out _);
+                    var existing = await messages.Select(e => e.ToString()!).Take(2).ToList();
                     syncedList.AddRange(existing);
                 }
             }

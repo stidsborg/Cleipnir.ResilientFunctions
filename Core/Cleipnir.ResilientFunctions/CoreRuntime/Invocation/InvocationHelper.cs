@@ -360,7 +360,7 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public async Task<Messages> CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, bool sync)
+    public Messages CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
     {
         var messageWriter = new MessageWriter(flowId, _functionStore, Serializer, scheduleReInvocation);
         var timeoutProvider = new TimeoutProvider(flowId, _functionStore.TimeoutStore);
@@ -373,12 +373,8 @@ internal class InvocationHelper<TParam, TReturn>
             _settings.Serializer,
             timeoutProvider
         );
-        var messages = new Messages(messageWriter, timeoutProvider, messagesPullerAndEmitter);
-
-        if (sync)
-            await messages.Sync();
         
-        return messages;
+        return new Messages(messageWriter, timeoutProvider, messagesPullerAndEmitter);
     }
 
     public Effect CreateEffect(FlowId flowId)

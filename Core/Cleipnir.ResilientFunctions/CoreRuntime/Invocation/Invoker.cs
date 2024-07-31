@@ -182,11 +182,10 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
-            var messages = await _invocationHelper.CreateMessages(
+            var messages = _invocationHelper.CreateMessages(
                 flowId, 
                 ScheduleRestart, 
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
-                sync: false
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
             );
             
             var effect = _invocationHelper.CreateEffect(flowId);
@@ -232,17 +231,17 @@ public class Invoker<TParam, TReturn>
             disposables.Add(_invocationHelper.StartLeaseUpdater(flowId, epoch));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
-            
-            var messagesTask = Task.Run(() => _invocationHelper.CreateMessages(
-                flowId, 
+
+            var messages = _invocationHelper.CreateMessages(
+                flowId,
                 ScheduleRestart,
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
-                sync: true));
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
+            );
             var statesTask = Task.Run(() => _invocationHelper.CreateStates(flowId, defaultState, sync: true));
             var correlationsTask = Task.Run(() => _invocationHelper.CreateCorrelations(flowId, sync: true));
             var workflow = new Workflow(
                 flowId,
-                await messagesTask,
+                messages,
                 _invocationHelper.CreateEffect(flowId),
                 await statesTask,
                 _utilities,
