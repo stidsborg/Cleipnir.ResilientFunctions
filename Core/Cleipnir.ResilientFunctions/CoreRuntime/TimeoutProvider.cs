@@ -77,7 +77,8 @@ public class TimeoutProvider : ITimeoutProvider
     public async Task CancelTimeout(string timeoutId)
     {
         lock (_sync)
-            _localTimeouts.Remove(timeoutId); 
+            if (!_localTimeouts.Remove(timeoutId))
+                return;
         
         await _timeoutStore.RemoveTimeout(_flowId, timeoutId);   
     }

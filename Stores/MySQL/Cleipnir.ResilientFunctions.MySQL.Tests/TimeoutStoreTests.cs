@@ -33,4 +33,8 @@ public class TimeoutStoreTests : ResilientFunctions.Tests.TestTemplates.TimeoutS
     [TestMethod]
     public override Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout()
         => TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
+
+    [TestMethod]
+    public override Task CancellingNonExistingTimeoutDoesNotResultInIO()
+        => CancellingNonExistingTimeoutDoesNotResultInIO(FunctionStoreFactory.Create().SelectAsync(s => s.TimeoutStore));
 }

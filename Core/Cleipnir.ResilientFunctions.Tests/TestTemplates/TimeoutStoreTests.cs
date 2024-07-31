@@ -181,16 +181,45 @@ public abstract class TimeoutStoreTests
         await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1), overwrite: false);
         upsertCount.ShouldBe(1);
     }
+    
+    public abstract Task CancellingNonExistingTimeoutDoesNotResultInIO();
+    protected async Task CancellingNonExistingTimeoutDoesNotResultInIO(Task<ITimeoutStore> storeTask)
+    {
+        var removeCount = 0;
+        var store = new TimeoutStoreDecorator(await storeTask, removeTimeoutCallback: () => removeCount++);
+        var functionId = TestFlowId.Create();
 
+        var timeoutProvider = new TimeoutProvider(
+            functionId,
+            store,
+            messageWriter: null,
+            timeoutCheckFrequency: TimeSpan.Zero
+        );
+        
+        var pendingTimeouts = await timeoutProvider.PendingTimeouts();
+        pendingTimeouts.ShouldBeEmpty();
+
+        await timeoutProvider.RegisterTimeout("SomeOtherTimeoutId", expiresIn: TimeSpan.FromHours(1));
+        
+        await timeoutProvider.CancelTimeout("SomeTimeoutId");
+        
+        removeCount.ShouldBe(0);
+    }
+    
     private class TimeoutStoreDecorator : ITimeoutStore
     {
         private readonly ITimeoutStore _inner;
-        private readonly Action _upsertTimeoutCallback;
+        private readonly Action? _upsertTimeoutCallback;
+        private readonly Action? _removeTimeoutCallback;
 
-        public TimeoutStoreDecorator(ITimeoutStore inner, Action upsertTimeoutCallback)
+        public TimeoutStoreDecorator(
+            ITimeoutStore inner, 
+            Action? upsertTimeoutCallback = null, 
+            Action? removeTimeoutCallback = null)
         {
             _inner = inner;
             _upsertTimeoutCallback = upsertTimeoutCallback;
+            _removeTimeoutCallback = removeTimeoutCallback;
         }
 
         public Task Initialize() => _inner.Initialize();
@@ -198,13 +227,16 @@ public abstract class TimeoutStoreTests
 
         public Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
         {
-            _upsertTimeoutCallback();
+            _upsertTimeoutCallback?.Invoke();
             return _inner.UpsertTimeout(storedTimeout, overwrite);
         }
 
         public Task RemoveTimeout(FlowId flowId, string timeoutId)
-            => _inner.RemoveTimeout(flowId, timeoutId);
-
+        {
+            _removeTimeoutCallback?.Invoke();
+            return _inner.RemoveTimeout(flowId, timeoutId);
+        }
+        
         public Task Remove(FlowId flowId)
             => _inner.Remove(flowId); 
 
