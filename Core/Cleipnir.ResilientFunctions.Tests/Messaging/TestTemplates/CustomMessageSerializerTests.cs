@@ -27,7 +27,7 @@ public abstract class CustomMessageSerializerTests
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore, messagesWriter, timeoutCheckFrequency: TimeSpan.FromSeconds(1));
+        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromSeconds(1),

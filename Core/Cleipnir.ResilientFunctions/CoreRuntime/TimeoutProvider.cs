@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -15,88 +13,77 @@ public interface ITimeoutProvider
     Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false);
     Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false);
     Task CancelTimeout(string timeoutId);
-    Task<List<TimeoutEvent>> PendingTimeouts();
+    Task<IReadOnlyList<TimeoutEvent>> PendingTimeouts();
 }
 
 public class TimeoutProvider : ITimeoutProvider
 {
     private readonly ITimeoutStore _timeoutStore;
     
-    private readonly MessageWriter? _messageWriter;
-    private readonly TimeSpan _timeoutCheckFrequency;
-    private readonly HashSet<string> _localTimeouts = new();
+    private Dictionary<string, TimeoutEvent>? _localTimeouts2;
     private readonly object _sync = new();
 
     private readonly FlowId _flowId;
 
-    public TimeoutProvider(FlowId flowId, ITimeoutStore timeoutStore, MessageWriter? messageWriter, TimeSpan timeoutCheckFrequency)
+    public TimeoutProvider(FlowId flowId, ITimeoutStore timeoutStore)
     {
         _timeoutStore = timeoutStore;
-        _messageWriter = messageWriter;
-        _timeoutCheckFrequency = timeoutCheckFrequency;
         _flowId = flowId;
     }
 
-    public async Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false)
+    private async Task<Dictionary<string, TimeoutEvent>> GetRegisteredTimeouts()
     {
         lock (_sync)
-            if (_localTimeouts.Contains(timeoutId) && !overwrite)
+            if (_localTimeouts2 is not null)
+                return _localTimeouts2;
+        
+        var timeouts = await _timeoutStore.GetTimeouts(_flowId);
+        var localTimeouts = timeouts
+            .ToDictionary(
+                t => t.TimeoutId,
+                t => new TimeoutEvent(t.TimeoutId, new DateTime(t.Expiry).ToUniversalTime())
+            );
+        
+        lock (_sync)
+            if (_localTimeouts2 is null)
+                _localTimeouts2 = localTimeouts;
+            else
+                localTimeouts = _localTimeouts2;
+
+        return localTimeouts;
+    }
+    
+    public async Task RegisterTimeout(string timeoutId, DateTime expiresAt, bool overwrite = false)
+    {
+        var registeredTimeouts = await GetRegisteredTimeouts();
+        lock (_sync)
+            if (registeredTimeouts.ContainsKey(timeoutId) && !overwrite)
                 return;
+            else
+                registeredTimeouts[timeoutId] = new TimeoutEvent(timeoutId, expiresAt.ToUniversalTime());
         
         expiresAt = expiresAt.ToUniversalTime();
-        _ = RegisterLocalTimeout(timeoutId, expiresAt);
         await _timeoutStore.UpsertTimeout(new StoredTimeout(_flowId, timeoutId, expiresAt.Ticks), overwrite);
     }
     
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool overwrite = false)
         => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn), overwrite);
 
-    private async Task RegisterLocalTimeout(string timeoutId, DateTime expiresAt)
-    {
-        if (_messageWriter == null) return;
-        
-        var expiresIn = expiresAt - DateTime.UtcNow; 
-        if (expiresIn > _timeoutCheckFrequency) return;
-
-        lock (_sync)
-            _localTimeouts.Add(timeoutId);
-        
-        await Task.Delay(expiresIn.RoundUpToZero());
-        
-        lock (_sync)
-            if (!_localTimeouts.Contains(timeoutId)) return;
-
-        await _messageWriter.AppendMessage(
-            new TimeoutEvent(timeoutId, expiresAt),
-            idempotencyKey: $"Timeout¤{timeoutId}"
-        );
-
-        await CancelTimeout(timeoutId);
-    }
-
     public async Task CancelTimeout(string timeoutId)
     {
+        var registeredTimeouts = await GetRegisteredTimeouts();
         lock (_sync)
-            if (!_localTimeouts.Remove(timeoutId))
+            if (!registeredTimeouts.Remove(timeoutId))
                 return;
         
         await _timeoutStore.RemoveTimeout(_flowId, timeoutId);   
     }
 
-    public async Task<List<TimeoutEvent>> PendingTimeouts()
+    public async Task<IReadOnlyList<TimeoutEvent>> PendingTimeouts()
     {
-        var timeouts = (await _timeoutStore.GetTimeouts(_flowId)).ToList();
+        var registeredTimeouts = await GetRegisteredTimeouts();
 
         lock (_sync)
-        {
-            _localTimeouts.Clear();
-            foreach (var timeout in timeouts) 
-                _localTimeouts.Add(timeout.TimeoutId);
-        }
-        
-        return timeouts
-            .Where(t => t.FlowId == _flowId)
-            .Select(t => new TimeoutEvent(t.TimeoutId, Expiration: new DateTime(t.Expiry).ToUniversalTime()))
-            .ToList();
+            return registeredTimeouts.Values.ToList();
     }
 }

@@ -133,7 +133,7 @@ public class TimeoutTests
 
         public Task CancelTimeout(string timeoutId)
             => Task.FromException(new Exception("Stub-method invocation"));
-        public Task<List<TimeoutEvent>> PendingTimeouts()
-            => Task.FromException<List<TimeoutEvent>>(new Exception("Stub-method invocation"));
+        public Task<IReadOnlyList<TimeoutEvent>> PendingTimeouts()
+            => Task.FromException<IReadOnlyList<TimeoutEvent>>(new Exception("Stub-method invocation"));
     }
 }

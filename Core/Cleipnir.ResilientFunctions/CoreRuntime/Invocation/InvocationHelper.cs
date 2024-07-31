@@ -363,12 +363,7 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task<Messages> CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, bool sync)
     {
         var messageWriter = new MessageWriter(flowId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new TimeoutProvider(
-            flowId,
-            _functionStore.TimeoutStore,
-            messageWriter,
-            _settings.WatchdogCheckFrequency
-        );
+        var timeoutProvider = new TimeoutProvider(flowId, _functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             flowId,
             defaultDelay: _settings.MessagesPullFrequency,
