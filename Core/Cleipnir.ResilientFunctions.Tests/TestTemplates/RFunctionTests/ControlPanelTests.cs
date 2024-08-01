@@ -1521,14 +1521,14 @@ public abstract class ControlPanelTests
         var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
        
-        controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeTrue();
+        await controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeTrueAsync();
         await controlPanel.Correlations.Remove("SomeCorrelation");
         await controlPanel.Correlations.Register("SomeNewCorrelation");
 
         controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
-        controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalse();
-        controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrue();
+        await controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalseAsync();
+        await controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrueAsync();
     }
     
     public abstract Task DeleteRemovesFunctionFromAllStores();

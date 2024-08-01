@@ -5,51 +5,59 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class Correlations
+public class Correlations(FlowId flowId, ICorrelationStore correlationStore)
 {
-    private readonly FlowId _flowId;
-    private readonly HashSet<string> _registered;
-    private readonly ICorrelationStore _correlationStore;
+    private HashSet<string>? _correlations;
     private readonly object _sync = new();
 
-    public Correlations(
-        FlowId flowId,
-        IEnumerable<string> existingCorrelations,
-        ICorrelationStore correlationStore
-        )
+    private async Task<HashSet<string>> GetCorrelations()
     {
-        _flowId = flowId;
-        _registered = existingCorrelations.ToHashSet();
-        _correlationStore = correlationStore;
+        lock (_sync)
+            if (_correlations is not null)
+                return _correlations;
+
+        var correlations = (await correlationStore.GetCorrelations(flowId))
+            .ToHashSet();
+        
+        lock (_sync)
+            if (_correlations is null)
+                return _correlations = correlations;
+            else 
+                return _correlations;
     }
     
     public async Task Register(string correlation)
     {
-        lock (_sync)
-            if (_registered.Contains(correlation))
-                return;
-
-        await _correlationStore.SetCorrelation(_flowId, correlation);
+        var registered = await GetCorrelations();
         
         lock (_sync)
-            _registered.Add(correlation);
+            if (registered.Contains(correlation))
+                return;
+
+        await correlationStore.SetCorrelation(flowId, correlation);
+        
+        lock (_sync)
+            registered.Add(correlation);
     }
 
-    public bool Contains(string correlation)
+    public async Task<bool> Contains(string correlation)
     {
+        var registered = await GetCorrelations();
         lock (_sync)
-            return _registered.Contains(correlation);
+            return registered.Contains(correlation);
     }
 
     public async Task Remove(string correlation)
     {
+        var registered = await GetCorrelations();
+        
         lock (_sync)
-            if (!_registered.Contains(correlation))
+            if (!registered.Contains(correlation))
                 return;
 
-        await _correlationStore.RemoveCorrelation(_flowId, correlation);
+        await correlationStore.RemoveCorrelation(flowId, correlation);
 
         lock (_sync)
-            _registered.Remove(correlation);
+            registered.Remove(correlation);
     }
 }
