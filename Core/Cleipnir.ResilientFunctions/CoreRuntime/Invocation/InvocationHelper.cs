@@ -388,22 +388,18 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public async Task<States> CreateStates(FlowId flowId, string? defaultState, bool sync)
+    public States CreateStates(FlowId flowId, string? defaultState)
     {
         var statesStore = _functionStore.StatesStore;
         var serializer = _settings.Serializer;
-        if (!sync)
-            return new States(
-                flowId,
-                defaultState,
-                existingStates: Enumerable.Empty<StoredState>(),
-                _functionStore,
-                statesStore,
-                serializer
-            );
 
-        var existingStoredStates = await statesStore.GetStates(flowId);
-        return new States(flowId, defaultState, existingStoredStates, _functionStore, statesStore, serializer);
+        return new States(
+            flowId,
+            defaultState,
+            _functionStore,
+            statesStore,
+            serializer
+        );
     }
     
     public Correlations CreateCorrelations(FlowId flowId)

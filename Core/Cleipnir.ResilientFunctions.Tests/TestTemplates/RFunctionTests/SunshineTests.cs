@@ -131,7 +131,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterFunc(
                 flowType,
-                (string s, Workflow workflow) => ToUpper(s, workflow.States.CreateOrGet<State>("State"))
+                async Task<string> (string s, Workflow workflow) => await ToUpper(s, await workflow.States.CreateOrGet<State>("State"))
             )
             .Invoke;
 
@@ -193,7 +193,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 flowType,
-                (string s, Workflow workflow) => workflow.States.CreateOrGet<State>("State").Save()
+                async (string s, Workflow workflow) => await (await workflow.States.CreateOrGet<State>("State")).Save()
             ).Invoke;
 
         await rFunc("hello", "hello");
@@ -237,12 +237,12 @@ public abstract class SunshineTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string _, Workflow workflow) =>
+            async (string _, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<ListState<string>>("State");
+                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
                 state.List.Add("hello world");
                 state.Save().Wait();
-                return default(string).ToTask();
+                return default(string);
             }
         ).Invoke;
 
@@ -268,12 +268,12 @@ public abstract class SunshineTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string _, Workflow workflow) =>
+            async (string _, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<ListState<string>>("State");
+                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
                 state.List.Add("hello world");
                 state.Save().Wait();
-                return default(string).ToTask();
+                return default(string);
             }
         ).Invoke;
 

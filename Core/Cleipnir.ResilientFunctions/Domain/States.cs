@@ -13,10 +13,10 @@ public class States
     private readonly IStatesStore _statesStore;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
-    private readonly Dictionary<StateId, StoredState> _existingStoredStates;
-    private readonly Dictionary<StateId, FlowState> _existingStates;
+    private Dictionary<StateId, StoredState>? _existingStoredStates;
+    private readonly Dictionary<StateId, FlowState> _existingStates = new();
 
-    private string? _defaultStateJson;
+    private readonly string? _defaultStateJson;
     private FlowState? _defaultState;
     private Func<string>? _defaultStateSerializer = null;
     
@@ -25,7 +25,6 @@ public class States
     public States(
         FlowId flowId, 
         string? defaultStateJson,
-        IEnumerable<StoredState> existingStates, 
         IFunctionStore functionStore, 
         IStatesStore statesStore, 
         ISerializer serializer)
@@ -35,9 +34,20 @@ public class States
         _functionStore = functionStore;
         _serializer = serializer;
         _defaultStateJson = defaultStateJson;
+    }
 
-        _existingStoredStates = existingStates.ToDictionary(s => s.StateId, s => s);
-        _existingStates = new();
+    private async Task<Dictionary<StateId, StoredState>> GetExistingStoredStates()
+    {
+        lock (_sync)
+            if (_existingStoredStates is not null) 
+                return _existingStoredStates;
+
+        var existingStates = await _statesStore.GetStates(_flowId);
+        var existingStatesDict = existingStates
+            .ToDictionary(s => s.StateId, s => s);
+        
+        lock (_sync) 
+            return _existingStoredStates ??= existingStatesDict;
     }
 
     public T CreateOrGet<T>() where T : FlowState, new()
@@ -67,20 +77,17 @@ public class States
                 : _defaultStateSerializer();
     }
 
-    public T CreateOrGet<T>(string id) where T : FlowState, new()
+    public async Task<T> CreateOrGet<T>(string id) where T : FlowState, new()
     {
         if (string.IsNullOrEmpty(id))
             throw new ArgumentException("Id must not be empty string or null", nameof(id));
 
-        return InnerGetOrCreate<T>(id);
-    }
-
-    private T InnerGetOrCreate<T>(string id) where T : FlowState, new()
-    {
+        var existingStoredStates = await GetExistingStoredStates();
+        
         lock (_sync)
             if (_existingStates.TryGetValue(id, out var state))
                 return (T)state;
-            else if (_existingStoredStates.TryGetValue(key: id, out var storedState))
+            else if (existingStoredStates.TryGetValue(key: id, out var storedState))
             {
                 var s = _serializer.DeserializeState<T>(storedState.StateJson);
                 _existingStates[id] = s;
@@ -92,23 +99,29 @@ public class States
                 var newState = new T();
                 newState.Initialize(onSave: () => SaveState(id, newState));
                 _existingStates[id] = newState;
+                existingStoredStates[id] = new StoredState(id, _serializer.SerializeState(newState));
                 return newState;
             }
     }
     
     public async Task Remove(string id)
     {
+        var existingStoredStates = await GetExistingStoredStates(); 
+        
         if (string.IsNullOrEmpty(id))
             throw new ArgumentException("Id must not be empty string or null", nameof(id));
         
         lock (_sync)
-        {
-            var success = _existingStates.Remove(id);
-            if (!success)
+            if (!existingStoredStates.ContainsKey(id))
                 return;
-        }
-
+        
         await _statesStore.RemoveState(_flowId, id);
+
+        lock (_sync)
+        {
+            existingStoredStates.Remove(id);
+            _existingStates.Remove(id);
+        }
     }
 
     private async Task SaveState<T>(string id, T state) where T : FlowState, new()

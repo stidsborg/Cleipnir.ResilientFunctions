@@ -156,7 +156,7 @@ public abstract class WatchdogCompoundTests
                 flowType,
                 async (Param p, Workflow flow) =>
                 {
-                    var state = flow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await flow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(1);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -190,7 +190,7 @@ public abstract class WatchdogCompoundTests
                 async (p, workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(2);
                     await state.Save();
                     return Postpone.For(100);
@@ -217,7 +217,7 @@ public abstract class WatchdogCompoundTests
                 flowType,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(3);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -243,7 +243,7 @@ public abstract class WatchdogCompoundTests
                 flowType,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(4);
                     await state.Save();
                     return $"{p.Id}-{p.Value}";
@@ -409,7 +409,7 @@ public abstract class WatchdogCompoundTests
                 flowType,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(1);
                     await state.Save();
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
@@ -442,7 +442,7 @@ public abstract class WatchdogCompoundTests
                     async (Param p, Workflow workflow) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
-                        var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                        var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                         state.Scraps.Add(2);
                         await state.Save();
                         
@@ -471,7 +471,7 @@ public abstract class WatchdogCompoundTests
                 flowType,
                 async (Param p, Workflow workflow) =>
                 {
-                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(3);
                     await state.Save();
                     var savedTask = state.Save();
@@ -501,7 +501,7 @@ public abstract class WatchdogCompoundTests
                 async (Param p, Workflow workflow) =>
                 {
                     _ = Task.Run(() => paramTcs.TrySetResult(p));
-                    var state = workflow.States.CreateOrGet<ListState>("Scraps");
+                    var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(4);
                     await state.Save();
                 }

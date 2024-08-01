@@ -104,7 +104,7 @@ public abstract class PostponedTests
                     flowType,
                     async (string s, Workflow workflow) =>
                     {
-                        var state = workflow.States.CreateOrGet<State>("State");
+                        var state = await workflow.States.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                         return s.ToUpper();
@@ -232,7 +232,7 @@ public abstract class PostponedTests
                     flowType,
                     async (string _, Workflow workflow) =>
                     {
-                        var state = workflow.States.CreateOrGet<State>("State");
+                        var state = await workflow.States.CreateOrGet<State>("State");
                         state.Value = 1;
                         await state.Save();
                     }

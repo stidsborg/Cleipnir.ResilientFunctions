@@ -84,7 +84,7 @@ public abstract class ScheduleReInvocationTests
             flowType,
             async (param, workflow) =>
             {
-                var state = workflow.States.CreateOrGet<ListState<string>>("State");
+                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");
@@ -189,7 +189,7 @@ public abstract class ScheduleReInvocationTests
             flowType,
             async (param, workflow) =>
             {
-                var state = workflow.States.CreateOrGet<ListState<string>>("State");
+                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     state.List.Add("hello");

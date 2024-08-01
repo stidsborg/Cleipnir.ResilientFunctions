@@ -392,12 +392,11 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task (string param, Workflow workflow) =>
+            async Task (string param, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<TestState>("State");
+                var state = await workflow.States.CreateOrGet<TestState>("State");
                 state.Value = param;
-                state.Save().Wait();
-                return Task.CompletedTask;
+                await state.Save();
             });
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -470,12 +469,11 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task (string param, Workflow workflow) =>
+            async Task (string param, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<TestState>("State");
+                var state = await workflow.States.CreateOrGet<TestState>("State");
                 state.Value = param;
-                state.Save().Wait();
-                return Task.CompletedTask;
+                await state.Save();
             });
 
         await rAction.Invoke(flowInstance.Value, param: "first");
@@ -1342,7 +1340,7 @@ public abstract class ControlPanelTests
                 state.Value = param;
                 await state.Save();
                 
-                var namedState = workflow.States.CreateOrGet<State>("SomeId");
+                var namedState = await workflow.States.CreateOrGet<State>("SomeId");
                 namedState.Value = "NamedValue";
                 await namedState.Save();
                 

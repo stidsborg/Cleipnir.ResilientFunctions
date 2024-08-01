@@ -54,6 +54,36 @@ public abstract class StateTests
         state.Value.ShouldBe("SomeValue");
     }
     
+    public abstract Task ExistingStateCanBeDeleted();
+    protected async Task ExistingStateCanBeDeleted(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var funcRegistration = functionsRegistry.RegisterAction(
+            flowType,
+            async Task(string param, Workflow workflow) =>
+            {
+                var state = await workflow.States.CreateOrGet<State>("id");
+                state.Value = "SomeValue";
+                await state.Save();
+
+                await workflow.States.Remove("id");
+            }
+        );
+
+        await funcRegistration.Invoke(flowInstance.Value, param: "");
+
+        var controlPanel = await funcRegistration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+
+        controlPanel.States.HasState("id").ShouldBeFalse();
+    }
+    
     public abstract Task StateCanBeFetchedFromActionRegistration();
     protected async Task StateCanBeFetchedFromActionRegistration(Task<IFunctionStore> storeTask)
     {
