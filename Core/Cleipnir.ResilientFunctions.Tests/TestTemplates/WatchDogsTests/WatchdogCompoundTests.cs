@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -56,7 +55,6 @@ public abstract class WatchdogCompoundTests
             //second invocation is delayed
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var afterNextSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
 
             using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
@@ -74,7 +72,7 @@ public abstract class WatchdogCompoundTests
                     return Postpone.For(100).ToResult<string>().ToTask();
                 });
             
-            await afterNextSetFunctionState;
+            await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
             crashableStore.Crash();
             await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
@@ -175,8 +173,6 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
-            var afterNextPostponedSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
-
             using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
                 new Settings(
@@ -196,7 +192,7 @@ public abstract class WatchdogCompoundTests
                     return Postpone.For(100);
                 });
             
-            await afterNextPostponedSetFunctionState;
+            await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
             crashableStore.Crash();
             await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
@@ -306,7 +302,6 @@ public abstract class WatchdogCompoundTests
         {
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var afterSetFunctionState = crashableStore.AfterPostponeFunctionStream.Take(1);
             
             using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
@@ -326,7 +321,7 @@ public abstract class WatchdogCompoundTests
                     }
                 );
 
-            await afterSetFunctionState;
+            await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
             crashableStore.Crash();
             await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);
@@ -427,7 +422,6 @@ public abstract class WatchdogCompoundTests
             //second invocation is delayed
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            var afterNextPostponed = crashableStore.AfterPostponeFunctionStream.Take(1);
 
             using var functionsRegistry = new FunctionsRegistry(
                 crashableStore,
@@ -449,7 +443,7 @@ public abstract class WatchdogCompoundTests
                         return Postpone.For(100);
                     });
             
-            await afterNextPostponed;
+            await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
             crashableStore.Crash();
             await Task.Yield();
             paramTcs.Task.Result.ShouldBe(param);

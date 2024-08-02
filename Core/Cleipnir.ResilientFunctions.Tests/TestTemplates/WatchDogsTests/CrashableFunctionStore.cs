@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 
@@ -15,22 +15,13 @@ public class CrashableFunctionStore : IFunctionStore
     private volatile bool _crashed;
 
     private readonly object _sync = new();
-    private readonly Subject<long> _afterPostponeFunctionSubject = new();
+    public SyncedFlag AfterPostponeFunctionFlag { get; } = new();
     public IMessageStore MessageStore => _crashed ? throw new TimeoutException() : _inner.MessageStore;
     public IEffectsStore EffectsStore => _crashed ? throw new TimeoutException() : _inner.EffectsStore;
     public IStatesStore StatesStore => _crashed ? throw new TimeoutException() : _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _crashed ? throw new TimeoutException() : _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
-
-    public IObservable<long> AfterPostponeFunctionStream
-    {
-        get
-        {
-            lock (_sync)
-                return _afterPostponeFunctionSubject;
-        }
-    }
 
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;
 
@@ -122,7 +113,7 @@ public class CrashableFunctionStore : IFunctionStore
             throw new TimeoutException();
 
         var result = await _inner.PostponeFunction(flowId, postponeUntil, defaultState, timestamp, expectedEpoch, complimentaryState);
-        _afterPostponeFunctionSubject.OnNext(postponeUntil);
+        AfterPostponeFunctionFlag.Raise();
 
         return result;
     } 
