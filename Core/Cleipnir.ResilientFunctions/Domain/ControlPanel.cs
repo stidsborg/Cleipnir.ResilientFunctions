@@ -122,7 +122,10 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public DateTime LeaseExpiration { get; private set; }
     
     public ExistingMessages Messages { get; private set; }
-    public Task<ExistingEffects> Effects => _invocationHelper.CreateExistingEffects(FlowId); 
+    
+    private Task<ExistingEffects>? _effects;
+    public Task<ExistingEffects> Effects => _effects ??= _invocationHelper.CreateExistingEffects(FlowId); 
+
     public ExistingStates States { get; private set; }
     public Correlations Correlations { get; private set; }
 
