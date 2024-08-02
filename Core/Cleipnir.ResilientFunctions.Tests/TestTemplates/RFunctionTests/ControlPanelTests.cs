@@ -1270,12 +1270,12 @@ public abstract class ControlPanelTests
         
         var secondControlPanel = await rAction.ControlPanel(flowInstance.Value);
         secondControlPanel.ShouldNotBeNull();
-
+        await secondControlPanel.Effects.HasValue("Id").ShouldBeAsync(false);
+        
         await firstControlPanel.Effects.SetSucceeded("Id", "SomeResult");
         
-        secondControlPanel.Effects.HasValue("Id").ShouldBe(false);
         await secondControlPanel.Refresh();
-        secondControlPanel.Effects.GetValue<string>("Id").ShouldBe("SomeResult");
+        await secondControlPanel.Effects.GetValue<string>("Id").ShouldBeAsync("SomeResult");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

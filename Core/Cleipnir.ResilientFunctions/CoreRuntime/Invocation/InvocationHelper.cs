@@ -417,7 +417,7 @@ internal class InvocationHelper<TParam, TReturn>
             _settings.Serializer
         );
     
-    public async Task<ExistingEffects> GetExistingEffects(FlowId flowId)
+    public async Task<ExistingEffects> CreateExistingEffects(FlowId flowId)
     {
         var effectsStore = _functionStore.EffectsStore;
         var existingEffects = await effectsStore.GetEffectResults(flowId);

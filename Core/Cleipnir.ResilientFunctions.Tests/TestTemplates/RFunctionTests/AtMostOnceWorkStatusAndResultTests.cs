@@ -180,7 +180,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         await controlPanel.Refresh();
 
         var value = controlPanel.Effects.GetValue<string>("someId");
-        value.ShouldBe("hello world");
+        await value.ShouldBeAsync("hello world");
     }
     
     public abstract Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes();
@@ -214,6 +214,6 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         await controlPanel.Refresh();
 
         var value = controlPanel.Effects.GetValue<Person>("someId");
-        value.ShouldBe(new Person("Peter", 32));
+        await value.ShouldBeAsync(new Person("Peter", 32));
     }
 }

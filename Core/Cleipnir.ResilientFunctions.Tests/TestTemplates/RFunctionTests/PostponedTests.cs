@@ -855,6 +855,6 @@ public abstract class PostponedTests
         controlPanel.ShouldNotBeNull();
 
         var delay = controlPanel.Effects.GetValue<DateTime>("Delay");
-        delay.ShouldBe(tomorrow);
+        await delay.ShouldBeAsync(tomorrow);
     }
 }

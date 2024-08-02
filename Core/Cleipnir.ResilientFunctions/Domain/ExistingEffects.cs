@@ -63,3 +63,30 @@ public class ExistingEffects
     public Task SetFailed(string effectId, Exception exception)
         => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: _serializer.SerializeException(exception)));
 }
+
+public static class ExistingEffectsExtensions
+{
+    public static async Task<bool> HasValue(this Task<ExistingEffects> existingEffects, string effectId)
+        => (await existingEffects).HasValue(effectId);
+
+    public static async Task<TResult?> GetValue<TResult>(this Task<ExistingEffects> existingEffects, string effectId)
+        => (await existingEffects).GetValue<TResult>(effectId);
+
+    public static async Task Remove(this Task<ExistingEffects> existingEffects, string effectId)
+        => await (await existingEffects).Remove(effectId);
+    
+    public static async Task SetValue<TValue>(this Task<ExistingEffects> existingEffects, string effectId, TValue value) 
+        => await (await existingEffects).SetValue(effectId, value);
+
+    public static async Task SetStarted(this Task<ExistingEffects> existingEffects, string effectId) 
+        => await (await existingEffects).SetStarted(effectId);
+    
+    public static async Task SetSucceeded(this Task<ExistingEffects> existingEffects, string effectId)
+        => await (await existingEffects).SetSucceeded(effectId);
+    
+    public static async Task SetSucceeded<TResult>(this Task<ExistingEffects> existingEffects, string effectId, TResult result)
+        => await (await existingEffects).SetSucceeded(effectId, result);
+
+    public static async Task SetFailed(this Task<ExistingEffects> existingEffects, string effectId, Exception exception)
+        => await (await existingEffects).SetFailed(effectId, exception);
+}

@@ -47,7 +47,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance);
-        controlPanel!.Effects.GetValue<int>("id").ShouldBe(1);
+        await controlPanel!.Effects.GetValue<int>("id").ShouldBeAsync(1);
         counter.Current.ShouldBe(2);
     }
 
@@ -189,7 +189,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         await controlPanel.Refresh();
 
         var value = controlPanel.Effects.GetValue<string>("someId");
-        value.ShouldBe("hello world");
+        await value.ShouldBeAsync("hello world");
         counter.Current.ShouldBe(1);
     }
 }

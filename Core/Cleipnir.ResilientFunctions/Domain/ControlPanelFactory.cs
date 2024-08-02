@@ -19,24 +19,23 @@ public class ControlPanelFactory
     
     public async Task<ControlPanel?> Create(FlowInstance flowInstance)
     {
-        var functionId = new FlowId(_flowType, flowInstance);
-        var functionState = await _invocationHelper.GetFunction(functionId);
+        var flowId = new FlowId(_flowType, flowInstance);
+        var functionState = await _invocationHelper.GetFunction(flowId);
         if (functionState == null)
             return null;
         
         return new ControlPanel(
             _invoker,
             _invocationHelper,
-            functionId,
+            flowId,
             functionState.Status,
             functionState.Epoch,
             functionState.LeaseExpiration,
             functionState.PostponedUntil,
-            await _invocationHelper.GetExistingEffects(functionId),
-            await _invocationHelper.GetExistingStates(functionId, functionState.DefaultState),
-            await _invocationHelper.GetExistingMessages(functionId),
-            await _invocationHelper.GetExistingTimeouts(functionId),
-            _invocationHelper.CreateCorrelations(functionId),
+            await _invocationHelper.GetExistingStates(flowId, functionState.DefaultState),
+            await _invocationHelper.GetExistingMessages(flowId),
+            await _invocationHelper.GetExistingTimeouts(flowId),
+            _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
         );
     }
@@ -58,25 +57,24 @@ public class ControlPanelFactory<TParam> where TParam : notnull
     
     public async Task<ControlPanel<TParam>?> Create(FlowInstance flowInstance)
     {
-        var functionId = new FlowId(_flowType, flowInstance);
-        var functionState = await _invocationHelper.GetFunction(functionId);
+        var flowId = new FlowId(_flowType, flowInstance);
+        var functionState = await _invocationHelper.GetFunction(flowId);
         if (functionState == null)
             return null;
         
         return new ControlPanel<TParam>(
             _invoker,
             _invocationHelper,
-            functionId,
+            flowId,
             functionState.Status,
             functionState.Epoch,
             functionState.LeaseExpiration,
             functionState.Param!,
             functionState.PostponedUntil,
-            await _invocationHelper.GetExistingEffects(functionId),
-            await _invocationHelper.GetExistingStates(functionId, functionState.DefaultState),
-            await _invocationHelper.GetExistingMessages(functionId),
-            await _invocationHelper.GetExistingTimeouts(functionId),
-            _invocationHelper.CreateCorrelations(functionId),
+            await _invocationHelper.GetExistingStates(flowId, functionState.DefaultState),
+            await _invocationHelper.GetExistingMessages(flowId),
+            await _invocationHelper.GetExistingTimeouts(flowId),
+            _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
         );
     }
@@ -97,26 +95,25 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
 
     public async Task<ControlPanel<TParam, TReturn>?> Create(FlowInstance flowInstance)
     {
-        var functionId = new FlowId(_flowType, flowInstance);
-        var f = await _invocationHelper.GetFunction(functionId);
+        var flowId = new FlowId(_flowType, flowInstance);
+        var f = await _invocationHelper.GetFunction(flowId);
         if (f == null)
             return null;
         
         return new ControlPanel<TParam, TReturn>(
             _invoker,
             _invocationHelper,
-            functionId,
+            flowId,
             f.Status,
             f.Epoch,
             f.LeaseExpiration,
             f.Param!,
             f.Result,
             f.PostponedUntil,
-            await _invocationHelper.GetExistingEffects(functionId),
-            await _invocationHelper.GetExistingStates(functionId, f.DefaultState),
-            await _invocationHelper.GetExistingMessages(functionId),
-            await _invocationHelper.GetExistingTimeouts(functionId),
-            _invocationHelper.CreateCorrelations(functionId),
+            await _invocationHelper.GetExistingStates(flowId, f.DefaultState),
+            await _invocationHelper.GetExistingMessages(flowId),
+            await _invocationHelper.GetExistingTimeouts(flowId),
+            _invocationHelper.CreateCorrelations(flowId),
             f.PreviouslyThrownException
         );
     }

@@ -309,7 +309,7 @@ public abstract class EffectTests
         await controlPanel.Restart();
 
         await controlPanel.Refresh();
-        controlPanel.Effects.All.Count.ShouldBe(0);
+        (await controlPanel.Effects).All.Count.ShouldBe(0);
     }
     
     public abstract Task EffectsCrudTest();
