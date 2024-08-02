@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -1247,6 +1248,57 @@ public abstract class ControlPanelTests
         syncedCounter.Current.ShouldBe(2);
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task EffectsAreOnlyFetchedOnPropertyInvocation();
+    protected async Task EffectsAreOnlyFetchedOnPropertyInvocation(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var crashableStore = new CrashableFunctionStore(store);
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(crashableStore, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rAction = functionsRegistry.RegisterAction(
+            flowType,
+            (string _, Workflow _) => Task.CompletedTask
+        );
+        await rAction.Invoke(flowInstance.Value, param: "param");
+        
+        var controlPanel = await rAction.ControlPanel(flowInstance.Value);
+        controlPanel.ShouldNotBeNull();
+        
+        crashableStore.Crash();
+        
+        await controlPanel.Effects.ShouldThrowAsync<TimeoutException>();
+    }
+    
+    public abstract Task EffectsAreCachedAfterInitialFetch();
+    protected async Task EffectsAreCachedAfterInitialFetch(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var crashableStore = new CrashableFunctionStore(store);
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(crashableStore, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rAction = functionsRegistry.RegisterAction(
+            flowType,
+            (string _, Workflow _) => Task.CompletedTask
+        );
+        await rAction.Invoke(flowInstance.Value, param: "param");
+        
+        var controlPanel = await rAction.ControlPanel(flowInstance.Value);
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.Effects;
+        crashableStore.Crash();
+
+        await controlPanel.Effects;
     }
     
     public abstract Task EffectsAreUpdatedAfterRefresh();

@@ -134,6 +134,10 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => ExistingEffectCanBeReplaced(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task EffectsAreCachedAfterInitialFetch()
+        => EffectsAreCachedAfterInitialFetch(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task EffectsAreUpdatedAfterRefresh()
         => EffectsAreUpdatedAfterRefresh(FunctionStoreFactory.Create());
 
@@ -152,8 +156,11 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ExistingEffectCanBeRemoved()
         => ExistingEffectCanBeRemoved(FunctionStoreFactory.Create());
-    
-    
+
+    [TestMethod]
+    public override Task EffectsAreOnlyFetchedOnPropertyInvocation()
+        => EffectsAreOnlyFetchedOnPropertyInvocation(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task ExistingTimeoutCanBeUpdatedForAction()
         => ExistingTimeoutCanBeUpdatedForAction(FunctionStoreFactory.Create());
