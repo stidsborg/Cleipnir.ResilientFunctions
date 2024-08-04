@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ExistingStates
 {
     private readonly FlowId _flowId;
-    private readonly Dictionary<StateId, StoredState> _storedStates;
+    private Dictionary<StateId, StoredState>? _storedStates;
     private readonly IFunctionStore _functionStore;
     private readonly IStatesStore _statesStore;
     private readonly ISerializer _serializer;
@@ -17,7 +17,7 @@ public class ExistingStates
     private string? _defaultStateJson;
     private FlowState? _defaultState;
 
-    public ExistingStates(FlowId flowId, string? defaultState, IEnumerable<StoredState> storedStates, IFunctionStore functionStore, ISerializer serializer)
+    public ExistingStates(FlowId flowId, string? defaultState, IFunctionStore functionStore, ISerializer serializer)
     {
         _flowId = flowId;
         _functionStore = functionStore;
@@ -25,11 +25,19 @@ public class ExistingStates
         _serializer = serializer;
 
         _defaultStateJson = defaultState;
-        _storedStates = storedStates.ToDictionary(s => s.StateId, s => s);
     }
 
-    public IEnumerable<StateId> StateIds => _storedStates.Keys;
-    public bool HasState(string stateId) => _storedStates.ContainsKey(stateId);
+    private async Task<Dictionary<StateId, StoredState>> GetStoredStates()
+    {
+        if (_storedStates is not null)
+            return _storedStates;
+
+        return _storedStates = (await _functionStore.StatesStore.GetStates(_flowId))
+            .ToDictionary(s => s.StateId, s => s);
+    }
+    
+    public Task<IEnumerable<StateId>> StateIds => GetStoredStates().ContinueWith(t => t.Result.Keys.AsEnumerable());
+    public Task<bool> HasState(string stateId) => GetStoredStates().ContinueWith(t => t.Result.ContainsKey(stateId));
     public bool HasDefaultState() => _defaultStateJson != null;
 
     public TState Get<TState>() where TState : FlowState, new()
@@ -45,9 +53,11 @@ public class ExistingStates
         return state;
     }
     
-    public TState Get<TState>(string stateId) where TState : FlowState, new()
+    public async Task<TState> Get<TState>(string stateId) where TState : FlowState, new()
     {
-        if (!_storedStates.TryGetValue(stateId, out var storedState))
+        var storedStates = await GetStoredStates();
+        
+        if (!storedStates.TryGetValue(stateId, out var storedState))
             throw new KeyNotFoundException($"State '{stateId}' was not found");
 
         var state = _serializer.DeserializeState<TState>(storedState.StateJson);
@@ -63,21 +73,23 @@ public class ExistingStates
     }
     public async Task Remove(string stateId)
     {
+        var storedStates = await GetStoredStates();
         await _statesStore.RemoveState(_flowId, stateId);
-        _storedStates.Remove(stateId);
+        storedStates.Remove(stateId);
     }
 
     public async Task Set<TState>(TState state) where TState : FlowState, new()
     {
-        _defaultState = state;
         await _functionStore.SetDefaultState(_flowId, _serializer.SerializeState(state));
+        _defaultState = state;
     }
     
     public async Task Set<TState>(string stateId, TState state) where TState : FlowState, new()
     {
+        var storedStates = await GetStoredStates();
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(stateId, json);
         await _statesStore.UpsertState(_flowId, storedState);
-        _storedStates[stateId] = storedState;
+        storedStates[stateId] = storedState;
     }
 }

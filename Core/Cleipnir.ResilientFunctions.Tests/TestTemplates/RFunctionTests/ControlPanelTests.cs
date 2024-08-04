@@ -404,7 +404,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("first");
+        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -413,7 +413,7 @@ public abstract class ControlPanelTests
         await controlPanel.Restart();
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("second");
+        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -481,7 +481,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("first");
+        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("first");
         controlPanel.PreviouslyThrownException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -492,7 +492,7 @@ public abstract class ControlPanelTests
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.States.Get<TestState>("State")!.Value.ShouldBe("second");
+        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("second");
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -950,7 +950,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
-        existingMessages.Count.ShouldBeAsync(1);
+        await existingMessages.Count.ShouldBeAsync(1);
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -1416,12 +1416,12 @@ public abstract class ControlPanelTests
         
         var states = controlPanel.States;
         states.HasDefaultState().ShouldBeTrue();
-        states.HasState("SomeId").ShouldBeTrue();
+        await states.HasState("SomeId").ShouldBeTrueAsync();
         states.Get<State>().Value.ShouldBe("Some Param");
-        states.Get<State>(stateId: "SomeId").Value.ShouldBe("NamedValue");
+        (await states.Get<State>(stateId: "SomeId")).Value.ShouldBe("NamedValue");
 
         await states.Set(new State { Value = "New Value" });
-        var s = states.Get<State>(stateId: "SomeId");
+        var s = await states.Get<State>(stateId: "SomeId");
         s.Value = "New Value";
         await s.Save();
         states.Get<State>().Value.ShouldBe("New Value");
@@ -1434,11 +1434,11 @@ public abstract class ControlPanelTests
 
         states = otherControlPanel.States;
         states.HasDefaultState().ShouldBeFalse();
-        states.HasState("SomeId").ShouldBeTrue();
-        states.HasState("NewState").ShouldBeTrue();
-        states.HasState("UnknownState").ShouldBeFalse();
-        states.Get<State>(stateId: "SomeId").Value.ShouldBe("New Value");
-        states.Get<State>(stateId: "NewState").Value.ShouldBe("NewState's Value");
+        await states.HasState("SomeId").ShouldBeTrueAsync();
+        await states.HasState("NewState").ShouldBeTrueAsync();
+        await states.HasState("UnknownState").ShouldBeFalseAsync();
+        (await states.Get<State>(stateId: "SomeId")).Value.ShouldBe("New Value");
+        (await states.Get<State>(stateId: "NewState")).Value.ShouldBe("NewState's Value");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

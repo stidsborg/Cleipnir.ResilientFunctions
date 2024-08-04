@@ -81,7 +81,7 @@ public abstract class StateTests
         var controlPanel = await funcRegistration.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
 
-        controlPanel.States.HasState("id").ShouldBeFalse();
+        await controlPanel.States.HasState("id").ShouldBeFalseAsync();
     }
     
     public abstract Task StateCanBeFetchedFromActionRegistration();

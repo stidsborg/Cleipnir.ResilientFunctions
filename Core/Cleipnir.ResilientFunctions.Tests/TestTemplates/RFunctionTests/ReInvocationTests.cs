@@ -100,7 +100,7 @@ public abstract class ReInvocationTests
         var syncedListFromState = new Synced<List<string>>();
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
             
-        syncedListFromState.Value = new List<string>(controlPanel.States.Get<ListState<string>>("State")!.List);
+        syncedListFromState.Value = new List<string>((await controlPanel.States.Get<ListState<string>>("State")).List);
         await controlPanel.States.Set("State", new ListState<string>());
         await controlPanel.SaveChanges();
         
@@ -110,7 +110,7 @@ public abstract class ReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         await controlPanel.Refresh();
-        var state = controlPanel.States.Get<ListState<string>>("State");
+        var state = await controlPanel.States.Get<ListState<string>>("State");
         state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -310,7 +310,7 @@ public abstract class ReInvocationTests
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
         await controlPanel.Refresh();
-        var state = controlPanel.States.Get<ListState<string>>("State");
+        var state = await controlPanel.States.Get<ListState<string>>("State");
         state!.List.Single().ShouldBe("world");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

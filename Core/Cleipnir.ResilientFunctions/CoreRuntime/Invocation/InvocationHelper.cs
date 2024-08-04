@@ -408,11 +408,10 @@ internal class InvocationHelper<TParam, TReturn>
         return new Correlations(flowId, correlationStore);
     }
 
-    public async Task<ExistingStates> GetExistingStates(FlowId flowId, string? defaultState)
+    public ExistingStates GetExistingStates(FlowId flowId, string? defaultState)
         => new(
             flowId,
             defaultState,
-            await _functionStore.StatesStore.GetStates(flowId),
             _functionStore,
             _settings.Serializer
         );
