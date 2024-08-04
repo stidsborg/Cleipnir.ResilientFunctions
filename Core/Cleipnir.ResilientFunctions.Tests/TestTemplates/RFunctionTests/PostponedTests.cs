@@ -61,7 +61,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, param.ToFlowInstance());
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
             await rFunc(param, param).ShouldBeAsync("TEST");
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
     
@@ -88,7 +88,7 @@ public abstract class PostponedTests
                 ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -140,7 +140,7 @@ public abstract class PostponedTests
             state.StateJson.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             
             await rFunc(param, param).ShouldBeAsync("TEST");
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
     
@@ -168,7 +168,7 @@ public abstract class PostponedTests
             ).Invoke;
 
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(flowInstance.Value, param));
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -187,7 +187,7 @@ public abstract class PostponedTests
             
             await BusyWait.Until(async () => (await store.GetFunction(functionId))!.Status == Status.Succeeded);
             await rFunc(flowInstance.Value, param);
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
     
@@ -216,7 +216,7 @@ public abstract class PostponedTests
             await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
                 rAction(flowInstance.Value, param)
             );
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
             using var functionsRegistry = new FunctionsRegistry(
@@ -247,7 +247,7 @@ public abstract class PostponedTests
             state.StateJson.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
 
             await rFunc(flowInstance.Value, param);
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
     
@@ -288,9 +288,8 @@ public abstract class PostponedTests
             );
             functionsRegistry.RegisterAction(functionId.Type, (string _) => Task.CompletedTask);
             
-            unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
-        
             await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+            unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
 
@@ -644,7 +643,6 @@ public abstract class PostponedTests
             postponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow.Add(TimeSpan.FromSeconds(5)).Ticks);
             postponedUntil.Value.ShouldBeLessThanOrEqualTo(DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).Ticks);
         }
-
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -749,7 +747,7 @@ public abstract class PostponedTests
 
         flag.IsRaised.ShouldBeTrue();
         
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task ScheduleAtFuncIsCompletedAfterDelay();
@@ -796,7 +794,7 @@ public abstract class PostponedTests
         });
         flag.IsRaised.ShouldBeTrue();
         
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task WorkflowDelayInvocationDelaysFunction();
@@ -823,6 +821,8 @@ public abstract class PostponedTests
         await Should.ThrowAsync<FunctionInvocationPostponedException>(
             () => rFunc.Invoke(functionId.Instance.Value, "test")
         );
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
     public abstract Task WorkflowDelayWithDateTimeInvocationDelaysFunction();
@@ -856,5 +856,7 @@ public abstract class PostponedTests
 
         var delay = controlPanel.Effects.GetValue<DateTime>("Delay");
         await delay.ShouldBeAsync(tomorrow);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }
