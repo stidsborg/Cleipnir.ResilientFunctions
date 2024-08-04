@@ -20,7 +20,7 @@ public class TimeoutProvider : ITimeoutProvider
 {
     private readonly ITimeoutStore _timeoutStore;
     
-    private Dictionary<string, TimeoutEvent>? _localTimeouts2;
+    private Dictionary<string, TimeoutEvent>? _localTimeouts;
     private readonly object _sync = new();
 
     private readonly FlowId _flowId;
@@ -34,8 +34,8 @@ public class TimeoutProvider : ITimeoutProvider
     private async Task<Dictionary<string, TimeoutEvent>> GetRegisteredTimeouts()
     {
         lock (_sync)
-            if (_localTimeouts2 is not null)
-                return _localTimeouts2;
+            if (_localTimeouts is not null)
+                return _localTimeouts;
         
         var timeouts = await _timeoutStore.GetTimeouts(_flowId);
         var localTimeouts = timeouts
@@ -45,10 +45,10 @@ public class TimeoutProvider : ITimeoutProvider
             );
         
         lock (_sync)
-            if (_localTimeouts2 is null)
-                _localTimeouts2 = localTimeouts;
+            if (_localTimeouts is null)
+                _localTimeouts = localTimeouts;
             else
-                localTimeouts = _localTimeouts2;
+                localTimeouts = _localTimeouts;
 
         return localTimeouts;
     }
