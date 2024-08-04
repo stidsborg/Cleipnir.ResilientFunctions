@@ -29,7 +29,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -64,7 +64,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -102,7 +102,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -145,7 +145,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -187,7 +187,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -225,7 +225,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -275,7 +275,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new TimeoutProvider(functionId, functionStore.TimeoutStore);
+        var timeoutProvider = new Timeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),

@@ -55,7 +55,7 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
 
         public bool IsWorkflowRunning => _subscription.IsWorkflowRunning;
         public IReactiveChain<object> Source => _subscription.Source;
-        public ITimeoutProvider TimeoutProvider => _subscription.TimeoutProvider;
+        public ITimeouts Timeouts => _subscription.Timeouts;
         public Task Initialize() => _subscription.Initialize();
 
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription.SyncStore(maxSinceLastSynced);

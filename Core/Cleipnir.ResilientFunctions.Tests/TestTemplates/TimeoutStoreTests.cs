@@ -99,7 +99,7 @@ public abstract class TimeoutStoreTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new TimeoutProvider(functionId, store);
+        var timeoutProvider = new Timeouts(functionId, store);
 
         await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
         await timeoutProvider.RegisterTimeout("timeoutId2", expiresIn: TimeSpan.FromHours(2));
@@ -126,9 +126,9 @@ public abstract class TimeoutStoreTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new TimeoutProvider(functionId, store);
+        var timeoutProvider = new Timeouts(functionId, store);
 
-        var otherInstanceTimeoutProvider = new TimeoutProvider(
+        var otherInstanceTimeoutProvider = new Timeouts(
             new FlowId(functionId.Type, functionId.Instance.Value + "2"), 
             store
         );
@@ -152,7 +152,7 @@ public abstract class TimeoutStoreTests
         var store = new TimeoutStoreDecorator(await storeTask, () => upsertCount++);
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new TimeoutProvider(functionId, store);
+        var timeoutProvider = new Timeouts(functionId, store);
 
         await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
         upsertCount.ShouldBe(1);
@@ -172,7 +172,7 @@ public abstract class TimeoutStoreTests
         var store = new TimeoutStoreDecorator(await storeTask, removeTimeoutCallback: () => removeCount++);
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new TimeoutProvider(functionId, store);
+        var timeoutProvider = new Timeouts(functionId, store);
         
         var pendingTimeouts = await timeoutProvider.PendingTimeouts();
         pendingTimeouts.ShouldBeEmpty();

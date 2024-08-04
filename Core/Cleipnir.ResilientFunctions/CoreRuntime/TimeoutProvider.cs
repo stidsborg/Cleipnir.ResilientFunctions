@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public interface ITimeoutProvider
+public interface ITimeouts
 {
     Task RegisterTimeout(string timeoutId, DateTime expiresAt);
     Task RegisterTimeout(string timeoutId, TimeSpan expiresIn);
@@ -16,7 +16,7 @@ public interface ITimeoutProvider
     Task<IReadOnlyList<TimeoutEvent>> PendingTimeouts();
 }
 
-public class TimeoutProvider : ITimeoutProvider
+public class Timeouts : ITimeouts
 {
     private readonly ITimeoutStore _timeoutStore;
     
@@ -25,7 +25,7 @@ public class TimeoutProvider : ITimeoutProvider
 
     private readonly FlowId _flowId;
 
-    public TimeoutProvider(FlowId flowId, ITimeoutStore timeoutStore)
+    public Timeouts(FlowId flowId, ITimeoutStore timeoutStore)
     {
         _timeoutStore = timeoutStore;
         _flowId = flowId;

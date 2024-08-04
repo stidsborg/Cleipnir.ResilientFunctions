@@ -77,7 +77,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
             try
             {
-                await _innerSubscription.TimeoutProvider.RegisterTimeout(_timeoutId, _expiresAt);
+                await _innerSubscription.Timeouts.RegisterTimeout(_timeoutId, _expiresAt);
             }
             catch (Exception exception)
             {
@@ -87,7 +87,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
         public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
         public IReactiveChain<object> Source => _innerSubscription.Source;
-        public ITimeoutProvider TimeoutProvider => _innerSubscription.TimeoutProvider;
+        public ITimeouts Timeouts => _innerSubscription.Timeouts;
         
         public async Task Initialize()
         {

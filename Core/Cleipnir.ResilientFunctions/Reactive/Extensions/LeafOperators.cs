@@ -156,7 +156,7 @@ public static class LeafOperators
         if (timeoutEmitted)
             return;
 
-        await subscription.TimeoutProvider.RegisterTimeout(timeoutEventId, resumeAt);
+        await subscription.Timeouts.RegisterTimeout(timeoutEventId, resumeAt);
         throw new SuspendInvocationException(interruptCount);
     }
 

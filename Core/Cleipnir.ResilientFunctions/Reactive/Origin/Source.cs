@@ -11,7 +11,7 @@ public class Source : IReactiveChain<object>
 {
     private bool _completed;
 
-    private readonly ITimeoutProvider _timeoutProvider;
+    private readonly ITimeouts _timeouts;
     private readonly SyncStore _syncStore;
     private readonly TimeSpan _defaultDelay;
     private readonly TimeSpan _defaultMaxWait;
@@ -34,7 +34,7 @@ public class Source : IReactiveChain<object>
     }
     
     public Source(
-        ITimeoutProvider timeoutProvider, 
+        ITimeouts timeouts, 
         SyncStore syncStore, 
         TimeSpan defaultDelay, 
         TimeSpan defaultMaxWait, 
@@ -42,7 +42,7 @@ public class Source : IReactiveChain<object>
         Func<bool> initialSyncPerformed
     )
     {
-        _timeoutProvider = timeoutProvider;
+        _timeouts = timeouts;
         _syncStore = syncStore;
         _defaultDelay = defaultDelay;
         
@@ -56,7 +56,7 @@ public class Source : IReactiveChain<object>
         var subscription = new SourceSubscription(
             onNext, onCompletion, onError,
             source: this,
-            _emittedEvents, _syncStore, _initialSyncPerformed, _isWorkflowRunning, _timeoutProvider,
+            _emittedEvents, _syncStore, _initialSyncPerformed, _isWorkflowRunning, _timeouts,
             _defaultDelay, _defaultMaxWait
         );
 

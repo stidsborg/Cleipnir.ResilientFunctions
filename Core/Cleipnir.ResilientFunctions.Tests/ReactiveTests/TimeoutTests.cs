@@ -22,7 +22,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutProviderStub();
+        var timeoutProviderStub = new TimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
@@ -47,7 +47,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutProviderStub();
+        var timeoutProviderStub = new TimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
@@ -73,7 +73,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutProviderStub();
+        var timeoutProviderStub = new TimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
@@ -91,7 +91,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutProviderStub();
+        var timeoutProviderStub = new TimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
@@ -105,7 +105,7 @@ public class TimeoutTests
         option.Value.ShouldBe("Hello");
     }
     
-    private class TimeoutProviderStub : ITimeoutProvider
+    private class TimeoutsStub : ITimeouts
     {
         public List<Tuple<string, DateTime>> Registrations
         {

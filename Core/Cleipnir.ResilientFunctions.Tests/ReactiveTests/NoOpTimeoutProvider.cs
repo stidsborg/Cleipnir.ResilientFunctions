@@ -7,9 +7,9 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 
-public class NoOpTimeoutProvider : ITimeoutProvider
+public class NoOpTimeouts : ITimeouts
 {
-    public static NoOpTimeoutProvider Instance { get; } = new();
+    public static NoOpTimeouts Instance { get; } = new();
     public Task RegisterTimeout(string timeoutId, DateTime expiresAt)
         => Task.CompletedTask;
 

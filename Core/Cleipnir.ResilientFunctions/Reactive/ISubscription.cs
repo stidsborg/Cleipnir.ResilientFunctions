@@ -9,7 +9,7 @@ public interface ISubscription
 {
     bool IsWorkflowRunning { get; }
     IReactiveChain<object> Source { get; }
-    ITimeoutProvider TimeoutProvider { get; }
+    ITimeouts Timeouts { get; }
  
     TimeSpan DefaultMessageSyncDelay { get; }
     TimeSpan DefaultMessageMaxWait { get; }

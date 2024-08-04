@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class Messages : IReactiveChain<object> 
 {
-    public TimeoutProvider TimeoutProvider { get; }
+    public Timeouts Timeouts { get; }
     public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
     
     private readonly MessageWriter _messageWriter;
@@ -15,12 +15,12 @@ public class Messages : IReactiveChain<object>
     
     public Messages(
         MessageWriter messageWriter,
-        TimeoutProvider timeoutProvider,
+        Timeouts timeouts,
         MessagesPullerAndEmitter messagePullerAndEmitter
     )
     {
         _messageWriter = messageWriter;
-        TimeoutProvider = timeoutProvider;
+        Timeouts = timeouts;
         _messagePullerAndEmitter = messagePullerAndEmitter;
     }
 

@@ -35,7 +35,7 @@ public abstract class ControlPanelTests
                 await messages.AppendMessage("Message");
                 var state = states.CreateOrGet<State>();
                 state.Value = "State";
-                await workflow.Messages.TimeoutProvider.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
+                await workflow.Messages.Timeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
                 await state.Save();
             }
         );
@@ -96,7 +96,7 @@ public abstract class ControlPanelTests
                 var state = states.CreateOrGet<State>();
                 state.Value = "State";
                 await state.Save();
-                await workflow.Messages.TimeoutProvider.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
+                await workflow.Messages.Timeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
                 return "hello";
             });
         
@@ -1478,7 +1478,7 @@ public abstract class ControlPanelTests
         var actionRegistration = functionsRegistry.RegisterAction(
             flowType,
             Task (string param, Workflow workflow) =>
-                workflow.Messages.TimeoutProvider.RegisterTimeout(
+                workflow.Messages.Timeouts.RegisterTimeout(
                     "someTimeoutId", expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
                 )
         );
@@ -1518,7 +1518,7 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                await workflow.Messages.TimeoutProvider.RegisterTimeout(
+                await workflow.Messages.Timeouts.RegisterTimeout(
                     "someTimeoutId", expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc)
                 );
 
