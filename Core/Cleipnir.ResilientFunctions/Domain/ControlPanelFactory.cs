@@ -33,7 +33,7 @@ public class ControlPanelFactory
             functionState.LeaseExpiration,
             functionState.PostponedUntil,
             await _invocationHelper.GetExistingStates(flowId, functionState.DefaultState),
-            await _invocationHelper.GetExistingMessages(flowId),
+            _invocationHelper.CreateExistingMessages(flowId),
             await _invocationHelper.GetExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
@@ -72,7 +72,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             functionState.Param!,
             functionState.PostponedUntil,
             await _invocationHelper.GetExistingStates(flowId, functionState.DefaultState),
-            await _invocationHelper.GetExistingMessages(flowId),
+            _invocationHelper.CreateExistingMessages(flowId),
             await _invocationHelper.GetExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
@@ -111,7 +111,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             f.Result,
             f.PostponedUntil,
             await _invocationHelper.GetExistingStates(flowId, f.DefaultState),
-            await _invocationHelper.GetExistingMessages(flowId),
+            _invocationHelper.CreateExistingMessages(flowId),
             await _invocationHelper.GetExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             f.PreviouslyThrownException

@@ -806,10 +806,19 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
-        existingMessages.Count().ShouldBe(1);
-        existingMessages[0].ShouldBe("param");
+        var messages = await existingMessages.AsObjects;
+        messages.Count.ShouldBe(1);
+        messages[0].ShouldBe("param");
         await existingMessages.Replace(0, "hello");
 
+        await controlPanel.Refresh();
+        var receivedMessages = await controlPanel
+            .Messages
+            .MessagesWithIdempotencyKeys;
+        
+        receivedMessages.Count.ShouldBe(1);
+        receivedMessages.Single().Message.ShouldBe("hello");
+        
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -851,7 +860,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         var existingMessages = controlPanel.Messages;
-        existingMessages.Count().ShouldBe(2);
+        await existingMessages.Count.ShouldBeAsync(2);
         await existingMessages.Clear();
 
         await existingMessages.Append("hello to you", "1");
@@ -861,7 +870,7 @@ public abstract class ControlPanelTests
         await controlPanel.Refresh();
         await controlPanel.Restart();
         
-        controlPanel.Messages.Count().ShouldBe(2);
+        await controlPanel.Messages.Count.ShouldBeAsync(2);
         
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
@@ -908,7 +917,7 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
 
-        var messages = controlPanel.Messages.MessagesWithIdempotencyKeys;
+        var messages = await controlPanel.Messages.MessagesWithIdempotencyKeys;
         messages.Count.ShouldBe(2);
         messages[0].Message.ShouldBe("hello world");
         messages[0].IdempotencyKey.ShouldBe("1");
@@ -941,7 +950,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
-        existingMessages.Count().ShouldBe(1);
+        existingMessages.Count.ShouldBeAsync(1);
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -991,8 +1000,8 @@ public abstract class ControlPanelTests
         controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
-        var messages = controlPanel.Messages;
-        messages.Count().ShouldBe(2);
+        var messages = await controlPanel.Messages.AsObjects;
+        messages.Count.ShouldBe(2);
         messages[0].ShouldBe("hello world");
         messages[1].ShouldBe("hello universe");
         
@@ -1022,7 +1031,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
-        existingMessages.Count().ShouldBe(1);
+        await existingMessages.Count.ShouldBeAsync(1);
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -1072,8 +1081,8 @@ public abstract class ControlPanelTests
         controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
-        var messages = controlPanel.Messages;
-        messages.Count().ShouldBe(2);
+        var messages = await controlPanel.Messages.AsObjects;
+        messages.Count.ShouldBe(2);
         messages[0].ShouldBe("hello world");
         messages[1].ShouldBe("hello universe");
         
@@ -1102,7 +1111,7 @@ public abstract class ControlPanelTests
             
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
-        var (message, idempotencyKey) = existingMessages.MessagesWithIdempotencyKeys.Single();
+        var (message, idempotencyKey) = (await existingMessages.MessagesWithIdempotencyKeys).Single();
         message.ShouldBe("hello world");
         idempotencyKey.ShouldBe("first");
 
@@ -1112,7 +1121,7 @@ public abstract class ControlPanelTests
         await controlPanel.Refresh();
 
         existingMessages = controlPanel.Messages;
-        (message, idempotencyKey) = existingMessages.MessagesWithIdempotencyKeys.Single();
+        (message, idempotencyKey) = (await existingMessages.MessagesWithIdempotencyKeys).Single();
         message.ShouldBe("hello universe");
         idempotencyKey.ShouldBe("second");
         

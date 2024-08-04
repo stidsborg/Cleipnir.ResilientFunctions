@@ -429,18 +429,7 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public async Task<ExistingMessages> GetExistingMessages(FlowId flowId)
-    {
-        var storedMessages = await _functionStore.MessageStore.GetMessages(flowId, skip: 0);
-        var messages = storedMessages
-            .Select(se => new MessageAndIdempotencyKey(
-                    _settings.Serializer.DeserializeMessage(se.MessageJson, se.MessageType),
-                    se.IdempotencyKey
-                )
-            ).ToList();
-        
-        return new ExistingMessages(flowId, messages, _functionStore.MessageStore, _settings.Serializer);
-    }
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(flowId, _functionStore.MessageStore, _settings.Serializer);
 
     public async Task<ExistingTimeouts> GetExistingTimeouts(FlowId flowId)
         => new ExistingTimeouts(

@@ -248,7 +248,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         _effects = null;
-        Messages = await _invocationHelper.GetExistingMessages(FlowId);
+        Messages = _invocationHelper.CreateExistingMessages(FlowId);
         States = await _invocationHelper.GetExistingStates(FlowId, sf.DefaultState);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FlowId);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
