@@ -34,7 +34,7 @@ public abstract class TimeoutTests
             {
                 var messages = workflow.Messages;
                 var timeoutTask = messages.OfType<TimeoutEvent>().First();
-                await messages.RegisteredRegisteredTimeouts.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
+                await messages.RegisteredTimeouts.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
                 timeoutTask.IsCompleted.ShouldBeFalse();
                 var timeout = await timeoutTask;
                 timeout.TimeoutId.ShouldBe("test");

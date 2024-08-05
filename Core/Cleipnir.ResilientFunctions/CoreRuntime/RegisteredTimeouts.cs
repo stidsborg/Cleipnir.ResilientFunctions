@@ -15,7 +15,7 @@ public interface IRegisteredTimeouts
     Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts();
 }
 
-public class RegisteredRegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRegisteredTimeouts
+public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRegisteredTimeouts
 {
     private Dictionary<TimeoutId, RegisteredTimeout>? _localTimeouts;
     private readonly object _sync = new();

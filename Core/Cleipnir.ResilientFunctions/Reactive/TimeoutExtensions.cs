@@ -12,19 +12,19 @@ public static class TimeoutExtensions
     public static async Task RegisterTimeoutEvent(this Messages messages, string timeoutId, DateTime expiresAt)
     {
         if (!DoesMessagesAlreadyContainTimeoutEvent(messages, timeoutId))
-            await messages.RegisteredRegisteredTimeouts.RegisterTimeout(timeoutId, expiresAt);
+            await messages.RegisteredTimeouts.RegisterTimeout(timeoutId, expiresAt);
     }
 
     public static async Task RegisterTimeoutEvent(this Messages messages, string timeoutId, TimeSpan expiresIn)
     {
         if (!DoesMessagesAlreadyContainTimeoutEvent(messages, timeoutId))
-            await messages.RegisteredRegisteredTimeouts.RegisterTimeout(timeoutId, expiresIn);
+            await messages.RegisteredTimeouts.RegisterTimeout(timeoutId, expiresIn);
     }
     
     public static async Task CancelTimeoutEvent(this Messages messages, string timeoutId)
     {
         if (!DoesMessagesAlreadyContainTimeoutEvent(messages, timeoutId))
-            await messages.RegisteredRegisteredTimeouts.CancelTimeout(timeoutId);
+            await messages.RegisteredTimeouts.CancelTimeout(timeoutId);
     }
 
     private static bool DoesMessagesAlreadyContainTimeoutEvent(Messages messages, string timeoutId)
