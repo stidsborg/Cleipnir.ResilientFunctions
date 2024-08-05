@@ -2,48 +2,56 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain.Events;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingTimeouts
+public class ExistingTimeouts(FlowId flowId, ITimeoutStore timeoutStore)
 {
-    private readonly FlowId _flowId;
-    private readonly ITimeoutStore _timeoutStore;
-    private readonly Dictionary<string, DateTime> _timeouts;
-    
-    public ExistingTimeouts(FlowId flowId, ITimeoutStore timeoutStore, IEnumerable<StoredTimeout> storedTimeouts)
-    {
-        _flowId = flowId;
-        _timeoutStore = timeoutStore;
-        _timeouts = storedTimeouts.ToDictionary(s => s.TimeoutId, s => new DateTime(s.Expiry, DateTimeKind.Utc));
-    }
-    
-    public DateTime this[string timeoutId] => _timeouts[timeoutId];
-    
-    public IReadOnlyList<TimeoutEvent> All 
-        => _timeouts
-            .Select(kv => new TimeoutEvent(kv.Key, kv.Value))
-            .ToList();
+    private Dictionary<TimeoutId, DateTime>? _timeouts;
 
-    public async Task Remove(string timeoutId)
+    private async Task<Dictionary<TimeoutId, DateTime>> GetTimeouts()
     {
-        await _timeoutStore.RemoveTimeout(_flowId, timeoutId);
+        if (_timeouts is not null)
+            return _timeouts;
+
+        var storedTimeouts = await timeoutStore.GetTimeouts(flowId);
+        return _timeouts = storedTimeouts.ToDictionary(
+            s => new TimeoutId(s.TimeoutId),
+            s => new DateTime(s.Expiry, DateTimeKind.Utc)
+        );
+    }
+
+    public Task<DateTime> this[TimeoutId timeoutId] => GetTimeouts().ContinueWith(t => t.Result[timeoutId]);
+
+    public Task<IReadOnlyList<RegisteredTimeout>> All
+        => GetTimeouts().ContinueWith(
+            t => t.Result
+                .Select(kv => new RegisteredTimeout(kv.Key, kv.Value))
+                .ToList()
+                .CastTo<IReadOnlyList<RegisteredTimeout>>()
+        );
+
+    public async Task Remove(TimeoutId timeoutId)
+    {
+        var timeouts = await GetTimeouts();
         
-        _timeouts.Remove(timeoutId);
+        await timeoutStore.RemoveTimeout(flowId, timeoutId.Value);
+        timeouts.Remove(timeoutId);
     }
 
-    public async Task Upsert(string timeoutId, DateTime expiresAt)
+    public async Task Upsert(TimeoutId timeoutId, DateTime expiresAt)
     {
-        await _timeoutStore.UpsertTimeout(
-            new StoredTimeout(_flowId, timeoutId, expiresAt.ToUniversalTime().Ticks),
+        var timeouts = await GetTimeouts();
+        await timeoutStore.UpsertTimeout(
+            new StoredTimeout(flowId, timeoutId.Value, expiresAt.ToUniversalTime().Ticks),
             overwrite: true
         );
         
-        _timeouts[timeoutId] = expiresAt;
+        timeouts[timeoutId] = expiresAt;
     }
     
-    public Task Upsert(string timeoutId, TimeSpan expiresIn) 
+    public Task Upsert(TimeoutId timeoutId, TimeSpan expiresIn) 
         => Upsert(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
 }

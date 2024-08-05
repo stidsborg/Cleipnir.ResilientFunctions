@@ -251,7 +251,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         States = _invocationHelper.CreateExistingStates(FlowId, sf.DefaultState);
-        Timeouts = await _invocationHelper.GetExistingTimeouts(FlowId);
+        Timeouts = _invocationHelper.CreateExistingTimeouts(FlowId);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
 
         _innerParamChanged = false;

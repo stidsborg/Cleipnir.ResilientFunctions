@@ -35,7 +35,7 @@ public class ControlPanelFactory
             _invocationHelper.CreateExistingEffects(flowId),
             _invocationHelper.CreateExistingStates(flowId, functionState.DefaultState),
             _invocationHelper.CreateExistingMessages(flowId),
-            await _invocationHelper.GetExistingTimeouts(flowId),
+            _invocationHelper.CreateExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
         );
@@ -75,7 +75,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             _invocationHelper.CreateExistingEffects(flowId),
             _invocationHelper.CreateExistingStates(flowId, functionState.DefaultState),
             _invocationHelper.CreateExistingMessages(flowId),
-            await _invocationHelper.GetExistingTimeouts(flowId),
+            _invocationHelper.CreateExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
         );
@@ -115,7 +115,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             _invocationHelper.CreateExistingEffects(flowId),
             _invocationHelper.CreateExistingStates(flowId, f.DefaultState),
             _invocationHelper.CreateExistingMessages(flowId),
-            await _invocationHelper.GetExistingTimeouts(flowId),
+            _invocationHelper.CreateExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             f.PreviouslyThrownException
         );

@@ -1518,20 +1518,22 @@ public abstract class ControlPanelTests
         var controlPanel = await actionRegistration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var timeouts = controlPanel.Timeouts;
-        timeouts.All.Count.ShouldBe(1);
-        timeouts["someTimeoutId"].ShouldBe(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+        (await timeouts.All).Count.ShouldBe(1);
+        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
 
         await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
-        timeouts.All.Count.ShouldBe(2);
-        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        (await timeouts.All).Count.ShouldBe(2);
+        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
         
         await timeouts.Remove("someTimeoutId");
-        timeouts.All.Count.ShouldBe(1);
+        (await timeouts.All).Count.ShouldBe(1);
 
         await controlPanel.Refresh();
         
-        timeouts.All.Count.ShouldBe(1);
-        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        (await timeouts.All).Count.ShouldBe(1);
+        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task ExistingTimeoutCanBeUpdatedForFunc();
@@ -1561,20 +1563,22 @@ public abstract class ControlPanelTests
         var controlPanel = await funcRegistration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var timeouts = controlPanel.Timeouts;
-        timeouts.All.Count.ShouldBe(1);
-        timeouts["someTimeoutId"].ShouldBe(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+        (await timeouts.All).Count.ShouldBe(1);
+        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
 
         await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
-        timeouts.All.Count.ShouldBe(2);
-        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        (await timeouts.All).Count.ShouldBe(2);
+        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
         
         await timeouts.Remove("someTimeoutId");
-        timeouts.All.Count.ShouldBe(1);
+        (await timeouts.All).Count.ShouldBe(1);
 
         await controlPanel.Refresh();
         
-        timeouts.All.Count.ShouldBe(1);
-        timeouts["someOtherTimeoutId"].ShouldBe(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        (await timeouts.All).Count.ShouldBe(1);
+        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task CorrelationsCanBeChanged();
@@ -1609,6 +1613,8 @@ public abstract class ControlPanelTests
         controlPanel.ShouldNotBeNull();
         await controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalseAsync();
         await controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrueAsync();
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task DeleteRemovesFunctionFromAllStores();
@@ -1661,5 +1667,7 @@ public abstract class ControlPanelTests
             .GetEffectResults(functionId)
             .SelectAsync(e => e.Any())
             .ShouldBeFalseAsync();
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }
