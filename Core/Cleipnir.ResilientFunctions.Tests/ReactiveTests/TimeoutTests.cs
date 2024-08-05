@@ -22,7 +22,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutsStub();
+        var timeoutProviderStub = new RegisteredTimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
@@ -47,7 +47,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutsStub();
+        var timeoutProviderStub = new RegisteredTimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
@@ -73,7 +73,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutsStub();
+        var timeoutProviderStub = new RegisteredTimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
@@ -91,7 +91,7 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new TimeoutsStub();
+        var timeoutProviderStub = new RegisteredTimeoutsStub();
         var source = new TestSource(timeoutProviderStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
@@ -105,9 +105,9 @@ public class TimeoutTests
         option.Value.ShouldBe("Hello");
     }
     
-    private class TimeoutsStub : ITimeouts
+    private class RegisteredTimeoutsStub : IRegisteredTimeouts
     {
-        public List<Tuple<string, DateTime>> Registrations
+        public List<Tuple<TimeoutId, DateTime>> Registrations
         {
             get
             {
@@ -117,9 +117,9 @@ public class TimeoutTests
         }
 
         private readonly object _sync = new();
-        private readonly List<Tuple<string, DateTime>> _registrations = new();
+        private readonly List<Tuple<TimeoutId, DateTime>> _registrations = new();
             
-        public Task RegisterTimeout(string timeoutId, DateTime expiresAt)
+        public Task RegisterTimeout(TimeoutId timeoutId, DateTime expiresAt)
         {
             lock (_sync)
                 _registrations.Add(Tuple.Create(timeoutId, expiresAt));
@@ -127,12 +127,12 @@ public class TimeoutTests
             return Task.CompletedTask;
         }
 
-        public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
+        public Task RegisterTimeout(TimeoutId timeoutId, TimeSpan expiresIn)
             => Task.FromException(new Exception("Stub-method invocation"));
 
-        public Task CancelTimeout(string timeoutId)
+        public Task CancelTimeout(TimeoutId timeoutId)
             => Task.FromException(new Exception("Stub-method invocation"));
-        public Task<IReadOnlyList<TimeoutEvent>> PendingTimeouts()
-            => Task.FromException<IReadOnlyList<TimeoutEvent>>(new Exception("Stub-method invocation"));
+        public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()
+            => Task.FromException<IReadOnlyList<RegisteredTimeout>>(new Exception("Stub-method invocation"));
     }
 }

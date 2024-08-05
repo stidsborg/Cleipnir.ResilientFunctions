@@ -363,7 +363,7 @@ internal class InvocationHelper<TParam, TReturn>
     public Messages CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
     {
         var messageWriter = new MessageWriter(flowId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new Timeouts(flowId, _functionStore.TimeoutStore);
+        var timeoutProvider = new RegisteredRegisteredTimeouts(flowId, _functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             flowId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -418,7 +418,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     public ExistingEffects CreateExistingEffects(FlowId flowId) => new(flowId, _functionStore.EffectsStore, _settings.Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(flowId, _functionStore.MessageStore, _settings.Serializer);
-    public ExistingTimeouts CreateExistingTimeouts(FlowId flowId) => new(flowId, _functionStore.TimeoutStore);
+    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId) => new(flowId, _functionStore.TimeoutStore);
 
     private string? SerializeParameter(TParam param)
     {

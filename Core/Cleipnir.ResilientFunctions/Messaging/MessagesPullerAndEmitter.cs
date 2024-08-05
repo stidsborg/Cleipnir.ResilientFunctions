@@ -46,7 +46,7 @@ public class MessagesPullerAndEmitter
         TimeSpan defaultDelay,
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
-        IFunctionStore functionStore, ISerializer serializer, ITimeouts timeouts)
+        IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts)
     {
         _flowId = flowId;
         _functionStore = functionStore;
@@ -55,7 +55,7 @@ public class MessagesPullerAndEmitter
         _serializer = serializer;
         
         Source = new Source(
-            timeouts,
+            registeredTimeouts,
             syncStore: PullEvents,
             defaultDelay,
             defaultMaxWait,

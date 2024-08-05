@@ -68,7 +68,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError);
         }
 
-        public ITimeouts Timeouts => _innerSubscription.Timeouts;
+        public IRegisteredTimeouts RegisteredTimeouts => _innerSubscription.RegisteredTimeouts;
 
         public Task Initialize() => _innerSubscription.Initialize();
 

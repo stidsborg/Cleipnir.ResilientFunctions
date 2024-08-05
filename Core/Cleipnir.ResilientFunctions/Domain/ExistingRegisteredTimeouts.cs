@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingTimeouts(FlowId flowId, ITimeoutStore timeoutStore)
+public class ExistingRegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore)
 {
     private Dictionary<TimeoutId, DateTime>? _timeouts;
 

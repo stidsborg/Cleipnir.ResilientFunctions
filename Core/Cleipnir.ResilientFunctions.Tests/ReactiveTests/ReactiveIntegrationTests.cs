@@ -42,7 +42,7 @@ public class ReactiveIntegrationTests
         var counter = new SyncedCounter();
         
         var source = new TestSource(
-            NoOpTimeouts.Instance,
+            NoOpRegisteredTimeouts.Instance,
             syncStore: _ =>
             {
                 counter.Increment();

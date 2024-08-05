@@ -19,7 +19,7 @@ internal class SourceSubscription : ISubscription
     private readonly Func<bool> _isWorkflowRunning;
     public bool IsWorkflowRunning => _isWorkflowRunning();
     public IReactiveChain<object> Source { get; }
-    public ITimeouts Timeouts { get; }
+    public IRegisteredTimeouts RegisteredTimeouts { get; }
     public TimeSpan DefaultMessageSyncDelay { get; }
     public TimeSpan DefaultMessageMaxWait { get; }
 
@@ -30,7 +30,7 @@ internal class SourceSubscription : ISubscription
         SyncStore syncStore, 
         Func<bool> initialSyncPerformed,
         Func<bool> isWorkflowRunning,
-        ITimeouts timeouts,
+        IRegisteredTimeouts registeredTimeouts,
         TimeSpan defaultDelay,
         TimeSpan defaultMessageMaxWait
     )
@@ -43,7 +43,7 @@ internal class SourceSubscription : ISubscription
         _syncStore = syncStore;
         _initialSyncPerformed = initialSyncPerformed;
         _isWorkflowRunning = isWorkflowRunning;
-        Timeouts = timeouts;
+        RegisteredTimeouts = registeredTimeouts;
         DefaultMessageSyncDelay = defaultDelay;
         DefaultMessageMaxWait = defaultMessageMaxWait;
     }

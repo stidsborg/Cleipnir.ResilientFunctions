@@ -14,12 +14,12 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         FlowId flowId, 
         Status status, int epoch, long leaseExpiration,  
         DateTime? postponedUntil, ExistingEffects effects,
-        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations,
+        ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, 
         leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, effects,
-        states, messages, timeouts, correlations, previouslyThrownException
+        states, messages, registeredTimeouts, correlations, previouslyThrownException
     ) { }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
@@ -33,12 +33,12 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         FlowId flowId, 
         Status status, int epoch, long leaseExpiration, TParam innerParam, 
         DateTime? postponedUntil, ExistingEffects effects,
-        ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations, 
+        ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, 
         leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, effects,
-        states, messages, timeouts, correlations, previouslyThrownException
+        states, messages, registeredTimeouts, correlations, previouslyThrownException
     ) { }
     
     public TParam Param
@@ -59,11 +59,11 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long leaseExpiration, TParam innerParam, 
         TReturn? innerResult, 
         DateTime? postponedUntil, ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
-        ExistingTimeouts timeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
+        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, leaseExpiration, 
         innerParam, innerResult, postponedUntil, effects, states, messages, 
-        timeouts, correlations, previouslyThrownException
+        registeredTimeouts, correlations, previouslyThrownException
     ) { }
 
     public Task Succeed(TReturn result) => InnerSucceed(result);
@@ -95,7 +95,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         ExistingEffects effects,
         ExistingStates states,
         ExistingMessages messages,
-        ExistingTimeouts timeouts,
+        ExistingRegisteredTimeouts registeredTimeouts,
         Correlations correlations,
         PreviouslyThrownException? previouslyThrownException)
     {
@@ -112,7 +112,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Effects = effects;
         States = states;
         Messages = messages;
-        Timeouts = timeouts;
+        RegisteredTimeouts = registeredTimeouts;
         Correlations = correlations;
         PreviouslyThrownException = previouslyThrownException;
     }
@@ -130,7 +130,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public ExistingStates States { get; private set; }
     public Correlations Correlations { get; private set; }
 
-    public ExistingTimeouts Timeouts { get; private set; }
+    public ExistingRegisteredTimeouts RegisteredTimeouts { get; private set; }
 
     private TParam _innerParam;
     protected TParam InnerParam
@@ -251,7 +251,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         States = _invocationHelper.CreateExistingStates(FlowId, sf.DefaultState);
-        Timeouts = _invocationHelper.CreateExistingTimeouts(FlowId);
+        RegisteredTimeouts = _invocationHelper.CreateExistingTimeouts(FlowId);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
 
         _innerParamChanged = false;
