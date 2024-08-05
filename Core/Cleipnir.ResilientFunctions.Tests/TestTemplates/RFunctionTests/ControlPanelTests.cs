@@ -1265,10 +1265,9 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var crashableStore = new CrashableFunctionStore(store);
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(crashableStore, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -1278,10 +1277,22 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rAction.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
+
+        await controlPanel.Effects.AllIds;
         
-        crashableStore.Crash();
+        await store.EffectsStore.SetEffectResult(
+            functionId,
+            new StoredEffect(
+                new EffectId("SomeId"),
+                WorkStatus.Completed,
+                Result: "SomeResult".ToJson(),
+                StoredException: null
+            )
+        );
+
+        await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
         
-        await controlPanel.Effects.ShouldThrowAsync<TimeoutException>();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task EffectsAreCachedAfterInitialFetch();
@@ -1290,10 +1301,9 @@ public abstract class ControlPanelTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
         var store = await storeTask;
-        var crashableStore = new CrashableFunctionStore(store);
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(crashableStore, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
@@ -1304,10 +1314,21 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.Effects;
-        crashableStore.Crash();
+        await controlPanel.Effects.AllIds;
+        
+        await store.EffectsStore.SetEffectResult(
+            functionId,
+            new StoredEffect(
+                new EffectId("SomeId"),
+                WorkStatus.Completed,
+                Result: "SomeResult".ToJson(),
+                StoredException: null
+            )
+        );
 
-        await controlPanel.Effects;
+        await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     public abstract Task EffectsAreUpdatedAfterRefresh();

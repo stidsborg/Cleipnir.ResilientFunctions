@@ -13,12 +13,12 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         InvocationHelper<Unit, Unit> invocationHelper, 
         FlowId flowId, 
         Status status, int epoch, long leaseExpiration,  
-        DateTime? postponedUntil, 
+        DateTime? postponedUntil, ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, 
-        leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, 
+        leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, effects,
         states, messages, timeouts, correlations, previouslyThrownException
     ) { }
     
@@ -32,12 +32,12 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         InvocationHelper<TParam, Unit> invocationHelper, 
         FlowId flowId, 
         Status status, int epoch, long leaseExpiration, TParam innerParam, 
-        DateTime? postponedUntil, 
+        DateTime? postponedUntil, ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingTimeouts timeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, 
-        leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, 
+        leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, effects,
         states, messages, timeouts, correlations, previouslyThrownException
     ) { }
     
@@ -58,11 +58,11 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         FlowId flowId, Status status, int epoch, 
         long leaseExpiration, TParam innerParam, 
         TReturn? innerResult, 
-        DateTime? postponedUntil, ExistingStates states, ExistingMessages messages, 
+        DateTime? postponedUntil, ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
         ExistingTimeouts timeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, leaseExpiration, 
-        innerParam, innerResult, postponedUntil, states, messages, 
+        innerParam, innerResult, postponedUntil, effects, states, messages, 
         timeouts, correlations, previouslyThrownException
     ) { }
 
@@ -92,6 +92,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         TParam innerParam, 
         TReturn? innerResult,
         DateTime? postponedUntil, 
+        ExistingEffects effects,
         ExistingStates states,
         ExistingMessages messages,
         ExistingTimeouts timeouts,
@@ -108,6 +109,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         _innerParam = innerParam;
         InnerResult = innerResult;
         PostponedUntil = postponedUntil;
+        Effects = effects;
         States = states;
         Messages = messages;
         Timeouts = timeouts;
@@ -123,8 +125,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public ExistingMessages Messages { get; private set; }
     
-    private Task<ExistingEffects>? _effects;
-    public Task<ExistingEffects> Effects => _effects ??= _invocationHelper.CreateExistingEffects(FlowId); 
+    public ExistingEffects Effects { get; private set; }
 
     public ExistingStates States { get; private set; }
     public Correlations Correlations { get; private set; }
@@ -247,9 +248,9 @@ public abstract class BaseControlPanel<TParam, TReturn>
         InnerResult = sf.Result;
         PostponedUntil = sf.PostponedUntil;
         PreviouslyThrownException = sf.PreviouslyThrownException;
-        _effects = null;
+        Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
-        States = _invocationHelper.GetExistingStates(FlowId, sf.DefaultState);
+        States = _invocationHelper.CreateExistingStates(FlowId, sf.DefaultState);
         Timeouts = await _invocationHelper.GetExistingTimeouts(FlowId);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
 

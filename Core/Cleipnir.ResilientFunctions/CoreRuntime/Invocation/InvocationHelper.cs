@@ -408,26 +408,15 @@ internal class InvocationHelper<TParam, TReturn>
         return new Correlations(flowId, correlationStore);
     }
 
-    public ExistingStates GetExistingStates(FlowId flowId, string? defaultState)
+    public ExistingStates CreateExistingStates(FlowId flowId, string? defaultState)
         => new(
             flowId,
             defaultState,
             _functionStore,
             _settings.Serializer
         );
-    
-    public async Task<ExistingEffects> CreateExistingEffects(FlowId flowId)
-    {
-        var effectsStore = _functionStore.EffectsStore;
-        var existingEffects = await effectsStore.GetEffectResults(flowId);
-        return new ExistingEffects(
-            flowId,
-            existingEffects.ToDictionary(sa => sa.EffectId, sa => sa),
-            effectsStore,
-            _settings.Serializer
-        );
-    }
 
+    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(flowId, _functionStore.EffectsStore, _settings.Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(flowId, _functionStore.MessageStore, _settings.Serializer);
 
     public async Task<ExistingTimeouts> GetExistingTimeouts(FlowId flowId)

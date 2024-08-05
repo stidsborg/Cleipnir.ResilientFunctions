@@ -1,32 +1,33 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingEffects
+public class ExistingEffects(FlowId flowId, IEffectsStore effectsStore, ISerializer serializer)
 {
-    private readonly FlowId _flowId;
-    private readonly Dictionary<EffectId, StoredEffect> _storedEffects;
-    private readonly IEffectsStore _effectsStore;
-    private readonly ISerializer _serializer;
+    private Dictionary<EffectId, StoredEffect>? _storedEffects;
 
-    public ExistingEffects(FlowId flowId, Dictionary<EffectId, StoredEffect> storedEffects, IEffectsStore effectsStore, ISerializer serializer)
+    private async Task<Dictionary<EffectId, StoredEffect>> GetStoredEffects()
     {
-        _flowId = flowId;
-        _storedEffects = storedEffects;
-        _effectsStore = effectsStore;
-        _serializer = serializer;
+        if (_storedEffects is not null)
+            return _storedEffects;
+
+        var storedEffects = await effectsStore.GetEffectResults(flowId);
+        return _storedEffects = storedEffects.ToDictionary(e => e.EffectId, e => e);
     }
+    
+    public Task<IEnumerable<EffectId>> AllIds 
+        => GetStoredEffects().ContinueWith(t => (IEnumerable<EffectId>) t.Result.Keys);
 
-    public IReadOnlyDictionary<EffectId, StoredEffect> All => _storedEffects;
-
-    public bool HasValue(string effectId) => _storedEffects.ContainsKey(effectId);
-    public TResult? GetValue<TResult>(string effectId)
+    public async Task<bool> HasValue(string effectId) => (await GetStoredEffects()).ContainsKey(effectId);
+    public async Task<TResult?> GetValue<TResult>(string effectId)
     {
-        var success = _storedEffects.TryGetValue(effectId, out var storedEffect);
+        var storedEffects = await GetStoredEffects();
+        var success = storedEffects.TryGetValue(effectId, out var storedEffect);
         if (!success)
             throw new KeyNotFoundException($"Effect '{effectId}' was not found");
         if (storedEffect!.WorkStatus != WorkStatus.Completed)
@@ -34,19 +35,21 @@ public class ExistingEffects
 
         return storedEffect.Result == null 
             ? default 
-            : _serializer.DeserializeEffectResult<TResult>(_storedEffects[effectId].Result!);
+            : serializer.DeserializeEffectResult<TResult>(storedEffects[effectId].Result!);
     } 
     
     public async Task Remove(string effectId)
     {
-        await _effectsStore.DeleteEffectResult(_flowId, effectId);
-        _storedEffects.Remove(effectId);
+        var storedEffects = await GetStoredEffects();
+        await effectsStore.DeleteEffectResult(flowId, effectId);
+        storedEffects.Remove(effectId);
     }
 
-    private async Task Set(StoredEffect storedEffect) 
+    private async Task Set(StoredEffect storedEffect)
     {
-        await _effectsStore.SetEffectResult(_flowId, storedEffect);
-        _storedEffects[storedEffect.EffectId] = storedEffect;
+        var storedEffects = await GetStoredEffects();
+        await effectsStore.SetEffectResult(flowId, storedEffect);
+        storedEffects[storedEffect.EffectId] = storedEffect;
     }
 
     public Task SetValue<TValue>(string effectId, TValue value) => SetSucceeded(effectId, value);
@@ -58,35 +61,8 @@ public class ExistingEffects
         => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, StoredException: null));
     
     public Task SetSucceeded<TResult>(string effectId, TResult result)
-        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: _serializer.SerializeEffectResult(result), StoredException: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: serializer.SerializeEffectResult(result), StoredException: null));
 
     public Task SetFailed(string effectId, Exception exception)
-        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: _serializer.SerializeException(exception)));
-}
-
-public static class ExistingEffectsExtensions
-{
-    public static async Task<bool> HasValue(this Task<ExistingEffects> existingEffects, string effectId)
-        => (await existingEffects).HasValue(effectId);
-
-    public static async Task<TResult?> GetValue<TResult>(this Task<ExistingEffects> existingEffects, string effectId)
-        => (await existingEffects).GetValue<TResult>(effectId);
-
-    public static async Task Remove(this Task<ExistingEffects> existingEffects, string effectId)
-        => await (await existingEffects).Remove(effectId);
-    
-    public static async Task SetValue<TValue>(this Task<ExistingEffects> existingEffects, string effectId, TValue value) 
-        => await (await existingEffects).SetValue(effectId, value);
-
-    public static async Task SetStarted(this Task<ExistingEffects> existingEffects, string effectId) 
-        => await (await existingEffects).SetStarted(effectId);
-    
-    public static async Task SetSucceeded(this Task<ExistingEffects> existingEffects, string effectId)
-        => await (await existingEffects).SetSucceeded(effectId);
-    
-    public static async Task SetSucceeded<TResult>(this Task<ExistingEffects> existingEffects, string effectId, TResult result)
-        => await (await existingEffects).SetSucceeded(effectId, result);
-
-    public static async Task SetFailed(this Task<ExistingEffects> existingEffects, string effectId, Exception exception)
-        => await (await existingEffects).SetFailed(effectId, exception);
+        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(exception)));
 }
