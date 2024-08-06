@@ -61,6 +61,9 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription.SyncStore(maxSinceLastSynced);
         public InterruptCount PushMessages() => _subscription.PushMessages();
 
+        public Task RegisterTimeout() => _subscription.RegisterTimeout();
+        public Task CancelTimeout() => _subscription.CancelTimeout();
+
         private void OnNext(T next)
         {
             if (_completed) return;

@@ -75,6 +75,9 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
         public InterruptCount PushMessages() => _innerSubscription.PushMessages();
         
+        public Task RegisterTimeout() => _innerSubscription.RegisterTimeout();
+        public Task CancelTimeout() => _innerSubscription.CancelTimeout();
+
         private void OnNext(TIn next)
         {
             if (_completed) return;

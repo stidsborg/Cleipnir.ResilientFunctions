@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
@@ -74,6 +75,49 @@ public abstract class TimeoutTests
         await Should.ThrowAsync<NoResultException>(
             () => rAction.Invoke("instanceId", "hello world")
         );
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+    public abstract Task RegisteredTimeoutIsCancelledAfterReactiveChainCompletes();
+    protected async Task  RegisteredTimeoutIsCancelledAfterReactiveChainCompletes(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
+            )
+        );
+        var registration = functionsRegistry.RegisterAction(
+            flowId.Type,
+            inner: Task (string _, Workflow workflow) =>
+                workflow
+                    .Messages
+                    .TakeUntilTimeout("TimeoutId", expiresIn: TimeSpan.FromMilliseconds(5_000))
+                    .First()
+        );
+
+        await registration.Schedule("someInstanceId", "someParam");
+
+        var messageWriter = registration.MessageWriters.For("someInstanceId");
+        await messageWriter.AppendMessage("someMessage");
+
+        var controlPanel = await registration.ControlPanel("someInstanceId");
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.WaitForCompletion();
+
+        await controlPanel.Refresh();
+        await controlPanel
+            .RegisteredTimeouts
+            .All
+            .SelectAsync(ts => ts.Count == 0)
+            .ShouldBeTrueAsync();
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }

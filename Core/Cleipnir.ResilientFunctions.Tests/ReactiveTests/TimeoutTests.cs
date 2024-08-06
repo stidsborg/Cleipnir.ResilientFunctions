@@ -103,6 +103,24 @@ public class TimeoutTests
         var option = task.Result;
         option.HasValue.ShouldBeTrue();
         option.Value.ShouldBe("Hello");
+        
+        timeoutProviderStub.Cancelled.ShouldBe(timeoutId);
+    }
+    
+    [TestMethod]
+    public async Task ExistingTimeoutEventInMessagesAvoidRegisteredTimeoutsCancellation()
+    {
+        var timeoutId = "TimeoutId";
+        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
+        
+        var timeoutProviderStub = new RegisteredTimeoutsStub();
+        var source = new TestSource(timeoutProviderStub);
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(2));
+
+        var task = await source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
+        task.HasValue.ShouldBeFalse();
+
+        timeoutProviderStub.Cancelled.ShouldBeNull();
     }
     
     private class RegisteredTimeoutsStub : IRegisteredTimeouts
@@ -112,26 +130,34 @@ public class TimeoutTests
             get
             {
                 lock (_sync)
-                    return _registrations.ToList();
+                    return _registrations
+                        .Select(kv => Tuple.Create(kv.Key, kv.Value))
+                        .ToList();
             }
         }
 
+        public volatile TimeoutId? Cancelled = null; 
+
         private readonly object _sync = new();
-        private readonly List<Tuple<TimeoutId, DateTime>> _registrations = new();
+        private readonly Dictionary<TimeoutId, DateTime> _registrations = new();
             
         public Task RegisterTimeout(TimeoutId timeoutId, DateTime expiresAt)
         {
             lock (_sync)
-                _registrations.Add(Tuple.Create(timeoutId, expiresAt));
+                _registrations[timeoutId] = expiresAt;
 
             return Task.CompletedTask;
         }
 
         public Task RegisterTimeout(TimeoutId timeoutId, TimeSpan expiresIn)
-            => Task.FromException(new Exception("Stub-method invocation"));
+            => RegisterTimeout(timeoutId, DateTime.UtcNow.Add(expiresIn));
 
         public Task CancelTimeout(TimeoutId timeoutId)
-            => Task.FromException(new Exception("Stub-method invocation"));
+        {
+            Cancelled = timeoutId;
+            return Task.CompletedTask;
+        }
+        
         public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()
             => Task.FromException<IReadOnlyList<RegisteredTimeout>>(new Exception("Stub-method invocation"));
     }

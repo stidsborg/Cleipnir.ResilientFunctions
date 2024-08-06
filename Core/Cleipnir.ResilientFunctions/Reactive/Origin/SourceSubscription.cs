@@ -72,4 +72,7 @@ internal class SourceSubscription : ISubscription
 
         return interruptCount;
     }
+
+    public Task RegisterTimeout() => Task.CompletedTask;
+    public Task CancelTimeout() => Task.CompletedTask;
 }

@@ -17,4 +17,7 @@ public interface ISubscription
     Task Initialize();
     Task SyncStore(TimeSpan maxSinceLastSynced);
     InterruptCount PushMessages();
+    
+    Task RegisterTimeout();
+    Task CancelTimeout();
 }

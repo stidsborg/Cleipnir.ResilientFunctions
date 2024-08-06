@@ -31,8 +31,13 @@ public static class LeafOperators
 
         //short-circuit
         if (tcs.Task.IsCompleted)
+        {
+            await subscription.CancelTimeout();
             return await tcs.Task;
+        }
 
+        await subscription.RegisterTimeout();
+        
         maxWait ??= subscription.DefaultMessageMaxWait;
         if (maxWait == TimeSpan.Zero)
             throw new SuspendInvocationException(interruptCount);
@@ -46,9 +51,12 @@ public static class LeafOperators
             await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
             interruptCount = subscription.PushMessages();
         }
-        
+
         if (tcs.Task.IsCompleted)
+        {
+            await subscription.CancelTimeout();
             return await tcs.Task;
+        }
         
         throw new SuspendInvocationException(interruptCount);
     }

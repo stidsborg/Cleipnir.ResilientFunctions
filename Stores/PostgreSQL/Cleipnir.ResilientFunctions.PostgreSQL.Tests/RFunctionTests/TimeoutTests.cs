@@ -13,4 +13,8 @@ public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
     [TestMethod]
     public override Task ExpiredTimeoutMakesReactiveChainThrowTimeoutException()
         => ExpiredTimeoutMakesReactiveChainThrowTimeoutException(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task RegisteredTimeoutIsCancelledAfterReactiveChainCompletes()
+        => RegisteredTimeoutIsCancelledAfterReactiveChainCompletes(FunctionStoreFactory.Create());
 }

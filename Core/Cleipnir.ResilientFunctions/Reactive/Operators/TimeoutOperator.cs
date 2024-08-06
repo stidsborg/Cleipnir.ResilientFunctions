@@ -61,8 +61,19 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             
             _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError);
         }
+        
+        public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
+        public IReactiveChain<object> Source => _innerSubscription.Source;
+        public IRegisteredTimeouts RegisteredTimeouts => _innerSubscription.RegisteredTimeouts;
+        
+        public Task Initialize() => _innerSubscription.Initialize();
 
-        public async Task RegisterTimeoutIfNotInExistingEvents()
+        public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
+
+        public InterruptCount PushMessages() => _innerSubscription.PushMessages();
+
+        public Task RegisterTimeout() => _innerSubscription.RegisteredTimeouts.RegisterTimeout(_timeoutId, _expiresAt);
+        public Task CancelTimeout()
         {
             var timeoutExists = _innerSubscription
                 .Source
@@ -73,31 +84,10 @@ public class TimeoutOperator<T> : IReactiveChain<T>
                 .Any();
 
             if (timeoutExists)
-                return;
-
-            try
-            {
-                await _innerSubscription.RegisteredTimeouts.RegisterTimeout(_timeoutId, _expiresAt);
-            }
-            catch (Exception exception)
-            {
-                OnError(exception);
-            }
-        }
-
-        public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
-        public IReactiveChain<object> Source => _innerSubscription.Source;
-        public IRegisteredTimeouts RegisteredTimeouts => _innerSubscription.RegisteredTimeouts;
-        
-        public async Task Initialize()
-        {
-            await _innerSubscription.Initialize();
-            await RegisterTimeoutIfNotInExistingEvents();
-        }
-
-        public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
-
-        public InterruptCount PushMessages() => _innerSubscription.PushMessages();
+                return Task.CompletedTask;
+            
+            return _innerSubscription.RegisteredTimeouts.CancelTimeout(_timeoutId);  
+        }   
 
         private void OnNext(T next)
         {
