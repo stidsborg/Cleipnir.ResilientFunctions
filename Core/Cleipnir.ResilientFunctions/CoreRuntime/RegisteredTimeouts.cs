@@ -48,14 +48,15 @@ public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRe
         lock (_sync)
             if (registeredTimeouts.ContainsKey(timeoutId.Value))
                 return;
-            else
-                registeredTimeouts[timeoutId] = new RegisteredTimeout(timeoutId, expiresAt.ToUniversalTime());
         
         expiresAt = expiresAt.ToUniversalTime();
         await timeoutStore.UpsertTimeout(
             new StoredTimeout(flowId, timeoutId.Value, expiresAt.Ticks),
             overwrite: true
         );
+        
+        lock (_sync)
+            registeredTimeouts[timeoutId] = new RegisteredTimeout(timeoutId, expiresAt.ToUniversalTime());
     }
     
     public Task RegisterTimeout(TimeoutId timeoutId, TimeSpan expiresIn)
