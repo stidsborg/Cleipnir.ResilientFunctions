@@ -39,8 +39,6 @@ public static class EngagementReminderSaga
             if (either.Match(ea => true, er => false))
             {
                 await workflow.Effect.Capture("NotifyHR", work: () => NotifyHR(candidateEmail));
-                await messages.CancelTimeoutEvent(timeoutId: i.ToString());
-                
                 return;
             }
 
