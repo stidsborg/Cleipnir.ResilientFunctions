@@ -1393,7 +1393,7 @@ public abstract class ControlPanelTests
         var effects = controlPanel.Effects;
         await effects.SetFailed(effectId: "Test", new InvalidOperationException("oh no"));
 
-        await Should.ThrowAsync<PreviousFunctionInvocationException>(() => 
+        await Should.ThrowAsync<PreviousInvocationException>(() => 
             controlPanel.Restart()
         );
 

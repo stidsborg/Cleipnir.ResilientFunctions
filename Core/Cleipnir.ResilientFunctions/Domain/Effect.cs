@@ -196,7 +196,7 @@ public class Effect
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return (storedEffect.Result == null ? default : JsonSerializer.Deserialize<T>(storedEffect.Result))!;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
-                throw new PreviousFunctionInvocationException(_flowId, _serializer.DeserializeException(storedEffect.StoredException!));
+                throw new PreviousInvocationException(_flowId, _serializer.DeserializeException(storedEffect.StoredException!));
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
         }

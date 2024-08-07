@@ -23,7 +23,7 @@ public abstract class ExceptionHandlingTests
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithState();
@@ -39,7 +39,7 @@ public abstract class ExceptionHandlingTests
         ).Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction();
@@ -57,7 +57,7 @@ public abstract class ExceptionHandlingTests
             .Invoke;
         
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithState();
@@ -75,6 +75,6 @@ public abstract class ExceptionHandlingTests
             .Invoke;
 
         await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousFunctionInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
     }
 }

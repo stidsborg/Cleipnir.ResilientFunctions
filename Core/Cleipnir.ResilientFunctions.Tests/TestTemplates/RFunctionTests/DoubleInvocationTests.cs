@@ -146,7 +146,7 @@ public abstract class DoubleInvocationTests
             await secondInvocationTask;
             Assert.Fail("Expected task to fail");
         }
-        catch (PreviousFunctionInvocationException e)
+        catch (PreviousInvocationException e)
         {
             Assert.IsTrue(e.Exception.ErrorType == typeof(InvalidOperationException));
         }

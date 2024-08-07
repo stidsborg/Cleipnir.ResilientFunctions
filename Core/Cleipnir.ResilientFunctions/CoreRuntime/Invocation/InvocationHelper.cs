@@ -84,7 +84,7 @@ internal class InvocationHelper<TParam, TReturn>
                             : _settings.Serializer.DeserializeResult<TReturn>(storedFunction.Result);
                 case Status.Failed:
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
-                    throw new PreviousFunctionInvocationException(flowId, error);
+                    throw new PreviousInvocationException(flowId, error);
                 case Status.Postponed:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new FunctionInvocationPostponedException(
